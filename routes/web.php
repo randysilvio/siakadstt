@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\ProgramStudiController;
 use App\Http\Controllers\MataKuliahController;
@@ -9,7 +10,6 @@ use App\Http\Controllers\KrsController;
 use App\Http\Controllers\NilaiController;
 use App\Http\Controllers\KhsController;
 use App\Http\Controllers\TranskripController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DosenController;
 use App\Http\Controllers\DosenDashboardController;
 use App\Http\Controllers\CetakController;
@@ -81,7 +81,11 @@ Route::middleware('auth')->group(function () {
 
     // GRUP RUTE KHUSUS HANYA UNTUK ADMIN
     Route::middleware('admin')->group(function () {
+        Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
+        Route::get('/mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
+        Route::post('/mahasiswa/import', [MahasiswaController::class, 'import'])->name('mahasiswa.import');
         Route::resource('mahasiswa', MahasiswaController::class);
+        
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('mata-kuliah', MataKuliahController::class);
         Route::resource('dosen', DosenController::class);
@@ -92,13 +96,6 @@ Route::middleware('auth')->group(function () {
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
     });
-    
 });
 
 require __DIR__.'/auth.php';
-Route::get('/storage-link', function () {
-    $targetFolder = storage_path('app/public');
-    $linkFolder = $_SERVER['DOCUMENT_ROOT'] . '/storage';
-    symlink($targetFolder, $linkFolder);
-    return 'Symlink created successfully';
-});
