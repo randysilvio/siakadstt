@@ -14,7 +14,13 @@
             <input type="text" class="form-control @error('nama_lengkap') is-invalid @enderror" id="nama_lengkap" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}">
             @error('nama_lengkap')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
-
+        <div class="mb-3 form-check">
+            <input type="hidden" name="is_keuangan" value="0">
+            <input class="form-check-input" type="checkbox" value="1" id="is_keuangan" name="is_keuangan" {{ old('is_keuangan', $dosen->is_keuangan) ? 'checked' : '' }}>
+            <label class="form-check-label" for="is_keuangan">
+                Jadikan sebagai Bagian Keuangan
+            </label>
+        </div>
         <hr>
         <h5>Data Akun Login</h5>
         <div class="mb-3">

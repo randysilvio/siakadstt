@@ -1,4 +1,15 @@
 <x-guest-layout>
+    <!-- Logo and Title -->
+    <div class="flex flex-col items-center mb-6">
+        {{-- This adds the logo. The asset() helper correctly links to your public directory. --}}
+        <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI PAPUA" class="w-24 h-24 mb-4" onerror="this.style.display='none'; this.onerror=null;">
+        
+        {{-- This adds the title for your application. --}}
+        <h1 class="text-2xl font-bold text-center text-gray-800">
+            SIAKAD STT GPI PAPUA
+        </h1>
+    </div>
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 

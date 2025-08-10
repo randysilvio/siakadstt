@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Dosen extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'nidn', 'nama_lengkap'];
+    protected $fillable = ['user_id', 'nidn', 'nama_lengkap', 'is_keuangan'];
 
     public function mataKuliahs()
     {

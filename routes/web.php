@@ -27,10 +27,8 @@ use App\Http\Controllers\KaprodiDashboardController;
 |--------------------------------------------------------------------------
 */
 
-// UBAH BAGIAN INI
-// Arahkan halaman utama langsung ke halaman login
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -75,20 +73,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
 
-    // GRUP RUTE KHUSUS UNTUK ADMIN
+    // GRUP RUTE UNTUK KEUANGAN (ADMIN & DOSEN KEUANGAN)
+    Route::middleware('keuangan')->group(function() {
+        Route::resource('pembayaran', PembayaranController::class)->except(['show', 'edit', 'update']);
+        Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
+    });
+
+    // GRUP RUTE KHUSUS HANYA UNTUK ADMIN
     Route::middleware('admin')->group(function () {
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('mata-kuliah', MataKuliahController::class);
         Route::resource('dosen', DosenController::class);
-        Route::resource('pembayaran', PembayaranController::class)->except(['show', 'edit', 'update']);
-        Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');
         Route::resource('pengumuman', PengumumanController::class);
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
         Route::resource('tahun-akademik', TahunAkademikController::class);
-        Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
+        Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkdemikController::class, 'setActive'])->name('tahun-akademik.set-active');
     });
 });
 

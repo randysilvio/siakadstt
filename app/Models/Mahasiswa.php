@@ -20,6 +20,16 @@ class Mahasiswa extends Model
         'program_studi_id',
         'user_id',
         'dosen_wali_id',
+        // Tambahan
+        'tempat_lahir',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'agama',
+        'alamat',
+        'nomor_telepon',
+        'nama_ibu_kandung',
+        'status_mahasiswa',
+        'tahun_masuk',
     ];
 
     /**
