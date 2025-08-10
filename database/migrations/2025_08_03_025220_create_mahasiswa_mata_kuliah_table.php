@@ -6,12 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Nama tabel sesuai urutan alfabet: mahasiswa_mata_kuliah
         Schema::create('mahasiswa_mata_kuliah', function (Blueprint $table) {
             $table->id();
             $table->foreignId('mahasiswa_id')->constrained()->onDelete('cascade');
@@ -20,9 +16,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('mahasiswa_mata_kuliah');

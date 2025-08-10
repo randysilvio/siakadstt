@@ -14,7 +14,7 @@ return new class extends Migration
             $table->integer('jumlah');
             $table->string('semester');
             $table->date('tanggal_bayar')->nullable();
-            $table->string('status')->default('belum_lunas'); // misal: belum_lunas, lunas
+            $table->string('status')->default('belum_lunas');
             $table->timestamps();
         });
     }
