@@ -90,8 +90,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
         Route::resource('tahun-akademik', TahunAkademikController::class);
-        Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkdemikController::class, 'setActive'])->name('tahun-akademik.set-active');
+        Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
     });
+    
 });
 
 require __DIR__.'/auth.php';
+Route::get('/storage-link', function () {
+    $targetFolder = storage_path('app/public');
+    $linkFolder = $_SERVER['DOCUMENT_ROOT'] . '/storage';
+    symlink($targetFolder, $linkFolder);
+    return 'Symlink created successfully';
+});
