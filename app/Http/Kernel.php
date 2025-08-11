@@ -59,6 +59,11 @@ class Kernel extends HttpKernel
 
         // Middleware Kustom Anda
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
-        'keuangan' => \App\Http\Middleware\KeuanganMiddleware::class, // <-- TAMBAHKAN BARIS INI
+        'keuangan' => \App\Http\Middleware\KeuanganMiddleware::class,
+        'dosen' => \App\Http\Middleware\DosenMiddleware::class,
+        'kaprodi' => \App\Http\Middleware\KaprodiMiddleware::class,
+        'mahasiswa' => \App\Http\Middleware\MahasiswaMiddleware::class,
+        'cek_pembayaran' => \App\Http\Middleware\CekStatusPembayaranMiddleware::class,
+        'cek_periode_krs' => \App\Http\Middleware\CekPeriodeKrsMiddleware::class,
     ];
 }

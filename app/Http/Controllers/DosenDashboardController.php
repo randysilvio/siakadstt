@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ProgramStudi;
 
 class DosenDashboardController extends Controller
 {
@@ -17,10 +18,13 @@ class DosenDashboardController extends Controller
             abort(403, 'Data dosen tidak ditemukan.');
         }
         
-        // Ambil mata kuliah yang diajar oleh dosen yang login,
-        // dan hitung jumlah mahasiswa yang mengambilnya.
         $mata_kuliahs = $dosen->mataKuliahs()->withCount('mahasiswas')->get();
+        $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
 
-        return view('dosen.dashboard', compact('dosen', 'mata_kuliahs'));
+        // Cek apakah dosen ini adalah Kaprodi di salah satu prodi
+        $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
+
+        // Kirim semua variabel yang dibutuhkan ke view
+        return view('dosen.dashboard', compact('dosen', 'mata_kuliahs', 'jumlahMahasiswaWali', 'prodiYangDikepalai'));
     }
 }

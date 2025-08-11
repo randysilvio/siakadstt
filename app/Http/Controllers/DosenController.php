@@ -12,16 +12,16 @@ use Illuminate\Validation\Rules;
 class DosenController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Menampilkan daftar semua dosen.
      */
     public function index()
     {
-        $dosens = Dosen::with('user')->get(); // Eager load user
+        $dosens = Dosen::with('user')->latest()->paginate(10);
         return view('dosen.index', compact('dosens'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Menampilkan form untuk membuat dosen baru.
      */
     public function create()
     {
@@ -29,12 +29,12 @@ class DosenController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Menyimpan dosen baru ke database.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'nidn' => 'required|unique:dosens|max:15',
+            'nidn' => 'required|unique:dosens|max:20',
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
@@ -52,46 +52,36 @@ class DosenController extends Controller
                 'user_id' => $user->id,
                 'nidn' => $request->nidn,
                 'nama_lengkap' => $request->nama_lengkap,
-                'is_keuangan' => $request->has('is_keuangan'),
             ]);
         });
-        
-        return redirect()->route('dosen.index')->with('success', 'Data Dosen dan akun login berhasil dibuat.');
-    }
-    
-    /**
-     * Display the specified resource.
-     */
-    public function show(Dosen $dosen)
-    {
-        // Tidak digunakan
+
+        return redirect()->route('dosen.index')->with('success', 'Data dosen berhasil ditambahkan.');
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Menampilkan form untuk mengedit data dosen.
      */
     public function edit(Dosen $dosen)
     {
-        $dosen->load('user'); // Pastikan relasi user di-load
         return view('dosen.edit', compact('dosen'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Memperbarui data dosen di database.
      */
     public function update(Request $request, Dosen $dosen)
     {
         $request->validate([
-            'nidn' => 'required|max:15|unique:dosens,nidn,' . $dosen->id,
+            'nidn' => 'required|max:20|unique:dosens,nidn,' . $dosen->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class . ',email,' . $dosen->user_id],
         ]);
 
         DB::transaction(function () use ($request, $dosen) {
-            $dosenData = $request->only(['nidn', 'nama_lengkap']);
-            $dosenData['is_keuangan'] = $request->has('is_keuangan');
-
-            $dosen->update($dosenData);
+            $dosen->update([
+                'nidn' => $request->nidn,
+                'nama_lengkap' => $request->nama_lengkap,
+            ]);
 
             if ($dosen->user) {
                 $dosen->user->update([
@@ -101,11 +91,11 @@ class DosenController extends Controller
             }
         });
 
-        return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil diperbarui.');
+        return redirect()->route('dosen.index')->with('success', 'Data dosen berhasil diperbarui.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus data dosen dari database.
      */
     public function destroy(Dosen $dosen)
     {
@@ -115,6 +105,7 @@ class DosenController extends Controller
             }
             $dosen->delete();
         });
-        return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil dihapus.');
+
+        return redirect()->route('dosen.index')->with('success', 'Data dosen berhasil dihapus.');
     }
 }
