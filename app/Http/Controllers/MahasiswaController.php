@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules;
 // Tambahkan use statement untuk Laravel Excel
 use App\Exports\MahasiswasExport;
 use App\Imports\MahasiswasImport;
+use App\Exports\MahasiswaImportTemplateExport; // <-- TAMBAHKAN INI
 use Maatwebsite\Excel\Facades\Excel;
 
 class MahasiswaController extends Controller
@@ -196,5 +197,13 @@ class MahasiswaController extends Controller
         } catch (\Exception $e) {
             return redirect('/mahasiswa')->with('error', 'Terjadi kesalahan saat impor: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Menangani permintaan download template impor.
+     */
+    public function downloadImportTemplate()
+    {
+        return Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
     }
 }

@@ -20,7 +20,6 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-4 text-center">
-                            {{-- Placeholder untuk foto profil --}}
                             <svg class="img-fluid rounded-circle mb-3" width="120" height="120" xmlns="http://www.w3.org/2000/svg" role="img" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#868e96"></rect><text x="50%" y="50%" fill="#dee2e6" dy=".3em">Foto</text></svg>
                         </div>
                         <div class="col-md-8">
@@ -51,13 +50,13 @@
                 <div class="card-header">Pengumuman</div>
                 <div class="list-group list-group-flush">
                     @forelse($pengumumans as $pengumuman)
-                        <div class="list-group-item">
+                        <a href="{{ route('pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ $pengumuman->judul }}</h6>
                                 <small>{{ $pengumuman->created_at->diffForHumans() }}</small>
                             </div>
                             <p class="mb-1 small">{{ Str::limit($pengumuman->konten, 100) }}</p>
-                        </div>
+                        </a>
                     @empty
                         <div class="list-group-item">Tidak ada pengumuman.</div>
                     @endforelse

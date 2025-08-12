@@ -20,6 +20,11 @@ use App\Http\Controllers\PerwalianController;
 use App\Http\Controllers\TahunAkademikController;
 use App\Http\Controllers\ValidasiKrsController;
 use App\Http\Controllers\KaprodiDashboardController;
+use App\Http\Controllers\KalenderController;
+use App\Http\Controllers\VerumController;
+use App\Http\Controllers\VerumMateriController;
+use App\Http\Controllers\VerumTugasController;
+use App\Http\Controllers\VerumPresensiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +43,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Rute untuk Kalender Akademik
+    Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
+    Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
+
+    // Rute untuk Modul Verum (Ruang Kelas Virtual)
+    Route::prefix('verum')->name('verum.')->group(function() {
+        Route::get('/', [VerumController::class, 'index'])->name('index');
+        Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('dosen');
+        Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('dosen');
+        Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
+        
+        Route::post('/kelas/{verum_kela}/forum', [VerumController::class, 'storePost'])->name('forum.store');
+
+        Route::post('/kelas/{verum_kela}/materi', [VerumMateriController::class, 'store'])->name('materi.store')->middleware('dosen');
+        Route::delete('/materi/{verum_materi}', [VerumMateriController::class, 'destroy'])->name('materi.destroy')->middleware('dosen');
+
+        Route::post('/kelas/{verum_kela}/tugas', [VerumTugasController::class, 'store'])->name('tugas.store')->middleware('dosen');
+        Route::post('/tugas/{verum_tuga}/kumpulkan', [VerumTugasController::class, 'storePengumpulan'])->name('tugas.kumpulkan')->middleware('mahasiswa');
+        
+        Route::post('/kelas/{verum_kela}/presensi', [VerumPresensiController::class, 'store'])->name('presensi.store')->middleware('dosen');
+        Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('mahasiswa');
+    });
 
     // RUTE UNTUK MAHASISWA
     Route::middleware('mahasiswa')->group(function () {
@@ -97,6 +125,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
+        Route::resource('kalender', KalenderController::class)->except(['show']);
     });
 });
 

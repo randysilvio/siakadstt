@@ -45,7 +45,7 @@ class PengumumanController extends Controller
      */
     public function show(Pengumuman $pengumuman)
     {
-        // Tidak digunakan untuk alur ini
+        return view('pengumuman.show', compact('pengumuman'));
     }
 
     /**
