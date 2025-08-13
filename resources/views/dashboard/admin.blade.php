@@ -25,7 +25,7 @@
         <div class="col-md-3 mb-4">
             <div class="card text-white bg-info">
                 <div class="card-body">
-                    <h5 class="card-title">Total Program Studi</h5>
+                    <h5 class="card-title">Total Prodi</h5>
                     <p class="card-text fs-4 fw-bold">{{ $totalProdi }}</p>
                 </div>
             </div>
@@ -34,27 +34,31 @@
             <div class="card text-white bg-warning">
                 <div class="card-body">
                     <h5 class="card-title">Total Mata Kuliah</h5>
-                    <p class="card-text fs-4 fw-bold">{{ $totalMataKuliah }}</p>
+                    <p class="card-text fs-4 fw-bold">{{ $totalMatkul }}</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        {{-- Grafik Mahasiswa --}}
-        <div class="col-md-7 mb-4">
+        <div class="col-lg-8 mb-4">
+            {{-- Di sini bisa ditambahkan grafik atau data lainnya --}}
             <div class="card">
-                <div class="card-header">Distribusi Mahasiswa per Program Studi</div>
+                <div class="card-header">
+                    Grafik Mahasiswa per Program Studi (Contoh)
+                </div>
                 <div class="card-body">
-                    <canvas id="mahasiswaPerProdiChart"></canvas>
+                    <p>Grafik akan ditampilkan di sini.</p>
                 </div>
             </div>
         </div>
-
-        {{-- Panel Pengumuman --}}
-        <div class="col-md-5 mb-4">
+        <div class="col-lg-4 mb-4">
+            {{-- Panel Pengumuman --}}
             <div class="card">
-                <div class="card-header">Pengumuman Terbaru</div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Pengumuman Terbaru
+                    <a href="{{ route('pengumuman.create') }}" class="btn btn-sm btn-outline-success">+ Buat Baru</a>
+                </div>
                 <div class="list-group list-group-flush">
                     @forelse($pengumumans as $pengumuman)
                         <a href="{{ route('pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
@@ -62,60 +66,17 @@
                                 <h6 class="mb-1">{{ $pengumuman->judul }}</h6>
                                 <small>{{ $pengumuman->created_at->diffForHumans() }}</small>
                             </div>
-                            <small>Target: {{ Str::ucfirst($pengumuman->target_role) }}</small>
+                            <p class="mb-1 small text-muted">{{ Str::limit($pengumuman->konten, 80) }}</p>
                         </a>
                     @empty
                         <div class="list-group-item">Tidak ada pengumuman.</div>
                     @endforelse
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ route('pengumuman.index') }}">Kelola semua pengumuman</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-{{-- Library untuk Grafik --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        fetch('{{ route("dashboard.chart.mahasiswa-per-prodi") }}')
-            .then(response => response.json())
-            .then(data => {
-                const ctx = document.getElementById('mahasiswaPerProdiChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'pie', // Tipe grafik: pie, bar, line, dll.
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: 'Jumlah Mahasiswa',
-                            data: data.values,
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.7)',
-                                'rgba(54, 162, 235, 0.7)',
-                                'rgba(255, 206, 86, 0.7)',
-                                'rgba(75, 192, 192, 0.7)',
-                                'rgba(153, 102, 255, 0.7)',
-                                'rgba(255, 159, 64, 0.7)'
-                            ],
-                            borderColor: '#fff',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            title: {
-                                display: false,
-                                text: 'Distribusi Mahasiswa'
-                            }
-                        }
-                    }
-                });
-            });
-    });
-</script>
-@endpush

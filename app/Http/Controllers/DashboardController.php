@@ -9,21 +9,18 @@ use App\Models\Mahasiswa;
 use App\Models\Dosen;
 use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
-use App\Models\Koleksi; // Diperlukan untuk dasbor perpustakaan
-use App\Models\Pembayaran; // Diperlukan untuk dasbor keuangan
+use App\Models\Koleksi;
+use App\Models\Pembayaran;
 
 class DashboardController extends Controller
 {
     /**
      * Menampilkan dashboard yang sesuai berdasarkan peran pengguna.
-     * Controller ini sekarang menjadi pusat untuk semua logika dashboard,
-     * menghilangkan redirect yang menyebabkan error dan notifikasi ganda.
      */
     public function index()
     {
         $user = Auth::user();
 
-        // Ambil pengumuman yang relevan
         $query = Pengumuman::latest()->take(5);
         if ($user->role !== 'admin') {
             $query->where('target_role', 'semua')
@@ -31,14 +28,14 @@ class DashboardController extends Controller
         }
         $pengumumans = $query->get();
 
-        // Logika untuk setiap peran
         switch ($user->role) {
             case 'admin':
+                // PERBAIKAN: Mengubah nama kunci array menjadi camelCase
                 return view('dashboard.admin', [
-                    'total_mahasiswa' => Mahasiswa::count(),
-                    'total_dosen' => Dosen::count(),
-                    'total_prodi' => ProgramStudi::count(),
-                    'total_matkul' => MataKuliah::count(),
+                    'totalMahasiswa' => Mahasiswa::count(),
+                    'totalDosen' => Dosen::count(),
+                    'totalProdi' => ProgramStudi::count(),
+                    'totalMatkul' => MataKuliah::count(),
                     'pengumumans' => $pengumumans
                 ]);
 
@@ -76,7 +73,6 @@ class DashboardController extends Controller
                 ]);
 
             case 'tendik':
-                // PERBAIKAN: Logika tendik sekarang menampilkan view secara langsung
                 if ($user->jabatan == 'pustakawan') {
                     return view('perpustakaan.dashboard', [
                         'totalJudul' => Koleksi::count(),
@@ -95,7 +91,6 @@ class DashboardController extends Controller
                 break;
         }
 
-        // Fallback jika tidak ada peran yang cocok
         return view('welcome');
     }
 }
