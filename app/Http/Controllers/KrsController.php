@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
+use App\Models\Pembayaran; // Tambahkan baris ini
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -19,9 +20,19 @@ class KrsController extends Controller
         $mahasiswa = Auth::user()->mahasiswa;
         if (!$mahasiswa) { abort(403, 'Data mahasiswa tidak ditemukan.'); }
 
+        // --- Logika Pengecekan Tagihan (Ditambahkan) ---
+        $memiliki_tagihan = Pembayaran::where('mahasiswa_id', $mahasiswa->id)
+                                      ->where('status', 'belum lunas')
+                                      ->exists();
+
+        if ($memiliki_tagihan) {
+            return redirect()->route('dashboard')->with('warning', 'Anda tidak dapat mengisi KRS karena masih memiliki tagihan yang belum lunas.');
+        }
+        // --- Akhir Logika Pengecekan Tagihan ---
+
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
         if (!$periodeAktif) {
-             return redirect()->route('dashboard')->with('error', 'Saat ini tidak ada periode akademik yang aktif.');
+            return redirect()->route('dashboard')->with('error', 'Saat ini tidak ada periode akademik yang aktif.');
         }
 
         // Logika Batas SKS & IPK
@@ -46,8 +57,8 @@ class KrsController extends Controller
 
         // Ambil ID semua mata kuliah yang sudah LULUS (nilai D ke atas)
         $mk_lulus_ids = $mahasiswa->mataKuliahs()
-                                ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
-                                ->pluck('mata_kuliahs.id')->toArray();
+                                 ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
+                                 ->pluck('mata_kuliahs.id')->toArray();
 
         // Ambil semua mata kuliah beserta relasinya
         $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])->get();
@@ -69,6 +80,7 @@ class KrsController extends Controller
      */
     public function store(Request $request)
     {
+        // ... (kode store yang sudah ada)
         $mahasiswa = Auth::user()->mahasiswa;
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();

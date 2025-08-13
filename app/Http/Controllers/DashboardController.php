@@ -9,42 +9,48 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\Dosen;
 use App\Models\Pengumuman;
+use App\Models\Pembayaran;
+
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
+        $role = $user->role;
+        $jabatan = $user->jabatan;
 
-        if ($user->role == 'admin') {
+        // Ambil pengumuman yang ditujukan untuk peran pengguna atau untuk semua user
+        $pengumumans = Pengumuman::whereIn('target_role', [$role, 'semua'])->latest()->take(5)->get();
+
+        if ($role == 'admin') {
             $totalMahasiswa = Mahasiswa::count();
             $totalProdi = ProgramStudi::count();
             $totalMataKuliah = MataKuliah::count();
             $totalDosen = Dosen::count();
 
-            $pengumumans = Pengumuman::where('target_role', 'admin')
-                                     ->orWhere('target_role', 'semua')
-                                     ->latest()->take(5)->get();
-
             return view('dashboard.admin', compact('totalMahasiswa', 'totalProdi', 'totalMataKuliah', 'totalDosen', 'pengumumans'));
 
-        } elseif ($user->role == 'dosen') {
-            return redirect()->route('dosen.dashboard');
+        } elseif ($role == 'dosen') {
+            $dosen = $user->dosen;
+            $mata_kuliahs = $dosen->mataKuliahs()->withCount('mahasiswas')->get();
+            $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
+            $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
             
-        } elseif ($user->role == 'mahasiswa') {
+            return view('dashboard.dosen', compact('dosen', 'mata_kuliahs', 'jumlahMahasiswaWali', 'prodiYangDikepalai', 'pengumumans'));
+
+        } elseif ($role == 'mahasiswa') {
             $mahasiswa = $user->mahasiswa;
             if (!$mahasiswa) {
-                // Tambahkan penanganan jika data mahasiswa tidak ditemukan
                 auth()->logout();
                 return redirect()->route('login')->with('error', 'Data mahasiswa tidak ditemukan. Silakan hubungi admin.');
             }
 
-            $memiliki_tagihan = $mahasiswa->pembayarans()->where('status', 'belum_lunas')->exists();
-            
             $krs = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
             $total_sks = 0;
             $total_bobot_sks = 0;
             $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+
             foreach ($krs as $mk) {
                 $sks = $mk->sks;
                 $nilai = $mk->pivot->nilai;
@@ -54,31 +60,20 @@ class DashboardController extends Controller
                 }
             }
             $ipk = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
+            
+            $memiliki_tagihan = $mahasiswa->pembayarans()->where('status', 'belum lunas')->exists();
 
-            $pengumumans = Pengumuman::where('target_role', 'mahasiswa')
-                                     ->orWhere('target_role', 'semua')
-                                     ->latest()->take(5)->get();
-
+            // Perbaikan: Pastikan variabel pengumumans dikirim ke view mahasiswa
             return view('dashboard.mahasiswa', compact('mahasiswa', 'total_sks', 'ipk', 'memiliki_tagihan', 'pengumumans'));
+            
+        } elseif ($role == 'tendik') {
+            if ($jabatan == 'pustakawan') {
+                return redirect()->route('perpustakaan.dashboard');
+            } elseif ($jabatan == 'keuangan') {
+                return redirect()->route('keuangan.dashboard');
+            }
         }
 
-        // Fallback untuk user tanpa role yang sesuai
-        return view('dashboard');
-    }
-
-    /**
-     * Menyediakan data untuk grafik mahasiswa per prodi.
-     */
-    public function mahasiswaPerProdi()
-    {
-        $data = ProgramStudi::withCount('mahasiswas')->get();
-
-        $labels = $data->pluck('nama_prodi');
-        $values = $data->pluck('mahasiswas_count');
-
-        return response()->json([
-            'labels' => $labels,
-            'values' => $values,
-        ]);
+        return view('dashboard.default', compact('pengumumans'));
     }
 }

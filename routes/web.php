@@ -25,6 +25,9 @@ use App\Http\Controllers\VerumController;
 use App\Http\Controllers\VerumMateriController;
 use App\Http\Controllers\VerumTugasController;
 use App\Http\Controllers\VerumPresensiController;
+use App\Http\Controllers\PerpustakaanController;
+use App\Http\Controllers\KoleksiController;
+use App\Http\Controllers\TendikController;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +70,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('mahasiswa');
     });
 
+    // BLOK UNTUK MODUL PERPUSTAKAAN
+    Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
+        Route::get('/', [PerpustakaanController::class, 'index'])->name('index');
+
+        Route::middleware('pustakawan')->group(function() {
+            Route::get('/dashboard', [PerpustakaanController::class, 'dashboard'])->name('dashboard');
+            Route::resource('koleksi', KoleksiController::class);
+        });
+    });
+
     // RUTE UNTUK MAHASISWA
     Route::middleware('mahasiswa')->group(function () {
         Route::middleware(['cek_pembayaran', 'cek_periode_krs'])->group(function () {
@@ -101,14 +114,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
 
-    // GRUP RUTE UNTUK KEUANGAN (ADMIN & DOSEN KEUANGAN)
-    Route::middleware('keuangan')->group(function() {
+    // GRUP RUTE UNTUK KEUANGAN (ADMIN, DOSEN KEUANGAN & TENDIK KEUANGAN)
+    Route::middleware('keuangan_tendik')->group(function() {
+        Route::get('/keuangan/dashboard', [PembayaranController::class, 'dashboard'])->name('keuangan.dashboard');
+        
         Route::resource('pembayaran', PembayaranController::class)->except(['show', 'edit', 'update']);
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
     });
 
     // GRUP RUTE KHUSUS HANYA UNTUK ADMIN
     Route::middleware('admin')->group(function () {
+        Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+        
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
         
         Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
@@ -126,6 +143,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
         Route::resource('kalender', KalenderController::class)->except(['show']);
+        
+        Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
+        Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
     });
 });
 

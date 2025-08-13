@@ -9,7 +9,15 @@ use Illuminate\Support\Facades\Auth;
 
 class PembayaranController extends Controller
 {
-    // --- FUNGSI UNTUK ADMIN ---
+    // Tambahkan metode baru untuk dashboard keuangan
+    public function dashboard()
+    {
+        $totalTagihan = Pembayaran::count();
+        $totalLunas = Pembayaran::where('status', 'lunas')->count();
+        $totalBelumLunas = Pembayaran::where('status', 'belum lunas')->count();
+
+        return view('pembayaran.dashboard', compact('totalTagihan', 'totalLunas', 'totalBelumLunas'));
+    }
 
     public function index()
     {
@@ -49,9 +57,6 @@ class PembayaranController extends Controller
         $pembayaran->delete();
         return redirect()->route('pembayaran.index')->with('success', 'Tagihan berhasil dihapus.');
     }
-
-
-    // --- FUNGSI UNTUK MAHASISWA ---
 
     public function riwayat()
     {

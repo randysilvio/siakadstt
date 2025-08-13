@@ -81,6 +81,7 @@ class DosenController extends Controller
             $dosen->update([
                 'nidn' => $request->nidn,
                 'nama_lengkap' => $request->nama_lengkap,
+                'is_keuangan' => $request->has('is_keuangan'),
             ]);
 
             if ($dosen->user) {
@@ -90,6 +91,9 @@ class DosenController extends Controller
                 ]);
             }
         });
+        
+        // Perbaikan: Hapus baris ini agar tidak ada notifikasi ganda
+        // return redirect()->route('dosen.edit', $dosen)->with('success', 'Data dosen berhasil diperbarui.');
 
         return redirect()->route('dosen.index')->with('success', 'Data dosen berhasil diperbarui.');
     }
