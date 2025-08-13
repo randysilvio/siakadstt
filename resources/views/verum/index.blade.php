@@ -39,11 +39,6 @@
     @endif
     
     {{-- Tampilkan pesan sukses jika ada --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
 
     @if($semuaKelas->isEmpty() && !session('error'))
         <div class="alert alert-info">

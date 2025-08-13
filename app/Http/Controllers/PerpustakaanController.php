@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Koleksi;
+use App\Models\Pengumuman; // 1. Tambahkan model Pengumuman
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // 2. Tambahkan Auth
 
 class PerpustakaanController extends Controller
 {
@@ -34,6 +36,15 @@ class PerpustakaanController extends Controller
         $totalJudul = Koleksi::count();
         $totalEksemplar = Koleksi::sum('jumlah_stok');
         
-        return view('perpustakaan.dashboard', compact('totalJudul', 'totalEksemplar'));
+        // 3. Tambahkan logika untuk mengambil pengumuman
+        $user = Auth::user();
+        $pengumumans = Pengumuman::where('target_role', 'semua')
+            ->orWhere('target_role', $user->role)
+            ->latest()
+            ->take(5)
+            ->get();
+        
+        // 4. Kirim semua variabel ke view
+        return view('perpustakaan.dashboard', compact('totalJudul', 'totalEksemplar', 'pengumumans'));
     }
 }

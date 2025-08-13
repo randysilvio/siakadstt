@@ -13,12 +13,10 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
-
         img {
             max-width: 100%;
             height: auto;
         }
-
         body {
             display: flex;
             flex-direction: column;
@@ -37,16 +35,9 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
+            {{-- PERBAIKAN: Semua tautan brand sekarang mengarah ke satu rute 'dashboard' --}}
             @auth
-                @if(Auth::user()->role == 'tendik' && Auth::user()->jabatan == 'pustakawan')
-                    <a class="navbar-brand" href="{{ route('perpustakaan.dashboard') }}">SIAKAD</a>
-                @elseif(Auth::user()->role == 'admin')
-                    <a class="navbar-brand" href="{{ route('admin.dashboard') }}">SIAKAD</a>
-                @elseif(Auth::user()->role == 'dosen')
-                    <a class="navbar-brand" href="{{ route('dosen.dashboard') }}">SIAKAD</a>
-                @else
-                    <a class="navbar-brand" href="/dashboard">SIAKAD</a>
-                @endif
+                <a class="navbar-brand" href="{{ route('dashboard') }}">SIAKAD</a>
             @else
                 <a class="navbar-brand" href="/">SIAKAD</a>
             @endauth
@@ -57,7 +48,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     @auth
-                        {{-- Tautan untuk semua user --}}
+                        {{-- Tautan umum untuk semua user --}}
                         <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                         
                         {{-- Tautan untuk Verum (Hanya untuk Admin, Dosen, dan Mahasiswa) --}}
@@ -88,10 +79,11 @@
                                     <li><a class="dropdown-item" href="/tahun-akademik">Tahun Akademik</a></li>
                                     <li><a class="dropdown-item" href="/nilai">Input Nilai</a></li>
                                     <li><a class="dropdown-item" href="/kalender">Manajemen Kalender</a></li>
+                                    {{-- Tautan manajemen pengumuman hanya untuk admin --}}
+                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item"><a class="nav-link" href="/pembayaran">Pembayaran</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ route('pengumuman.index') }}">Pengumuman</a></li>
                             <li class="nav-item"><a class="nav-link" href="/pengaturan">Pengaturan</a></li>
 
                         @elseif(Auth::user()->role == 'dosen')
@@ -105,13 +97,9 @@
 
                         @elseif(Auth::user()->role == 'tendik')
                             @if(Auth::user()->jabatan == 'pustakawan')
-                                <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('perpustakaan.koleksi.index') }}">Manajemen Koleksi</a></li>
-                                <li class="nav-item"><a class="nav-link" href="{{ route('pengumuman.index') }}">Pengumuman</a></li>
                             @elseif(Auth::user()->jabatan == 'keuangan')
-                                <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                                 <li class="nav-item"><a class="nav-link" href="/pembayaran">Pembayaran</a></li>
-                                <li class="nav-item"><a class="nav-link" href="{{ route('pengumuman.index') }}">Pengumuman</a></li>
                             @endif
                         
                         @elseif(Auth::user()->role == 'mahasiswa')
@@ -119,7 +107,6 @@
                             <li class="nav-item"><a class="nav-link" href="/khs">KHS</a></li>
                             <li class="nav-item"><a class="nav-link" href="/transkrip">Transkrip</a></li>
                             <li class="nav-item"><a class="nav-link" href="/riwayat-pembayaran">Pembayaran</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ route('pengumuman.index') }}">Pengumuman</a></li>
                         @endif
                     @endauth
                 </ul>

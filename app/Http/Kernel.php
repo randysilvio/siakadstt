@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'cek_pembayaran' => \App\Http\Middleware\CekStatusPembayaranMiddleware::class,
         'cek_periode_krs' => \App\Http\Middleware\CekPeriodeKrsMiddleware::class,
         'pustakawan' => \App\Http\Middleware\PustakawanMiddleware::class,
+        'admin_or_dosen' => \App\Http\Middleware\AdminOrDosenMiddleware::class,
     ];
 }

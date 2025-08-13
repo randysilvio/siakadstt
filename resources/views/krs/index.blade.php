@@ -56,13 +56,12 @@
                     <th>Nama Mata Kuliah</th>
                     <th>SKS</th>
                     <th>Semester</th>
-                    <th>Jadwal</th> {{-- <-- KOLOM BARU --}}
+                    <th>Jadwal</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($mata_kuliahs as $mk)
                     @php
-                        // Cek apakah prasyarat terpenuhi
                         $prasyaratTerpenuhi = true;
                         $prasyaratList = [];
                         if ($mk->prasyarats->isNotEmpty()) {
@@ -92,7 +91,7 @@
                         </td>
                         <td>{{ $mk->sks }}</td>
                         <td>{{ $mk->semester }}</td>
-                        <td> {{-- <-- KOLOM BARU --}}
+                        <td>
                             @if($mk->jadwals->isNotEmpty())
                                 <ul class="list-unstyled mb-0">
                                 @foreach($mk->jadwals as $jadwal)
@@ -102,7 +101,7 @@
                             @else
                                 <small class="text-muted">-</small>
                             @endif
-                            <small class="d-block text-danger clash-warning" style="display: none;">Bentrok!</small>
+                            {{-- ELEMEN NOTIFIKASI BENTROK DIHILANGKAN --}}
                         </td>
                     </tr>
                 @endforeach
@@ -116,74 +115,72 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const checkboxes = document.querySelectorAll('.krs-checkbox');
+    const allCheckboxes = document.querySelectorAll('.krs-checkbox');
     const totalSksElement = document.getElementById('total-sks');
     const simpanButton = document.getElementById('simpan-krs');
     const maxSks = {{ $max_sks }};
 
     function isTimeOverlap(jadwalA, jadwalB) {
         if (jadwalA.hari !== jadwalB.hari) return false;
-        return (jadwalA.jam_mulai < jadwalB.jam_selesai && jadwalA.jam_selesai > jadwalB.jam_mulai);
+        const dummyDate = '1970-01-01T';
+        const startA = new Date(dummyDate + jadwalA.jam_mulai);
+        const endA = new Date(dummyDate + jadwalA.jam_selesai);
+        const startB = new Date(dummyDate + jadwalB.jam_mulai);
+        const endB = new Date(dummyDate + jadwalB.jam_selesai);
+        return startA < endB && endA > startB;
     }
 
-    function updateKrsState() {
+    function validateKRS() {
         let currentSks = 0;
         const checkedSchedules = [];
 
-        // 1. Kumpulkan data dari yang sudah tercentang
-        checkboxes.forEach(cb => {
+        // LANGKAH 1: Kumpulkan semua data dari checkbox yang tercentang
+        allCheckboxes.forEach(cb => {
             if (cb.checked) {
-                currentSks += parseInt(cb.getAttribute('data-sks'));
-                const jadwalData = JSON.parse(cb.getAttribute('data-jadwal'));
-                checkedSchedules.push(...jadwalData);
+                currentSks += parseInt(cb.dataset.sks);
+                checkedSchedules.push(...JSON.parse(cb.dataset.jadwal));
             }
         });
 
-        // 2. Update tampilan SKS dan tombol simpan
+        // LANGKAH 2: Update total SKS dan status tombol simpan
         totalSksElement.textContent = currentSks;
-        if (currentSks > maxSks) {
-            totalSksElement.classList.add('text-danger');
-            simpanButton.disabled = true;
-        } else {
-            totalSksElement.classList.remove('text-danger');
-            simpanButton.disabled = false;
-        }
+        const isSksExceeded = currentSks > maxSks;
+        simpanButton.disabled = isSksExceeded;
+        totalSksElement.classList.toggle('text-danger', isSksExceeded);
 
-        // 3. Periksa setiap checkbox yang belum tercentang
-        checkboxes.forEach(cb => {
-            const warningElement = cb.closest('tr').querySelector('.clash-warning');
-            
-            // Hanya proses checkbox yang prasyaratnya terpenuhi
+        // LANGKAH 3: Periksa dan nonaktifkan checkbox lain yang bentrok
+        allCheckboxes.forEach(cb => {
+            // Proses hanya jika prasyarat terpenuhi
             if (cb.dataset.prasyaratOk === 'true') {
+                // Jika checkbox tidak tercentang, periksa apakah bentrok
                 if (!cb.checked) {
-                    const jadwalToCheck = JSON.parse(cb.getAttribute('data-jadwal'));
-                    let hasClash = false;
-                    for (const jadwal of jadwalToCheck) {
+                    const jadwalMK = JSON.parse(cb.dataset.jadwal);
+                    let isClashing = false;
+
+                    for (const jadwal of jadwalMK) {
                         for (const checkedJadwal of checkedSchedules) {
                             if (isTimeOverlap(jadwal, checkedJadwal)) {
-                                hasClash = true;
+                                isClashing = true;
                                 break;
                             }
                         }
-                        if (hasClash) break;
+                        if (isClashing) break;
                     }
                     
-                    cb.disabled = hasClash;
-                    warningElement.style.display = hasClash ? 'block' : 'none';
-                } else {
-                    // Jika tercentang, pastikan warning disembunyikan
-                    warningElement.style.display = 'none';
+                    // Langsung nonaktifkan checkbox jika bentrok
+                    cb.disabled = isClashing;
                 }
             }
         });
     }
 
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateKrsState);
+    // Tambahkan event listener ke semua checkbox
+    allCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', validateKRS);
     });
 
-    // Jalankan saat halaman dimuat
-    updateKrsState();
+    // Jalankan validasi saat halaman pertama kali dimuat
+    validateKRS();
 });
 </script>
 @endpush

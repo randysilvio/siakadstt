@@ -48,6 +48,7 @@
             @foreach($koleksis as $koleksi)
                 <div class="col">
                     <div class="card h-100 shadow-sm book-card">
+                        {{-- PENTING: Pastikan Anda sudah menjalankan `php artisan storage:link` agar gambar sampul bisa tampil --}}
                         <img src="{{ $koleksi->gambar_sampul ? Storage::url($koleksi->gambar_sampul) : 'https://via.placeholder.com/150x250.png?text=No+Cover' }}" class="card-img-top book-cover" alt="Sampul {{ $koleksi->judul }}">
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title">{{ Str::limit($koleksi->judul, 45) }}</h6>
@@ -62,6 +63,7 @@
         </div>
 
         <div class="mt-4 d-flex justify-content-center">
+            {{-- Kode ini sudah benar, akan mempertahankan query pencarian saat berpindah halaman --}}
             {{ $koleksis->appends(request()->query())->links() }}
         </div>
     @endif

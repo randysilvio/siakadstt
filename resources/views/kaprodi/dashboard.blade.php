@@ -3,10 +3,6 @@
 @section('content')
     <h1 class="mb-4">Dashboard Ketua Program Studi</h1>
     
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <div class="card mb-4">
         <div class="card-header">
             Informasi Program Studi

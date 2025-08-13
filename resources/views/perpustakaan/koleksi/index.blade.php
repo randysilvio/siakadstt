@@ -8,10 +8,6 @@
         <a href="{{ route('perpustakaan.koleksi.create') }}" class="btn btn-primary">+ Tambah Buku Baru</a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">

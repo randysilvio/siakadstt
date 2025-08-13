@@ -4,11 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PengumumanController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Konstruktor sekarang tidak memerlukan middleware karena
+     * perlindungan hak akses sudah ditangani di level routing (web.php).
+     */
+    public function __construct()
+    {
+        // Tidak ada middleware yang diperlukan di sini.
+    }
+
+    /**
+     * Menampilkan daftar semua pengumuman.
      */
     public function index()
     {
@@ -17,7 +27,7 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Menampilkan formulir untuk membuat pengumuman baru.
      */
     public function create()
     {
@@ -25,14 +35,14 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Menyimpan pengumuman baru ke database.
      */
     public function store(Request $request)
     {
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_role' => 'required|in:semua,mahasiswa,dosen,admin',
+            'target_role' => 'required|in:semua,admin,dosen,mahasiswa,tendik',
         ]);
 
         Pengumuman::create($request->all());
@@ -41,7 +51,7 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Menampilkan detail satu pengumuman.
      */
     public function show(Pengumuman $pengumuman)
     {
@@ -49,7 +59,7 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Menampilkan formulir untuk mengedit pengumuman.
      */
     public function edit(Pengumuman $pengumuman)
     {
@@ -57,14 +67,14 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Memperbarui pengumuman di database.
      */
     public function update(Request $request, Pengumuman $pengumuman)
     {
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_role' => 'required|in:semua,mahasiswa,dosen,admin',
+            'target_role' => 'required|in:semua,admin,dosen,mahasiswa,tendik',
         ]);
 
         $pengumuman->update($request->all());
@@ -73,7 +83,7 @@ class PengumumanController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus pengumuman dari database.
      */
     public function destroy(Pengumuman $pengumuman)
     {

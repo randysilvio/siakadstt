@@ -4,19 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Pembayaran;
 use App\Models\Mahasiswa;
+use App\Models\Pengumuman; // 1. Tambahkan model Pengumuman
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PembayaranController extends Controller
 {
-    // Tambahkan metode baru untuk dashboard keuangan
+    /**
+     * Menampilkan dashboard khusus untuk staf keuangan.
+     */
     public function dashboard()
     {
         $totalTagihan = Pembayaran::count();
         $totalLunas = Pembayaran::where('status', 'lunas')->count();
         $totalBelumLunas = Pembayaran::where('status', 'belum lunas')->count();
 
-        return view('pembayaran.dashboard', compact('totalTagihan', 'totalLunas', 'totalBelumLunas'));
+        // 2. Tambahkan logika untuk mengambil pengumuman
+        $user = Auth::user();
+        $pengumumans = Pengumuman::where('target_role', 'semua')
+            ->orWhere('target_role', $user->role)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // 3. Kirim semua variabel ke view
+        return view('pembayaran.dashboard', compact('totalTagihan', 'totalLunas', 'totalBelumLunas', 'pengumumans'));
     }
 
     public function index()

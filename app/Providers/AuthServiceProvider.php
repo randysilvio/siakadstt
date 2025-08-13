@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -21,7 +21,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Di sinilah Anda bisa mendefinisikan "Gate" atau "Policy"
-        // untuk hak akses user di kemudian hari.
+        // PERBAIKAN: Definisi Gate untuk 'manage-announcements' telah dihapus
+        // karena kita kembali menggunakan middleware admin untuk perlindungan.
     }
 }

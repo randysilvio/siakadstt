@@ -1,7 +1,6 @@
 @extends('layouts.app')
 @section('content')
     <h1 class="mb-4">Manajemen Pengumuman</h1>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     <a href="{{ route('pengumuman.create') }}" class="btn btn-primary mb-3">Buat Pengumuman Baru</a>
     <table class="table table-bordered">
         <thead class="table-dark">
