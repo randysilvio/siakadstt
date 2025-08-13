@@ -11,7 +11,6 @@ use App\Models\Dosen;
 use App\Models\Pengumuman;
 use App\Models\Pembayaran;
 
-
 class DashboardController extends Controller
 {
     public function index()
@@ -29,7 +28,13 @@ class DashboardController extends Controller
             $totalMataKuliah = MataKuliah::count();
             $totalDosen = Dosen::count();
 
-            return view('dashboard.admin', compact('totalMahasiswa', 'totalProdi', 'totalMataKuliah', 'totalDosen', 'pengumumans'));
+            // Ambil data untuk grafik distribusi mahasiswa per prodi
+            $mahasiswaPerProdi = Mahasiswa::select('program_studi_id', \DB::raw('count(*) as total'))
+                ->groupBy('program_studi_id')
+                ->with('programStudi')
+                ->get();
+
+            return view('dashboard.admin', compact('totalMahasiswa', 'totalProdi', 'totalMataKuliah', 'totalDosen', 'pengumumans', 'mahasiswaPerProdi'));
 
         } elseif ($role == 'dosen') {
             $dosen = $user->dosen;
@@ -63,7 +68,6 @@ class DashboardController extends Controller
             
             $memiliki_tagihan = $mahasiswa->pembayarans()->where('status', 'belum lunas')->exists();
 
-            // Perbaikan: Pastikan variabel pengumumans dikirim ke view mahasiswa
             return view('dashboard.mahasiswa', compact('mahasiswa', 'total_sks', 'ipk', 'memiliki_tagihan', 'pengumumans'));
             
         } elseif ($role == 'tendik') {
@@ -75,5 +79,18 @@ class DashboardController extends Controller
         }
 
         return view('dashboard.default', compact('pengumumans'));
+    }
+
+    // Metode ini digunakan untuk mengambil data chart via AJAX
+    public function mahasiswaPerProdi()
+    {
+        $data = ProgramStudi::withCount('mahasiswas')->get();
+        $labels = $data->pluck('nama_prodi');
+        $values = $data->pluck('mahasiswas_count');
+
+        return response()->json([
+            'labels' => $labels,
+            'values' => $values,
+        ]);
     }
 }
