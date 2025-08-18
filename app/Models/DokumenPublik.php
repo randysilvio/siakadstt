@@ -5,19 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @property string|null $end
- */
-class KegiatanAkademik extends Model
+class DokumenPublik extends Model
 {
     use HasFactory;
 
     /**
-     * Menentukan nama tabel yang digunakan oleh model.
+     * The table associated with the model.
      *
      * @var string
      */
-    protected $table = 'kegiatan_akademik';
+    protected $table = 'dokumen_publiks';
 
     /**
      * The attributes that are mass assignable.
@@ -25,10 +22,8 @@ class KegiatanAkademik extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'judul_kegiatan',
+        'judul_dokumen',
         'deskripsi',
-        'tanggal_mulai',
-        'tanggal_selesai',
-        'target_role',
+        'file_path',
     ];
 }

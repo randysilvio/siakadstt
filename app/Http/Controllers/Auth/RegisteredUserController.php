@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Mahasiswa; // <-- Import Mahasiswa
+use App\Models\Mahasiswa; // Tambahkan ini
+use App\Models\ProgramStudi; // Tambahkan ini
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,44 +13,58 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\DB; // <-- Import DB Facade
 
 class RegisteredUserController extends Controller
 {
+    /**
+     * Display the registration view.
+     */
     public function create(): View
     {
-        return view('auth.register');
+        // Mengirim data program studi ke view registrasi
+        $programStudis = ProgramStudi::orderBy('nama_prodi')->get();
+        return view('auth.register', compact('programStudis'));
     }
 
+    /**
+     * Handle an incoming registration request.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'string', 'in:admin,mahasiswa'], // Validasi untuk role
+            
+            // Validasi kondisional: wajib jika rolenya mahasiswa
+            'nim' => ['required_if:role,mahasiswa', 'nullable', 'string', 'max:255', 'unique:'.Mahasiswa::class],
+            'program_studi_id' => ['required_if:role,mahasiswa', 'nullable', 'exists:program_studis,id'],
         ]);
 
-        // Gunakan transaction untuk memastikan kedua data berhasil dibuat
-        DB::transaction(function () use ($request) {
-            // 1. Buat User
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role, // Simpan role ke tabel user
+        ]);
 
-            // 2. Buat Mahasiswa yang terhubung
-            // Untuk sementara, NIM dibuat unik berdasarkan timestamp, dan prodi ID=1
+        // Jika rolenya adalah 'mahasiswa', buat juga data di tabel mahasiswas
+        if ($request->role === 'mahasiswa') {
             Mahasiswa::create([
                 'user_id' => $user->id,
+                'nim' => $request->nim,
                 'nama_lengkap' => $request->name,
-                'nim' => time(), // Placeholder NIM unik
-                'program_studi_id' => 1, // Placeholder Prodi, pastikan ada prodi dengan ID=1
+                'program_studi_id' => $request->program_studi_id,
+                'status_mahasiswa' => 'Aktif', // Default status saat mendaftar
             ]);
+        }
 
-            event(new Registered($user));
-            Auth::login($user);
-        });
+        event(new Registered($user));
+
+        Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
     }

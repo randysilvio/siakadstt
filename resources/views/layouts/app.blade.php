@@ -35,7 +35,6 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            {{-- PERBAIKAN: Semua tautan brand sekarang mengarah ke satu rute 'dashboard' --}}
             @auth
                 <a class="navbar-brand" href="{{ route('dashboard') }}">SIAKAD</a>
             @else
@@ -63,10 +62,10 @@
                                     Master Data
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                                    <li><a class="dropdown-item" href="/mahasiswa">Mahasiswa</a></li>
-                                    <li><a class="dropdown-item" href="/dosen">Dosen</a></li>
-                                    <li><a class="dropdown-item" href="/program-studi">Program Studi</a></li>
-                                    <li><a class="dropdown-item" href="/mata-kuliah">Mata Kuliah</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('mahasiswa.index') }}">Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('dosen.index') }}">Dosen</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('program-studi.index') }}">Program Studi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('mata-kuliah.index') }}">Mata Kuliah</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ route('tendik.create') }}">Buat Akun Tendik</a></li>
                                 </ul>
@@ -76,15 +75,26 @@
                                     Akademik
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="akademikDropdown">
-                                    <li><a class="dropdown-item" href="/tahun-akademik">Tahun Akademik</a></li>
-                                    <li><a class="dropdown-item" href="/nilai">Input Nilai</a></li>
-                                    <li><a class="dropdown-item" href="/kalender">Manajemen Kalender</a></li>
-                                    {{-- Tautan manajemen pengumuman hanya untuk admin --}}
-                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('tahun-akademik.index') }}">Tahun Akademik</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('nilai.index') }}">Input Nilai</a></li>
                                 </ul>
                             </li>
-                            <li class="nav-item"><a class="nav-link" href="/pembayaran">Pembayaran</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/pengaturan">Pengaturan</a></li>
+                            
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="manajemenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Manajemen
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="manajemenDropdown">
+                                    <li><a class="dropdown-item" href="{{ route('slideshows.index') }}">Manajemen Slideshow</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('dokumen-publik.index') }}">Manajemen Dokumen</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('kalender.index') }}">Manajemen Kalender</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ route('pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                </ul>
+                            </li>
 
                         @elseif(Auth::user()->role == 'dosen')
                             <li class="nav-item"><a class="nav-link" href="{{ route('perwalian.index') }}">Mahasiswa Wali</a></li>
@@ -92,21 +102,21 @@
                                 <li class="nav-item"><a class="nav-link" href="{{ route('kaprodi.dashboard') }}">Portal Kaprodi</a></li>
                             @endif
                             @if(Auth::user()->dosen && Auth::user()->dosen->is_keuangan)
-                                <li class="nav-item"><a class="nav-link" href="/pembayaran">Pembayaran</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('pembayaran.index') }}">Pembayaran</a></li>
                             @endif
 
                         @elseif(Auth::user()->role == 'tendik')
                             @if(Auth::user()->jabatan == 'pustakawan')
                                 <li class="nav-item"><a class="nav-link" href="{{ route('perpustakaan.koleksi.index') }}">Manajemen Koleksi</a></li>
                             @elseif(Auth::user()->jabatan == 'keuangan')
-                                <li class="nav-item"><a class="nav-link" href="/pembayaran">Pembayaran</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('pembayaran.index') }}">Pembayaran</a></li>
                             @endif
                         
                         @elseif(Auth::user()->role == 'mahasiswa')
-                            <li class="nav-item"><a class="nav-link" href="/krs">KRS</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/khs">KHS</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/transkrip">Transkrip</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/riwayat-pembayaran">Pembayaran</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('krs.index') }}">KRS</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('khs.index') }}">KHS</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('transkrip.index') }}">Transkrip</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('pembayaran.riwayat') }}">Pembayaran</a></li>
                         @endif
                     @endauth
                 </ul>

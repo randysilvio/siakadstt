@@ -5,6 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property-read \App\Models\ProgramStudi|null $programStudi
+ * @property-read \App\Models\User|null $user
+ * @property-read \App\Models\Dosen|null $dosenWali
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Pembayaran[] $pembayarans
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MataKuliah[] $mataKuliahs
+ */
 class Mahasiswa extends Model
 {
     use HasFactory;

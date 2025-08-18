@@ -7,19 +7,23 @@ use App\Models\Dosen;
 use App\Models\Jadwal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\MataKuliahsExport;
+use App\Imports\MataKuliahsImport;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException; // DIUBAH
 
 class MataKuliahController extends Controller
 {
     public function index()
     {
-        $mata_kuliahs = MataKuliah::with('dosen', 'prasyarats')->get();
-        return view('mata-kuliah.index', ['mata_kuliahs' => $mata_kuliahs]);
+        $mata_kuliahs = MataKuliah::with('dosen', 'prasyarats')->latest()->paginate(10);
+        return view('mata-kuliah.index', compact('mata_kuliahs'));
     }
 
     public function create()
     {
-        $dosens = Dosen::all();
-        $mata_kuliahs = MataKuliah::all();
+        $dosens = Dosen::orderBy('nama_lengkap')->get();
+        $mata_kuliahs = MataKuliah::orderBy('nama_mk')->get();
         return view('mata-kuliah.create', compact('dosens', 'mata_kuliahs'));
     }
 
@@ -48,16 +52,19 @@ class MataKuliahController extends Controller
             }
         });
 
-        return redirect('/mata-kuliah')->with('success', 'Mata Kuliah berhasil ditambahkan!');
+        return redirect()->route('mata-kuliah.index')->with('success', 'Mata Kuliah berhasil ditambahkan!');
     }
     
-    public function show(MataKuliah $mataKuliah){}
+    public function show(MataKuliah $mataKuliah)
+    {
+        // Method ini biasanya tidak digunakan dalam CRUD resource standar
+    }
 
     public function edit(MataKuliah $mataKuliah)
     {
-        $dosens = Dosen::all();
-        $mata_kuliahs = MataKuliah::where('id', '!=', $mataKuliah->id)->get();
-        $mataKuliah->load('jadwals'); // Eager load jadwal
+        $dosens = Dosen::orderBy('nama_lengkap')->get();
+        $mata_kuliahs = MataKuliah::where('id', '!=', $mataKuliah->id)->orderBy('nama_mk')->get();
+        $mataKuliah->load('jadwals');
         return view('mata-kuliah.edit', compact('mataKuliah', 'dosens', 'mata_kuliahs'));
     }
 
@@ -81,19 +88,74 @@ class MataKuliahController extends Controller
             $mataKuliah->update($request->except('prasyarat_id', 'jadwals'));
             $mataKuliah->prasyarats()->sync($request->prasyarat_id);
             
-            // Hapus jadwal lama dan buat yang baru
             $mataKuliah->jadwals()->delete();
             foreach ($request->jadwals as $jadwal) {
                 $mataKuliah->jadwals()->create($jadwal);
             }
         });
 
-        return redirect('/mata-kuliah')->with('success', 'Mata Kuliah berhasil diperbarui!');
+        return redirect()->route('mata-kuliah.index')->with('success', 'Mata Kuliah berhasil diperbarui!');
     }
 
     public function destroy(MataKuliah $mataKuliah)
     {
         $mataKuliah->delete();
-        return redirect('/mata-kuliah')->with('success', 'Mata Kuliah berhasil dihapus!');
+        return redirect()->route('mata-kuliah.index')->with('success', 'Mata Kuliah berhasil dihapus!');
+    }
+
+    public function export() 
+    {
+        return Excel::download(new MataKuliahsExport, 'daftar-mata-kuliah.xlsx');
+    }
+
+    public function import(Request $request) 
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+        
+        try {
+            Excel::import(new MataKuliahsImport, $request->file('file'));
+        } catch (ValidationException $e) { // DIUBAH
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Baris " . $failure->row() . ": " . implode(', ', $failure->errors());
+            }
+            return redirect()->route('mata-kuliah.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
+        } catch (\Exception $e) {
+            return redirect()->route('mata-kuliah.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
+        }
+
+        return redirect()->route('mata-kuliah.index')->with('success', 'Data mata kuliah berhasil diimpor!');
+    }
+
+    public function downloadTemplate()
+    {
+        $headings = ['kode_mk', 'nama_mk', 'sks', 'semester', 'nidn_dosen'];
+        $data = [['MK001', 'Teologi Sistematika 1', '3', '1', '1234567890']];
+
+        $export = new class($data, $headings) implements \Maatwebsite\Excel\Concerns\FromArray, \Maatwebsite\Excel\Concerns\WithHeadings {
+            protected $data;
+            protected $headings;
+
+            public function __construct(array $data, array $headings)
+            {
+                $this->data = $data;
+                $this->headings = $headings;
+            }
+
+            public function array(): array
+            {
+                return $this->data;
+            }
+
+            public function headings(): array
+            {
+                return $this->headings;
+            }
+        };
+
+        return Excel::download($export, 'template-mata-kuliah.xlsx');
     }
 }

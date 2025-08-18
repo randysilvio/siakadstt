@@ -4,23 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
-use App\Models\User;
 use App\Models\Dosen;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-// Tambahkan use statement untuk Laravel Excel
 use App\Exports\MahasiswasExport;
 use App\Imports\MahasiswasImport;
-use App\Exports\MahasiswaImportTemplateExport; // <-- TAMBAHKAN INI
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException; // DIUBAH: Menggunakan exception dari Maatwebsite
+use App\Exports\MahasiswaImportTemplateExport;
 
 class MahasiswaController extends Controller
 {
-    /**
-     * Menampilkan daftar mahasiswa dengan fitur pencarian dan filter.
-     */
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -45,9 +42,6 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    /**
-     * Menampilkan form untuk membuat mahasiswa baru.
-     */
     public function create()
     {
         $program_studis = ProgramStudi::all();
@@ -58,12 +52,8 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    /**
-     * Menyimpan data mahasiswa baru ke database.
-     */
     public function store(Request $request)
     {
-        // Asumsi Anda sudah menambahkan kolom biodata
         $request->validate([
             'nim' => 'required|unique:mahasiswas|max:10',
             'nama_lengkap' => 'required|string|max:255',
@@ -89,28 +79,19 @@ class MahasiswaController extends Controller
 
             $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
             $mahasiswaData['user_id'] = $user->id;
+            $mahasiswaData['status_mahasiswa'] = 'Aktif';
 
             Mahasiswa::create($mahasiswaData);
         });
 
-        return redirect('/mahasiswa')->with('success', 'Data mahasiswa dan akun login berhasil dibuat!');
+        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa dan akun login berhasil dibuat!');
     }
 
-    /**
-     * Menampilkan detail mahasiswa (mengarahkan ke halaman edit).
-     */
     public function show(Mahasiswa $mahasiswa)
     {
-        return view('mahasiswa.edit', [
-            'mahasiswa' => $mahasiswa,
-            'program_studis' => ProgramStudi::all(),
-            'dosens' => Dosen::all()
-        ]);
+        return redirect()->route('mahasiswa.edit', $mahasiswa);
     }
 
-    /**
-     * Menampilkan form untuk mengedit data mahasiswa.
-     */
     public function edit(Mahasiswa $mahasiswa)
     {
         $program_studis = ProgramStudi::all();
@@ -122,9 +103,6 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    /**
-     * Memperbarui data mahasiswa di database.
-     */
     public function update(Request $request, Mahasiswa $mahasiswa)
     {
         $request->validate([
@@ -146,12 +124,9 @@ class MahasiswaController extends Controller
             }
         });
 
-        return redirect('/mahasiswa')->with('success', 'Data mahasiswa berhasil diperbarui!');
+        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
     }
 
-    /**
-     * Menghapus data mahasiswa dari database.
-     */
     public function destroy(Mahasiswa $mahasiswa)
     {
         DB::transaction(function () use ($mahasiswa) {
@@ -161,23 +136,16 @@ class MahasiswaController extends Controller
             $mahasiswa->delete();
         });
 
-        return redirect('/mahasiswa')->with('success', 'Data mahasiswa berhasil dihapus!');
+        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
     }
 
-    /**
-     * Menangani permintaan ekspor data mahasiswa ke Excel.
-     */
     public function export(Request $request)
     {
         $search = $request->input('search');
         $program_studi_id = $request->input('program_studi_id');
-
-        return Excel::download(new MahasiswasExport($search, $program_studi_id), 'data-mahasiswa.xlsx');
+        return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 
-    /**
-     * Menangani permintaan impor data mahasiswa dari Excel.
-     */
     public function import(Request $request)
     {
         $request->validate([
@@ -186,22 +154,20 @@ class MahasiswaController extends Controller
 
         try {
             Excel::import(new MahasiswasImport, $request->file('file'));
-            return redirect('/mahasiswa')->with('success', 'Data mahasiswa berhasil diimpor!');
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-             $failures = $e->failures();
-             $errorMessages = [];
-             foreach ($failures as $failure) {
-                 $errorMessages[] = "Error di baris " . $failure->row() . ": " . implode(', ', $failure->errors());
-             }
-             return redirect('/mahasiswa')->with('error', 'Gagal impor: ' . implode(' | ', $errorMessages));
+        } catch (ValidationException $e) { // DIUBAH: Tipe exception sudah spesifik
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Baris " . $failure->row() . ": " . implode(', ', $failure->errors());
+            }
+            return redirect()->route('mahasiswa.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         } catch (\Exception $e) {
-            return redirect('/mahasiswa')->with('error', 'Terjadi kesalahan saat impor: ' . $e->getMessage());
+            return redirect()->route('mahasiswa.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
         }
+        
+        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimpor!');
     }
 
-    /**
-     * Menangani permintaan download template impor.
-     */
     public function downloadImportTemplate()
     {
         return Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');

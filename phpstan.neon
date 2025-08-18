@@ -1,0 +1,9 @@
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+
+    # Levelnya dari 0 (paling longgar) sampai 9 (paling ketat)
+    level: 5

@@ -60,7 +60,6 @@ class KalenderController extends Controller
               ->orWhere('target_role', $userRole);
         });
         
-        // --- PERUBAHAN DI SINI: Tambahkan 'target_role' ke dalam get() ---
         $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi', 'target_role']);
 
         $events = $kegiatans->map(function ($kegiatan) {

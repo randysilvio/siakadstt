@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * Tambahkan PHPDoc ini di atas class User
+ * @property-read \App\Models\Mahasiswa|null $mahasiswa
+ * @property-read \App\Models\Dosen|null $dosen
+ */
+
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
@@ -48,7 +54,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Setiap User memiliki satu data Mahasiswa.
+     * Relasi ke Mahasiswa (satu user punya satu data mahasiswa).
      */
     public function mahasiswa()
     {
@@ -56,7 +62,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Setiap User memiliki satu data Dosen.
+     * Relasi ke Dosen (satu user punya satu data dosen).
      */
     public function dosen()
     {

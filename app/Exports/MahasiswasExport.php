@@ -35,28 +35,17 @@ class MahasiswasExport implements FromCollection, WithHeadings, WithMapping, Sho
             ->get();
     }
 
-    /**
-     * Menentukan judul kolom di file Excel.
-     */
     public function headings(): array
     {
         return [
-            'NIM',
-            'Nama Lengkap',
-            'Program Studi',
-            'Tahun Masuk',
-            'Dosen Wali',
-            'Email Akun',
-            'Tempat Lahir',
-            'Tanggal Lahir',
-            'Jenis Kelamin',
-            'Alamat',
-            'Nomor Telepon',
+            'NIM', 'Nama Lengkap', 'Program Studi', 'Tahun Masuk', 'Dosen Wali',
+            'Email Akun', 'Tempat Lahir', 'Tanggal Lahir', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon',
         ];
     }
 
     /**
-     * Memetakan data dari collection ke setiap baris di Excel.
+     * @param Mahasiswa $mahasiswa The model instance.
+     * @return array
      */
     public function map($mahasiswa): array
     {

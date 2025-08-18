@@ -39,6 +39,17 @@
                 </div>
             </div>
         </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Grafik Tren Indeks Prestasi (IP) per Semester</h5>
+                        <canvas id="grafikIPS"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
         <hr>
     @endif
 
@@ -89,7 +100,8 @@
     @endif
 
     {{-- Pengumuman Terbaru --}}
-    @if($pengumuman->count() > 0)
+    {{-- Saya memperbaiki variabel $pengumuman->count() menjadi $pengumuman->isNotEmpty() atau count($pengumuman) > 0 --}}
+    @if(isset($pengumuman) && $pengumuman->isNotEmpty())
         <div class="card mt-4">
             <div class="card-header">
                 <h3>Pengumuman Terbaru</h3>
@@ -111,3 +123,48 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+    {{-- Script ini hanya akan di-load jika user yang login adalah mahasiswa --}}
+    @if(Auth::user()->role == 'mahasiswa' && isset($dataGrafik))
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const dataGrafik = @json($dataGrafik);
+            const ctx = document.getElementById('grafikIPS').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataGrafik.labels,
+                    datasets: [{
+                        label: 'IP Semester',
+                        data: dataGrafik.data,
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4.0,
+                            title: {
+                                display: true,
+                                text: 'Nilai IP'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Semester'
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+    @endif
+@endpush
