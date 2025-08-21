@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Mahasiswa[] $mahasiswas
+ * @property-read \App\Models\Dosen|null $kaprodi
+ */
 class ProgramStudi extends Model
 {
     use HasFactory;

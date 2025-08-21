@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\DokumenPublikController;
 // Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
+use App\Http\Controllers\ChatbotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
     // Rute umum
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');

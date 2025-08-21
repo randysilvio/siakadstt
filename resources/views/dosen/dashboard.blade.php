@@ -21,6 +21,40 @@
             </div>
             @endif
 
+            {{-- KODE BARU: Card Jadwal Mengajar --}}
+            <div class="card mb-4">
+                <div class="card-header">Jadwal Mengajar Semester Ini</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Hari</th>
+                                    <th>Jam</th>
+                                    <th>Mata Kuliah</th>
+                                    <th>Kode MK</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($jadwalKuliah as $jadwal)
+                                    <tr>
+                                        <td>{{ $jadwal->hari }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                        <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
+                                        <td>{{ $jadwal->mataKuliah->kode_mk }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center">Tidak ada jadwal mengajar untuk semester ini.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {{-- AKHIR KODE BARU --}}
+
             <div class="card mb-4">
                 <div class="card-header">Mata Kuliah yang Anda Ajar</div>
                 <div class="list-group list-group-flush">
@@ -50,9 +84,7 @@
                 </div>
             </div>
             
-            {{-- Panel Pengumuman --}}
             <div class="card">
-                {{-- PERBAIKAN: Tombol "+ Buat Baru" dihapus --}}
                 <div class="card-header d-flex justify-content-between align-items-center">
                     Pengumuman Terbaru
                 </div>

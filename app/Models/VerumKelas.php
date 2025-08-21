@@ -3,6 +3,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property-read \App\Models\MataKuliah|null $mataKuliah
+ * @property-read \App\Models\Dosen|null $dosen
+ * @property-read \App\Models\TahunAkademik|null $tahunAkademik
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\VerumMateri[] $materi
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\VerumTugas[] $tugas
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\VerumPostingan[] $postingan
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\VerumPresensi[] $presensi
+ */
 class VerumKelas extends Model {
     use HasFactory;
     protected $table = 'verum_kelas';

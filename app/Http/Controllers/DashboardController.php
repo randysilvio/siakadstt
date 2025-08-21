@@ -11,6 +11,7 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\Koleksi;
 use App\Models\Pembayaran;
+use App\Models\Jadwal; // DITAMBAHKAN
 
 class DashboardController extends Controller
 {
@@ -27,14 +28,13 @@ class DashboardController extends Controller
                   ->orWhere('target_role', $user->role);
         }
         $pengumumans = $query->get();
+        
+        // DITAMBAHKAN: Array untuk urutan hari
+        $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
 
         switch ($user->role) {
             case 'admin':
-                // --- START: KODE BARU UNTUK DATA GRAFIK ADMIN ---
-                // Mengambil semua prodi dan menghitung jumlah mahasiswa terkait secara efisien
                 $prodiData = ProgramStudi::withCount('mahasiswas')->get();
-
-                // Memformat data agar bisa dibaca oleh Chart.js
                 $prodiLabels = $prodiData->pluck('nama_prodi');
                 $prodiCounts = $prodiData->pluck('mahasiswas_count');
 
@@ -42,7 +42,6 @@ class DashboardController extends Controller
                     'labels' => $prodiLabels,
                     'data' => $prodiCounts,
                 ];
-                // --- END: KODE BARU UNTUK DATA GRAFIK ADMIN ---
 
                 return view('dashboard.admin', [
                     'totalMahasiswa' => Mahasiswa::count(),
@@ -50,24 +49,48 @@ class DashboardController extends Controller
                     'totalProdi' => ProgramStudi::count(),
                     'totalMatkul' => MataKuliah::count(),
                     'pengumumans' => $pengumumans,
-                    'dataGrafikProdi' => $dataGrafikProdi, // Kirim data grafik ke view
+                    'dataGrafikProdi' => $dataGrafikProdi,
                 ]);
 
-            // ... (case 'dosen', 'mahasiswa', dan 'tendik' tetap sama, tidak perlu diubah)
             case 'dosen':
                 $dosen = $user->dosen;
                 if (!$dosen) { abort(404, 'Data dosen tidak ditemukan.'); }
+                
+                // --- START KODE BARU UNTUK JADWAL DOSEN ---
+                $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen) {
+                    $query->where('dosen_id', $dosen->id);
+                })
+                ->with('mataKuliah')
+                ->get()
+                ->sortBy(function($jadwal) use ($hariOrder) {
+                    return $hariOrder[$jadwal->hari] ?? 99;
+                });
+                // --- END KODE BARU UNTUK JADWAL DOSEN ---
+
                 return view('dosen.dashboard', [
                     'dosen' => $dosen,
                     'mata_kuliahs' => $dosen->mataKuliahs()->withCount('mahasiswas')->get(),
                     'jumlahMahasiswaWali' => $dosen->mahasiswaWali()->count(),
                     'prodiYangDikepalai' => ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first(),
-                    'pengumumans' => $pengumumans
+                    'pengumumans' => $pengumumans,
+                    'jadwalKuliah' => $jadwalKuliahDosen, // Kirim data jadwal ke view
                 ]);
 
             case 'mahasiswa':
                 $mahasiswa = $user->mahasiswa;
                 if (!$mahasiswa) { abort(404, 'Data mahasiswa tidak ditemukan.'); }
+
+                // --- START KODE BARU UNTUK JADWAL MAHASISWA ---
+                $jadwalKuliahMahasiswa = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa) {
+                    $query->where('mahasiswas.id', $mahasiswa->id);
+                })
+                ->with('mataKuliah.dosen') // Eager load MataKuliah dan Dosen pengampu
+                ->get()
+                ->sortBy(function($jadwal) use ($hariOrder) {
+                    return $hariOrder[$jadwal->hari] ?? 99;
+                });
+                // --- END KODE BARU UNTUK JADWAL MAHASISWA ---
+
                 $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
                 $total_sks_lulus = 0;
                 $total_bobot_sks = 0;
@@ -111,6 +134,7 @@ class DashboardController extends Controller
                     'memiliki_tagihan' => $mahasiswa->pembayarans()->where('status', 'belum_lunas')->exists(),
                     'pengumuman' => $pengumumans,
                     'dataGrafik' => $dataGrafik,
+                    'jadwalKuliah' => $jadwalKuliahMahasiswa, // Kirim data jadwal ke view
                 ]);
 
             case 'tendik':

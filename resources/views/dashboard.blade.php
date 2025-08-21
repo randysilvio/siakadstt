@@ -40,7 +40,49 @@
             </div>
         </div>
         
+        {{-- KODE BARU: JADWAL KULIAH MAHASISWA --}}
         <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Jadwal Kuliah Semester Ini</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Hari</th>
+                                        <th>Jam</th>
+                                        <th>Mata Kuliah</th>
+                                        <th>SKS</th>
+                                        <th>Dosen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($jadwalKuliah as $jadwal)
+                                        <tr>
+                                            <td>{{ $jadwal->hari }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                            <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
+                                            <td>{{ $jadwal->mataKuliah->sks }}</td>
+                                            <td>{{ $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center py-3">Anda belum mengambil KRS untuk semester ini.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{-- AKHIR KODE BARU --}}
+        
+        <div class="row mt-4"> {{-- Diubah dari mt-3 menjadi mt-4 untuk memberi jarak --}}
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
@@ -68,6 +110,40 @@
                         </div>
                     </div>
                 @endif
+                
+                {{-- KODE BARU: JADWAL MENGAJAR DOSEN --}}
+                <div class="card mb-3">
+                    <div class="card-header">Jadwal Mengajar Semester Ini</div>
+                     <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Hari</th>
+                                        <th>Jam</th>
+                                        <th>Mata Kuliah</th>
+                                        <th>Kode MK</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($jadwalKuliah as $jadwal)
+                                        <tr>
+                                            <td>{{ $jadwal->hari }}</td>
+                                            <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                            <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
+                                            <td>{{ $jadwal->mataKuliah->kode_mk }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3">Tidak ada jadwal mengajar untuk semester ini.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {{-- AKHIR KODE BARU --}}
 
                 <div class="card mb-3">
                     <div class="card-header">Mata Kuliah yang Anda Ajar</div>
@@ -76,7 +152,7 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>{{ $mk->kode_mk }}</strong> - {{ $mk->nama_mk }} <br>
-                                    <small>{{ $mk->sks }} SKS - {{ $mk->semester }}</small>
+                                    <small>{{ $mk->sks }} SKS - Semester {{ $mk->semester }}</small>
                                 </div>
                                 <a href="{{ route('nilai.show', $mk) }}" class="badge bg-primary rounded-pill">Input Nilai</a>
                             </li>
@@ -100,7 +176,6 @@
     @endif
 
     {{-- Pengumuman Terbaru --}}
-    {{-- Saya memperbaiki variabel $pengumuman->count() menjadi $pengumuman->isNotEmpty() atau count($pengumuman) > 0 --}}
     @if(isset($pengumuman) && $pengumuman->isNotEmpty())
         <div class="card mt-4">
             <div class="card-header">
