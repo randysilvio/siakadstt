@@ -2,34 +2,30 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
 class MahasiswaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Ambil ID Program Studi pertama untuk dijadikan sampel
         $prodi = ProgramStudi::first();
+        $mahasiswaRole = Role::where('name', 'mahasiswa')->first();
 
-        if ($prodi) {
-            DB::transaction(function () use ($prodi) {
+        if ($prodi && $mahasiswaRole) {
+            DB::transaction(function () use ($prodi, $mahasiswaRole) {
                 // Mahasiswa 1
                 $user1 = User::create([
                     'name' => 'Valeria Lesilolo',
                     'email' => 'valeria@sak.com',
                     'password' => Hash::make('password'),
-                    'role' => 'mahasiswa',
                 ]);
-
+                $user1->roles()->attach($mahasiswaRole);
                 Mahasiswa::create([
                     'user_id' => $user1->id,
                     'nim' => '672021001',
@@ -42,9 +38,8 @@ class MahasiswaSeeder extends Seeder
                     'name' => 'Randy Silfio',
                     'email' => 'randy@sak.com',
                     'password' => Hash::make('password'),
-                    'role' => 'mahasiswa',
                 ]);
-
+                $user2->roles()->attach($mahasiswaRole);
                 Mahasiswa::create([
                     'user_id' => $user2->id,
                     'nim' => '672021002',

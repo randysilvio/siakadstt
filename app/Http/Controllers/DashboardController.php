@@ -11,7 +11,9 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\Koleksi;
 use App\Models\Pembayaran;
-use App\Models\Jadwal; // DITAMBAHKAN
+use App\Models\Jadwal;
+use App\Models\TahunAkademik;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -21,141 +23,162 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-
-        $query = Pengumuman::latest()->take(5);
-        if ($user->role !== 'admin') {
-            $query->where('target_role', 'semua')
-                  ->orWhere('target_role', $user->role);
-        }
-        $pengumumans = $query->get();
-        
-        // DITAMBAHKAN: Array untuk urutan hari
+        $pengumumans = Pengumuman::latest()->take(5)->get();
         $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
-        switch ($user->role) {
-            case 'admin':
-                $prodiData = ProgramStudi::withCount('mahasiswas')->get();
-                $prodiLabels = $prodiData->pluck('nama_prodi');
-                $prodiCounts = $prodiData->pluck('mahasiswas_count');
-
-                $dataGrafikProdi = [
-                    'labels' => $prodiLabels,
-                    'data' => $prodiCounts,
-                ];
-
-                return view('dashboard.admin', [
-                    'totalMahasiswa' => Mahasiswa::count(),
-                    'totalDosen' => Dosen::count(),
-                    'totalProdi' => ProgramStudi::count(),
-                    'totalMatkul' => MataKuliah::count(),
-                    'pengumumans' => $pengumumans,
-                    'dataGrafikProdi' => $dataGrafikProdi,
-                ]);
-
-            case 'dosen':
-                $dosen = $user->dosen;
-                if (!$dosen) { abort(404, 'Data dosen tidak ditemukan.'); }
-                
-                // --- START KODE BARU UNTUK JADWAL DOSEN ---
-                $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen) {
-                    $query->where('dosen_id', $dosen->id);
-                })
-                ->with('mataKuliah')
-                ->get()
-                ->sortBy(function($jadwal) use ($hariOrder) {
-                    return $hariOrder[$jadwal->hari] ?? 99;
-                });
-                // --- END KODE BARU UNTUK JADWAL DOSEN ---
-
-                return view('dosen.dashboard', [
-                    'dosen' => $dosen,
-                    'mata_kuliahs' => $dosen->mataKuliahs()->withCount('mahasiswas')->get(),
-                    'jumlahMahasiswaWali' => $dosen->mahasiswaWali()->count(),
-                    'prodiYangDikepalai' => ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first(),
-                    'pengumumans' => $pengumumans,
-                    'jadwalKuliah' => $jadwalKuliahDosen, // Kirim data jadwal ke view
-                ]);
-
-            case 'mahasiswa':
-                $mahasiswa = $user->mahasiswa;
-                if (!$mahasiswa) { abort(404, 'Data mahasiswa tidak ditemukan.'); }
-
-                // --- START KODE BARU UNTUK JADWAL MAHASISWA ---
-                $jadwalKuliahMahasiswa = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa) {
-                    $query->where('mahasiswas.id', $mahasiswa->id);
-                })
-                ->with('mataKuliah.dosen') // Eager load MataKuliah dan Dosen pengampu
-                ->get()
-                ->sortBy(function($jadwal) use ($hariOrder) {
-                    return $hariOrder[$jadwal->hari] ?? 99;
-                });
-                // --- END KODE BARU UNTUK JADWAL MAHASISWA ---
-
-                $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
-                $total_sks_lulus = 0;
-                $total_bobot_sks = 0;
-                $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-                foreach ($krs_selesai as $mk) {
-                    if (isset($bobot_nilai[$mk->pivot->nilai])) {
-                        $total_sks_lulus += $mk->sks;
-                        $total_bobot_sks += ($bobot_nilai[$mk->pivot->nilai] * $mk->sks);
-                    }
+        // ==================================================================
+        // PERBAIKAN UTAMA: Prioritaskan Dasbor Dosen
+        // Jika pengguna memiliki peran 'dosen', selalu tampilkan dasbor ini
+        // terlepas dari peran lain yang mungkin mereka miliki (Rektorat, Kaprodi, dll).
+        // ==================================================================
+        if ($user->hasRole('dosen')) {
+            $dosen = $user->dosen;
+            if (!$dosen) { abort(404, 'Data dosen tidak ditemukan untuk akun ini.'); }
+            
+            $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen) {
+                $query->where('dosen_id', $dosen->id);
+            })
+            ->with('mataKuliah')
+            ->get()
+            ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+            
+            // Data dinamis untuk peran tambahan (Kaprodi)
+            $dataKaprodi = null;
+            if ($user->hasRole('kaprodi')) {
+                $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
+                if($prodiYangDikepalai) {
+                    $krsMenungguPersetujuan = Mahasiswa::where('program_studi_id', $prodiYangDikepalai->id)
+                                                    ->where('status_krs', 'Menunggu Persetujuan')
+                                                    ->count();
+                    $dataKaprodi = [
+                        'prodi' => $prodiYangDikepalai,
+                        'krs_count' => $krsMenungguPersetujuan
+                    ];
                 }
-                $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
+            }
 
-                $ipsPerSemester = [];
-                $krsDikelompokkan = $krs_selesai->groupBy('pivot.semester_diambil');
-                for ($i = 1; $i <= 8; $i++) {
-                    if (isset($krsDikelompokkan[$i])) {
-                        $totalSksSemester = 0;
-                        $totalBobotSemester = 0;
-                        foreach ($krsDikelompokkan[$i] as $mk) {
-                            if (isset($bobot_nilai[$mk->pivot->nilai])) {
-                                $totalSksSemester += $mk->sks;
-                                $totalBobotSemester += ($bobot_nilai[$mk->pivot->nilai] * $mk->sks);
-                            }
+            // Menggunakan view 'dosen.dashboard' yang sudah ada
+            return view('dosen.dashboard', [
+                'dosen' => $dosen,
+                'mata_kuliahs' => $dosen->mataKuliahs()->withCount('mahasiswas')->get(),
+                'jumlahMahasiswaWali' => $dosen->mahasiswaWali()->count(),
+                'prodiYangDikepalai' => $prodiYangDikepalai ?? null, // dari logika di atas
+                'dataKaprodi' => $dataKaprodi, // data tambahan untuk view
+                'pengumumans' => $pengumumans,
+                'jadwalKuliah' => $jadwalKuliahDosen,
+            ]);
+        }
+        // Pengecekan peran lain hanya berjalan jika user BUKAN seorang dosen
+        elseif ($user->hasRole('admin')) {
+            $prodiData = ProgramStudi::withCount('mahasiswas')->get();
+            $dataGrafikProdi = [
+                'labels' => $prodiData->pluck('nama_prodi'),
+                'data' => $prodiData->pluck('mahasiswas_count'),
+            ];
+            return view('dashboard.admin', [
+                'totalMahasiswa' => Mahasiswa::count(),
+                'totalDosen' => Dosen::count(),
+                'totalProdi' => ProgramStudi::count(),
+                'totalMatkul' => MataKuliah::count(),
+                'pengumumans' => $pengumumans,
+                'dataGrafikProdi' => $dataGrafikProdi,
+            ]);
+        } 
+        elseif ($user->hasRole('rektorat')) {
+            return redirect()->route('rektorat.dashboard');
+        }
+        elseif ($user->hasRole('penjaminan_mutu')) {
+            return redirect()->route('mutu.dashboard');
+        }
+        elseif ($user->hasRole('mahasiswa')) {
+            $mahasiswa = $user->mahasiswa;
+            if (!$mahasiswa) { abort(404, 'Data mahasiswa tidak ditemukan untuk akun ini.'); }
+
+            $jadwalKuliahMahasiswa = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa, $periodeAktif) {
+                $query->where('mahasiswas.id', $mahasiswa->id)
+                      ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif?->id);
+            })
+            ->with('mataKuliah.dosen')
+            ->get()
+            ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+
+            $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
+            $total_sks_lulus = 0;
+            $total_bobot_sks = 0;
+            $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+            foreach ($krs_selesai as $mk) {
+                if (isset($bobot_nilai[$mk->pivot->nilai])) {
+                    $total_sks_lulus += $mk->sks;
+                    $total_bobot_sks += ($bobot_nilai[$mk->pivot->nilai] * $mk->sks);
+                }
+            }
+            $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
+
+            $krsDikelompokkan = $krs_selesai->groupBy('pivot.tahun_akademik_id');
+            $tahunAkademikData = TahunAkademik::whereIn('id', $krsDikelompokkan->keys())->orderBy('id')->get()->keyBy('id');
+            $ipsPerSemester = [];
+            $labels = [];
+
+            foreach ($tahunAkademikData as $id => $ta) {
+                if(isset($krsDikelompokkan[$id])) {
+                    $labels[] = $ta->nama; // Menggunakan nama dari model TahunAkademik
+                    $krsGroup = $krsDikelompokkan[$id];
+                    $totalSksSemester = 0;
+                    $totalBobotSemester = 0;
+                    foreach ($krsGroup as $mk) {
+                        if (isset($bobot_nilai[$mk->pivot->nilai])) {
+                            $totalSksSemester += $mk->sks;
+                            $totalBobotSemester += ($bobot_nilai[$mk->pivot->nilai] * $mk->sks);
                         }
-                        $ips = ($totalSksSemester > 0) ? round($totalBobotSemester / $totalSksSemester, 2) : 0;
-                        $ipsPerSemester[] = $ips;
-                    } else {
-                        $ipsPerSemester[] = 0;
                     }
+                    $ipsPerSemester[] = ($totalSksSemester > 0) ? round($totalBobotSemester / $totalSksSemester, 2) : 0;
                 }
-                
-                $dataGrafik = [
-                    'labels' => ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Sem 7', 'Sem 8'],
-                    'data' => $ipsPerSemester,
-                ];
+            }
+            
+            $dataGrafik = [
+                'labels' => $labels,
+                'data' => $ipsPerSemester,
+            ];
 
-                return view('dashboard', [
-                    'mahasiswa' => $mahasiswa,
-                    'ipk' => $ipk,
-                    'total_sks' => $total_sks_lulus,
-                    'memiliki_tagihan' => $mahasiswa->pembayarans()->where('status', 'belum_lunas')->exists(),
-                    'pengumuman' => $pengumumans,
-                    'dataGrafik' => $dataGrafik,
-                    'jadwalKuliah' => $jadwalKuliahMahasiswa, // Kirim data jadwal ke view
-                ]);
+            $periodeKrsAktif = $periodeAktif && Carbon::now()->between($periodeAktif->tanggal_mulai_krs, Carbon::parse($periodeAktif->tanggal_selesai_krs)->endOfDay());
+            
+            // Logika untuk periode evaluasi
+            $periodeEvaluasiAktif = \App\Models\EvaluasiSesi::where('is_active', true)
+                ->where('tanggal_mulai', '<=', Carbon::now())
+                ->where('tanggal_selesai', '>=', Carbon::now())
+                ->exists();
 
-            case 'tendik':
-                if ($user->jabatan == 'pustakawan') {
-                    return view('perpustakaan.dashboard', [
-                        'totalJudul' => Koleksi::count(),
-                        'totalEksemplar' => Koleksi::sum('jumlah_stok'),
-                        'pengumumans' => $pengumumans
-                    ]);
-                }
-                if ($user->jabatan == 'keuangan') {
-                    return view('pembayaran.dashboard', [
-                        'totalTagihan' => Pembayaran::count(),
-                        'totalLunas' => Pembayaran::where('status', 'lunas')->count(),
-                        'totalBelumLunas' => Pembayaran::where('status', 'belum lunas')->count(),
-                        'pengumumans' => $pengumumans
-                    ]);
-                }
-                break;
+            return view('dashboard', [
+                'mahasiswa' => $mahasiswa,
+                'ipk' => $ipk,
+                'total_sks' => $total_sks_lulus,
+                'memiliki_tagihan' => $mahasiswa->pembayarans()->where('status', 'belum_lunas')->exists(),
+                'pengumuman' => $pengumumans,
+                'dataGrafik' => $dataGrafik,
+                'jadwalKuliah' => $jadwalKuliahMahasiswa,
+                'periodeKrsAktif' => $periodeKrsAktif,
+                'periodeEvaluasiAktif' => $periodeEvaluasiAktif,
+            ]);
+        }
+        elseif ($user->hasRole('keuangan')) {
+            return view('pembayaran.dashboard', [
+                'totalTagihan' => Pembayaran::count(),
+                'totalLunas' => Pembayaran::where('status', 'lunas')->count(),
+                'totalBelumLunas' => Pembayaran::where('status', 'belum_lunas')->count(),
+                'pengumumans' => $pengumumans
+            ]);
+        }
+        elseif ($user->hasRole('pustakawan')) {
+            return view('perpustakaan.dashboard', [
+                'totalJudul' => Koleksi::count(),
+                'totalEksemplar' => Koleksi::sum('jumlah_stok'),
+                'pengumumans' => $pengumumans
+            ]);
         }
 
-        return view('welcome');
+        // Fallback jika user tidak punya peran yang dikenali
+        Auth::logout();
+        return redirect('/login')->with('error', 'Peran Anda tidak dikenali atau belum diatur. Silakan hubungi administrator.');
     }
 }

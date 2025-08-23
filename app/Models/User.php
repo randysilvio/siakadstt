@@ -2,49 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
-/**
- * Tambahkan PHPDoc ini di atas class User
- * @property-read \App\Models\Mahasiswa|null $mahasiswa
- * @property-read \App\Models\Dosen|null $dosen
- */
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
-        'jabatan', // <-- PERUBAHAN DI SINI
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -53,30 +30,38 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Relasi ke Mahasiswa (satu user punya satu data mahasiswa).
-     */
+    // RELASI BARU: Many-to-Many ke Role
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    // FUNGSI BANTU BARU: Untuk memeriksa apakah user memiliki peran tertentu
+    public function hasRole($roleName)
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+    
+    // FUNGSI BANTU BARU: Untuk memberikan peran ke user
+    public function assignRole($roleName)
+    {
+        $role = Role::where('name', $roleName)->firstOrFail();
+        $this->roles()->syncWithoutDetaching($role);
+    }
+
     public function mahasiswa()
     {
         return $this->hasOne(Mahasiswa::class);
     }
 
-    /**
-     * Relasi ke Dosen (satu user punya satu data dosen).
-     */
     public function dosen()
     {
         return $this->hasOne(Dosen::class);
     }
 
-    /**
-     * Fungsi baru untuk memeriksa apakah user ini adalah Kaprodi.
-     */
     public function isKaprodi(): bool
     {
-        // Cek jika user adalah dosen dan data dosennya ada
-        if ($this->role == 'dosen' && $this->dosen) {
-            // Cek apakah ID dosen ini ada di tabel program_studis sebagai kaprodi
+        if ($this->hasRole('dosen') && $this->dosen) {
             return ProgramStudi::where('kaprodi_dosen_id', $this->dosen->id)->exists();
         }
         return false;

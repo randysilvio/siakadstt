@@ -52,7 +52,10 @@ class Mahasiswa extends Model
      */
     public function mataKuliahs()
     {
-        return $this->belongsToMany(MataKuliah::class, 'mahasiswa_mata_kuliah')->withPivot('nilai')->withTimestamps();
+        // PERBAIKAN: Menambahkan 'tahun_akademik_id' ke dalam withPivot
+        return $this->belongsToMany(MataKuliah::class, 'mahasiswa_mata_kuliah')
+                    ->withPivot('nilai', 'tahun_akademik_id')
+                    ->withTimestamps();
     }
 
     /**

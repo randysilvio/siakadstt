@@ -2,244 +2,232 @@
 
 @section('content')
 <div class="container">
-    {{-- Tampilan Dashboard Mahasiswa --}}
-    @if(Auth::user()->role == 'mahasiswa')
-        <h1 class="mb-4">Dashboard Mahasiswa</h1>
-        @if($memiliki_tagihan)
-            <div class="alert alert-danger" role="alert">
-                <strong>Perhatian!</strong> Anda memiliki tagihan pembayaran yang belum lunas.
-                <a href="{{ route('pembayaran.riwayat') }}" class="alert-link">Lihat Riwayat Pembayaran</a>.
-            </div>
-        @endif
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Profil Ringkas</h5>
-                        <p><strong>Nama:</strong> {{ $mahasiswa->nama_lengkap }}</p>
-                        <p><strong>NIM:</strong> {{ $mahasiswa->nim }}</p>
-                        <p><strong>Program Studi:</strong> {{ $mahasiswa->programStudi->nama_prodi }}</p>
-                    </div>
+    {{-- ============================================================== --}}
+    {{-- TAMPILAN DASHBOARD MAHASISWA --}}
+    {{-- ============================================================== --}}
+    @if(Auth::user()->hasRole('mahasiswa'))
+        @if(isset($mahasiswa))
+            <h2 class="mb-4">Dasbor Mahasiswa</h2>
+            
+            {{-- Notifikasi Tagihan --}}
+            @if($memiliki_tagihan)
+                <div class="alert alert-danger" role="alert">
+                    <strong>Perhatian!</strong> Anda memiliki tagihan pembayaran yang belum lunas.
+                    <a href="{{ route('pembayaran.riwayat') }}" class="alert-link">Lihat Riwayat Pembayaran</a> untuk melanjutkan proses akademik.
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center bg-primary text-white mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">IPK Kumulatif</h5>
-                        <p class="card-text fs-2">{{ $ipk }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center bg-info text-white mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Total SKS</h5>
-                        <p class="card-text fs-2">{{ $total_sks }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        {{-- KODE BARU: JADWAL KULIAH MAHASISWA --}}
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Jadwal Kuliah Semester Ini</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Hari</th>
-                                        <th>Jam</th>
-                                        <th>Mata Kuliah</th>
-                                        <th>SKS</th>
-                                        <th>Dosen</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($jadwalKuliah as $jadwal)
-                                        <tr>
-                                            <td>{{ $jadwal->hari }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                            <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
-                                            <td>{{ $jadwal->mataKuliah->sks }}</td>
-                                            <td>{{ $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A' }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="5" class="text-center py-3">Anda belum mengambil KRS untuk semester ini.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {{-- AKHIR KODE BARU --}}
-        
-        <div class="row mt-4"> {{-- Diubah dari mt-3 menjadi mt-4 untuk memberi jarak --}}
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Grafik Tren Indeks Prestasi (IP) per Semester</h5>
-                        <canvas id="grafikIPS"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <hr>
-    @endif
+            @endif
 
-    {{-- Tampilan Dashboard Dosen --}}
-    @if(Auth::user()->role == 'dosen')
-        <h1 class="mb-4">Dashboard Dosen</h1>
-        <div class="row">
-            <div class="col-md-8">
-                {{-- Portal Kaprodi --}}
-                @if($prodiYangDikepalai)
-                    <div class="card bg-primary text-white mb-3">
+            <div class="row">
+                <!-- Kolom Kiri: Profil & Jadwal -->
+                <div class="col-lg-8">
+                    {{-- Kartu Profil --}}
+                    <div class="card mb-4">
                         <div class="card-body">
-                            <h5>Portal Kepala Program Studi: {{ $prodiYangDikepalai->nama_prodi }}</h5>
-                            <p>Anda memiliki akses sebagai Kaprodi.</p>
-                            <a href="{{ route('kaprodi.dashboard') }}" class="btn btn-light">Masuk ke Portal Kaprodi</a>
-                        </div>
-                    </div>
-                @endif
-                
-                {{-- KODE BARU: JADWAL MENGAJAR DOSEN --}}
-                <div class="card mb-3">
-                    <div class="card-header">Jadwal Mengajar Semester Ini</div>
-                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Hari</th>
-                                        <th>Jam</th>
-                                        <th>Mata Kuliah</th>
-                                        <th>Kode MK</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($jadwalKuliah as $jadwal)
-                                        <tr>
-                                            <td>{{ $jadwal->hari }}</td>
-                                            <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                            <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
-                                            <td>{{ $jadwal->mataKuliah->kode_mk }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center py-3">Tidak ada jadwal mengajar untuk semester ini.</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                {{-- AKHIR KODE BARU --}}
-
-                <div class="card mb-3">
-                    <div class="card-header">Mata Kuliah yang Anda Ajar</div>
-                    <ul class="list-group list-group-flush">
-                        @forelse($mata_kuliahs as $mk)
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ $mk->kode_mk }}</strong> - {{ $mk->nama_mk }} <br>
-                                    <small>{{ $mk->sks }} SKS - Semester {{ $mk->semester }}</small>
+                            <h5 class="card-title">Selamat Datang, {{ $mahasiswa->nama_lengkap }}!</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>NIM:</strong> {{ $mahasiswa->nim }}</p>
+                                    <p class="mb-1"><strong>Program Studi:</strong> {{ $mahasiswa->programStudi->nama_prodi }}</p>
                                 </div>
-                                <a href="{{ route('nilai.show', $mk) }}" class="badge bg-primary rounded-pill">Input Nilai</a>
-                            </li>
-                        @empty
-                            <li class="list-group-item text-center text-muted">Anda tidak mengajar mata kuliah apapun.</li>
-                        @endforelse
-                    </ul>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Dosen Wali:</strong> {{ $mahasiswa->dosenWali->nama_lengkap ?? 'Belum ditentukan' }}</p>
+                                    <p class="mb-1"><strong>Status KRS:</strong> 
+                                        <span class="badge 
+                                            @if($mahasiswa->status_krs == 'Disetujui') bg-success
+                                            @elseif($mahasiswa->status_krs == 'Ditolak') bg-danger
+                                            @elseif($mahasiswa->status_krs == 'Menunggu Persetujuan') bg-warning text-dark
+                                            @else bg-secondary @endif">
+                                            {{ $mahasiswa->status_krs ?? 'Belum Mengisi' }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Tabel Jadwal Kuliah --}}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Jadwal Kuliah Semester Ini</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Hari</th>
+                                            <th>Jam</th>
+                                            <th>Mata Kuliah</th>
+                                            <th>SKS</th>
+                                            <th>Dosen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($jadwalKuliah as $jadwal)
+                                            <tr>
+                                                <td>{{ $jadwal->hari }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+                                                <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
+                                                <td>{{ $jadwal->mataKuliah->sks }}</td>
+                                                <td>{{ $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A' }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="text-center py-3">Anda belum mengambil KRS untuk semester ini atau KRS belum disetujui.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card text-center mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Perwalian</h5>
-                        <p class="card-text fs-2">{{ $jumlahMahasiswaWali }}</p>
-                        <a href="{{ route('perwalian.index') }}" class="btn btn-primary">Lihat Detail</a>
+
+                <!-- Kolom Kanan: Aksi Cepat, IPK, SKS & Pengumuman -->
+                <div class="col-lg-4">
+                    {{-- [KODE BARU DITAMBAHKAN] Kartu Aksi Cepat --}}
+                    <div class="card mb-4">
+                        <div class="card-header fw-bold">Aksi Cepat</div>
+                        <div class="list-group list-group-flush">
+                            {{-- Tombol ini hanya muncul jika periode KRS aktif dan KRS belum final --}}
+                            @if(isset($periodeKrsAktif) && $periodeKrsAktif && $mahasiswa->status_krs !== 'Disetujui')
+                                <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action list-group-item-primary">
+                                    <strong>Isi / Ubah Kartu Rencana Studi (KRS)</strong>
+                                    <small class="d-block text-muted">Periode KRS sedang berlangsung.</small>
+                                </a>
+                            @endif
+
+                             {{-- Tombol ini hanya muncul jika periode evaluasi aktif --}}
+                            @if(isset($periodeEvaluasiAktif) && $periodeEvaluasiAktif)
+                                <a href="{{ route('evaluasi.index') }}" class="list-group-item list-group-item-action list-group-item-success">
+                                    <strong>Isi Kuesioner Evaluasi Dosen</strong>
+                                    <small class="d-block text-muted">Bantu tingkatkan kualitas pengajaran.</small>
+                                </a>
+                            @endif
+                            
+                            <a href="{{ route('khs.index') }}" class="list-group-item list-group-item-action">Lihat Kartu Hasil Studi (KHS)</a>
+                            <a href="{{ route('transkrip.index') }}" class="list-group-item list-group-item-action">Lihat Transkrip Nilai</a>
+                        </div>
+                    </div>
+
+                    {{-- Kartu IPK --}}
+                    <div class="card text-center bg-primary text-white mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">IPK Kumulatif</h5>
+                            <p class="card-text display-4 fw-bold">{{ number_format($ipk, 2) }}</p>
+                        </div>
+                    </div>
+                    {{-- Kartu SKS --}}
+                    <div class="card text-center bg-info text-white mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Total SKS Lulus</h5>
+                            <p class="card-text display-4 fw-bold">{{ $total_sks }}</p>
+                        </div>
+                    </div>
+                    {{-- Kartu Pengumuman --}}
+                     <div class="card">
+                        <div class="card-header">Pengumuman Terbaru</div>
+                        <div class="list-group list-group-flush">
+                            @forelse($pengumuman as $p)
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ $p->judul }}</h6>
+                                    </div>
+                                    <small class="text-muted">{{ $p->created_at->isoFormat('D MMMM YYYY') }}</small>
+                                </a>
+                            @empty
+                                <div class="list-group-item text-muted">Belum ada pengumuman.</div>
+                            @endforelse
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <hr>
+            
+            {{-- Grafik Tren IP --}}
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Grafik Tren Indeks Prestasi (IP) per Semester</h5>
+                            <canvas id="grafikIPS"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+             <div class="alert alert-warning">Data mahasiswa Anda tidak ditemukan. Silakan hubungi administrator.</div>
+        @endif
+        <hr class="my-4">
     @endif
 
-    {{-- Pengumuman Terbaru --}}
-    @if(isset($pengumuman) && $pengumuman->isNotEmpty())
-        <div class="card mt-4">
-            <div class="card-header">
-                <h3>Pengumuman Terbaru</h3>
-            </div>
-            <ul class="list-group list-group-flush">
-                @foreach($pengumuman as $p)
-                    <li class="list-group-item">
-                        <h5 class="mb-1">{{ $p->judul }}</h5>
-                        <p class="mb-1">{{ $p->isi }}</p>
-                        <small class="text-muted">Diterbitkan: {{ $p->created_at->isoFormat('D MMMM YYYY') }}</small>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    @else
-        <div class="mt-4 alert alert-info">
-            Belum ada pengumuman untuk Anda saat ini.
-        </div>
+    {{-- ============================================================== --}}
+    {{-- TAMPILAN DASHBOARD DOSEN (dan peran lainnya) --}}
+    {{-- ============================================================== --}}
+    @if(Auth::user()->hasRole('dosen'))
+        <h2 class="mb-4">Dasbor Dosen</h2>
+        {{-- ... (Konten dasbor dosen dapat ditambahkan di sini) ... --}}
     @endif
+    
+    @if(Auth::user()->hasRole('admin'))
+        <h2 class="mb-4">Dasbor Administrator</h2>
+        <p>Selamat datang, Administrator. Gunakan menu navigasi di atas untuk mengelola sistem.</p>
+    @endif
+
+    {{-- ... (Tambahkan blok untuk peran lain seperti pustakawan, keuangan, dll. jika perlu) ... --}}
+
 </div>
 @endsection
 
 @push('scripts')
     {{-- Script ini hanya akan di-load jika user yang login adalah mahasiswa --}}
-    @if(Auth::user()->role == 'mahasiswa' && isset($dataGrafik))
+    @if(Auth::user()->hasRole('mahasiswa') && isset($dataGrafik))
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             const dataGrafik = @json($dataGrafik);
             const ctx = document.getElementById('grafikIPS').getContext('2d');
             
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dataGrafik.labels,
-                    datasets: [{
-                        label: 'IP Semester',
-                        data: dataGrafik.data,
-                        borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 4.0,
-                            title: {
-                                display: true,
-                                text: 'Nilai IP'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Semester'
+            if (dataGrafik.labels.length > 0) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dataGrafik.labels,
+                        datasets: [{
+                            label: 'IP Semester',
+                            data: dataGrafik.data,
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 4.0,
+                                title: {
+                                    display: true,
+                                    text: 'Nilai IP'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Semester'
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                // Tampilkan pesan jika tidak ada data untuk grafik
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#888";
+                ctx.textAlign = "center";
+                ctx.fillText("Data IP Semester belum tersedia untuk ditampilkan.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
         </script>
     @endif
 @endpush

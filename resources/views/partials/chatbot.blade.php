@@ -2,7 +2,7 @@
 <div id="chatbot-container" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1050;">
     
     {{-- Chat Window --}}
-    <div id="chatbot-window" class="card shadow-lg d-none" style="width: 22rem; height: 32rem; transition: all 0.3s;">
+    <div id="chatbot-window" class="card shadow-lg d-none" style="width: 22rem; height: 32rem; transition: all 0.3s; display: flex; flex-direction: column;">
         {{-- Header --}}
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">ZoeChat</h5>
@@ -40,10 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatbotClose = document.getElementById('chatbot-close');
     const chatbotInput = document.getElementById('chatbot-input');
     const chatbotMessages = document.getElementById('chatbot-messages');
-    // Ambil token CSRF dari meta tag yang sudah kita tambahkan di app.blade.php
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // Fungsi untuk membuka/menutup jendela chat
     const toggleWindow = () => {
         chatbotWindow.classList.toggle('d-none');
         chatbotToggle.classList.toggle('d-none');
@@ -52,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chatbotToggle.addEventListener('click', toggleWindow);
     chatbotClose.addEventListener('click', toggleWindow);
 
-    // Fungsi untuk mengirim pesan saat menekan tombol Enter
     chatbotInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter' && chatbotInput.value.trim() !== '') {
             const userMessage = chatbotInput.value.trim();
@@ -62,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Fungsi untuk menambahkan gelembung pesan ke tampilan
     function addMessage(message, sender) {
         const messageWrapper = document.createElement('div');
         messageWrapper.className = `d-flex mb-3 ${sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`;
@@ -74,16 +70,20 @@ document.addEventListener('DOMContentLoaded', () => {
             messageBubble.style.color = '#000';
         }
         messageBubble.style.maxWidth = '80%';
-        messageBubble.textContent = message;
+        messageBubble.style.wordWrap = 'break-word'; // Menambahkan ini agar teks panjang tidak merusak layout
+
+        // =====================================================================
+        // ===== PERUBAHAN DI SINI: dari .textContent menjadi .innerHTML =====
+        // Ini akan merender tag <br /> sebagai baris baru, bukan teks biasa
+        messageBubble.innerHTML = message;
+        // =====================================================================
         
         messageWrapper.appendChild(messageBubble);
         chatbotMessages.appendChild(messageWrapper);
-        chatbotMessages.scrollTop = chatbotMessages.scrollHeight; // Auto scroll ke pesan terbaru
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
     }
 
-    // Fungsi untuk mengirim pesan ke server Laravel
     async function sendMessageToServer(message) {
-        // Tampilkan indikator "mengetik" dari bot
         const typingIndicator = document.createElement('div');
         typingIndicator.id = 'typing-indicator';
         typingIndicator.className = 'd-flex mb-3 justify-content-start';
@@ -107,10 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             
-            // Hapus indikator "mengetik"
             document.getElementById('typing-indicator').remove();
             
-            // Tampilkan balasan dari bot
             addMessage(data.reply, 'bot');
 
         } catch (error) {

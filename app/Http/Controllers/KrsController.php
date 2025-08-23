@@ -14,8 +14,6 @@ class KrsController extends Controller
 {
     /**
      * Menampilkan halaman pengisian KRS.
-     * Logika pengecekan akses (tagihan & periode aktif) telah dipindahkan ke Middleware
-     * untuk mencegah redirect ganda.
      */
     public function index()
     {
@@ -24,7 +22,12 @@ class KrsController extends Controller
             abort(403, 'Data mahasiswa tidak ditemukan untuk pengguna ini.');
         }
 
-        // Ambil periode aktif. Gagal jika tidak ada, karena middleware seharusnya sudah memblokir.
+        // --- PERBAIKAN 1: Tambahkan pengecekan status di Controller ---
+        // Lapisan pengaman kedua jika middleware gagal atau tidak diterapkan.
+        if ($mahasiswa->status_krs === 'Disetujui') {
+            return redirect()->route('dashboard')->with('warning', 'KRS Anda telah disetujui dan tidak dapat diubah lagi.');
+        }
+
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         // Logika untuk menghitung IPK dan menentukan batas SKS
@@ -44,20 +47,17 @@ class KrsController extends Controller
 
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
         
-        $max_sks = 15; // Batas SKS default
+        $max_sks = 15;
         if ($ipk >= 3.00) { $max_sks = 24; }
         elseif ($ipk >= 2.50) { $max_sks = 21; }
         elseif ($ipk >= 2.00) { $max_sks = 18; }
 
-        // Ambil ID semua mata kuliah yang sudah LULUS (nilai D ke atas)
         $mk_lulus_ids = $mahasiswa->mataKuliahs()
                                  ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
                                  ->pluck('mata_kuliahs.id')->toArray();
 
-        // Ambil semua mata kuliah beserta relasinya
         $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])->get();
         
-        // Ambil KRS untuk periode yang aktif saja
         $mk_diambil_ids = $mahasiswa->mataKuliahs()->where('tahun_akademik_id', $periodeAktif->id)->pluck('mata_kuliahs.id')->toArray();
 
         return view('krs.index', [
@@ -72,15 +72,21 @@ class KrsController extends Controller
 
     /**
      * Menyimpan data KRS yang diajukan.
-     * Metode ini tidak diubah karena logikanya sudah benar.
      */
     public function store(Request $request)
     {
         $mahasiswa = Auth::user()->mahasiswa;
+        
+        // --- PERBAIKAN 2: Tambahkan pengecekan status sebelum menyimpan ---
+        // Mencegah mahasiswa mengirim ulang data jika KRS sudah disetujui.
+        if ($mahasiswa->status_krs === 'Disetujui') {
+            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final dan tidak dapat diubah.');
+        }
+
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // --- VALIDASI SKS DI BACKEND ---
+        // Validasi SKS, Prasyarat, dan Jadwal Bentrok
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
         $total_sks_lulus = 0;
         $total_bobot_sks = 0;
@@ -107,7 +113,6 @@ class KrsController extends Controller
             ]);
         }
 
-        // --- VALIDASI PRASYARAT DI BACKEND ---
         $mk_lulus_ids = $mahasiswa->mataKuliahs()->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])->pluck('mata_kuliahs.id')->toArray();
         $mk_dipilih = MataKuliah::with('prasyarats')->findMany($mata_kuliah_ids);
         $error_prasyarat = [];
@@ -124,7 +129,6 @@ class KrsController extends Controller
             throw ValidationException::withMessages(['mata_kuliahs' => $error_prasyarat]);
         }
 
-        // --- VALIDASI JADWAL BENTROK DI BACKEND ---
         $jadwalTerpilih = [];
         $mk_dipilih_dengan_jadwal = MataKuliah::with('jadwals')->findMany($mata_kuliah_ids);
 
@@ -150,9 +154,11 @@ class KrsController extends Controller
 
         $mahasiswa->mataKuliahs()->sync($syncData);
 
-        // UPDATE STATUS KRS MAHASISWA
-        $mahasiswa->status_krs = 'Menunggu Persetujuan';
-        $mahasiswa->save();
+        // --- PERBAIKAN 3: Ubah status hanya jika belum pernah disetujui/ditolak ---
+        if ($mahasiswa->status_krs !== 'Ditolak') {
+            $mahasiswa->status_krs = 'Menunggu Persetujuan';
+            $mahasiswa->save();
+        }
 
         return redirect()->route('krs.index')->with('success', 'KRS berhasil disimpan dan sedang menunggu persetujuan.');
     }

@@ -9,17 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MahasiswaMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->role == 'mahasiswa') {
+        if (Auth::check() && Auth::user()->hasRole('mahasiswa')) {
             return $next($request);
         }
-
         return redirect('/dashboard')->with('error', 'Halaman ini hanya untuk mahasiswa.');
     }
 }

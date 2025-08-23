@@ -5,17 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @property-read \App\Models\Dosen|null $dosen
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Mahasiswa[] $mahasiswas
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MataKuliah[] $prasyarats
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Jadwal[] $jadwals
- */
 class MataKuliah extends Model
 {
     use HasFactory;
 
+    protected $table = 'mata_kuliahs';
+
     protected $fillable = [
+        'kurikulum_id',
         'kode_mk',
         'nama_mk',
         'sks',
@@ -23,9 +20,9 @@ class MataKuliah extends Model
         'dosen_id',
     ];
 
-    public function mahasiswas()
+    public function kurikulum()
     {
-        return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah');
+        return $this->belongsTo(Kurikulum::class);
     }
 
     public function dosen()
@@ -33,16 +30,18 @@ class MataKuliah extends Model
         return $this->belongsTo(Dosen::class);
     }
 
+    public function jadwals()
+    {
+        return $this->hasMany(Jadwal::class);
+    }
+
     public function prasyarats()
     {
         return $this->belongsToMany(MataKuliah::class, 'matakuliah_prasyarat', 'mata_kuliah_id', 'prasyarat_id');
     }
-
-    /**
-     * Relasi ke Jadwal (satu mata kuliah bisa punya banyak jadwal).
-     */
-    public function jadwals()
+    
+    public function mahasiswas()
     {
-        return $this->hasMany(Jadwal::class);
+        return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah');
     }
 }

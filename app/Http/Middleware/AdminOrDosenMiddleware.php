@@ -9,26 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminOrDosenMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Periksa apakah pengguna sudah login
-        if (!Auth::check()) {
-            return redirect('login');
-        }
-
-        $userRole = Auth::user()->role;
-
-        // Izinkan akses hanya jika peran pengguna adalah 'admin' atau 'dosen'
-        if ($userRole === 'admin' || $userRole === 'dosen') {
+        if (Auth::check() && Auth::user()->hasRole(['admin', 'dosen'])) {
             return $next($request);
         }
-
-        // Jika bukan, tolak akses dengan error 403 Forbidden
         abort(403, 'AKSI TIDAK DIIZINKAN.');
     }
 }

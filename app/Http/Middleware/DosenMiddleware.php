@@ -9,17 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class DosenMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->role == 'dosen') {
+        if (Auth::check() && Auth::user()->hasRole('dosen')) {
             return $next($request);
         }
-
         return redirect('/dashboard')->with('error', 'Anda tidak memiliki hak akses sebagai dosen.');
     }
 }

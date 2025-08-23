@@ -11,25 +11,9 @@ class KeuanganTendikMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::user();
-
-        if (Auth::check()) {
-            // Admin selalu punya akses
-            if ($user->role == 'admin') {
-                return $next($request);
-            }
-
-            // Periksa hak akses untuk tendik keuangan
-            if ($user->role == 'tendik' && $user->jabatan == 'keuangan') {
-                return $next($request);
-            }
-
-            // Periksa hak akses untuk dosen keuangan menggunakan is_keuangan
-            if ($user->role == 'dosen' && $user->dosen && $user->dosen->is_keuangan) {
-                return $next($request);
-            }
+        if (Auth::check() && Auth::user()->hasRole(['admin', 'keuangan'])) {
+            return $next($request);
         }
-
         return redirect('/dashboard')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
     }
 }

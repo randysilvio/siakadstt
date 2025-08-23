@@ -57,7 +57,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
-        // Middleware Kustom Anda
+        // Middleware Kustom Anda yang sudah ada
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'keuangan_tendik' => \App\Http\Middleware\KeuanganTendikMiddleware::class,
         'dosen' => \App\Http\Middleware\DosenMiddleware::class,
@@ -67,5 +67,12 @@ class Kernel extends HttpKernel
         'cek_periode_krs' => \App\Http\Middleware\CekPeriodeKrsMiddleware::class,
         'pustakawan' => \App\Http\Middleware\PustakawanMiddleware::class,
         'admin_or_dosen' => \App\Http\Middleware\AdminOrDosenMiddleware::class,
+        'penjaminan_mutu' => \App\Http\Middleware\PenjaminanMutuMiddleware::class,
+        'rektorat' => \App\Http\Middleware\RektoratMiddleware::class,
+
+        // ==================================================================
+        // PENAMBAHAN BARU: Alias middleware peran yang fleksibel
+        // ==================================================================
+        'role' => \App\Http\Middleware\CheckRoleMiddleware::class,
     ];
 }
