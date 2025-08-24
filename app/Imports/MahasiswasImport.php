@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Mahasiswa;
 use App\Models\User;
+use App\Models\Role; // <-- 1. Tambahkan model Role
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -14,6 +15,14 @@ use Maatwebsite\Excel\Concerns\SkipsFailures;
 
 class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
 {
+    private $mahasiswaRole;
+
+    public function __construct()
+    {
+        // Ambil peran 'mahasiswa' sekali saja untuk efisiensi
+        $this->mahasiswaRole = Role::where('name', 'mahasiswa')->first();
+    }
+
     public function model(array $row)
     {
         return DB::transaction(function () use ($row) {
@@ -23,9 +32,17 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
                 [
                     'name' => $row['nama_lengkap'],
                     'password' => Hash::make($row['password']),
-                    'role' => 'mahasiswa',
                 ]
             );
+
+            // =====================================================================
+            // ===== PERBAIKAN: Menetapkan peran 'mahasiswa' secara otomatis =====
+            // =====================================================================
+            // Lampirkan peran 'mahasiswa' ke pengguna
+            if ($this->mahasiswaRole) {
+                $user->roles()->syncWithoutDetaching($this->mahasiswaRole->id);
+            }
+            // =====================================================================
 
             // Buat data mahasiswa dengan semua kolom dari template
             return new Mahasiswa([
@@ -51,7 +68,6 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
             'nim'               => 'required|string|unique:mahasiswas,nim',
             'nama_lengkap'      => 'required|string|max:255',
             'program_studi_id'  => 'required|integer|exists:program_studis,id',
-            // PERBAIKAN: Menambahkan validasi unique di tabel users
             'email'             => 'required|email|unique:users,email', 
             'password'          => 'required|string|min:8',
             'dosen_wali_id'     => 'nullable|integer|exists:dosens,id',

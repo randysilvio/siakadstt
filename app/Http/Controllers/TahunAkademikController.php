@@ -15,13 +15,13 @@ class TahunAkademikController extends Controller
     }
 
     public function create() { 
-        // KODE BARU: Logika "Generate Next Semester"
+        // Logika "Generate Next Semester"
         $lastTahunAkademik = TahunAkademik::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->first();
         $nextTahun = '';
-        $nextSemester = 'Gasal';
+        $nextSemester = 'Ganjil'; // Diubah dari Gasal
 
         if ($lastTahunAkademik) {
-            if ($lastTahunAkademik->semester == 'Gasal') {
+            if ($lastTahunAkademik->semester == 'Ganjil') { // Diubah dari Gasal
                 $nextTahun = $lastTahunAkademik->tahun;
                 $nextSemester = 'Genap';
             } else {
@@ -29,7 +29,7 @@ class TahunAkademikController extends Controller
                 $nextStartYear = (int)$years[0] + 1;
                 $nextEndYear = (int)$years[1] + 1;
                 $nextTahun = $nextStartYear . '/' . $nextEndYear;
-                $nextSemester = 'Gasal';
+                $nextSemester = 'Ganjil'; // Diubah dari Gasal
             }
         } else {
             // Jika tidak ada data sama sekali, default ke tahun sekarang
@@ -43,7 +43,8 @@ class TahunAkademikController extends Controller
     public function store(Request $request) {
         $request->validate([
             'tahun' => ['required', 'string', 'max:9', new UniqueTahunSemesterRule()],
-            'semester' => ['required', 'in:Gasal,Genap', new UniqueTahunSemesterRule()],
+            // ===== PERBAIKAN: Mengubah 'Gasal' menjadi 'Ganjil' =====
+            'semester' => ['required', 'in:Ganjil,Genap', new UniqueTahunSemesterRule()],
             'tanggal_mulai_krs' => 'required|date',
             'tanggal_selesai_krs' => 'required|date|after_or_equal:tanggal_mulai_krs',
         ]);
@@ -59,7 +60,8 @@ class TahunAkademikController extends Controller
     public function update(Request $request, TahunAkademik $tahunAkademik) {
         $request->validate([
             'tahun' => ['required', 'string', 'max:9', new UniqueTahunSemesterRule($tahunAkademik->id)],
-            'semester' => ['required', 'in:Gasal,Genap', new UniqueTahunSemesterRule($tahunAkademik->id)],
+            // ===== PERBAIKAN: Mengubah 'Gasal' menjadi 'Ganjil' =====
+            'semester' => ['required', 'in:Ganjil,Genap', new UniqueTahunSemesterRule($tahunAkademik->id)],
             'tanggal_mulai_krs' => 'required|date',
             'tanggal_selesai_krs' => 'required|date|after_or_equal:tanggal_mulai_krs',
         ]);
@@ -73,7 +75,6 @@ class TahunAkademikController extends Controller
             return back()->with('error', 'Tidak dapat menghapus tahun akademik yang sedang aktif.');
         }
 
-        // KODE DIPERBARUI: Menggunakan soft delete
         $tahunAkademik->delete(); 
         return redirect()->route('tahun-akademik.index')->with('success', 'Tahun Akademik berhasil dihapus.');
     }
@@ -84,7 +85,6 @@ class TahunAkademikController extends Controller
             $tahunAkademik->update(['is_active' => true]);
         });
         
-        // KODE BARU: Memanggil event setelah transaksi berhasil
         event(new TahunAkademikDiaktifkan($tahunAkademik));
 
         return redirect()->route('tahun-akademik.index')->with('success', "Tahun Akademik {$tahunAkademik->tahun} Semester {$tahunAkademik->semester} berhasil diaktifkan.");

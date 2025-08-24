@@ -13,23 +13,46 @@
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importDosenModal">Import Dosen</button>
     </div>
 
-    {{-- Modal Import --}}
+    {{-- ======================================================= --}}
+    {{-- ===== KODE MODAL BOX YANG HILANG DITAMBAHKAN DI SINI ===== --}}
+    {{-- ======================================================= --}}
     <div class="modal fade" id="importDosenModal" tabindex="-1" aria-labelledby="importDosenModalLabel" aria-hidden="true">
-        {{-- Konten Modal tidak berubah --}}
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importDosenModalLabel">Import Data Dosen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('dosen.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Pilih file Excel (.xlsx, .xls)</label>
+                            <input class="form-control" type="file" id="file" name="file" required>
+                        </div>
+                        <a href="{{ route('dosen.import.template') }}">Unduh Template Excel</a>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+    {{-- ======================================================= --}}
+    {{-- ===== AKHIR DARI KODE MODAL BOX ===== --}}
+    {{-- ======================================================= --}}
+
 
     <div class="card">
         <div class="card-body">
-            <!-- ======================================================= -->
-            <!-- ===== PERBAIKAN: Menambahkan Formulir Pencarian ===== -->
-            <!-- ======================================================= -->
             <form action="{{ route('dosen.index') }}" method="GET" class="mb-4">
                 <div class="input-group">
                     <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan Nama, NIDN, atau Email..." value="{{ request('search') }}">
                     <button class="btn btn-primary" type="submit">Cari</button>
                 </div>
             </form>
-            <!-- ======================================================= -->
 
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -75,7 +98,6 @@
         </div>
         @if($dosens->hasPages())
         <div class="card-footer">
-            {{-- Tautan paginasi akan otomatis menyertakan query pencarian --}}
             {{ $dosens->links() }}
         </div>
         @endif
