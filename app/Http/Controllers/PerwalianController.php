@@ -4,21 +4,48 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
+use App\Models\ProgramStudi; // <-- Tambahkan ini
 use Illuminate\Support\Facades\Auth;
 
 class PerwalianController extends Controller
 {
-    public function index()
+    public function index(Request $request) // <-- Tambahkan Request
     {
         $dosen = Auth::user()->dosen;
         if (!$dosen) {
             abort(403, 'Data dosen tidak ditemukan.');
         }
 
+        // Ambil daftar mahasiswa yang sudah menjadi wali (tidak perlu paginasi)
         $mahasiswa_wali = Mahasiswa::where('dosen_wali_id', $dosen->id)->with('programStudi')->get();
-        $mahasiswa_tersedia = Mahasiswa::whereNull('dosen_wali_id')->with('programStudi')->get();
 
-        return view('perwalian.index', compact('mahasiswa_wali', 'mahasiswa_tersedia'));
+        // =================================================================
+        // ===== PERBAIKAN: Menambahkan Logika Filter, Pencarian, & Paginasi =====
+        // =================================================================
+        $query = Mahasiswa::whereNull('dosen_wali_id')->with('programStudi');
+
+        // 1. Terapkan filter pencarian jika ada
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                  ->orWhere('nim', 'like', "%{$search}%");
+            });
+        }
+
+        // 2. Terapkan filter program studi jika ada
+        if ($request->filled('program_studi_id')) {
+            $query->where('program_studi_id', $request->input('program_studi_id'));
+        }
+
+        // 3. Ambil data dengan paginasi (10 per halaman)
+        $mahasiswa_tersedia = $query->paginate(10)->withQueryString();
+
+        // Ambil semua program studi untuk ditampilkan di dropdown filter
+        $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
+        // =================================================================
+
+        return view('perwalian.index', compact('mahasiswa_wali', 'mahasiswa_tersedia', 'program_studis'));
     }
 
     public function store(Request $request)
@@ -38,14 +65,10 @@ class PerwalianController extends Controller
         return redirect()->route('perwalian.index')->with('success', 'Data mahasiswa perwalian berhasil diperbarui.');
     }
 
-    /**
-     * Fungsi baru untuk menghapus perwalian.
-     */
     public function destroy(Mahasiswa $mahasiswa)
     {
         $dosen = Auth::user()->dosen;
 
-        // Pengecekan keamanan: pastikan dosen hanya bisa menghapus perwaliannya sendiri
         if ($mahasiswa->dosen_wali_id == $dosen->id) {
             $mahasiswa->update(['dosen_wali_id' => null]);
             return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil dihapus dari perwalian.');
