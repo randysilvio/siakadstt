@@ -17,20 +17,14 @@ class ChatbotService
 {
     protected ?string $witAiToken;
     protected string $witApiVersion;
-    protected string $defaultResponse = 'Maaf, saya tidak mengerti. Anda bisa bertanya tentang "jadwal kuliah", "info krs", atau "cek tagihan".';
+    protected string $defaultResponse = 'Maaf, saya kurang mengerti. Anda bisa bertanya seperti, "cara isi krs", "jadwal kuliah hari selasa", atau "info tentang stt gpi papua".';
 
-    /**
-     * Constructor untuk mengambil konfigurasi dari file .env
-     */
     public function __construct()
     {
         $this->witAiToken = config('witai.token');
         $this->witApiVersion = config('witai.api_version');
     }
 
-    /**
-     * Fungsi utama untuk memproses pesan dan mendapatkan balasan.
-     */
     public function getResponse(string $message): string
     {
         if (!$this->witAiToken) {
@@ -79,124 +73,155 @@ class ChatbotService
     }
 
     // ===================================================================
-    // HANDLER METHODS UNTUK SETIAP INTENT
+    // HANDLER METHODS (SATU METHOD UNTUK SETIAP INTENT)
     // ===================================================================
 
-    // --- INTENT UNTUK ADMIN ---
-    protected function handleAdminAktivasiTahunAkademik(array $entities): string
+    // --- INTENT UMUM ---
+    protected function handleSapaan(array $entities): string
     {
-        if (!Auth::user()->hasRole('admin')) {
-            return 'Fitur ini hanya untuk Administrator.';
-        }
-        return 'Untuk mengaktifkan tahun akademik baru, silakan masuk ke menu "Akademik" > "Tahun Akademik", lalu klik tombol "Aktifkan" pada semester yang diinginkan.';
+        $responses = [
+            "Shalom! Selamat datang di ZoeChat, asisten virtual SIAKAD STT GPI Papua. Ada yang bisa saya bantu?",
+            "Halo! Saya ZoeChat, siap membantu Anda menavigasi SIAKAD STT GPI Papua. Apa yang ingin Anda ketahui?"
+        ];
+        return $responses[array_rand($responses)];
+    }
+    
+    protected function handleTerimaKasih(array $entities): string
+    {
+        return 'Sama-sama! Senang bisa membantu Anda.';
     }
 
-    protected function handleAdminAturPeriodeKRS(array $entities): string
+    protected function handleInfoKampus(array $entities): string
     {
-        if (!Auth::user()->hasRole('admin')) {
-            return 'Fitur ini hanya untuk Administrator.';
-        }
-        return 'Pengaturan periode KRS dapat diakses melalui menu "Akademik" > "Tahun Akademik". Anda bisa mengatur tanggal mulai dan selesai pengisian KRS saat membuat atau mengedit tahun akademik.';
+        $responseText = "Sekolah Tinggi Theologia (STT) Gereja Protestan Indonesia (GPI) di Papua adalah lembaga pendidikan tinggi teologi yang berlokasi di Fakfak, Papua Barat. Kami berkomitmen untuk mempersiapkan para pemimpin gereja dan pelayan Tuhan yang kompeten dan berintegritas untuk melayani di tanah Papua dan sekitarnya.\n\n";
+        $responseText .= "SIAKAD ini adalah sistem digital terpusat kami untuk membantu seluruh civitas akademika—mahasiswa, dosen, dan staf—dalam mengelola kegiatan perkuliahan secara efisien dan transparan.";
+        return nl2br($responseText);
     }
+
+    // --- INTENT UNTUK MAHASISWA ---
+    protected function handleMahasiswaIsiKRS(array $entities): string
+    {
+        $responseText = "Tentu, berikut adalah langkah-langkah detail untuk mengisi Kartu Rencana Studi (KRS):\n\n";
+        $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
+        $responseText .= "2. Dari menu navigasi, klik **KRS**.\n";
+        $responseText .= "3. Halaman akan menampilkan daftar mata kuliah yang tersedia untuk semester aktif (Ganjil/Genap).\n";
+        $responseText .= "4. **Centang** kotak di sebelah kiri nama mata kuliah yang ingin Anda ambil.\n";
+        $responseText .= "5. Perhatikan **Total SKS Diambil** di bagian atas untuk memastikan tidak melebihi batas maksimum Anda.\n";
+        $responseText .= "6. Jika sudah yakin, klik tombol **\"Simpan KRS\"**. Status KRS Anda akan berubah menjadi \"Menunggu Persetujuan\" dari Kaprodi.";
+        return nl2br($responseText);
+    }
+    
+    protected function handleMahasiswaEvaluasiDosen(array $entities): string
+    {
+        $responseText = "Berikut cara mengisi kuesioner evaluasi dosen (EDOM):\n\n";
+        $responseText .= "1. Pastikan KRS Anda sudah berstatus **\"Disetujui\"** oleh Kaprodi.\n";
+        $responseText .= "2. Klik menu **Evaluasi Dosen**.\n";
+        $responseText .= "3. Daftar mata kuliah yang bisa dievaluasi akan muncul.\n";
+        $responseText .= "4. Klik **\"Isi Kuesioner\"**, isi formulir, lalu klik **\"Simpan\"**.";
+        return nl2br($responseText);
+    }
+
+    protected function handleMahasiswaCetakDokumen(array $entities): string
+    {
+        $responseText = "Untuk mengunduh dokumen PDF resmi:\n\n";
+        $responseText .= "1. Buka halaman yang ingin Anda cetak (misalnya, **KHS** atau **Transkrip**).\n";
+        $responseText .= "2. Cari dan klik tombol **\"Cetak\"**.\n";
+        $responseText .= "3. Sistem akan secara otomatis menghasilkan file PDF yang siap diunduh ke perangkat Anda.";
+        return nl2br($responseText);
+    }
+
+    // =================================================================
+    // ===== KODE BARU DITAMBAHKAN DI SINI =====
+    // =================================================================
+    protected function handleMahasiswaAksesVerum(array $entities): string
+    {
+        $responseText = "Tentu, berikut adalah panduan untuk mengakses Kelas Virtual (Verum) sebagai mahasiswa:\n\n";
+        $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
+        $responseText .= "2. Dari menu navigasi utama di bagian atas, klik **Verum**.\n";
+        $responseText .= "3. Anda akan melihat daftar semua kelas virtual dari mata kuliah yang Anda ambil di semester ini.\n";
+        $responseText .= "4. Klik pada salah satu kelas untuk masuk dan melihat **materi**, **tugas**, dan **forum diskusi** yang telah dibuat oleh dosen Anda.";
+        return nl2br($responseText);
+    }
+    // =================================================================
 
     // --- INTENT UNTUK DOSEN & KAPRODI ---
-    protected function handleDosenAksesKelasVirtual(array $entities): string
-    {
-        if (!Auth::user()->hasRole('dosen')) {
-            return 'Fitur ini hanya untuk Dosen. Silakan akses menu "Verum" di navigasi atas.';
-        }
-        return 'Anda dapat mengakses Ruang Kelas Virtual (Verum) melalui menu "Verum" di navigasi atas untuk mengelola materi, tugas, dan diskusi.';
-    }
-
     protected function handleDosenInputNilai(array $entities): string
     {
-        if (!Auth::user()->hasRole('dosen')) {
-            return 'Fitur ini hanya untuk Dosen.';
-        }
-        return 'Untuk menginput nilai, silakan masuk ke menu "Dashboard". Di sana akan ada daftar mata kuliah yang Anda ampu, beserta tautan untuk "Input Nilai".';
+        $responseText = "Berikut adalah panduan lengkap untuk menginput nilai mahasiswa:\n\n";
+        $responseText .= "1. **Login** ke akun Anda, Anda akan masuk ke **Dasbor Dosen**.\n";
+        $responseText .= "2. Cari tabel **\"Mata Kuliah yang Diampu\"**.\n";
+        $responseText .= "3. Klik tombol **\"Input Nilai\"** di sebelah kanan mata kuliah yang ingin Anda nilai.\n";
+        $responseText .= "4. Halaman akan menampilkan daftar mahasiswa yang terdaftar di kelas tersebut pada semester aktif.\n";
+        $responseText .= "5. Masukkan nilai (A, B, C, D, E) pada kolom input. Jika nilai sudah ada, akan langsung ditampilkan.\n";
+        $responseText .= "6. Setelah selesai, klik **\"Simpan Nilai\"**. Halaman akan me-refresh dan menampilkan pesan sukses.";
+        return nl2br($responseText);
     }
 
-    protected function handleKaprodiInputNilaiProdi(array $entities): string
+    protected function handleDosenManajemenPerwalian(array $entities): string
     {
-        if (!Auth::user()->isKaprodi()) {
-            return 'Fitur ini hanya untuk Kepala Program Studi.';
-        }
-        return 'Sebagai Kaprodi, Anda memiliki wewenang untuk menginput nilai semua mata kuliah di prodi Anda melalui menu "Input Nilai" yang tersedia di portal Kaprodi Anda.';
+        $responseText = "Untuk menambah mahasiswa perwalian:\n\n";
+        $responseText .= "1. Buka menu **Mahasiswa Wali**.\n";
+        $responseText .= "2. Di bagian bawah, Anda akan melihat daftar \"Mahasiswa Tersedia\". Gunakan fitur pencarian atau filter untuk menemukan mahasiswa.\n";
+        $responseText .= "3. **Centang** nama mahasiswa yang ingin ditambahkan.\n";
+        $responseText .= "4. Klik tombol **\"Jadikan Mahasiswa Wali\"**.";
+        return nl2br($responseText);
     }
 
     protected function handleKaprodiValidasiKRS(array $entities): string
     {
-        if (!Auth::user()->isKaprodi()) {
-            return 'Fitur ini hanya untuk Kepala Program Studi.';
-        }
-        return 'Anda dapat memvalidasi (menyetujui/menolak) KRS mahasiswa melalui "Portal Kaprodi" > "Validasi KRS".';
+        $responseText = "Sebagai Kaprodi, berikut cara memvalidasi KRS mahasiswa di bawah prodi Anda:\n\n";
+        $responseText .= "1. **Login** ke akun Anda.\n";
+        $responseText .= "2. Dari menu navigasi atas, klik **Portal Kaprodi**.\n";
+        $responseText .= "3. Di dalam portal, klik menu **\"Validasi KRS\"**.\n";
+        $responseText .= "4. Pilih mahasiswa yang KRS-nya ingin Anda periksa.\n";
+        $responseText .= "5. Tinjau mata kuliah yang diambil, lalu klik tombol **\"Setujui\"** atau **\"Tolak\"**.";
+        return nl2br($responseText);
     }
 
-    // --- INTENT UNTUK KEUANGAN ---
-    protected function handleKeuanganValidasiPembayaran(array $entities): string
-    {
-        if (!Auth::user()->hasRole('keuangan')) {
-            return 'Fitur ini hanya untuk Staf Keuangan.';
-        }
-        return 'Untuk memvalidasi pembayaran, silakan akses menu "Manajemen Pembayaran". Anda dapat melihat daftar tagihan dan menandainya sebagai lunas.';
-    }
-
-    // --- INTENT UNTUK MAHASISWA ---
-    protected function handleMahasiswaCekTagihan(array $entities): string
-    {
-        if (!Auth::user()->hasRole('mahasiswa')) {
-            return 'Fitur ini hanya untuk Mahasiswa.';
-        }
-        return 'Anda dapat melihat rincian tagihan dan riwayat pembayaran melalui menu "Pembayaran" di dashboard Anda.';
-    }
-
-    protected function handleMahasiswaIsiKRS(array $entities): string
-    {
-        if (!Auth::user()->hasRole('mahasiswa')) {
-            return 'Fitur ini hanya untuk Mahasiswa.';
-        }
-        return 'Untuk mengisi Kartu Rencana Studi (KRS), silakan klik menu "KRS". Pastikan Anda mengisinya pada periode yang aktif dan tidak memiliki tunggakan pembayaran.';
-    }
-
-    // --- INTENT UMUM (SUDAH ADA SEBELUMNYA) ---
-    protected function handleBiayaKuliah(array $entities): string
-    {
-        return $this->handleMahasiswaCekTagihan($entities); // Menggunakan handler yang sama
-    }
-
+    // --- FUNGSI CERDAS: MENGAKSES DATABASE ---
     protected function handleJadwalKuliah(array $entities): string
     {
         $user = Auth::user();
         if (!$user || !$user->hasRole('mahasiswa')) {
-            return 'Fitur ini hanya tersedia untuk mahasiswa.';
+            return 'Fitur ini hanya tersedia untuk mahasiswa yang sedang login.';
         }
         $mahasiswa = $user->mahasiswa;
         if (!$mahasiswa) {
             return 'Data mahasiswa Anda tidak ditemukan.';
         }
 
-        $specificDay = $this->extractEntityValue($entities, 'wit$local_search_query:local_search_query'); // Wit.ai sering menggunakan ini untuk hari
+        $specificDay = $this->extractEntityValue($entities, 'hari:hari');
 
-        $jadwalQuery = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa) {
-            $query->where('mahasiswas.id', $mahasiswa->id);
+        $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
+        if (!$tahunAkademikAktif) {
+            return 'Saat ini tidak ada semester yang aktif.';
+        }
+
+        $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
+        
+        $jadwalQuery = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa, $tahunAkademikAktif) {
+            $query->where('mahasiswas.id', $mahasiswa->id)
+                  ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id);
         });
 
         if ($specificDay) {
             $jadwalQuery->where('hari', 'like', '%' . $specificDay . '%');
         }
 
-        $jadwals = $jadwalQuery->with('mataKuliah.dosen')->get();
+        $jadwals = $jadwalQuery->with('mataKuliah.dosen')
+            ->get()
+            ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
 
         if ($jadwals->isEmpty()) {
-            return 'Jadwal yang Anda cari tidak ditemukan. Pastikan Anda sudah mengisi KRS.';
+            return $specificDay ? "Tidak ada jadwal kuliah untuk hari {$specificDay}." : 'Anda belum memiliki jadwal kuliah untuk semester ini. Pastikan KRS sudah diisi dan disetujui.';
         }
 
-        $responseText = "Berikut jadwal yang ditemukan:\n";
+        $responseText = $specificDay ? "Berikut adalah jadwal kuliah Anda untuk hari **{$specificDay}**:\n" : "Berikut adalah jadwal kuliah Anda untuk semester ini:\n";
         foreach ($jadwals as $jadwal) {
             $jamMulai = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
             $jamSelesai = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
             $namaDosen = $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A';
-            $responseText .= "- {$jadwal->hari}, {$jamMulai}-{$jamSelesai}: {$jadwal->mataKuliah->nama_mk} (Dosen: {$namaDosen})\n";
+            $responseText .= "- **{$jamMulai} - {$jamSelesai}**: {$jadwal->mataKuliah->nama_mk} (Dosen: {$namaDosen})\n";
         }
 
         return nl2br($responseText);

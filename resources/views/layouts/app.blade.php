@@ -52,14 +52,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     @auth
-                        {{-- ======================================================= --}}
-                        {{-- ===== STRUKTUR MENU BARU DIMULAI DI SINI ===== --}}
-                        {{-- ======================================================= --}}
-
                         {{-- Tautan umum untuk semua user --}}
                         <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                         
-                        @if(Auth::user()->hasRole(['admin', 'dosen', 'mahasiswa']))
+                        {{-- ======================================================= --}}
+                        {{-- ===== PERBAIKAN: Mengubah kondisi pengecekan peran ===== --}}
+                        {{-- ======================================================= --}}
+                        @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('dosen') || Auth::user()->hasRole('mahasiswa'))
                             <li class="nav-item"><a class="nav-link" href="{{ route('verum.index') }}">Verum</a></li>
                         @endif
 

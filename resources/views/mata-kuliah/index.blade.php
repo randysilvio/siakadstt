@@ -13,16 +13,40 @@
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importMataKuliahModal">Import Mata Kuliah</button>
     </div>
 
-    {{-- Modal Import --}}
+    {{-- ======================================================= --}}
+    {{-- ===== KODE MODAL BOX YANG HILANG DITAMBAHKAN DI SINI ===== --}}
+    {{-- ======================================================= --}}
     <div class="modal fade" id="importMataKuliahModal" tabindex="-1" aria-labelledby="importMataKuliahModalLabel" aria-hidden="true">
-        {{-- Konten Modal tidak berubah --}}
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importMataKuliahModalLabel">Import Data Mata Kuliah</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('mata-kuliah.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Pilih file Excel (.xlsx, .xls)</label>
+                            <input class="form-control" type="file" id="file" name="file" required>
+                        </div>
+                        <a href="{{ route('mata-kuliah.import.template') }}">Unduh Template Excel</a>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+    {{-- ======================================================= --}}
+    {{-- ===== AKHIR DARI KODE MODAL BOX ===== --}}
+    {{-- ======================================================= --}}
+
 
     <div class="card">
         <div class="card-body">
-            <!-- ======================================================= -->
-            <!-- ===== PERBAIKAN: Menambahkan Formulir Pencarian & Filter ===== -->
-            <!-- ======================================================= -->
             <form action="{{ route('mata-kuliah.index') }}" method="GET" class="mb-4">
                 <div class="row g-2">
                     <div class="col-md-8">
@@ -41,7 +65,6 @@
                     </div>
                 </div>
             </form>
-            <!-- ======================================================= -->
 
             <div class="table-responsive">
                 <table class="table table-hover">

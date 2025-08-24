@@ -25,7 +25,9 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            // Ganti 'create' menjadi 'firstOrCreate'
+            // Ini akan mencari role berdasarkan 'name'. Jika tidak ada, baru akan dibuat.
+            Role::firstOrCreate(['name' => $role['name']], $role);
         }
     }
 }
