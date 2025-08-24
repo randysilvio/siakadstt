@@ -42,6 +42,14 @@ class MataKuliah extends Model
     
     public function mahasiswas()
     {
-        return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah');
+        // =================================================================
+        // ===== PERBAIKAN DITAMBAHKAN DI SINI =====
+        // =================================================================
+        // Menambahkan ->withPivot() untuk memberitahu Laravel agar selalu memuat
+        // kolom 'nilai' dan 'tahun_akademik_id' dari tabel perantara.
+        // Ini krusial untuk fitur input nilai dan pencetakan PDF.
+        return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah')
+                    ->withPivot('nilai', 'tahun_akademik_id')
+                    ->withTimestamps();
     }
 }

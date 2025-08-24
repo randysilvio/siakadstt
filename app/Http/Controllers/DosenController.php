@@ -4,21 +4,39 @@ namespace App\Http\Controllers;
 
 use App\Models\Dosen;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // <-- Tambahkan ini
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use App\Exports\DosensExport;
 use App\Imports\DosensImport;
 use Maatwebsite\Excel\Facades\Excel;
-use Maatwebsite\Excel\Validators\ValidationException; // DIUBAH: Menggunakan exception dari Maatwebsite
+use Maatwebsite\Excel\Validators\ValidationException;
 use App\Exports\DosenImportTemplateExport;
 
 class DosenController extends Controller
 {
-    public function index()
+    public function index(Request $request) // <-- Tambahkan Request
     {
-        $dosens = Dosen::with('user')->latest()->paginate(10);
+        // =================================================================
+        // ===== PERBAIKAN: Menambahkan Logika Pencarian =====
+        // =================================================================
+        $query = Dosen::with('user')->latest();
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                  ->orWhere('nidn', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $dosens = $query->paginate(10)->withQueryString(); // withQueryString() agar filter tetap ada saat pindah halaman
+        // =================================================================
+
         return view('dosen.index', compact('dosens'));
     }
 
@@ -41,8 +59,9 @@ class DosenController extends Controller
                 'name' => $request->nama_lengkap,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'dosen',
             ]);
+            // Menetapkan peran 'dosen' saat dibuat
+            $user->assignRole('dosen');
 
             Dosen::create([
                 'user_id' => $user->id,
@@ -111,7 +130,7 @@ class DosenController extends Controller
         
         try {
             Excel::import(new DosensImport, $request->file('file'));
-        } catch (ValidationException $e) { // DIUBAH: Tipe exception sudah spesifik
+        } catch (ValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];
             foreach ($failures as $failure) {

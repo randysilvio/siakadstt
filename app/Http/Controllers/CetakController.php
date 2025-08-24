@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Pengaturan;
 use App\Models\Mahasiswa;
+use App\Models\TahunAkademik; // <-- 1. Tambahkan model ini
 
 class CetakController extends Controller
 {
@@ -86,12 +87,24 @@ class CetakController extends Controller
     public function cetakKrs()
     {
         $mahasiswa = Auth::user()->mahasiswa->load('dosenWali', 'programStudi.kaprodi');
-        $krs = $mahasiswa->mataKuliahs;
+        
+        // =================================================================
+        // ===== PERBAIKAN DITAMBAHKAN DI SINI =====
+        // =================================================================
+        // 2. Ambil tahun akademik yang sedang aktif
+        $tahunAkademik = TahunAkademik::where('is_active', 1)->firstOrFail();
+
+        // 3. Ambil KRS hanya untuk semester yang aktif
+        $krs = $mahasiswa->mataKuliahs()
+            ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
+            ->get();
+        // =================================================================
 
         // Ambil data nama rektor dari database
         $rektor = Pengaturan::where('key', 'nama_rektor')->first();
 
-        $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor'));
+        // 4. Kirim variabel $tahunAkademik ke view
+        $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor', 'tahunAkademik'));
         return $pdf->download('KRS_' . $mahasiswa->nim . '.pdf');
     }
 }

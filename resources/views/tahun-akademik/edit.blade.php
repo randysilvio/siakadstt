@@ -9,13 +9,16 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="tahun" class="form-label">Tahun Akademik</label>
-                <input type="text" class="form-control @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $tahunAkademik->tahun) }}" placeholder="Contoh: 2024/2025">
+                <input type="text" class="form-control @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $tahunAkademik->tahun) }}" placeholder="Contoh: 2025/2026">
                 @error('tahun')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6 mb-3">
                 <label for="semester" class="form-label">Semester</label>
                 <select class="form-select @error('semester') is-invalid @enderror" id="semester" name="semester">
-                    <option value="Gasal" {{ old('semester', $tahunAkademik->semester) == 'Gasal' ? 'selected' : '' }}>Gasal</option>
+                    {{-- ======================================================= --}}
+                    {{-- ===== PERUBAHAN DARI "GASAL" MENJADI "GANJIL" ===== --}}
+                    {{-- ======================================================= --}}
+                    <option value="Ganjil" {{ old('semester', $tahunAkademik->semester) == 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
                     <option value="Genap" {{ old('semester', $tahunAkademik->semester) == 'Genap' ? 'selected' : '' }}>Genap</option>
                 </select>
                 @error('semester')<div class="invalid-feedback">{{ $message }}</div>@enderror

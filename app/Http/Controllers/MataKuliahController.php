@@ -12,13 +12,34 @@ use App\Exports\MataKuliahsExport;
 use App\Imports\MataKuliahsImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // <-- Tambahkan ini
 
 class MataKuliahController extends Controller
 {
-    public function index()
+    public function index(Request $request) // <-- Tambahkan Request
     {
-        $mata_kuliahs = MataKuliah::with('dosen', 'kurikulum', 'prasyarats')->latest()->paginate(10);
+        // =================================================================
+        // ===== PERBAIKAN: Menambahkan Logika Pencarian & Filter =====
+        // =================================================================
+        $query = MataKuliah::with('dosen', 'kurikulum', 'prasyarats')->latest();
+
+        // Filter berdasarkan pencarian
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nama_mk', 'like', "%{$search}%")
+                  ->orWhere('kode_mk', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter berdasarkan semester
+        if ($request->filled('semester')) {
+            $query->where('semester', $request->input('semester'));
+        }
+
+        $mata_kuliahs = $query->paginate(10)->withQueryString();
+        // =================================================================
+
         return view('mata-kuliah.index', compact('mata_kuliahs'));
     }
 
@@ -26,7 +47,6 @@ class MataKuliahController extends Controller
     {
         $dosens = Dosen::orderBy('nama_lengkap')->get();
         $kurikulums = Kurikulum::orderBy('tahun', 'desc')->get();
-        // Mengambil semua mata kuliah untuk di-filter oleh JavaScript di frontend
         $mata_kuliahs = MataKuliah::select('id', 'nama_mk', 'semester')->orderBy('semester')->orderBy('nama_mk')->get();
         return view('mata-kuliah.create', compact('dosens', 'kurikulums', 'mata_kuliahs'));
     }
@@ -55,7 +75,6 @@ class MataKuliahController extends Controller
     {
         $dosens = Dosen::orderBy('nama_lengkap')->get();
         $kurikulums = Kurikulum::orderBy('tahun', 'desc')->get();
-        // Mengambil semua mata kuliah untuk di-filter oleh JavaScript di frontend
         $mata_kuliahs_options = MataKuliah::select('id', 'nama_mk', 'semester')
                                   ->where('id', '!=', $mataKuliah->id)
                                   ->orderBy('semester')

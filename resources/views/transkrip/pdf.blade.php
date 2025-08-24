@@ -5,19 +5,20 @@
     <title>Transkrip - {{ $mahasiswa->nama_lengkap }}</title>
     <style>
         body { font-family: sans-serif; font-size: 12px; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .student-info { margin-bottom: 20px; }
+        .student-info { margin-top: 20px; margin-bottom: 20px; }
         .student-info p { margin: 3px 0; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 15px;}
         th, td { border: 1px solid #000; padding: 6px; text-align: left; }
         th { background-color: #f2f2f2; }
         .summary { margin-top: 20px; font-weight: bold; }
+        .document-title { text-align: center; margin-top: 20px; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h3>Transkrip Nilai Akademik</h3>
-    </div>
+    {{-- Memanggil komponen kop surat --}}
+    @include('partials._kop')
+
+    <h3 class="document-title">Transkrip Nilai Akademik</h3>
 
     <div class="student-info">
         <p><strong>NIM:</strong> {{ $mahasiswa->nim }}</p>

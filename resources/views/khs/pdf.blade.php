@@ -4,20 +4,23 @@
     <meta charset="UTF-8">
     <title>KHS - {{ $mahasiswa->nama_lengkap }}</title>
     <style>
-        body { font-family: sans-serif; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .student-info { margin-bottom: 20px; }
+        body { font-family: sans-serif; font-size: 12px; }
+        .student-info { margin-top: 20px; margin-bottom: 20px; }
         .student-info p { margin: 2px 0; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #000; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         .footer { margin-top: 20px; }
+        .document-title { text-align: center; margin-top: 20px; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>Kartu Hasil Studi (KHS)</h2>
-    </div>
+    {{-- ======================================================= --}}
+    {{-- ===== PERBAIKAN: Menyesuaikan path pemanggilan file ===== --}}
+    {{-- ======================================================= --}}
+    @include('partials._kop')
+
+    <h2 class="document-title">Kartu Hasil Studi (KHS)</h2>
 
     <div class="student-info">
         <p><strong>NIM:</strong> {{ $mahasiswa->nim }}</p>
@@ -51,7 +54,7 @@
     </table>
 
     <div class="footer">
-        <p><strong>Total SKS:</strong> {{ $total_sks }}</p>
+        <p><strong>Total SKS Ditempuh:</strong> {{ $total_sks }}</p>
         <p><strong>Indeks Prestasi Semester (IPS):</strong> {{ $ips }}</p>
     </div>
 </body>

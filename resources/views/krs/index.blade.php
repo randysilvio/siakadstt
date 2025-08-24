@@ -2,7 +2,11 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Pengisian Kartu Rencana Studi (KRS)</h1>
+        <div>
+            <h1>Pengisian Kartu Rencana Studi (KRS)</h1>
+            {{-- Menambahkan informasi semester aktif --}}
+            <h5 class="text-muted">Tahun Akademik {{ $periodeAktif->tahun }} - Semester {{ $periodeAktif->semester }}</h5>
+        </div>
         <a href="{{ route('krs.cetak.final') }}" class="btn btn-info">Cetak KRS (Resmi)</a>
     </div>
     
@@ -60,7 +64,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($mata_kuliahs as $mk)
+                @forelse ($mata_kuliahs as $mk)
                     @php
                         $prasyaratTerpenuhi = true;
                         $prasyaratList = [];
@@ -101,10 +105,13 @@
                             @else
                                 <small class="text-muted">-</small>
                             @endif
-                            {{-- ELEMEN NOTIFIKASI BENTROK DIHILANGKAN --}}
                         </td>
                     </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center">Tidak ada mata kuliah yang ditawarkan untuk semester ini.</td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
 
@@ -134,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentSks = 0;
         const checkedSchedules = [];
 
-        // LANGKAH 1: Kumpulkan semua data dari checkbox yang tercentang
         allCheckboxes.forEach(cb => {
             if (cb.checked) {
                 currentSks += parseInt(cb.dataset.sks);
@@ -142,17 +148,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // LANGKAH 2: Update total SKS dan status tombol simpan
         totalSksElement.textContent = currentSks;
         const isSksExceeded = currentSks > maxSks;
         simpanButton.disabled = isSksExceeded;
         totalSksElement.classList.toggle('text-danger', isSksExceeded);
 
-        // LANGKAH 3: Periksa dan nonaktifkan checkbox lain yang bentrok
         allCheckboxes.forEach(cb => {
-            // Proses hanya jika prasyarat terpenuhi
             if (cb.dataset.prasyaratOk === 'true') {
-                // Jika checkbox tidak tercentang, periksa apakah bentrok
                 if (!cb.checked) {
                     const jadwalMK = JSON.parse(cb.dataset.jadwal);
                     let isClashing = false;
@@ -167,19 +169,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (isClashing) break;
                     }
                     
-                    // Langsung nonaktifkan checkbox jika bentrok
                     cb.disabled = isClashing;
                 }
             }
         });
     }
 
-    // Tambahkan event listener ke semua checkbox
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', validateKRS);
     });
 
-    // Jalankan validasi saat halaman pertama kali dimuat
     validateKRS();
 });
 </script>

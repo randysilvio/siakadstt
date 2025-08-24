@@ -52,6 +52,10 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     @auth
+                        {{-- ======================================================= --}}
+                        {{-- ===== STRUKTUR MENU BARU DIMULAI DI SINI ===== --}}
+                        {{-- ======================================================= --}}
+
                         {{-- Tautan umum untuk semua user --}}
                         <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                         
@@ -61,50 +65,62 @@
 
                         {{-- Tautan Khusus Berdasarkan Role --}}
                         @if(Auth::user()->hasRole('admin'))
+                            {{-- MENU 1: AKADEMIK --}}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Master Data
-                                </a>
-                                <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
-                                    <li><a class="dropdown-item" href="{{ route('mahasiswa.index') }}">Mahasiswa</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('dosen.index') }}">Dosen</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('program-studi.index') }}">Program Studi</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('kurikulum.index') }}">Kurikulum</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('mata-kuliah.index') }}">Mata Kuliah</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('user.index') }}">Manajemen Pengguna</a></li>
-                                </ul>
-                            </li>
-                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="akademikDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Akademik
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="akademikDropdown">
                                     <li><a class="dropdown-item" href="{{ route('tahun-akademik.index') }}">Tahun Akademik</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('program-studi.index') }}">Program Studi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('kurikulum.index') }}">Kurikulum</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('mata-kuliah.index') }}">Mata Kuliah</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ route('kalender.index') }}">Manajemen Kalender</a></li>
                                     <li><a class="dropdown-item" href="{{ route('nilai.index') }}">Input Nilai</a></li>
                                 </ul>
                             </li>
+                            {{-- MENU 2: PENGGUNA --}}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="manajemenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Manajemen
+                                <a class="nav-link dropdown-toggle" href="#" id="penggunaDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Pengguna
                                 </a>
-                                <ul class="dropdown-menu" aria-labelledby="manajemenDropdown">
+                                <ul class="dropdown-menu" aria-labelledby="penggunaDropdown">
+                                    <li><a class="dropdown-item" href="{{ route('mahasiswa.index') }}">Manajemen Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('dosen.index') }}">Manajemen Dosen</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ route('user.index') }}">Manajemen Pengguna & Peran</a></li>
+                                </ul>
+                            </li>
+                            {{-- MENU 3: KONTEN PUBLIK --}}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="kontenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Konten Publik
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="kontenDropdown">
+                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
                                     <li><a class="dropdown-item" href="{{ route('slideshows.index') }}">Manajemen Slideshow</a></li>
                                     <li><a class="dropdown-item" href="{{ route('dokumen-publik.index') }}">Manajemen Dokumen</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('kalender.index') }}">Manajemen Kalender</a></li>
+                                </ul>
+                            </li>
+                            {{-- MENU 4: SISTEM --}}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="sistemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Sistem
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="sistemDropdown">
                                     <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Manajemen Evaluasi</h6></li>
-                                    <li><a class="dropdown-item" href="{{ route('evaluasi-sesi.index') }}">Manajemen Sesi</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('evaluasi-pertanyaan.index') }}">Manajemen Pertanyaan</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('evaluasi-pertanyaan.index') }}">Pertanyaan Evaluasi</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ route('pengaturan.index') }}">Pengaturan Sistem</a></li>
                                 </ul>
                             </li>
                         @endif
                         
+                        {{-- Tautan untuk peran lain tetap sama --}}
                         @if(Auth::user()->hasRole('dosen'))
                             <li class="nav-item"><a class="nav-link" href="{{ route('perwalian.index') }}">Mahasiswa Wali</a></li>
                         @endif
@@ -118,7 +134,6 @@
                         @endif
 
                         @if(Auth::user()->hasRole('pustakawan'))
-                            <!-- PERBAIKAN: Mengubah 'koleksi.index' menjadi 'perpustakaan.koleksi.index' -->
                             <li class="nav-item"><a class="nav-link" href="{{ route('perpustakaan.koleksi.index') }}">Manajemen Koleksi</a></li>
                         @endif
                         

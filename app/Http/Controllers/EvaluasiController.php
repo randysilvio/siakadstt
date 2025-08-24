@@ -30,11 +30,21 @@ class EvaluasiController extends Controller
             return view('evaluasi.tidak_ada_sesi');
         }
 
-        // Ambil daftar mata kuliah dari KRS mahasiswa pada tahun akademik sesi aktif
-        $mataKuliah = $mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
-            ->with('dosen')
-            ->get();
+        // =================================================================
+        // ===== PERBAIKAN DITAMBAHKAN DI SINI =====
+        // =================================================================
+        // Cek apakah KRS mahasiswa sudah disetujui. Jika belum, jangan ambil mata kuliah.
+        if ($mahasiswa->status_krs !== 'Disetujui') {
+            // Kirim koleksi kosong jika KRS belum disetujui
+            $mataKuliah = collect(); 
+        } else {
+            // Jika KRS sudah disetujui, ambil daftar mata kuliah seperti biasa
+            $mataKuliah = $mahasiswa->mataKuliahs()
+                ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
+                ->with('dosen')
+                ->get();
+        }
+        // =================================================================
 
         // Cek mata kuliah mana yang sudah diisi evaluasinya oleh mahasiswa
         $evaluasiSelesai = EvaluasiJawaban::where('mahasiswa_id', $mahasiswa->id)

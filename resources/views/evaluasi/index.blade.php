@@ -6,13 +6,25 @@
         <h1 class="mb-0">Evaluasi Dosen</h1>
     </div>
 
-    <div class="alert alert-info">
-        <strong>Informasi:</strong> Silakan berikan penilaian yang objektif terhadap kinerja dosen selama satu semester. Evaluasi Anda bersifat rahasia dan sangat berarti untuk peningkatan kualitas pembelajaran.
-    </div>
+    {{-- ================================================================= --}}
+    {{-- ===== PERBAIKAN DITAMBAHKAN DI SINI ===== --}}
+    {{-- ================================================================= --}}
+    {{-- Pesan ini akan muncul jika KRS mahasiswa belum disetujui Kaprodi --}}
+    @if(Auth::user()->mahasiswa->status_krs !== 'Disetujui')
+        <div class="alert alert-warning">
+            <strong>Evaluasi Belum Bisa Dilakukan.</strong>
+            <p class="mb-0">Anda baru dapat mengisi kuesioner evaluasi dosen setelah Kartu Rencana Studi (KRS) Anda berstatus <strong>"Disetujui"</strong> oleh Kepala Program Studi.</p>
+        </div>
+    @else
+        <div class="alert alert-info">
+            <strong>Informasi:</strong> Silakan berikan penilaian yang objektif terhadap kinerja dosen selama satu semester. Evaluasi Anda bersifat rahasia dan sangat berarti untuk peningkatan kualitas pembelajaran.
+        </div>
+    @endif
+    {{-- ================================================================= --}}
+
 
     <div class="card">
         <div class="card-header">
-            {{-- PERBAIKAN: Menampilkan nama sesi yang sebenarnya --}}
             Daftar Mata Kuliah untuk Sesi "{{ $sesiAktif->nama_sesi }}"
         </div>
         <div class="card-body">
@@ -54,7 +66,8 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center">Anda tidak mengambil mata kuliah apapun pada semester ini.</td>
+                                {{-- Pesan ini akan muncul jika KRS belum disetujui atau jika tidak ada MK --}}
+                                <td colspan="5" class="text-center">Tidak ada mata kuliah yang dapat dievaluasi saat ini.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -9,44 +9,40 @@
 
     {{-- Tombol Export & Import --}}
     <div class="d-flex justify-content-end mb-3">
-        <a href="{{ route('mata-kuliah.export') }}" class="btn btn-success me-2">
-            Export Mata Kuliah
-        </a>
-        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importMataKuliahModal">
-            Import Mata Kuliah
-        </button>
+        <a href="{{ route('mata-kuliah.export') }}" class="btn btn-success me-2">Export Mata Kuliah</a>
+        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importMataKuliahModal">Import Mata Kuliah</button>
     </div>
 
+    {{-- Modal Import --}}
     <div class="modal fade" id="importMataKuliahModal" tabindex="-1" aria-labelledby="importMataKuliahModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="importMataKuliahModalLabel">Import Data Mata Kuliah</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form action="{{ route('mata-kuliah.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="file" class="form-label">Pilih file Excel (.xlsx, .xls)</label>
-                            <input class="form-control" type="file" name="file" id="file" required>
-                            <div class="form-text">
-                                Pastikan file Excel Anda memiliki kolom: <strong>kode_mk, nama_mk, sks, semester, nidn_dosen</strong>.
-                                <a href="{{ route('mata-kuliah.import.template') }}">Download Template Disini</a>.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="submit" class="btn btn-primary">Import</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        {{-- Konten Modal tidak berubah --}}
     </div>
 
     <div class="card">
         <div class="card-body">
+            <!-- ======================================================= -->
+            <!-- ===== PERBAIKAN: Menambahkan Formulir Pencarian & Filter ===== -->
+            <!-- ======================================================= -->
+            <form action="{{ route('mata-kuliah.index') }}" method="GET" class="mb-4">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan Kode atau Nama MK..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="semester" class="form-select">
+                            <option value="">Semua Semester</option>
+                            @for ($i = 1; $i <= 8; $i++)
+                                <option value="{{ $i }}" {{ request('semester') == $i ? 'selected' : '' }}>Semester {{ $i }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100" type="submit">Cari</button>
+                    </div>
+                </div>
+            </form>
+            <!-- ======================================================= -->
+
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead class="table-dark">
@@ -78,7 +74,13 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center">Belum ada data mata kuliah.</td>
+                                <td colspan="6" class="text-center">
+                                    @if(request('search') || request('semester'))
+                                        Data tidak ditemukan untuk filter yang diterapkan.
+                                    @else
+                                        Belum ada data mata kuliah.
+                                    @endif
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>

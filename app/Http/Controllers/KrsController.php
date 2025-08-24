@@ -22,8 +22,6 @@ class KrsController extends Controller
             abort(403, 'Data mahasiswa tidak ditemukan untuk pengguna ini.');
         }
 
-        // --- PERBAIKAN 1: Tambahkan pengecekan status di Controller ---
-        // Lapisan pengaman kedua jika middleware gagal atau tidak diterapkan.
         if ($mahasiswa->status_krs === 'Disetujui') {
             return redirect()->route('dashboard')->with('warning', 'KRS Anda telah disetujui dan tidak dapat diubah lagi.');
         }
@@ -56,8 +54,23 @@ class KrsController extends Controller
                                  ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
                                  ->pluck('mata_kuliahs.id')->toArray();
 
-        $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])->get();
-        
+        // =================================================================
+        // ===== PERBAIKAN UTAMA: FILTER MATA KULIAH BERDASARKAN SEMESTER =====
+        // =================================================================
+        $allowedSemesters = [];
+        if ($periodeAktif->semester == 'Ganjil') {
+            // Jika semester Ganjil, ambil mata kuliah semester 1, 3, 5, 7
+            $allowedSemesters = [1, 3, 5, 7];
+        } else { // Asumsi 'Genap'
+            // Jika semester Genap, ambil mata kuliah semester 2, 4, 6, 8
+            $allowedSemesters = [2, 4, 6, 8];
+        }
+
+        $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])
+            ->whereIn('semester', $allowedSemesters) // Terapkan filter di sini
+            ->get();
+        // =================================================================
+
         $mk_diambil_ids = $mahasiswa->mataKuliahs()->where('tahun_akademik_id', $periodeAktif->id)->pluck('mata_kuliahs.id')->toArray();
 
         return view('krs.index', [
@@ -67,6 +80,7 @@ class KrsController extends Controller
             'ipk' => $ipk,
             'max_sks' => $max_sks,
             'mk_lulus_ids' => $mk_lulus_ids,
+            'periodeAktif' => $periodeAktif, // Kirim data periode aktif ke view
         ]);
     }
 
@@ -77,8 +91,6 @@ class KrsController extends Controller
     {
         $mahasiswa = Auth::user()->mahasiswa;
         
-        // --- PERBAIKAN 2: Tambahkan pengecekan status sebelum menyimpan ---
-        // Mencegah mahasiswa mengirim ulang data jika KRS sudah disetujui.
         if ($mahasiswa->status_krs === 'Disetujui') {
             return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final dan tidak dapat diubah.');
         }
@@ -154,7 +166,6 @@ class KrsController extends Controller
 
         $mahasiswa->mataKuliahs()->sync($syncData);
 
-        // --- PERBAIKAN 3: Ubah status hanya jika belum pernah disetujui/ditolak ---
         if ($mahasiswa->status_krs !== 'Ditolak') {
             $mahasiswa->status_krs = 'Menunggu Persetujuan';
             $mahasiswa->save();

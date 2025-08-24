@@ -8,15 +8,16 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="tahun" class="form-label">Tahun Akademik</label>
-                {{-- KODE DIPERBARUI: Menggunakan data otomatis dari controller --}}
-                <input type="text" class="form-control @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $nextTahun ?? '') }}" placeholder="Contoh: 2024/2025">
+                <input type="text" class="form-control @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $nextTahun ?? '') }}" placeholder="Contoh: 2025/2026">
                 @error('tahun')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6 mb-3">
                 <label for="semester" class="form-label">Semester</label>
                 <select class="form-select @error('semester') is-invalid @enderror" id="semester" name="semester">
-                    {{-- KODE DIPERBARUI: Menggunakan data otomatis dari controller --}}
-                    <option value="Gasal" {{ old('semester', $nextSemester ?? '') == 'Gasal' ? 'selected' : '' }}>Gasal</option>
+                    {{-- ======================================================= --}}
+                    {{-- ===== PERUBAHAN DARI "GASAL" MENJADI "GANJIL" ===== --}}
+                    {{-- ======================================================= --}}
+                    <option value="Ganjil" {{ old('semester', $nextSemester ?? '') == 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
                     <option value="Genap" {{ old('semester', $nextSemester ?? '') == 'Genap' ? 'selected' : '' }}>Genap</option>
                 </select>
                 @error('semester')<div class="invalid-feedback">{{ $message }}</div>@enderror
