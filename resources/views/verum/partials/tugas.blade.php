@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Tugas Mahasiswa</h4>
-    @if(Auth::user()->role == 'dosen')
+    @if(Auth::user()->hasRole('dosen'))
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#tambahTugasModal">+ Buat Tugas</button>
     @endif
 </div>
@@ -20,7 +20,7 @@
                     <div class="accordion-body">
                         <p><strong>Instruksi:</strong><br>{!! nl2br(e($tugas->instruksi)) !!}</p>
                         <hr>
-                        @if(Auth::user()->role == 'mahasiswa')
+                        @if(Auth::user()->hasRole('mahasiswa'))
                             <form action="{{ route('verum.tugas.kumpulkan', $tugas) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="mb-3">

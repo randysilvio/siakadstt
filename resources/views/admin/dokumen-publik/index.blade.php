@@ -4,7 +4,8 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Dokumen Publik</h1>
-        <a href="{{ route('dokumen-publik.create') }}" class="btn btn-primary">Unggah Dokumen Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.dokumen-publik.create') }}" class="btn btn-primary">Unggah Dokumen Baru</a>
     </div>
 
     <div class="card">
@@ -26,7 +27,8 @@
                             <td>{{ $dokumen->created_at->format('d M Y') }}</td>
                             <td>
                                 <a href="{{ asset('storage/' . $dokumen->file_path) }}" class="btn btn-info btn-sm" target="_blank">Lihat</a>
-                                <form action="{{ route('dokumen-publik.destroy', $dokumen->id) }}" method="POST" class="d-inline">
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <form action="{{ route('admin.dokumen-publik.destroy', $dokumen->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus dokumen ini?')">Hapus</button>

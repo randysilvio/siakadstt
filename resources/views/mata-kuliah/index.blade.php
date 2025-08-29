@@ -4,18 +4,18 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Mata Kuliah</h1>
-        <a href="{{ route('mata-kuliah.create') }}" class="btn btn-primary">Tambah Mata Kuliah Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.mata-kuliah.create') }}" class="btn btn-primary">Tambah Mata Kuliah Baru</a>
     </div>
 
     {{-- Tombol Export & Import --}}
     <div class="d-flex justify-content-end mb-3">
-        <a href="{{ route('mata-kuliah.export') }}" class="btn btn-success me-2">Export Mata Kuliah</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.mata-kuliah.export') }}" class="btn btn-success me-2">Export Mata Kuliah</a>
         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importMataKuliahModal">Import Mata Kuliah</button>
     </div>
 
-    {{-- ======================================================= --}}
-    {{-- ===== KODE MODAL BOX YANG HILANG DITAMBAHKAN DI SINI ===== --}}
-    {{-- ======================================================= --}}
+    {{-- Modal Box untuk Import --}}
     <div class="modal fade" id="importMataKuliahModal" tabindex="-1" aria-labelledby="importMataKuliahModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -23,14 +23,16 @@
                     <h5 class="modal-title" id="importMataKuliahModalLabel">Import Data Mata Kuliah</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('mata-kuliah.import') }}" method="POST" enctype="multipart/form-data">
+                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                <form action="{{ route('admin.mata-kuliah.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="file" class="form-label">Pilih file Excel (.xlsx, .xls)</label>
                             <input class="form-control" type="file" id="file" name="file" required>
                         </div>
-                        <a href="{{ route('mata-kuliah.import.template') }}">Unduh Template Excel</a>
+                        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                        <a href="{{ route('admin.mata-kuliah.import.template') }}">Unduh Template Excel</a>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -40,14 +42,11 @@
             </div>
         </div>
     </div>
-    {{-- ======================================================= --}}
-    {{-- ===== AKHIR DARI KODE MODAL BOX ===== --}}
-    {{-- ======================================================= --}}
-
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('mata-kuliah.index') }}" method="GET" class="mb-4">
+            {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+            <form action="{{ route('admin.mata-kuliah.index') }}" method="GET" class="mb-4">
                 <div class="row g-2">
                     <div class="col-md-8">
                         <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan Kode atau Nama MK..." value="{{ request('search') }}">
@@ -87,8 +86,10 @@
                                 <td>{{ $matkul->semester }}</td>
                                 <td>{{ $matkul->dosen->nama_lengkap ?? 'Belum ditentukan' }}</td>
                                 <td>
-                                    <a href="{{ route('mata-kuliah.edit', $matkul->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                    <form action="{{ route('mata-kuliah.destroy', $matkul->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus mata kuliah ini?');">
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <a href="{{ route('admin.mata-kuliah.edit', $matkul->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <form action="{{ route('admin.mata-kuliah.destroy', $matkul->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus mata kuliah ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

@@ -9,7 +9,8 @@
         </div>
     @endif
 
-    <form action="{{ route('pengaturan.store') }}" method="POST">
+    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+    <form action="{{ route('admin.pengaturan.store') }}" method="POST">
         @csrf
         <div class="card">
             <div class="card-header">

@@ -7,7 +7,6 @@
     <title>Sistem Administrasi Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- CDN untuk Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     
@@ -70,13 +69,14 @@
                                     Akademik
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="akademikDropdown">
-                                    <li><a class="dropdown-item" href="{{ route('tahun-akademik.index') }}">Tahun Akademik</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('program-studi.index') }}">Program Studi</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('kurikulum.index') }}">Kurikulum</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('mata-kuliah.index') }}">Mata Kuliah</a></li>
+                                    {{-- PERUBAHAN: Menambahkan prefix 'admin.' pada semua rute di bawah --}}
+                                    <li><a class="dropdown-item" href="{{ route('admin.tahun-akademik.index') }}">Tahun Akademik</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.program-studi.index') }}">Program Studi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.kurikulum.index') }}">Kurikulum</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.mata-kuliah.index') }}">Mata Kuliah</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('kalender.index') }}">Manajemen Kalender</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('nilai.index') }}">Input Nilai</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Manajemen Kalender</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.nilai.index') }}">Input Nilai</a></li>
                                 </ul>
                             </li>
                             {{-- MENU 2: PENGGUNA --}}
@@ -85,10 +85,11 @@
                                     Pengguna
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="penggunaDropdown">
-                                    <li><a class="dropdown-item" href="{{ route('mahasiswa.index') }}">Manajemen Mahasiswa</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('dosen.index') }}">Manajemen Dosen</a></li>
+                                    {{-- PERUBAHAN: Menambahkan prefix 'admin.' pada semua rute di bawah --}}
+                                    <li><a class="dropdown-item" href="{{ route('admin.mahasiswa.index') }}">Manajemen Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.dosen.index') }}">Manajemen Dosen</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('user.index') }}">Manajemen Pengguna & Peran</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.user.index') }}">Manajemen Pengguna & Peran</a></li>
                                 </ul>
                             </li>
                             {{-- MENU 3: KONTEN PUBLIK --}}
@@ -97,9 +98,10 @@
                                     Konten Publik
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="kontenDropdown">
-                                    <li><a class="dropdown-item" href="{{ route('pengumuman.index') }}">Manajemen Pengumuman</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('slideshows.index') }}">Manajemen Slideshow</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('dokumen-publik.index') }}">Manajemen Dokumen</a></li>
+                                    {{-- PERUBAHAN: Menambahkan prefix 'admin.' pada semua rute di bawah --}}
+                                    <li><a class="dropdown-item" href="{{ route('admin.pengumuman.index') }}">Manajemen Pengumuman</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.slideshows.index') }}">Manajemen Slideshow</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.dokumen-publik.index') }}">Manajemen Dokumen</a></li>
                                 </ul>
                             </li>
                             {{-- MENU 4: SISTEM --}}
@@ -111,10 +113,21 @@
                                     <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Manajemen Evaluasi</h6></li>
-                                    <li><a class="dropdown-item" href="{{ route('evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('evaluasi-pertanyaan.index') }}">Pertanyaan Evaluasi</a></li>
+                                    {{-- PERUBAHAN: Menambahkan prefix 'admin.' pada semua rute di bawah --}}
+                                    <li><a class="dropdown-item" href="{{ route('admin.evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.evaluasi-pertanyaan.index') }}">Pertanyaan Evaluasi</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ route('pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                </ul>
+                            </li>
+                            {{-- ===== PENAMBAHAN MENU MANAJEMEN ABSENSI ===== --}}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="absensiDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Absensi
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="absensiDropdown">
+                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.laporan.index') }}">Laporan Absensi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.lokasi.index') }}">Manajemen Lokasi</a></li>
                                 </ul>
                             </li>
                         @endif
@@ -208,7 +221,6 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- CDN untuk Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     @stack('scripts')
 </body>

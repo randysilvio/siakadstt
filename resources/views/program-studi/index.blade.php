@@ -15,7 +15,8 @@
         </div>
     @endif
 
-    <a href="/program-studi/create" class="btn btn-primary mb-3">Tambah Program Studi Baru</a>
+    {{-- PERBAIKAN: Menggunakan helper route() dengan nama yang benar --}}
+    <a href="{{ route('admin.program-studi.create') }}" class="btn btn-primary mb-3">Tambah Program Studi Baru</a>
 
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
@@ -31,8 +32,10 @@
                     <td>{{ $key + 1 }}</td>
                     <td>{{ $prodi->nama_prodi }}</td>
                     <td>
-                        <a href="/program-studi/{{ $prodi->id }}/edit" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="/program-studi/{{ $prodi->id }}" method="POST" class="d-inline">
+                        {{-- PERBAIKAN: Menggunakan helper route() dengan nama yang benar --}}
+                        <a href="{{ route('admin.program-studi.edit', $prodi->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        {{-- PERBAIKAN: Menggunakan helper route() dengan nama yang benar --}}
+                        <form action="{{ route('admin.program-studi.destroy', $prodi->id) }}" method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">Hapus</button>

@@ -4,7 +4,7 @@ namespace App\Imports;
 
 use App\Models\Dosen;
 use App\Models\User;
-use App\Models\Role; // <-- 1. Tambahkan model Role
+use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -17,7 +17,6 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation
 
     public function __construct()
     {
-        // Ambil peran 'dosen' sekali saja untuk efisiensi
         $this->dosenRole = Role::where('name', 'dosen')->first();
     }
 
@@ -29,30 +28,29 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation
     public function model(array $row)
     {
         return DB::transaction(function () use ($row) {
-            // Cari user berdasarkan email, jika tidak ada, buat baru
             $user = User::firstOrCreate(
                 ['email' => $row['email']],
                 [
                     'name' => $row['nama_lengkap'],
                     'password' => Hash::make($row['password']),
-                    // 'role' => 'dosen', <-- 2. Hapus baris ini
                 ]
             );
 
-            // =================================================================
-            // ===== PERBAIKAN: Menetapkan peran 'dosen' secara otomatis =====
-            // =================================================================
-            // 3. Lampirkan peran 'dosen' ke pengguna
             if ($this->dosenRole) {
                 $user->roles()->syncWithoutDetaching($this->dosenRole->id);
             }
-            // =================================================================
 
-            // Buat data dosen baru yang terhubung dengan user
+            // PERBAIKAN: Menambahkan semua data profil baru dari file Excel
             return new Dosen([
-               'user_id'     => $user->id,
-               'nidn'        => $row['nidn'],
-               'nama_lengkap' => $row['nama_lengkap'],
+               'user_id'             => $user->id,
+               'nidn'                => $row['nidn'],
+               'nama_lengkap'        => $row['nama_lengkap'],
+               'jabatan_akademik'    => $row['jabatan_akademik'] ?? null,
+               'bidang_keahlian'     => $row['bidang_keahlian'] ?? null,
+               'deskripsi_diri'      => $row['deskripsi_diri'] ?? null,
+               'email_institusi'     => $row['email_institusi'] ?? null,
+               'link_google_scholar' => $row['link_google_scholar'] ?? null,
+               'link_sinta'          => $row['link_sinta'] ?? null,
             ]);
         });
     }
@@ -67,6 +65,13 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation
             'nama_lengkap' => 'required|string',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
+            // PERBAIKAN: Menambahkan aturan validasi untuk kolom baru
+            'jabatan_akademik' => 'nullable|string|max:255',
+            'bidang_keahlian' => 'nullable|string|max:255',
+            'deskripsi_diri' => 'nullable|string',
+            'email_institusi' => 'nullable|email|unique:dosens,email_institusi',
+            'link_google_scholar' => 'nullable|url',
+            'link_sinta' => 'nullable|url',
         ];
     }
 }

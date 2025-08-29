@@ -4,63 +4,123 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
+use App\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class KalenderController extends Controller
 {
-    // Bagian CRUD Admin (tidak ada perubahan)...
-    public function index()
+    /**
+     * Menampilkan halaman manajemen kalender untuk admin.
+     */
+    public function index(): View
     {
-        $kegiatans = KegiatanAkademik::latest()->paginate(10);
+        $kegiatans = KegiatanAkademik::with('roles')->latest()->paginate(10);
         return view('kalender.index', compact('kegiatans'));
     }
-    public function create()
+
+    /**
+     * Menampilkan formulir untuk membuat kegiatan baru.
+     */
+    public function create(): View
     {
-        return view('kalender.create');
-    }
-    public function store(Request $request)
-    {
-        $request->validate(['judul_kegiatan' => 'required|string|max:255', 'deskripsi' => 'nullable|string', 'tanggal_mulai' => 'required|date', 'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai', 'target_role' => 'required|in:semua,mahasiswa,dosen',]);
-        KegiatanAkademik::create($request->all());
-        return redirect()->route('kalender.index')->with('success', 'Kegiatan akademik berhasil ditambahkan.');
-    }
-    public function edit(KegiatanAkademik $kalender)
-    {
-        return view('kalender.edit', compact('kalender'));
-    }
-    public function update(Request $request, KegiatanAkademik $kalender)
-    {
-        $request->validate(['judul_kegiatan' => 'required|string|max:255', 'deskripsi' => 'nullable|string', 'tanggal_mulai' => 'required|date', 'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai', 'target_role' => 'required|in:semua,mahasiswa,dosen',]);
-        $kalender->update($request->all());
-        return redirect()->route('kalender.index')->with('success', 'Kegiatan akademik berhasil diperbarui.');
-    }
-    public function destroy(KegiatanAkademik $kalender)
-    {
-        $kalender->delete();
-        return redirect()->route('kalender.index')->with('success', 'Kegiatan akademik berhasil dihapus.');
+        // Ambil semua peran yang bisa dipilih (selain admin)
+        $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
+        return view('kalender.create', compact('roles'));
     }
 
-    // Bagian Tampilan Kalender...
-    public function halamanKalender()
+    /**
+     * Menyimpan kegiatan baru ke database.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'judul_kegiatan' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'target_roles' => 'required|array',
+            'target_roles.*' => 'exists:roles,id',
+        ]);
+
+        $kegiatan = KegiatanAkademik::create($request->except('target_roles'));
+        $kegiatan->roles()->sync($request->target_roles);
+
+        return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil ditambahkan.');
+    }
+
+    /**
+     * Menampilkan formulir untuk mengedit kegiatan.
+     */
+    public function edit(KegiatanAkademik $kalender): View
+    {
+        $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
+        $kalender->load('roles'); // Eager load relasi roles
+        return view('kalender.edit', compact('kalender', 'roles'));
+    }
+
+    /**
+     * Memperbarui kegiatan di database.
+     */
+    public function update(Request $request, KegiatanAkademik $kalender): RedirectResponse
+    {
+        $request->validate([
+            'judul_kegiatan' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
+            'tanggal_mulai' => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'target_roles' => 'required|array',
+            'target_roles.*' => 'exists:roles,id',
+        ]);
+
+        $kalender->update($request->except('target_roles'));
+        $kalender->roles()->sync($request->target_roles);
+
+        return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus kegiatan dari database.
+     */
+    public function destroy(KegiatanAkademik $kalender): RedirectResponse
+    {
+        $kalender->delete();
+        return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil dihapus.');
+    }
+
+    /**
+     * Menampilkan halaman kalender publik.
+     */
+    public function halamanKalender(): View
     {
         return view('kalender.show');
     }
 
-    public function getEvents(Request $request)
+    /**
+     * Menyediakan data event untuk FullCalendar.
+     */
+    public function getEvents(Request $request): JsonResponse
     {
-        $userRole = Auth::user()->role;
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Pastikan user memiliki roles sebelum memanggil pluck
+        if (!$user || !$user->roles) {
+            return response()->json([]);
+        }
+        $userRoleIds = $user->roles->pluck('id');
 
         $query = KegiatanAkademik::query()
             ->where('tanggal_mulai', '<=', $request->end)
-            ->where('tanggal_selesai', '>=', $request->start);
-
-        $query->where(function($q) use ($userRole) {
-            $q->where('target_role', 'semua')
-              ->orWhere('target_role', $userRole);
-        });
+            ->where('tanggal_selesai', '>=', $request->start)
+            ->whereHas('roles', function ($q) use ($userRoleIds) {
+                $q->whereIn('roles.id', $userRoleIds);
+            });
         
-        $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi', 'target_role']);
+        $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi']);
 
         $events = $kegiatans->map(function ($kegiatan) {
             $kegiatan->end = Carbon::parse($kegiatan->end)->addDay()->toDateString();

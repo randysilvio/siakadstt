@@ -7,7 +7,8 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('kalender.update', $kalender->id) }}" method="POST">
+            {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+            <form action="{{ route('admin.kalender.update', $kalender->id) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -30,33 +31,43 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_mulai" class="form-label">Tanggal Mulai</label>
-                        <input type="date" class="form-control @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai', $kalender->tanggal_mulai) }}" required>
+                        {{-- PERBAIKAN: Format tanggal untuk input type date --}}
+                        <input type="date" class="form-control @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai', $kalender->tanggal_mulai->format('Y-m-d')) }}" required>
                          @error('tanggal_mulai')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_selesai" class="form-label">Tanggal Selesai</label>
-                        <input type="date" class="form-control @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" value="{{ old('tanggal_selesai', $kalender->tanggal_selesai) }}" required>
+                        {{-- PERBAIKAN: Format tanggal untuk input type date --}}
+                        <input type="date" class="form-control @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" value="{{ old('tanggal_selesai', $kalender->tanggal_selesai->format('Y-m-d')) }}" required>
                          @error('tanggal_selesai')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
 
+                {{-- PERBAIKAN: Mengganti select menjadi checkbox untuk multi-peran --}}
                 <div class="mb-3">
-                    <label for="target_role" class="form-label">Target Kegiatan</label>
-                    <select class="form-select @error('target_role') is-invalid @enderror" id="target_role" name="target_role" required>
-                        <option value="semua" {{ old('target_role', $kalender->target_role) == 'semua' ? 'selected' : '' }}>Semua</option>
-                        <option value="mahasiswa" {{ old('target_role', $kalender->target_role) == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
-                        <option value="dosen" {{ old('target_role', $kalender->target_role) == 'dosen' ? 'selected' : '' }}>Dosen</option>
-                    </select>
-                    @error('target_role')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                    <label class="form-label">Target Kegiatan</label>
+                    @php
+                        $selectedRoles = old('target_roles', $kalender->roles->pluck('id')->toArray());
+                    @endphp
+                    <div class="@error('target_roles') is-invalid @enderror">
+                        @foreach($roles as $role)
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="target_roles[]" value="{{ $role->id }}" id="role_{{ $role->id }}"
+                                {{ (is_array($selectedRoles) && in_array($role->id, $selectedRoles)) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="role_{{ $role->id }}">{{ ucfirst($role->name) }}</label>
+                        </div>
+                        @endforeach
+                    </div>
+                    @error('target_roles')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <a href="{{ route('kalender.index') }}" class="btn btn-secondary">Batal</a>
+                <a href="{{ route('admin.kalender.index') }}" class="btn btn-secondary">Batal</a>
                 <button type="submit" class="btn btn-primary">Update Kegiatan</button>
             </form>
         </div>

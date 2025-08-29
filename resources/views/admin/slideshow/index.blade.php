@@ -4,7 +4,8 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Slideshow</h1>
-        <a href="{{ route('slideshows.create') }}" class="btn btn-primary">Tambah Slide Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.slideshows.create') }}" class="btn btn-primary">Tambah Slide Baru</a>
     </div>
 
     <div class="card">
@@ -35,8 +36,10 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('slideshows.edit', $slide->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <form action="{{ route('slideshows.destroy', $slide->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus slide ini?');">
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <a href="{{ route('admin.slideshows.edit', $slide->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <form action="{{ route('admin.slideshows.destroy', $slide->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus slide ini?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

@@ -3,7 +3,8 @@
 @section('content')
     <h1>Edit Program Studi</h1>
 
-    <form action="{{ route('program-studi.update', $programStudi->id) }}" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+    <form action="{{ route('admin.program-studi.update', $programStudi->id) }}" method="POST" class="mt-4">
         @csrf
         @method('PUT')
         <div class="mb-3">
@@ -26,6 +27,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-        <a href="{{ route('program-studi.index') }}" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.program-studi.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection

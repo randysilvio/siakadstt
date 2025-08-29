@@ -3,7 +3,8 @@
 @section('content')
     <h1>Tambah Program Studi Baru</h1>
 
-    <form action="/program-studi" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menggunakan helper route() dengan nama yang benar --}}
+    <form action="{{ route('admin.program-studi.store') }}" method="POST" class="mt-4">
         @csrf
 
         <div class="mb-3">
@@ -18,6 +19,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan</button>
-        <a href="/program-studi" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Menggunakan helper route() dengan nama yang benar --}}
+        <a href="{{ route('admin.program-studi.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection

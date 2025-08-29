@@ -13,53 +13,51 @@ use Illuminate\Validation\Rules;
 use App\Exports\MahasiswasExport;
 use App\Imports\MahasiswasImport;
 use Maatwebsite\Excel\Facades\Excel;
-use Maatwebsite\Excel\Validators\ValidationException; // DIUBAH: Menggunakan exception dari Maatwebsite
+use Maatwebsite\Excel\Validators\ValidationException as ExcelValidationException;
 use App\Exports\MahasiswaImportTemplateExport;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class MahasiswaController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $search = $request->input('search');
-        $program_studi_id = $request->input('program_studi_id');
+        $query = Mahasiswa::with(['programStudi', 'user.roles'])->latest();
 
-        $mahasiswas = Mahasiswa::with('programStudi', 'user')
-            ->when($search, function ($query, $search) {
-                return $query->where('nama_lengkap', 'like', "%{$search}%")
-                             ->orWhere('nim', 'like', "%{$search}%");
-            })
-            ->when($program_studi_id, function ($query, $program_studi_id) {
-                return $query->where('program_studi_id', $program_studi_id);
-            })
-            ->latest()
-            ->paginate(10);
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                  ->orWhere('nim', 'like', "%{$search}%")
+                  ->orWhereHas('user', fn($userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
+            });
+        }
 
+        if ($request->filled('program_studi_id')) {
+            $query->where('program_studi_id', $request->input('program_studi_id'));
+        }
+
+        $mahasiswas = $query->paginate(10)->withQueryString();
         $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
 
-        return view('mahasiswa.index', [
-            'mahasiswas' => $mahasiswas,
-            'program_studis' => $program_studis
-        ]);
+        return view('mahasiswa.index', compact('mahasiswas', 'program_studis'));
     }
 
-    public function create()
+    public function create(): View
     {
         $program_studis = ProgramStudi::all();
         $dosens = Dosen::all();
-        return view('mahasiswa.create', [
-            'program_studis' => $program_studis,
-            'dosens' => $dosens
-        ]);
+        return view('mahasiswa.create', compact('program_studis', 'dosens'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'nim' => 'required|unique:mahasiswas|max:10',
             'nama_lengkap' => 'required|string|max:255',
             'program_studi_id' => 'required|exists:program_studis,id',
             'dosen_wali_id' => 'nullable|exists:dosens,id',
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
@@ -74,8 +72,9 @@ class MahasiswaController extends Controller
                 'name' => $request->nama_lengkap,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'mahasiswa',
             ]);
+            // PERBAIKAN: Menggunakan relasi untuk menetapkan role
+            $user->roles()->attach(\App\Models\Role::where('name', 'mahasiswa')->first());
 
             $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
             $mahasiswaData['user_id'] = $user->id;
@@ -84,33 +83,29 @@ class MahasiswaController extends Controller
             Mahasiswa::create($mahasiswaData);
         });
 
-        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa dan akun login berhasil dibuat!');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa dan akun login berhasil dibuat!');
     }
 
-    public function show(Mahasiswa $mahasiswa)
+    public function show(Mahasiswa $mahasiswa): RedirectResponse
     {
-        return redirect()->route('mahasiswa.edit', $mahasiswa);
+        return redirect()->route('admin.mahasiswa.edit', $mahasiswa);
     }
 
-    public function edit(Mahasiswa $mahasiswa)
+    public function edit(Mahasiswa $mahasiswa): View
     {
         $program_studis = ProgramStudi::all();
         $dosens = Dosen::all();
-        return view('mahasiswa.edit', [
-            'mahasiswa' => $mahasiswa,
-            'program_studis' => $program_studis,
-            'dosens' => $dosens
-        ]);
+        return view('mahasiswa.edit', compact('mahasiswa', 'program_studis', 'dosens'));
     }
 
-    public function update(Request $request, Mahasiswa $mahasiswa)
+    public function update(Request $request, Mahasiswa $mahasiswa): RedirectResponse
     {
         $request->validate([
             'nim' => 'required|max:10|unique:mahasiswas,nim,' . $mahasiswa->id,
             'nama_lengkap' => 'required|string|max:255',
             'program_studi_id' => 'required|exists:program_studis,id',
             'dosen_wali_id' => 'nullable|exists:dosens,id',
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class . ',email,' . $mahasiswa->user_id],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class . ',email,' . $mahasiswa->user_id],
         ]);
 
         DB::transaction(function () use ($request, $mahasiswa) {
@@ -124,19 +119,20 @@ class MahasiswaController extends Controller
             }
         });
 
-        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
     }
 
-    public function destroy(Mahasiswa $mahasiswa)
+    public function destroy(Mahasiswa $mahasiswa): RedirectResponse
     {
         DB::transaction(function () use ($mahasiswa) {
-            if($mahasiswa->user) {
+            if ($mahasiswa->user) {
                 $mahasiswa->user->delete();
+            } else {
+                $mahasiswa->delete();
             }
-            $mahasiswa->delete();
         });
 
-        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
     }
 
     public function export(Request $request)
@@ -146,26 +142,24 @@ class MahasiswaController extends Controller
         return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 
-    public function import(Request $request)
+    public function import(Request $request): RedirectResponse
     {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv'
-        ]);
+        $request->validate(['file' => 'required|mimes:xlsx,xls,csv']);
 
         try {
             Excel::import(new MahasiswasImport, $request->file('file'));
-        } catch (ValidationException $e) { // DIUBAH: Tipe exception sudah spesifik
+        } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];
             foreach ($failures as $failure) {
                 $errorMessages[] = "Baris " . $failure->row() . ": " . implode(', ', $failure->errors());
             }
-            return redirect()->route('mahasiswa.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         } catch (\Exception $e) {
-            return redirect()->route('mahasiswa.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
         }
         
-        return redirect()->route('mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimpor!');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimpor!');
     }
 
     public function downloadImportTemplate()

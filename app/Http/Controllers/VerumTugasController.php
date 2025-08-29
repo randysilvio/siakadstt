@@ -7,26 +7,24 @@ use App\Models\VerumTugas;
 use App\Models\VerumPengumpulan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\RedirectResponse;
 
 class VerumTugasController extends Controller
 {
     /**
      * Menyimpan tugas baru yang dibuat oleh dosen.
      */
-    public function store(Request $request, VerumKelas $verum_kela)
+    public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
+        $this->authorize('update', $verum_kela);
+
         $request->validate([
             'judul' => 'required|string|max:255',
             'instruksi' => 'required|string',
             'tenggat_waktu' => 'required|date',
         ]);
 
-        VerumTugas::create([
-            'kelas_id' => $verum_kela->id,
-            'judul' => $request->judul,
-            'instruksi' => $request->instruksi,
-            'tenggat_waktu' => $request->tenggat_waktu,
-        ]);
+        $verum_kela->tugas()->create($request->all());
 
         return back()->with('success', 'Tugas berhasil dibuat.');
     }
@@ -34,22 +32,26 @@ class VerumTugasController extends Controller
     /**
      * Menyimpan file jawaban yang diunggah oleh mahasiswa.
      */
-    public function storePengumpulan(Request $request, VerumTugas $verum_tuga)
+    public function storePengumpulan(Request $request, VerumTugas $verum_tuga): RedirectResponse
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $mahasiswa = $user->mahasiswa;
+
+        if (!$mahasiswa) {
+            abort(403, 'Aksi ini hanya untuk mahasiswa.');
+        }
+
         $request->validate([
-            'file_jawaban' => 'required|file|mimes:pdf,doc,docx,zip|max:10240', // Maks 10MB
+            'file_jawaban' => 'required|file|mimes:pdf,doc,docx,zip|max:10240',
         ]);
 
-        $mahasiswaId = Auth::user()->mahasiswa->id;
+        $filePath = $request->file('file_jawaban')->store('jawaban_tugas', 'public');
 
-        // Simpan file ke storage/app/public/jawaban_tugas
-        $filePath = $request->file('file_jawaban')->store('public/jawaban_tugas');
-
-        // Gunakan updateOrCreate untuk menangani jika mahasiswa mengunggah ulang
         VerumPengumpulan::updateOrCreate(
             [
                 'tugas_id' => $verum_tuga->id,
-                'mahasiswa_id' => $mahasiswaId,
+                'mahasiswa_id' => $mahasiswa->id,
             ],
             [
                 'file_path' => $filePath,

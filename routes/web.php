@@ -35,6 +35,9 @@ use App\Http\Controllers\Admin\EvaluasiSesiController;
 use App\Http\Controllers\Admin\EvaluasiPertanyaanController;
 use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AbsensiController; // Controller Absensi
+// Controller baru untuk halaman publik
+use App\Http\Controllers\Public\DosenProfileController; // <-- PENAMBAHAN
 // Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
@@ -54,6 +57,11 @@ use App\Http\Controllers\EvaluasiController;
 // --- RUTE PUBLIK ---
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
+
+// ========== PENAMBAHAN RUTE PROFIL DOSEN ==========
+Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
+Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
+// =================================================
 
 
 // --- RUTE OTENTIKASI & DASHBOARD ---
@@ -150,7 +158,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // GRUP RUTE KHUSUS HANYA UNTUK ADMIN
-    Route::middleware('role:admin')->group(function () {
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
         // Rute Export/Import
@@ -163,15 +171,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/mata-kuliah/export', [MataKuliahController::class, 'export'])->name('mata-kuliah.export');
         Route::post('/mata-kuliah/import', [MataKuliahController::class, 'import'])->name('mata-kuliah.import');
         Route::get('/mata-kuliah/import/template', [MataKuliahController::class, 'downloadTemplate'])->name('mata-kuliah.import.template');
-
-        // ==========================================================
-        // ===== PENAMBAHAN KODE BARU DIMULAI DI SINI =====
+        
         // Rute untuk menampilkan form tambah tendik
-        Route::get('/tendik/create', [TendikController::class, 'create'])->name('admin.tendik.create');
+        Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
         // Rute untuk memproses penyimpanan data tendik baru
-        Route::post('/tendik', [TendikController::class, 'store'])->name('admin.tendik.store');
-        // ===== PENAMBAHAN KODE BARU SELESAI DI SINI =====
-        // ==========================================================
+        Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
+
+        // Rute Manajemen Absensi
+        Route::prefix('absensi')->name('absensi.')->group(function () {
+            Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
+            Route::get('/lokasi', [AbsensiController::class, 'lokasiIndex'])->name('lokasi.index');
+            Route::get('/lokasi/create', [AbsensiController::class, 'lokasiCreate'])->name('lokasi.create');
+            Route::post('/lokasi', [AbsensiController::class, 'lokasiStore'])->name('lokasi.store');
+            Route::get('/lokasi/{lokasi}/edit', [AbsensiController::class, 'lokasiEdit'])->name('lokasi.edit');
+            Route::put('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiUpdate'])->name('lokasi.update');
+            Route::delete('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiDestroy'])->name('lokasi.destroy');
+        });
 
         // Rute Resource
         Route::resource('mahasiswa', MahasiswaController::class);

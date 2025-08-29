@@ -12,19 +12,17 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Pengguna & Peran</h1>
-        {{-- ====================================================== --}}
-        {{-- ===== PENAMBAHAN TOMBOL BARU ===== --}}
-        {{-- Tombol ini mengarah ke form pembuatan pengguna baru --}}
+        {{-- Tombol ini sudah benar mengarah ke rute admin --}}
         <a href="{{ route('admin.tendik.create') }}" class="btn btn-primary">
              + Tambah Pengguna Baru
         </a>
-        {{-- ====================================================== --}}
     </div>
 
     <div class="card">
         <div class="card-body">
-            {{-- Form Pencarian (opsional, tapi baik untuk ada) --}}
-            <form action="{{ route('user.index') }}" method="GET" class="mb-3">
+            {{-- Form Pencarian --}}
+            {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+            <form action="{{ route('admin.user.index') }}" method="GET" class="mb-3">
                 <div class="input-group">
                     <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan nama atau email..." value="{{ request('search') }}">
                     <button class="btn btn-outline-secondary" type="submit">Cari</button>
@@ -42,7 +40,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- Diasumsikan variabel dari UserController adalah $users --}}
                         @forelse ($users as $user)
                             <tr>
                                 <td>{{ $user->name }}</td>
@@ -54,10 +51,10 @@
                                     @endforeach
                                 </td>
                                 <td>
-                                    {{-- Tombol untuk mengedit peran user --}}
-                                    <a href="{{ route('user.edit', $user->id) }}" class="btn btn-warning btn-sm">Ubah Peran</a>
-                                    {{-- Form untuk menghapus user --}}
-                                    <form action="{{ route('user.destroy', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');">
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <a href="{{ route('admin.user.edit', $user->id) }}" class="btn btn-warning btn-sm">Ubah Peran</a>
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <form action="{{ route('admin.user.destroy', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

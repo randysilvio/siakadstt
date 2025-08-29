@@ -35,6 +35,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // PERSIAPAN UNTUK SANCTUM: Middleware ini penting untuk otentikasi API
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -69,10 +71,7 @@ class Kernel extends HttpKernel
         'admin_or_dosen' => \App\Http\Middleware\AdminOrDosenMiddleware::class,
         'penjaminan_mutu' => \App\Http\Middleware\PenjaminanMutuMiddleware::class,
         'rektorat' => \App\Http\Middleware\RektoratMiddleware::class,
-
-        // ==================================================================
-        // PENAMBAHAN BARU: Alias middleware peran yang fleksibel
-        // ==================================================================
+        
         'role' => \App\Http\Middleware\CheckRoleMiddleware::class,
     ];
 }

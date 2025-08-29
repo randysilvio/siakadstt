@@ -4,7 +4,8 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Pertanyaan Evaluasi</h1>
-        <a href="{{ route('evaluasi-pertanyaan.create') }}" class="btn btn-primary">Tambah Pertanyaan Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.evaluasi-pertanyaan.create') }}" class="btn btn-primary">Tambah Pertanyaan Baru</a>
     </div>
 
     <div class="card">
@@ -40,8 +41,10 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('evaluasi-pertanyaan.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                    <form action="{{ route('evaluasi-pertanyaan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?');">
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <a href="{{ route('admin.evaluasi-pertanyaan.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <form action="{{ route('admin.evaluasi-pertanyaan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4>Materi Perkuliahan</h4>
-    @if(Auth::user()->role == 'dosen')
+    @if(Auth::user()->hasRole('dosen'))
         {{-- Tombol ini sekarang akan membuka modal --}}
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#tambahMateriModal">+ Tambah Materi</button>
     @endif
@@ -35,7 +35,7 @@
                         <a href="{{ $item->link_url }}" target="_blank" class="btn btn-sm btn-outline-info me-2">Buka Link</a>
                     @endif
 
-                    @if(Auth::user()->role == 'dosen')
+                    @if(Auth::user()->hasRole('dosen'))
                     <form action="{{ route('verum.materi.destroy', $item) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus materi ini?');">
                         @csrf
                         @method('DELETE')

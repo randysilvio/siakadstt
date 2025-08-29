@@ -2,38 +2,44 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+use App\Models\TahunAkademik;
 
 class KhsController extends Controller
 {
-    public function index()
+    /**
+     * Menampilkan Kartu Hasil Studi (KHS) mahasiswa yang sedang login.
+     * Data dikelompokkan per tahun akademik.
+     */
+    public function index(): View
     {
-        $mahasiswa = Auth::user()->mahasiswa;
-        if (!$mahasiswa) {
-            abort(403, 'Anda tidak memiliki data mahasiswa.');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Pastikan pengguna memiliki data mahasiswa terkait
+        if (!$user->mahasiswa) {
+            abort(403, 'Hanya mahasiswa yang dapat mengakses halaman ini.');
         }
+        $mahasiswa = $user->mahasiswa;
 
-        // Ambil semua mata kuliah yang diambil mahasiswa
-        $krs = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
+        // 1. Ambil semua mata kuliah yang sudah dinilai
+        // 2. Kelompokkan berdasarkan ID tahun akademik dari tabel pivot
+        $krsPerTahunAkademik = $mahasiswa->mataKuliahs()
+            ->withPivot('nilai', 'tahun_akademik_id')
+            ->wherePivotNotNull('nilai')
+            ->get()
+            ->groupBy('pivot.tahun_akademik_id');
 
-        // Logika perhitungan IPS
-        $total_sks = 0;
-        $total_bobot_sks = 0;
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        // 3. Ambil data model TahunAkademik berdasarkan ID yang ada di KHS
+        //    Ini digunakan untuk menampilkan nama tahun dan semester di view
+        $tahunAkademiks = TahunAkademik::find($krsPerTahunAkademik->keys());
 
-        foreach ($krs as $mk) {
-            $sks = $mk->sks;
-            $nilai = $mk->pivot->nilai;
-
-            if (isset($bobot_nilai[$nilai])) {
-                $total_sks += $sks;
-                $total_bobot_sks += ($bobot_nilai[$nilai] * $sks);
-            }
-        }
-
-        $ips = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
-
-        return view('khs.index', compact('mahasiswa', 'krs', 'total_sks', 'ips'));
+        // 4. Kirim semua data yang dibutuhkan ke view
+        return view('khs.index', compact(
+            'mahasiswa',
+            'krsPerTahunAkademik',
+            'tahunAkademiks'
+        ));
     }
 }

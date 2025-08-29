@@ -14,7 +14,8 @@
         </div>
     </div>
 
-    <form action="{{ route('user.update', $user->id) }}" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+    <form action="{{ route('admin.user.update', $user->id) }}" method="POST" class="mt-4">
         @csrf
         @method('PUT')
         <div class="card">
@@ -39,7 +40,8 @@
         </div>
         <div class="mt-3">
             <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-            <a href="{{ route('user.index') }}" class="btn btn-secondary">Batal</a>
+            {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+            <a href="{{ route('admin.user.index') }}" class="btn btn-secondary">Batal</a>
         </div>
     </form>
 </div>

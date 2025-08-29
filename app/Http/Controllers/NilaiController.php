@@ -4,47 +4,46 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\MataKuliah;
-use App\Models\TahunAkademik; // <-- Tambahkan ini
+use App\Models\TahunAkademik;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class NilaiController extends Controller
 {
     /**
      * Menampilkan daftar mata kuliah untuk dipilih (HANYA UNTUK ADMIN).
      */
-    public function index()
+    public function index(): View
     {
-        if (!Auth::user()->hasRole('admin')) {
-            abort(403, 'AKSI TIDAK DIIZINKAN.');
-        }
-        $mata_kuliahs = MataKuliah::with('dosen')->get();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Menggunakan Gate untuk otorisasi yang lebih bersih
+        $this->authorize('viewAny', MataKuliah::class);
+
+        $mata_kuliahs = MataKuliah::with('dosen.user')->get();
         return view('nilai.index', compact('mata_kuliahs'));
     }
 
     /**
      * Menampilkan form untuk input nilai (ADMIN, DOSEN PENGAMPU & KAPRODI).
      */
-    public function show(MataKuliah $mataKuliah)
+    public function show(MataKuliah $mataKuliah): View
     {
         // Otorisasi menggunakan Gate yang sudah kita definisikan
         $this->authorize('inputNilai', $mataKuliah);
 
-        // =================================================================
-        // ===== PERBAIKAN: Filter Mahasiswa Berdasarkan Semester Aktif =====
-        // =================================================================
-        // 1. Ambil tahun akademik yang sedang aktif.
-        $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
+        // Ambil tahun akademik yang sedang aktif.
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
 
-        // Jika tidak ada semester aktif, jangan tampilkan mahasiswa.
         if (!$tahunAkademikAktif) {
-            // Mengatur relasi mahasiswas menjadi koleksi kosong
+            // Mengatur relasi mahasiswas menjadi koleksi kosong jika tidak ada semester aktif
             $mataKuliah->setRelation('mahasiswas', collect());
-            // Menambahkan pesan error untuk ditampilkan di view
             session()->flash('error', 'Tidak ada Tahun Akademik yang aktif. Silakan hubungi Administrator.');
         } else {
-            // 2. Muat relasi 'mahasiswas' HANYA untuk mahasiswa yang mengambil
-            //    mata kuliah ini di semester yang sedang aktif.
+            // Muat relasi 'mahasiswas' HANYA untuk mahasiswa yang mengambil
+            // mata kuliah ini di semester yang sedang aktif.
             $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
                 $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id);
             }]);
@@ -56,33 +55,31 @@ class NilaiController extends Controller
     /**
      * Menyimpan nilai yang diinput (ADMIN, DOSEN PENGAMPU & KAPRODI).
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'mata_kuliah_id' => 'required|exists:mata_kuliahs,id',
-            'nilai.*' => 'nullable|string|max:2|in:A,B,C,D,E', // Validasi nilai yang diizinkan
+            'nilai.*' => 'nullable|string|max:2|in:A,B,C,D,E',
         ]);
     
-        $mataKuliah = MataKuliah::find($request->mata_kuliah_id);
+        $mataKuliah = MataKuliah::findOrFail($request->mata_kuliah_id);
 
         // Otorisasi menggunakan Gate sebelum menyimpan
         $this->authorize('inputNilai', $mataKuliah);
 
-        // =================================================================
-        // ===== PERBAIKAN: Simpan Nilai Berdasarkan Semester Aktif =====
-        // =================================================================
-        // 1. Ambil tahun akademik yang sedang aktif.
-        $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->firstOrFail();
+        // Ambil tahun akademik yang sedang aktif.
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
         
-        foreach ($request->nilai as $mahasiswa_id => $nilai) {
-            // 2. Gunakan wherePivot untuk memastikan kita HANYA mengupdate
-            //    record nilai untuk semester yang aktif.
-            $mataKuliah->mahasiswas()
-                ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-                ->updateExistingPivot($mahasiswa_id, ['nilai' => strtoupper($nilai)]);
+        if ($request->has('nilai')) {
+            foreach ($request->nilai as $mahasiswa_id => $nilai) {
+                // Gunakan wherePivot untuk memastikan kita HANYA mengupdate
+                // record nilai untuk semester yang aktif.
+                $mataKuliah->mahasiswas()
+                    ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
+                    ->updateExistingPivot($mahasiswa_id, ['nilai' => $nilai ? strtoupper($nilai) : null]);
+            }
         }
 
-        // Mengarahkan kembali ke halaman yang sama dengan pesan sukses.
         return redirect()->route('nilai.show', $mataKuliah->id)->with('success', 'Nilai berhasil disimpan!');
     }
 }

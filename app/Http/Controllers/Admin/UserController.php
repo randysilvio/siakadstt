@@ -51,7 +51,8 @@ class UserController extends Controller
         // Menggunakan sync untuk memperbarui peran
         $user->roles()->sync($request->input('roles', []));
 
-        return redirect()->route('user.index')->with('success', 'Peran untuk pengguna ' . $user->name . ' berhasil diperbarui.');
+        // PERBAIKAN: Menggunakan nama rute admin yang benar
+        return redirect()->route('admin.user.index')->with('success', 'Peran untuk pengguna ' . $user->name . ' berhasil diperbarui.');
     }
 
     /**
@@ -78,6 +79,7 @@ class UserController extends Controller
             $user->delete();
         });
 
-        return redirect()->route('user.index')->with('success', 'Pengguna berhasil dihapus.');
+        // PERBAIKAN: Menggunakan nama rute admin yang benar
+        return redirect()->route('admin.user.index')->with('success', 'Pengguna berhasil dihapus.');
     }
 }

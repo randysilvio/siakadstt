@@ -50,7 +50,7 @@ class TendikController extends Controller
         $user->roles()->attach($request->role_id);
 
         // 4. Redirect kembali ke halaman daftar pengguna dengan pesan sukses.
-        // Menggunakan route 'user.index' yang sudah ada.
-        return redirect()->route('user.index')->with('success', 'Akun pengguna baru berhasil dibuat.');
+        // PERBAIKAN: Menggunakan nama rute 'admin.user.index' yang sudah benar.
+        return redirect()->route('admin.user.index')->with('success', 'Akun pengguna baru berhasil dibuat.');
     }
 }

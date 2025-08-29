@@ -4,7 +4,8 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Sesi Evaluasi</h1>
-        <a href="{{ route('evaluasi-sesi.create') }}" class="btn btn-primary">Tambah Sesi Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.evaluasi-sesi.create') }}" class="btn btn-primary">Tambah Sesi Baru</a>
     </div>
 
     <div class="card">
@@ -24,7 +25,8 @@
                         @forelse ($sesi as $item)
                             <tr>
                                 <td>{{ $item->nama_sesi }}</td>
-                                <td>{{ $item->tahunAkademik->nama_tahun_akademik }}</td>
+                                {{-- PERBAIKAN: Menggunakan relasi yang benar 'tahunAkademik' dan properti 'tahun' & 'semester' --}}
+                                <td>{{ $item->tahunAkademik->tahun }} ({{ $item->tahunAkademik->semester }})</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal_mulai)->isoFormat('D MMM Y') }} - {{ \Carbon\Carbon::parse($item->tanggal_selesai)->isoFormat('D MMM Y') }}</td>
                                 <td>
                                     @if ($item->is_active)
@@ -34,8 +36,10 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('evaluasi-sesi.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                    <form action="{{ route('evaluasi-sesi.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus sesi ini?');">
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <a href="{{ route('admin.evaluasi-sesi.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                    <form action="{{ route('admin.evaluasi-sesi.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus sesi ini?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

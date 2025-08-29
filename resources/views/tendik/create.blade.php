@@ -60,8 +60,8 @@
                             <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
                         </div>
                         
-                        {{-- Tombol Batal diubah agar kembali ke halaman daftar pengguna --}}
-                        <a href="{{ route('user.index') }}" class="btn btn-secondary">Batal</a>
+                        {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                        <a href="{{ route('admin.user.index') }}" class="btn btn-secondary">Batal</a>
                         <button type="submit" class="btn btn-primary">Buat Akun</button>
                     </form>
                 </div>

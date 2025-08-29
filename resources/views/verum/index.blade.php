@@ -24,7 +24,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Kelas Verum Anda</h2>
         {{-- Tombol untuk membuat kelas baru, hanya muncul untuk dosen --}}
-        @if(Auth::user()->role == 'dosen')
+        @if(Auth::user()->hasRole('dosen'))
             <a href="{{ route('verum.create') }}" class="btn btn-primary">
                 + Buat Kelas Baru
             </a>
@@ -39,6 +39,11 @@
     @endif
     
     {{-- Tampilkan pesan sukses jika ada --}}
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
 
     @if($semuaKelas->isEmpty() && !session('error'))
         <div class="alert alert-info">
@@ -55,13 +60,15 @@
                                     {{ $kelas->nama_kelas }}
                                 </a>
                             </h5>
-                            <p class="card-text text-muted">{{ $kelas->mataKuliah->nama_matakuliah }}</p>
+                            {{-- PERBAIKAN: Gunakan optional() untuk keamanan jika relasi tidak ada --}}
+                            <p class="card-text text-muted">{{ optional($kelas->mataKuliah)->nama_mk }}</p>
                         </div>
                         <div class="card-footer bg-transparent border-top-0">
-                            @if(Auth::user()->role == 'mahasiswa')
-                                <small class="text-muted">Pengajar: {{ $kelas->dosen->user->name }}</small>
+                            @if(Auth::user()->hasRole('mahasiswa'))
+                                {{-- PERBAIKAN: Gunakan optional() untuk keamanan --}}
+                                <small class="text-muted">Pengajar: {{ optional(optional($kelas->dosen)->user)->name }}</small>
                             @else {{-- Untuk Dosen --}}
-                                <small class="text-muted">Kode Mata Kuliah: {{ $kelas->mataKuliah->kode_mk }}</small>
+                                <small class="text-muted">Kode Mata Kuliah: {{ optional($kelas->mataKuliah)->kode_mk }}</small>
                             @endif
                         </div>
                     </div>

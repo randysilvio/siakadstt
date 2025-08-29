@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Pengaturan;
 use App\Models\Mahasiswa;
-use App\Models\TahunAkademik; // <-- 1. Tambahkan model ini
+use App\Models\TahunAkademik;
 
 class CetakController extends Controller
 {
@@ -16,31 +16,22 @@ class CetakController extends Controller
      */
     public function cetakKhs()
     {
-        $mahasiswa = Auth::user()->mahasiswa;
-        if (!$mahasiswa) {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user->mahasiswa) {
             abort(403, 'Anda tidak memiliki data mahasiswa.');
         }
+        $mahasiswa = $user->mahasiswa;
 
-        $krs = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
+        $krsPerTahunAkademik = $mahasiswa->mataKuliahs()
+            ->withPivot('nilai', 'tahun_akademik_id')
+            ->wherePivotNotNull('nilai')
+            ->get()
+            ->groupBy('pivot.tahun_akademik_id');
 
-        // Logika perhitungan IPS
-        $total_sks = 0;
-        $total_bobot_sks = 0;
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        $tahunAkademiks = TahunAkademik::find($krsPerTahunAkademik->keys());
 
-        foreach ($krs as $mk) {
-            $sks = $mk->sks;
-            $nilai = $mk->pivot->nilai;
-
-            if (isset($bobot_nilai[$nilai])) {
-                $total_sks += $sks;
-                $total_bobot_sks += ($bobot_nilai[$nilai] * $sks);
-            }
-        }
-
-        $ips = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
-
-        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krs', 'total_sks', 'ips'));
+        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsPerTahunAkademik', 'tahunAkademiks'));
         return $pdf->download('KHS_' . $mahasiswa->nim . '.pdf');
     }
 
@@ -49,33 +40,20 @@ class CetakController extends Controller
      */
     public function cetakTranskrip()
     {
-        $mahasiswa = Auth::user()->mahasiswa;
-        if (!$mahasiswa) {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user->mahasiswa) {
             abort(403, 'Anda tidak memiliki data mahasiswa.');
         }
+        $mahasiswa = $user->mahasiswa;
 
         $krs = $mahasiswa->mataKuliahs()
-            ->wherePivotNotNull('nilai')
-            ->orderBy('semester')
-            ->get();
+                         ->wherePivotNotNull('nilai')
+                         ->get();
 
         $krs_per_semester = $krs->groupBy('semester');
-
-        // Logika perhitungan IPK
-        $total_sks = 0;
-        $total_bobot_sks = 0;
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-
-        foreach ($krs as $mk) {
-            $sks = $mk->sks;
-            $nilai = $mk->pivot->nilai;
-
-            if (isset($bobot_nilai[$nilai])) {
-                $total_sks += $sks;
-                $total_bobot_sks += ($bobot_nilai[$nilai] * $sks);
-            }
-        }
-        $ipk = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
+        $ipk = $mahasiswa->hitungIpk();
+        $total_sks = $mahasiswa->totalSksLulus();
 
         $pdf = Pdf::loadView('transkrip.pdf', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));
         return $pdf->download('Transkrip_' . $mahasiswa->nim . '.pdf');
@@ -86,25 +64,22 @@ class CetakController extends Controller
      */
     public function cetakKrs()
     {
-        $mahasiswa = Auth::user()->mahasiswa->load('dosenWali', 'programStudi.kaprodi');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (!$user->mahasiswa) {
+            abort(403, 'Anda tidak memiliki data mahasiswa.');
+        }
+        $mahasiswa = $user->mahasiswa->load('dosenWali.user', 'programStudi.kaprodi.user');
         
-        // =================================================================
-        // ===== PERBAIKAN DITAMBAHKAN DI SINI =====
-        // =================================================================
-        // 2. Ambil tahun akademik yang sedang aktif
-        $tahunAkademik = TahunAkademik::where('is_active', 1)->firstOrFail();
+        $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // 3. Ambil KRS hanya untuk semester yang aktif
         $krs = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
             ->get();
-        // =================================================================
 
-        // Ambil data nama rektor dari database
         $rektor = Pengaturan::where('key', 'nama_rektor')->first();
 
-        // 4. Kirim variabel $tahunAkademik ke view
         $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor', 'tahunAkademik'));
-        return $pdf->download('KRS_' . $mahasiswa->nim . '.pdf');
+        return $pdf->download('KRS_' . $mahasiswa->nim . '_' . $tahunAkademik->tahun . '.pdf');
     }
 }

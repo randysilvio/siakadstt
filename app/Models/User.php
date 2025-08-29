@@ -6,10 +6,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // <-- PENAMBAHAN UNTUK SANCTUM
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable; // <-- PENAMBAHAN UNTUK SANCTUM
 
     protected $fillable = [
         'name',
@@ -39,6 +40,10 @@ class User extends Authenticatable
     // FUNGSI BANTU BARU: Untuk memeriksa apakah user memiliki peran tertentu
     public function hasRole($roleName)
     {
+        // Diperbarui untuk menerima array atau string
+        if (is_array($roleName)) {
+            return $this->roles()->whereIn('name', $roleName)->exists();
+        }
         return $this->roles()->where('name', $roleName)->exists();
     }
     

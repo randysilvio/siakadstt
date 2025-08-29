@@ -3,16 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Koleksi;
-use App\Models\Pengumuman; // 1. Tambahkan model Pengumuman
+use App\Models\Pengumuman;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // 2. Tambahkan Auth
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class PerpustakaanController extends Controller
 {
     /**
      * Menampilkan halaman katalog online (OPAC) untuk semua user.
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Koleksi::query();
 
@@ -31,20 +32,22 @@ class PerpustakaanController extends Controller
     /**
      * Menampilkan halaman dashboard khusus untuk pustakawan.
      */
-    public function dashboard()
+    public function dashboard(): View
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $totalJudul = Koleksi::count();
         $totalEksemplar = Koleksi::sum('jumlah_stok');
         
-        // 3. Tambahkan logika untuk mengambil pengumuman
-        $user = Auth::user();
-        $pengumumans = Pengumuman::where('target_role', 'semua')
-            ->orWhere('target_role', $user->role)
+        $pengumumans = Pengumuman::query()
+            ->whereHas('roles', function ($q) use ($user) {
+                $q->whereIn('id', $user->roles->pluck('id'));
+            })
             ->latest()
             ->take(5)
             ->get();
         
-        // 4. Kirim semua variabel ke view
         return view('perpustakaan.dashboard', compact('totalJudul', 'totalEksemplar', 'pengumumans'));
     }
 }

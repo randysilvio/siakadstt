@@ -2,7 +2,8 @@
 @section('content')
     <h1>Tambah Dosen Baru</h1>
 
-    <form action="{{ route('dosen.store') }}" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+    <form action="{{ route('admin.dosen.store') }}" method="POST" class="mt-4">
         @csrf
         <div class="mb-3">
             <label for="nidn" class="form-label">NIDN</label>
@@ -35,6 +36,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan</button>
-        <a href="{{ route('dosen.index') }}" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+        <a href="{{ route('admin.dosen.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection

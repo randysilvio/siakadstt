@@ -17,7 +17,6 @@
         </div>
 
         <div class="row">
-            <!-- Kolom Kiri: Tugas Utama Dosen -->
             <div class="col-lg-8">
                 {{-- Mata Kuliah yang Diampu --}}
                 <div class="card mb-4">
@@ -71,7 +70,6 @@
                 </div>
             </div>
 
-            <!-- Kolom Kanan: Portal Peran Tambahan & Info -->
             <div class="col-lg-4">
                 {{-- Portal Multi-Peran --}}
                 <div class="card mb-4">
@@ -122,7 +120,8 @@
                     <div class="card-header">Pengumuman Terbaru</div>
                     <div class="list-group list-group-flush">
                         @forelse($pengumumans as $p)
-                            <a href="#" class="list-group-item list-group-item-action">
+                            {{-- PERBAIKAN: Menggunakan nama rute admin untuk pengumuman --}}
+                            <a href="{{ route('admin.pengumuman.show', $p) }}" class="list-group-item list-group-item-action">
                                 <h6 class="mb-1">{{ $p->judul }}</h6>
                                 <small class="text-muted">{{ $p->created_at->isoFormat('D MMMM YYYY') }}</small>
                             </a>

@@ -7,6 +7,8 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 use App\Models\User;
 use App\Models\MataKuliah;
 use App\Models\ProgramStudi;
+use App\Models\VerumKelas;
+use App\Models\VerumMateri;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -26,31 +28,46 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        /**
+         * Gate untuk otorisasi input nilai.
+         * Diizinkan untuk: Admin, Dosen Pengampu, dan Kaprodi yang menaungi mata kuliah.
+         */
         Gate::define('inputNilai', function (User $user, MataKuliah $mataKuliah) {
-            // 1. Admin selalu diizinkan.
             if ($user->hasRole('admin')) {
                 return true;
             }
-
-            // 2. Dosen pengampu mata kuliah diizinkan.
             if ($user->hasRole('dosen') && $user->dosen?->id === $mataKuliah->dosen_id) {
                 return true;
             }
-
-            // 3. Kaprodi diizinkan jika mata kuliah ada di prodinya.
             if ($user->hasRole('kaprodi') && $user->dosen) {
-                // Cari prodi yang dikepalai oleh dosen ini
                 $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->first();
-                
-                // Pastikan prodi dan kurikulum ada sebelum membandingkan
                 if ($prodiYangDikepalai && $mataKuliah->kurikulum) {
-                    // Cek apakah kurikulum mata kuliah ini milik prodi tersebut
                     return $mataKuliah->kurikulum->program_studi_id === $prodiYangDikepalai->id;
                 }
             }
-
-            // Jika tidak memenuhi semua kondisi di atas, tolak.
             return false;
+        });
+
+        /**
+         * Gate untuk otorisasi update kelas Verum (hanya dosen pembuat).
+         */
+        Gate::define('update', function(User $user, VerumKelas $verumKelas){
+            return $user->dosen?->id === $verumKelas->dosen_id;
+        });
+
+        /**
+         * Gate untuk otorisasi hapus materi Verum (hanya dosen pembuat kelasnya).
+         */
+        Gate::define('delete', function(User $user, VerumMateri $verumMateri){
+            return $user->dosen?->id === $verumMateri->kelas?->dosen_id;
+        });
+
+        /**
+         * Gate untuk mengelola Kalender Akademik.
+         * Saat ini hanya diizinkan untuk Admin.
+         */
+        Gate::define('manage-kalender', function (User $user) {
+            return $user->hasRole('admin');
         });
     }
 }

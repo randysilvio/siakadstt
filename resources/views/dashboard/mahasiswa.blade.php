@@ -50,7 +50,8 @@
                 <div class="card-header">Pengumuman</div>
                 <div class="list-group list-group-flush">
                     @forelse($pengumumans as $pengumuman)
-                        <a href="{{ route('pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
+                        {{-- PERBAIKAN: Menggunakan nama rute admin untuk pengumuman --}}
+                        <a href="{{ route('admin.pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ $pengumuman->judul }}</h6>
                                 <small>{{ $pengumuman->created_at->diffForHumans() }}</small>

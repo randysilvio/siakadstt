@@ -48,7 +48,8 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Slideshow</h5>
                     <p class="card-text">Atur gambar yang tampil di halaman depan.</p>
-                    <a href="{{ route('slideshows.index') }}" class="btn btn-outline-primary">Kelola Slideshow</a>
+                    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                    <a href="{{ route('admin.slideshows.index') }}" class="btn btn-outline-primary">Kelola Slideshow</a>
                 </div>
             </div>
         </div>
@@ -57,7 +58,8 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Dokumen Publik</h5>
                     <p class="card-text">Unggah dan kelola dokumen unduhan.</p>
-                    <a href="{{ route('dokumen-publik.index') }}" class="btn btn-outline-primary">Kelola Dokumen</a>
+                    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                    <a href="{{ route('admin.dokumen-publik.index') }}" class="btn btn-outline-primary">Kelola Dokumen</a>
                 </div>
             </div>
         </div>
@@ -66,7 +68,8 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Pengumuman</h5>
                     <p class="card-text">Buat dan kelola pengumuman untuk user.</p>
-                    <a href="{{ route('pengumuman.index') }}" class="btn btn-outline-primary">Kelola Pengumuman</a>
+                    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                    <a href="{{ route('admin.pengumuman.index') }}" class="btn btn-outline-primary">Kelola Pengumuman</a>
                 </div>
             </div>
         </div>
@@ -89,11 +92,13 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     Pengumuman Terbaru
-                    <a href="{{ route('pengumuman.create') }}" class="btn btn-sm btn-outline-success">+ Buat Baru</a>
+                    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                    <a href="{{ route('admin.pengumuman.create') }}" class="btn btn-sm btn-outline-success">+ Buat Baru</a>
                 </div>
                 <div class="list-group list-group-flush">
                     @forelse($pengumumans as $pengumuman)
-                        <a href="{{ route('pengumuman.show', $pengumuman->id) }}" class="list-group-item list-group-item-action">
+                        {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                        <a href="{{ route('admin.pengumuman.show', $pengumuman->id) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ $pengumuman->judul }}</h6>
                                 <small>{{ $pengumuman->created_at->diffForHumans() }}</small>
@@ -105,7 +110,8 @@
                     @endforelse
                 </div>
                 <div class="card-footer text-center">
-                    <a href="{{ route('pengumuman.index') }}">Kelola semua pengumuman</a>
+                    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+                    <a href="{{ route('admin.pengumuman.index') }}">Kelola semua pengumuman</a>
                 </div>
             </div>
         </div>

@@ -3,91 +3,75 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
+use App\Models\Role;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class PengumumanController extends Controller
 {
-    /**
-     * Konstruktor sekarang tidak memerlukan middleware karena
-     * perlindungan hak akses sudah ditangani di level routing (web.php).
-     */
-    public function __construct()
+    public function index(): View
     {
-        // Tidak ada middleware yang diperlukan di sini.
-    }
-
-    /**
-     * Menampilkan daftar semua pengumuman.
-     */
-    public function index()
-    {
-        $pengumumans = Pengumuman::latest()->paginate(10);
+        $pengumumans = Pengumuman::with('roles')->latest()->paginate(10);
         return view('pengumuman.index', compact('pengumumans'));
     }
 
-    /**
-     * Menampilkan formulir untuk membuat pengumuman baru.
-     */
-    public function create()
+    public function create(): View
     {
-        return view('pengumuman.create');
+        $roles = Role::where('name', '!=', 'admin')->get();
+        return view('pengumuman.create', compact('roles'));
     }
 
-    /**
-     * Menyimpan pengumuman baru ke database.
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_role' => 'required|in:semua,admin,dosen,mahasiswa,tendik',
+            'target_roles' => 'required|array',
+            'target_roles.*' => 'exists:roles,id',
         ]);
 
-        Pengumuman::create($request->all());
+        DB::transaction(function () use ($request) {
+            $pengumuman = Pengumuman::create($request->only('judul', 'konten'));
+            $pengumuman->roles()->sync($request->target_roles);
+        });
 
-        return redirect()->route('pengumuman.index')->with('success', 'Pengumuman berhasil dibuat.');
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dibuat.');
     }
 
-    /**
-     * Menampilkan detail satu pengumuman.
-     */
-    public function show(Pengumuman $pengumuman)
+    public function show(Pengumuman $pengumuman): View
     {
         return view('pengumuman.show', compact('pengumuman'));
     }
 
-    /**
-     * Menampilkan formulir untuk mengedit pengumuman.
-     */
-    public function edit(Pengumuman $pengumuman)
+    public function edit(Pengumuman $pengumuman): View
     {
-        return view('pengumuman.edit', compact('pengumuman'));
+        $roles = Role::where('name', '!=', 'admin')->get();
+        $pengumuman->load('roles');
+        return view('pengumuman.edit', compact('pengumuman', 'roles'));
     }
 
-    /**
-     * Memperbarui pengumuman di database.
-     */
-    public function update(Request $request, Pengumuman $pengumuman)
+    public function update(Request $request, Pengumuman $pengumuman): RedirectResponse
     {
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_role' => 'required|in:semua,admin,dosen,mahasiswa,tendik',
+            'target_roles' => 'required|array',
+            'target_roles.*' => 'exists:roles,id',
         ]);
 
-        $pengumuman->update($request->all());
+        DB::transaction(function () use ($request, $pengumuman) {
+            $pengumuman->update($request->only('judul', 'konten'));
+            $pengumuman->roles()->sync($request->target_roles);
+        });
 
-        return redirect()->route('pengumuman.index')->with('success', 'Pengumuman berhasil diperbarui.');
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus pengumuman dari database.
-     */
-    public function destroy(Pengumuman $pengumuman)
+    public function destroy(Pengumuman $pengumuman): RedirectResponse
     {
         $pengumuman->delete();
-        return redirect()->route('pengumuman.index')->with('success', 'Pengumuman berhasil dihapus.');
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dihapus.');
     }
 }

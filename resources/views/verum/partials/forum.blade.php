@@ -3,7 +3,6 @@
 {{-- Form untuk membuat postingan baru --}}
 <div class="card mb-4">
     <div class="card-body">
-        {{-- PASTIKAN ACTION INI SUDAH BENAR --}}
         <form action="{{ route('verum.forum.store', $verum_kela) }}" method="POST">
             @csrf
             <div class="mb-3">
@@ -27,13 +26,15 @@
                 <div class="d-flex align-items-start">
                     <div class="me-3">
                         <div style="width: 40px; height: 40px; background-color: #0d6efd; color: white; border-radius: 50%;" class="d-flex align-items-center justify-content-center fw-bold">
-                            {{ strtoupper(substr($post->user->name, 0, 1)) }}
+                            {{-- PERBAIKAN: Gunakan optional() untuk keamanan jika user tidak ada --}}
+                            {{ strtoupper(substr(optional($post->user)->name ?? 'X', 0, 1)) }}
                         </div>
                     </div>
                     <div>
-                        <h6 class="card-title mb-0">{{ $post->user->name }} <small class="text-muted">({{ $post->user->role }})</small></h6>
+                        {{-- PERBAIKAN: Gunakan optional() dan ambil role dari relasi --}}
+                        <h6 class="card-title mb-0">{{ optional($post->user)->name ?? 'User Dihapus' }} <small class="text-muted">({{ optional($post->user->roles->first())->name }})</small></h6>
                         <small class="text-muted">{{ $post->created_at->diffForHumans() }}</small>
-                        <p class="card-text mt-2">{{ nl2br(e($post->konten)) }}</p>
+                        <p class="card-text mt-2">{!! nl2br(e($post->konten)) !!}</p>
                     </div>
                 </div>
             </div>

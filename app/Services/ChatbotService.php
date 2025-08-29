@@ -2,16 +2,13 @@
 
 namespace App\Services;
 
-// Import semua model yang akan kita gunakan
-use App\Models\Dosen;
 use App\Models\Jadwal;
-use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class ChatbotService
 {
@@ -33,7 +30,7 @@ class ChatbotService
         }
 
         try {
-            $response = Http::withToken($this->witAiToken)
+            $response = Http::withToken((string) $this->witAiToken)
                 ->get('https://api.wit.ai/message', [
                     'v' => $this->witApiVersion,
                     'q' => $message,
@@ -49,17 +46,17 @@ class ChatbotService
                 return $this->defaultResponse;
             }
 
-            $intent = $data['intents'][0];
-            $intentName = $intent['name'];
-            $confidence = $intent['confidence'];
+            $intent = $data['intents'][0] ?? [];
+            $intentName = $intent['name'] ?? null;
+            $confidence = $intent['confidence'] ?? 0;
 
-            if ($confidence < 0.75) { 
+            if ($confidence < 0.75 || !$intentName) { 
                 return $this->defaultResponse;
             }
 
             $entities = $data['entities'] ?? [];
+            $handlerMethod = 'handle' . Str::studly($intentName);
 
-            $handlerMethod = 'handle' . Str::studly($intentName); 
             if (method_exists($this, $handlerMethod)) {
                 return $this->{$handlerMethod}($entities);
             }
@@ -72,11 +69,6 @@ class ChatbotService
         }
     }
 
-    // ===================================================================
-    // HANDLER METHODS (SATU METHOD UNTUK SETIAP INTENT)
-    // ===================================================================
-
-    // --- INTENT UMUM ---
     protected function handleSapaan(array $entities): string
     {
         $responses = [
@@ -98,100 +90,38 @@ class ChatbotService
         return nl2br($responseText);
     }
 
-    // --- INTENT UNTUK MAHASISWA ---
     protected function handleMahasiswaIsiKRS(array $entities): string
     {
         $responseText = "Tentu, berikut adalah langkah-langkah detail untuk mengisi Kartu Rencana Studi (KRS):\n\n";
         $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
         $responseText .= "2. Dari menu navigasi, klik **KRS**.\n";
-        $responseText .= "3. Halaman akan menampilkan daftar mata kuliah yang tersedia untuk semester aktif (Ganjil/Genap).\n";
+        $responseText .= "3. Halaman akan menampilkan daftar mata kuliah yang tersedia untuk semester aktif.\n";
         $responseText .= "4. **Centang** kotak di sebelah kiri nama mata kuliah yang ingin Anda ambil.\n";
         $responseText .= "5. Perhatikan **Total SKS Diambil** di bagian atas untuk memastikan tidak melebihi batas maksimum Anda.\n";
         $responseText .= "6. Jika sudah yakin, klik tombol **\"Simpan KRS\"**. Status KRS Anda akan berubah menjadi \"Menunggu Persetujuan\" dari Kaprodi.";
         return nl2br($responseText);
     }
     
-    protected function handleMahasiswaEvaluasiDosen(array $entities): string
-    {
-        $responseText = "Berikut cara mengisi kuesioner evaluasi dosen (EDOM):\n\n";
-        $responseText .= "1. Pastikan KRS Anda sudah berstatus **\"Disetujui\"** oleh Kaprodi.\n";
-        $responseText .= "2. Klik menu **Evaluasi Dosen**.\n";
-        $responseText .= "3. Daftar mata kuliah yang bisa dievaluasi akan muncul.\n";
-        $responseText .= "4. Klik **\"Isi Kuesioner\"**, isi formulir, lalu klik **\"Simpan\"**.";
-        return nl2br($responseText);
-    }
-
-    protected function handleMahasiswaCetakDokumen(array $entities): string
-    {
-        $responseText = "Untuk mengunduh dokumen PDF resmi:\n\n";
-        $responseText .= "1. Buka halaman yang ingin Anda cetak (misalnya, **KHS** atau **Transkrip**).\n";
-        $responseText .= "2. Cari dan klik tombol **\"Cetak\"**.\n";
-        $responseText .= "3. Sistem akan secara otomatis menghasilkan file PDF yang siap diunduh ke perangkat Anda.";
-        return nl2br($responseText);
-    }
-
-    // =================================================================
-    // ===== KODE BARU DITAMBAHKAN DI SINI =====
-    // =================================================================
     protected function handleMahasiswaAksesVerum(array $entities): string
     {
         $responseText = "Tentu, berikut adalah panduan untuk mengakses Kelas Virtual (Verum) sebagai mahasiswa:\n\n";
         $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
         $responseText .= "2. Dari menu navigasi utama di bagian atas, klik **Verum**.\n";
         $responseText .= "3. Anda akan melihat daftar semua kelas virtual dari mata kuliah yang Anda ambil di semester ini.\n";
-        $responseText .= "4. Klik pada salah satu kelas untuk masuk dan melihat **materi**, **tugas**, dan **forum diskusi** yang telah dibuat oleh dosen Anda.";
-        return nl2br($responseText);
-    }
-    // =================================================================
-
-    // --- INTENT UNTUK DOSEN & KAPRODI ---
-    protected function handleDosenInputNilai(array $entities): string
-    {
-        $responseText = "Berikut adalah panduan lengkap untuk menginput nilai mahasiswa:\n\n";
-        $responseText .= "1. **Login** ke akun Anda, Anda akan masuk ke **Dasbor Dosen**.\n";
-        $responseText .= "2. Cari tabel **\"Mata Kuliah yang Diampu\"**.\n";
-        $responseText .= "3. Klik tombol **\"Input Nilai\"** di sebelah kanan mata kuliah yang ingin Anda nilai.\n";
-        $responseText .= "4. Halaman akan menampilkan daftar mahasiswa yang terdaftar di kelas tersebut pada semester aktif.\n";
-        $responseText .= "5. Masukkan nilai (A, B, C, D, E) pada kolom input. Jika nilai sudah ada, akan langsung ditampilkan.\n";
-        $responseText .= "6. Setelah selesai, klik **\"Simpan Nilai\"**. Halaman akan me-refresh dan menampilkan pesan sukses.";
+        $responseText .= "4. Klik pada salah satu kelas untuk masuk dan melihat **materi**, **tugas**, dan **forum diskusi**.";
         return nl2br($responseText);
     }
 
-    protected function handleDosenManajemenPerwalian(array $entities): string
-    {
-        $responseText = "Untuk menambah mahasiswa perwalian:\n\n";
-        $responseText .= "1. Buka menu **Mahasiswa Wali**.\n";
-        $responseText .= "2. Di bagian bawah, Anda akan melihat daftar \"Mahasiswa Tersedia\". Gunakan fitur pencarian atau filter untuk menemukan mahasiswa.\n";
-        $responseText .= "3. **Centang** nama mahasiswa yang ingin ditambahkan.\n";
-        $responseText .= "4. Klik tombol **\"Jadikan Mahasiswa Wali\"**.";
-        return nl2br($responseText);
-    }
-
-    protected function handleKaprodiValidasiKRS(array $entities): string
-    {
-        $responseText = "Sebagai Kaprodi, berikut cara memvalidasi KRS mahasiswa di bawah prodi Anda:\n\n";
-        $responseText .= "1. **Login** ke akun Anda.\n";
-        $responseText .= "2. Dari menu navigasi atas, klik **Portal Kaprodi**.\n";
-        $responseText .= "3. Di dalam portal, klik menu **\"Validasi KRS\"**.\n";
-        $responseText .= "4. Pilih mahasiswa yang KRS-nya ingin Anda periksa.\n";
-        $responseText .= "5. Tinjau mata kuliah yang diambil, lalu klik tombol **\"Setujui\"** atau **\"Tolak\"**.";
-        return nl2br($responseText);
-    }
-
-    // --- FUNGSI CERDAS: MENGAKSES DATABASE ---
     protected function handleJadwalKuliah(array $entities): string
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
-        if (!$user || !$user->hasRole('mahasiswa')) {
+        if (!$user || !$user->hasRole('mahasiswa') || !$user->mahasiswa) {
             return 'Fitur ini hanya tersedia untuk mahasiswa yang sedang login.';
         }
         $mahasiswa = $user->mahasiswa;
-        if (!$mahasiswa) {
-            return 'Data mahasiswa Anda tidak ditemukan.';
-        }
 
         $specificDay = $this->extractEntityValue($entities, 'hari:hari');
-
         $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
         if (!$tahunAkademikAktif) {
             return 'Saat ini tidak ada semester yang aktif.';
@@ -208,33 +138,27 @@ class ChatbotService
             $jadwalQuery->where('hari', 'like', '%' . $specificDay . '%');
         }
 
-        $jadwals = $jadwalQuery->with('mataKuliah.dosen')
+        $jadwals = $jadwalQuery->with('mataKuliah.dosen.user')
             ->get()
             ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
 
         if ($jadwals->isEmpty()) {
-            return $specificDay ? "Tidak ada jadwal kuliah untuk hari {$specificDay}." : 'Anda belum memiliki jadwal kuliah untuk semester ini. Pastikan KRS sudah diisi dan disetujui.';
+            return $specificDay ? "Tidak ada jadwal kuliah untuk hari {$specificDay}." : 'Anda belum memiliki jadwal kuliah untuk semester ini.';
         }
 
         $responseText = $specificDay ? "Berikut adalah jadwal kuliah Anda untuk hari **{$specificDay}**:\n" : "Berikut adalah jadwal kuliah Anda untuk semester ini:\n";
         foreach ($jadwals as $jadwal) {
-            $jamMulai = \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
-            $jamSelesai = \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
-            $namaDosen = $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A';
+            $jamMulai = Carbon::parse($jadwal->jam_mulai)->format('H:i');
+            $jamSelesai = Carbon::parse($jadwal->jam_selesai)->format('H:i');
+            $namaDosen = optional(optional($jadwal->mataKuliah)->dosen)->nama_lengkap ?? 'N/A';
             $responseText .= "- **{$jamMulai} - {$jamSelesai}**: {$jadwal->mataKuliah->nama_mk} (Dosen: {$namaDosen})\n";
         }
 
         return nl2br($responseText);
     }
 
-    // ===================================================================
-    // HELPER FUNCTIONS
-    // ===================================================================
     private function extractEntityValue(array $entities, string $entityName): ?string
     {
-        if (isset($entities[$entityName][0]['value'])) {
-            return $entities[$entityName][0]['value'];
-        }
-        return null;
+        return $entities[$entityName][0]['value'] ?? null;
     }
 }

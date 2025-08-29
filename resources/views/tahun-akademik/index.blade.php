@@ -9,7 +9,8 @@
         </div>
     @endif
 
-    <a href="{{ route('tahun-akademik.create') }}" class="btn btn-primary mb-3">Tambah Tahun Akademik Baru</a>
+    {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+    <a href="{{ route('admin.tahun-akademik.create') }}" class="btn btn-primary mb-3">Tambah Tahun Akademik Baru</a>
 
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
@@ -35,15 +36,18 @@
                     </td>
                     <td>{{ \Carbon\Carbon::parse($ta->tanggal_mulai_krs)->isoFormat('D MMM Y') }} - {{ \Carbon\Carbon::parse($ta->tanggal_selesai_krs)->isoFormat('D MMM Y') }}</td>
                     <td>
-                        <form action="{{ route('tahun-akademik.set-active', $ta->id) }}" method="POST" class="d-inline">
+                        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                        <form action="{{ route('admin.tahun-akademik.set-active', $ta->id) }}" method="POST" class="d-inline">
                             @csrf
                             @method('PATCH')
                             <button type="submit" class="btn btn-info btn-sm" {{ $ta->is_active ? 'disabled' : '' }}>
                                 Aktifkan
                             </button>
                         </form>
-                        <a href="{{ route('tahun-akademik.edit', $ta->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="{{ route('tahun-akademik.destroy', $ta->id) }}" method="POST" class="d-inline">
+                        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                        <a href="{{ route('admin.tahun-akademik.edit', $ta->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                        <form action="{{ route('admin.tahun-akademik.destroy', $ta->id) }}" method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Yakin?')">Hapus</button>

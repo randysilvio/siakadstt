@@ -7,9 +7,11 @@
             <h2>Manajemen Kalender Akademik</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="{{ route('kalender.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Tambah Kegiatan Baru
-            </a>
+            @can('manage-kalender')
+                <a href="{{ route('admin.kalender.create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Tambah Kegiatan Baru
+                </a>
+            @endcan
         </div>
     </div>
 
@@ -37,18 +39,25 @@
                     <tbody>
                         @forelse ($kegiatans as $kegiatan)
                             <tr>
-                                <th scope="row">{{ $loop->iteration + $kegiatans->firstItem() - 1 }}</th>
+                                <th scope="row">{{ $loop->iteration + ($kegiatans->currentPage() - 1) * $kegiatans->perPage() }}</th>
                                 <td>{{ $kegiatan->judul_kegiatan }}</td>
-                                <td>{{ \Carbon\Carbon::parse($kegiatan->tanggal_mulai)->isoFormat('D MMMM YYYY') }}</td>
-                                <td>{{ \Carbon\Carbon::parse($kegiatan->tanggal_selesai)->isoFormat('D MMMM YYYY') }}</td>
-                                <td><span class="badge bg-secondary">{{ ucfirst($kegiatan->target_role) }}</span></td>
+                                <td>{{ $kegiatan->tanggal_mulai->isoFormat('D MMMM YYYY') }}</td>
+                                <td>{{ $kegiatan->tanggal_selesai->isoFormat('D MMMM YYYY') }}</td>
                                 <td>
-                                    <a href="{{ route('kalender.edit', $kegiatan->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                                    <form action="{{ route('kalender.destroy', $kegiatan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kegiatan ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
-                                    </form>
+                                    {{-- PERBAIKAN: Loop melalui relasi roles --}}
+                                    @foreach($kegiatan->roles as $role)
+                                        <span class="badge bg-secondary">{{ ucfirst($role->name) }}</span>
+                                    @endforeach
+                                </td>
+                                <td>
+                                    @can('manage-kalender')
+                                        <a href="{{ route('admin.kalender.edit', $kegiatan->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <form action="{{ route('admin.kalender.destroy', $kegiatan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kegiatan ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                        </form>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

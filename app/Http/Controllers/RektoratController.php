@@ -2,23 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\Pembayaran;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
-use App\Models\Dosen;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class RektoratController extends Controller
 {
     /**
      * Menampilkan halaman dashboard untuk Rektorat dengan data eksekutif lengkap.
      */
-    public function dashboard()
+    public function dashboard(): View
     {
-        // === 1. PERHITUNGAN INDIKATOR KINERJA UTAMA (KPI) ===
         $tahunIni = Carbon::now()->year;
         $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
 
@@ -33,13 +31,11 @@ class RektoratController extends Controller
         }
         
         $mahasiswaLulusTahunIni = Mahasiswa::where('status_mahasiswa', 'Lulus')
-                                            ->whereYear('updated_at', $tahunIni) // Asumsi status diupdate saat lulus
+                                            ->whereYear('updated_at', $tahunIni)
                                             ->count();
 
-        // === 2. DATA UNTUK GRAFIK TREN 5 TAHUN TERAKHIR ===
         $limaTahunLalu = $tahunIni - 4;
         
-        // Grafik Keuangan
         $trenKeuangan = Pembayaran::where('status', 'lunas')
             ->select(DB::raw('LEFT(semester, 4) as tahun'), DB::raw('SUM(jumlah) as total_pendapatan'))
             ->where(DB::raw('LEFT(semester, 4)'), '>=', $limaTahunLalu)
@@ -47,7 +43,6 @@ class RektoratController extends Controller
             ->orderBy('tahun', 'asc')
             ->pluck('total_pendapatan', 'tahun');
 
-        // Grafik Pertumbuhan Mahasiswa
         $mahasiswaBaru = Mahasiswa::select('tahun_masuk', DB::raw('count(*) as total'))
             ->where('tahun_masuk', '>=', $limaTahunLalu)
             ->groupBy('tahun_masuk')
@@ -61,31 +56,27 @@ class RektoratController extends Controller
             ->orderBy('tahun_lulus', 'asc')
             ->pluck('total', 'tahun_lulus');
 
-        // Menyamakan label tahun untuk semua data grafik
         $labelsTahun = collect(range($limaTahunLalu, $tahunIni))->map(fn($year) => (string)$year);
         $dataKeuangan = $labelsTahun->map(fn($year) => $trenKeuangan->get($year, 0));
         $dataMahasiswaBaru = $labelsTahun->map(fn($year) => $mahasiswaBaru->get((int)$year, 0));
         $dataLulusan = $labelsTahun->map(fn($year) => $lulusan->get((int)$year, 0));
 
-        // === 3. TABEL RINGKASAN KINERJA PROGRAM STUDI ===
-        $kinerjaProdi = ProgramStudi::with('kaprodi')
+        $kinerjaProdi = ProgramStudi::with('kaprodi.user')
             ->withCount(['mahasiswas as jumlah_mahasiswa_aktif' => function ($query) {
                 $query->where('status_mahasiswa', 'Aktif');
             }])
-            ->withCount('kaprodi as jumlah_dosen') // Placeholder, idealnya ada relasi prodi ke dosen
             ->get();
 
-        // Mengirim semua data yang sudah diolah ke view
-        return view('rektorat.dashboard', [
-            'totalMahasiswaAktif' => $totalMahasiswaAktif,
-            'pendaftarTahunIni' => $pendaftarTahunIni,
-            'pendapatanSemesterIni' => $pendapatanSemesterIni,
-            'mahasiswaLulusTahunIni' => $mahasiswaLulusTahunIni,
-            'grafikLabels' => $labelsTahun,
-            'grafikKeuanganData' => $dataKeuangan,
-            'grafikMahasiswaBaruData' => $dataMahasiswaBaru,
-            'grafikLulusanData' => $dataLulusan,
-            'kinerjaProdi' => $kinerjaProdi,
-        ]);
+        return view('rektorat.dashboard', compact(
+            'totalMahasiswaAktif',
+            'pendaftarTahunIni',
+            'pendapatanSemesterIni',
+            'mahasiswaLulusTahunIni',
+            'labelsTahun',
+            'dataKeuangan',
+            'dataMahasiswaBaru',
+            'dataLulusan',
+            'kinerjaProdi'
+        ));
     }
 }

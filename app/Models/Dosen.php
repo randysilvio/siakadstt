@@ -13,8 +13,26 @@ use Illuminate\Database\Eloquent\Model;
 class Dosen extends Model
 {
     use HasFactory;
-    
-    protected $fillable = ['user_id', 'nidn', 'nama_lengkap', 'is_keuangan'];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'user_id',
+        'nidn',
+        'nama_lengkap',
+        'is_keuangan',
+        // --- PENAMBAHAN KOLOM BARU UNTUK PROFIL ---
+        'jabatan_akademik',
+        'bidang_keahlian',
+        'deskripsi_diri',
+        'email_institusi',
+        'link_google_scholar',
+        'link_sinta',
+        'foto_profil',
+    ];
 
     /**
      * Relasi ke MataKuliah (satu dosen mengajar banyak mata kuliah).
@@ -38,5 +56,21 @@ class Dosen extends Model
     public function mahasiswaWali()
     {
         return $this->hasMany(Mahasiswa::class, 'dosen_wali_id');
+    }
+
+    /**
+     * Accessor untuk mendapatkan URL lengkap foto profil.
+     * Ini akan memudahkan pemanggilan gambar di view.
+     */
+    public function getFotoProfilUrlAttribute()
+    {
+        if ($this->foto_profil) {
+            // Pastikan Anda sudah menjalankan `php artisan storage:link`
+            return asset('storage/' . $this->foto_profil);
+        }
+
+        // Mengembalikan gambar default jika tidak ada foto
+        // Anda bisa menempatkan gambar default di public/images/default-avatar.png
+        return asset('images/default-avatar.png');
     }
 }

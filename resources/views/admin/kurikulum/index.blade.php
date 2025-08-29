@@ -4,7 +4,8 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Kurikulum</h1>
-        <a href="{{ route('kurikulum.create') }}" class="btn btn-primary">Tambah Kurikulum Baru</a>
+        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        <a href="{{ route('admin.kurikulum.create') }}" class="btn btn-primary">Tambah Kurikulum Baru</a>
     </div>
     {{-- ... (kode untuk menampilkan session success/error) ... --}}
     <div class="card">
@@ -31,13 +32,16 @@
                                 @endif
                             </td>
                             <td>
-                                <form action="{{ route('kurikulum.setActive', $kurikulum->id) }}" method="POST" class="d-inline">
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <form action="{{ route('admin.kurikulum.setActive', $kurikulum->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-info btn-sm" {{ $kurikulum->is_active ? 'disabled' : '' }}>Aktifkan</button>
                                 </form>
-                                <a href="{{ route('kurikulum.edit', $kurikulum->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <form action="{{ route('kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin?')">
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <a href="{{ route('admin.kurikulum.edit', $kurikulum->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                <form action="{{ route('admin.kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
