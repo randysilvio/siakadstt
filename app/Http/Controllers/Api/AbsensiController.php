@@ -19,13 +19,12 @@ class AbsensiController extends Controller
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'foto_check_in' => 'required|image|max:2048', // Maksimal 2MB
+            'foto_check_in' => 'required|image',
         ]);
 
         $user = $request->user();
         $today = Carbon::today();
 
-        // Cek apakah sudah ada absensi untuk hari ini
         $absensiHariIni = AbsensiPegawai::where('user_id', $user->id)
             ->whereDate('tanggal_absensi', $today)
             ->first();
@@ -34,7 +33,6 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda sudah melakukan check-in hari ini.'], 422);
         }
 
-        // Validasi lokasi
         $lokasiKerja = LokasiKerja::all();
         $lokasiValid = null;
 
@@ -56,10 +54,8 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda tidak berada di lokasi kerja yang valid.'], 422);
         }
 
-        // Simpan foto
         $path = $request->file('foto_check_in')->store('foto-absensi', 'public');
 
-        // Buat atau update record absensi
         $absensi = AbsensiPegawai::updateOrCreate(
             ['user_id' => $user->id, 'tanggal_absensi' => $today],
             [
@@ -72,9 +68,15 @@ class AbsensiController extends Controller
             ]
         );
 
+        // =================================================================
+        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
+        // =================================================================
         return response()->json([
             'message' => 'Check-in berhasil.',
-            'data' => $absensi,
+            'data' => [
+                'check_in' => $absensi->waktu_check_in,
+                'check_out' => $absensi->waktu_check_out,
+            ],
         ], 201);
     }
 
@@ -86,7 +88,7 @@ class AbsensiController extends Controller
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'foto_check_out' => 'required|image|max:2048',
+            'foto_check_out' => 'required|image',
         ]);
 
         $user = $request->user();
@@ -111,9 +113,15 @@ class AbsensiController extends Controller
             'foto_check_out' => $path,
         ]);
 
+        // =================================================================
+        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
+        // =================================================================
         return response()->json([
             'message' => 'Check-out berhasil.',
-            'data' => $absensiHariIni,
+            'data' => [
+                'check_in' => $absensiHariIni->waktu_check_in,
+                'check_out' => $absensiHariIni->waktu_check_out,
+            ],
         ]);
     }
     
@@ -138,7 +146,18 @@ class AbsensiController extends Controller
             ->whereDate('tanggal_absensi', Carbon::today())
             ->first();
 
-        return response()->json($status);
+        // =================================================================
+        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
+        // =================================================================
+        if ($status) {
+            return response()->json([
+                'check_in' => $status->waktu_check_in,
+                'check_out' => $status->waktu_check_out,
+            ]);
+        }
+        
+        // Jika tidak ada data, kirim null agar frontend tahu
+        return response()->json(null);
     }
     
     /**
@@ -146,7 +165,7 @@ class AbsensiController extends Controller
      */
     private function hitungJarak($lat1, $lon1, $lat2, $lon2)
     {
-        $earthRadius = 6371000; // dalam meter
+        $earthRadius = 6371000;
 
         $latFrom = deg2rad($lat1);
         $lonFrom = deg2rad($lon1);

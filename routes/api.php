@@ -3,26 +3,27 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
-// --- PENAMBAHAN CONTROLLER BARU UNTUK API ---
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AbsensiController;
+use App\Http\Controllers\KalenderController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
 */
 
-// --- RUTE OTENTIKASI UNTUK APLIKASI MOBILE ---
+// --- RUTE OTENTIKASI (PUBLIK) ---
+// Rute ini berada di luar grup agar tidak memerlukan token.
 Route::post('/login', [AuthController::class, 'login']);
 
-// Grup rute yang membutuhkan otentikasi Sanctum
+
+// =================================================================
+// PERBAIKAN: Kembalikan grup middleware 'auth:sanctum' untuk
+// melindungi semua rute di bawah ini.
+// =================================================================
 Route::middleware('auth:sanctum')->group(function () {
+    
     // Rute default Laravel untuk mengambil data user
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -35,7 +36,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/absensi/check-in', [AbsensiController::class, 'checkIn']);
     Route::post('/absensi/check-out', [AbsensiController::class, 'checkOut']);
     Route::get('/absensi/riwayat', [AbsensiController::class, 'getHistory']);
-    Route::get('/absensi/status-hari-ini', [AbsensiController::class, 'getStatusHariIni']);
+    Route::get('/status-absensi', [AbsensiController::class, 'getStatusHariIni']);
+
+    // --- RUTE BARU UNTUK KALENDER AKADEMIK ---
+    Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);
 
     // Rute lama Anda untuk statistik (tetap dipertahankan)
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);

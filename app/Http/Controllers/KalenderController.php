@@ -129,4 +129,30 @@ class KalenderController extends Controller
 
         return response()->json($events);
     }
+    
+    // =================================================================
+    // FUNGSI BARU UNTUK API APLIKASI MOBILE
+    // =================================================================
+    public function getKalenderUntukApi(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        if (!$user || !$user->roles) {
+            return response()->json([]);
+        }
+        $userRoleIds = $user->roles->pluck('id');
+
+        // Mengambil 5 kegiatan terdekat yang akan datang
+        $kegiatans = KegiatanAkademik::query()
+            ->where('tanggal_selesai', '>=', Carbon::today())
+            ->whereHas('roles', function ($q) use ($userRoleIds) {
+                $q->whereIn('roles.id', $userRoleIds);
+            })
+            ->orderBy('tanggal_mulai', 'asc')
+            ->limit(5)
+            ->get();
+            
+        return response()->json($kegiatans);
+    }
 }
