@@ -27,7 +27,6 @@ class KalenderController extends Controller
      */
     public function create(): View
     {
-        // Ambil semua peran yang bisa dipilih (selain admin)
         $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
         return view('kalender.create', compact('roles'));
     }
@@ -58,7 +57,7 @@ class KalenderController extends Controller
     public function edit(KegiatanAkademik $kalender): View
     {
         $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
-        $kalender->load('roles'); // Eager load relasi roles
+        $kalender->load('roles');
         return view('kalender.edit', compact('kalender', 'roles'));
     }
 
@@ -107,7 +106,6 @@ class KalenderController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Pastikan user memiliki roles sebelum memanggil pluck
         if (!$user || !$user->roles) {
             return response()->json([]);
         }
@@ -130,9 +128,9 @@ class KalenderController extends Controller
         return response()->json($events);
     }
     
-    // =================================================================
-    // FUNGSI BARU UNTUK API APLIKASI MOBILE
-    // =================================================================
+    /**
+     * Menyediakan data kalender untuk API aplikasi seluler.
+     */
     public function getKalenderUntukApi(Request $request): JsonResponse
     {
         /** @var \App\Models\User $user */

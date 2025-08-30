@@ -68,9 +68,7 @@ class AbsensiController extends Controller
             ]
         );
 
-        // =================================================================
-        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
-        // =================================================================
+        // Mengirim respons dengan format camelCase yang konsisten
         return response()->json([
             'message' => 'Check-in berhasil.',
             'data' => [
@@ -113,9 +111,7 @@ class AbsensiController extends Controller
             'foto_check_out' => $path,
         ]);
 
-        // =================================================================
-        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
-        // =================================================================
+        // Mengirim respons dengan format camelCase yang konsisten
         return response()->json([
             'message' => 'Check-out berhasil.',
             'data' => [
@@ -146,9 +142,7 @@ class AbsensiController extends Controller
             ->whereDate('tanggal_absensi', Carbon::today())
             ->first();
 
-        // =================================================================
-        // PERBAIKAN: Kirim respons dengan format camelCase yang konsisten
-        // =================================================================
+        // Mengirim respons dengan format camelCase yang konsisten
         if ($status) {
             return response()->json([
                 'check_in' => $status->waktu_check_in,
@@ -165,7 +159,7 @@ class AbsensiController extends Controller
      */
     private function hitungJarak($lat1, $lon1, $lat2, $lon2)
     {
-        $earthRadius = 6371000;
+        $earthRadius = 6371000; // dalam meter
 
         $latFrom = deg2rad($lat1);
         $lonFrom = deg2rad($lon1);

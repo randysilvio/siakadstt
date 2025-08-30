@@ -18,10 +18,7 @@ use App\Http\Controllers\KalenderController;
 Route::post('/login', [AuthController::class, 'login']);
 
 
-// =================================================================
-// PERBAIKAN: Kembalikan grup middleware 'auth:sanctum' untuk
-// melindungi semua rute di bawah ini.
-// =================================================================
+// Grup rute yang memerlukan otentikasi token Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     
     // Rute default Laravel untuk mengambil data user
@@ -38,9 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/absensi/riwayat', [AbsensiController::class, 'getHistory']);
     Route::get('/status-absensi', [AbsensiController::class, 'getStatusHariIni']);
 
-    // --- RUTE BARU UNTUK KALENDER AKADEMIK ---
+    // --- RUTE UNTUK KALENDER AKADEMIK ---
     Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);
 
-    // Rute lama Anda untuk statistik (tetap dipertahankan)
+    // Rute statistik (jika masih diperlukan)
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
 });
