@@ -9,13 +9,14 @@ use App\Models\Dosen;
 use App\Models\Slideshow;
 use App\Models\DokumenPublik;
 use Illuminate\Http\Request;
+use Illuminate\View\View; // <-- Pastikan ini ada
 
 class PublicController extends Controller
 {
     /**
      * Menampilkan halaman publik utama (welcome).
      */
-    public function index()
+    public function index(): View
     {
         // Data untuk Slideshow, diurutkan berdasarkan kolom 'urutan'
         $slides = Slideshow::where('is_aktif', true)->orderBy('urutan')->get();
@@ -50,7 +51,7 @@ class PublicController extends Controller
     /**
      * Menampilkan halaman daftar semua berita/pengumuman dengan paginasi.
      */
-    public function semuaBerita()
+    public function semuaBerita(): View
     {
         $semuaBerita = Pengumuman::where('target_role', 'semua')
                                 ->latest()
@@ -58,4 +59,15 @@ class PublicController extends Controller
                                 
         return view('berita', compact('semuaBerita'));
     }
+
+    // --- FUNGSI BARU DITAMBAHKAN ---
+    /**
+     * Menampilkan detail satu pengumuman untuk publik.
+     * Fungsi ini akan menangani rute 'pengumuman.public.show'.
+     */
+    public function showPengumuman(Pengumuman $pengumuman): View
+    {
+        return view('pengumuman.public_show', compact('pengumuman'));
+    }
+    // --- AKHIR DARI FUNGSI BARU ---
 }

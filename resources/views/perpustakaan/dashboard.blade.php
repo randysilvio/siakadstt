@@ -36,26 +36,23 @@
         {{-- Panel Samping (kanan) --}}
         <div class="col-lg-4 mb-4">
             <div class="card">
-                {{-- PERBAIKAN: Tombol "+ Buat Baru" dihapus --}}
                 <div class="card-header d-flex justify-content-between align-items-center">
                     Pengumuman Terbaru
                 </div>
                 <div class="list-group list-group-flush">
                     @forelse($pengumumans as $pengumuman)
-                        <a href="{{ route('pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
+                        <a href="{{ route('admin.pengumuman.show', $pengumuman) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">{{ $pengumuman->judul }}</h6>
                                 <small>{{ $pengumuman->created_at->diffForHumans() }}</small>
                             </div>
-                            <p class="mb-1 small text-muted">{{ Str::limit($pengumuman->konten, 80) }}</p>
+                            <p class="mb-1 small text-muted">{{ Str::limit(strip_tags($pengumuman->konten), 80) }}</p>
                         </a>
                     @empty
                         <div class="list-group-item">Tidak ada pengumuman.</div>
                     @endforelse
                 </div>
-                 <div class="card-footer text-center">
-                    <a href="{{ route('pengumuman.index') }}">Lihat semua pengumuman</a>
-                </div>
+                {{-- PERBAIKAN: Bagian card-footer yang berisi tautan telah dihapus --}}
             </div>
         </div>
     </div>

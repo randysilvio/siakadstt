@@ -3,7 +3,8 @@
 @section('content')
     <h1 class="mb-4">Edit Tahun Akademik</h1>
 
-    <form action="{{ route('tahun-akademik.update', $tahunAkademik->id) }}" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+    <form action="{{ route('admin.tahun-akademik.update', $tahunAkademik->id) }}" method="POST" class="mt-4">
         @csrf
         @method('PUT')
         <div class="row">
@@ -15,9 +16,6 @@
             <div class="col-md-6 mb-3">
                 <label for="semester" class="form-label">Semester</label>
                 <select class="form-select @error('semester') is-invalid @enderror" id="semester" name="semester">
-                    {{-- ======================================================= --}}
-                    {{-- ===== PERUBAHAN DARI "GASAL" MENJADI "GANJIL" ===== --}}
-                    {{-- ======================================================= --}}
                     <option value="Ganjil" {{ old('semester', $tahunAkademik->semester) == 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
                     <option value="Genap" {{ old('semester', $tahunAkademik->semester) == 'Genap' ? 'selected' : '' }}>Genap</option>
                 </select>
@@ -39,6 +37,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-        <a href="{{ route('tahun-akademik.index') }}" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+        <a href="{{ route('admin.tahun-akademik.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection

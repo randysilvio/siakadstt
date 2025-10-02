@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * --- BLOK BARU DITAMBAHKAN ---
+ * @property-read \App\Models\MataKuliah|null $mataKuliah
+ */
 class Jadwal extends Model
 {
     use HasFactory;

@@ -5,6 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * --- BLOK INI DIPERBARUI ---
+ * @property-read object|null $pivot
+ * @property-read \App\Models\Dosen|null $dosen
+ * @property-read \App\Models\Kurikulum|null $kurikulum
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Jadwal[] $jadwals
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MataKuliah[] $prasyarats
+ */
 class MataKuliah extends Model
 {
     use HasFactory;
@@ -42,12 +50,6 @@ class MataKuliah extends Model
     
     public function mahasiswas()
     {
-        // =================================================================
-        // ===== PERBAIKAN DITAMBAHKAN DI SINI =====
-        // =================================================================
-        // Menambahkan ->withPivot() untuk memberitahu Laravel agar selalu memuat
-        // kolom 'nilai' dan 'tahun_akademik_id' dari tabel perantara.
-        // Ini krusial untuk fitur input nilai dan pencetakan PDF.
         return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah')
                     ->withPivot('nilai', 'tahun_akademik_id')
                     ->withTimestamps();

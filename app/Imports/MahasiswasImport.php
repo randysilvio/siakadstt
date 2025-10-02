@@ -4,14 +4,12 @@ namespace App\Imports;
 
 use App\Models\Mahasiswa;
 use App\Models\User;
-use App\Models\Role; // <-- 1. Tambahkan model Role
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Support\Facades\DB;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
 
 class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
 {
@@ -19,14 +17,18 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
 
     public function __construct()
     {
-        // Ambil peran 'mahasiswa' sekali saja untuk efisiensi
         $this->mahasiswaRole = Role::where('name', 'mahasiswa')->first();
     }
 
     public function model(array $row)
     {
-        return DB::transaction(function () use ($row) {
-            // Cari atau buat user baru
+        // --- PERBAIKAN LOGIKA PENYIMPANAN ---
+
+        // Inisialisasi variabel untuk menampung model yang berhasil dibuat
+        $mahasiswa = null; 
+        
+        DB::transaction(function () use ($row, &$mahasiswa) {
+            // 1. Cari atau buat user baru
             $user = User::firstOrCreate(
                 ['email' => $row['email']],
                 [
@@ -35,17 +37,14 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
                 ]
             );
 
-            // =====================================================================
-            // ===== PERBAIKAN: Menetapkan peran 'mahasiswa' secara otomatis =====
-            // =====================================================================
-            // Lampirkan peran 'mahasiswa' ke pengguna
+            // 2. Lampirkan peran 'mahasiswa' ke pengguna
             if ($this->mahasiswaRole) {
                 $user->roles()->syncWithoutDetaching($this->mahasiswaRole->id);
             }
-            // =====================================================================
 
-            // Buat data mahasiswa dengan semua kolom dari template
-            return new Mahasiswa([
+            // 3. Buat dan SIMPAN data mahasiswa secara eksplisit di dalam transaksi
+            // Hasilnya disimpan ke dalam variabel $mahasiswa
+            $mahasiswa = Mahasiswa::create([
                 'user_id'           => $user->id,
                 'nim'               => $row['nim'],
                 'nama_lengkap'      => $row['nama_lengkap'],
@@ -57,9 +56,12 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
                 'jenis_kelamin'     => $row['jenis_kelamin'],
                 'alamat'            => $row['alamat'],
                 'nomor_telepon'     => $row['nomor_telepon'],
-                'status_mahasiswa'  => 'Aktif', // Status default saat impor
+                'status_mahasiswa'  => 'Aktif',
             ]);
         });
+        
+        // 4. Kembalikan model yang sudah tersimpan
+        return $mahasiswa;
     }
 
     public function rules(): array
@@ -73,7 +75,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
             'dosen_wali_id'     => 'nullable|integer|exists:dosens,id',
             'tahun_masuk'       => 'required|digits:4|integer',
             'tempat_lahir'      => 'nullable|string',
-            'tanggal_lahir'     => 'nullable|numeric', // Excel mengirim tanggal sebagai angka
+            'tanggal_lahir'     => 'nullable|numeric',
             'jenis_kelamin'     => 'nullable|in:L,P',
             'alamat'            => 'nullable|string',
             'nomor_telepon'     => 'nullable|string',

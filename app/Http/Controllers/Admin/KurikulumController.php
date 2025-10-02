@@ -28,7 +28,8 @@ class KurikulumController extends Controller
         ]);
 
         Kurikulum::create($request->all());
-        return redirect()->route('kurikulum.index')->with('success', 'Kurikulum berhasil dibuat.');
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('admin.kurikulum.index')->with('success', 'Kurikulum berhasil dibuat.');
     }
 
     public function edit(Kurikulum $kurikulum)
@@ -44,7 +45,8 @@ class KurikulumController extends Controller
         ]);
 
         $kurikulum->update($request->all());
-        return redirect()->route('kurikulum.index')->with('success', 'Kurikulum berhasil diperbarui.');
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('admin.kurikulum.index')->with('success', 'Kurikulum berhasil diperbarui.');
     }
 
     public function destroy(Kurikulum $kurikulum)
@@ -52,12 +54,14 @@ class KurikulumController extends Controller
         if ($kurikulum->is_active) {
             return back()->with('error', 'Tidak dapat menghapus kurikulum yang sedang aktif.');
         }
-        // Tambahkan pengecekan jika kurikulum sudah digunakan oleh mata kuliah
+        
         if ($kurikulum->mataKuliahs()->exists()) {
              return back()->with('error', 'Kurikulum ini sudah digunakan oleh beberapa mata kuliah dan tidak dapat dihapus.');
         }
+
         $kurikulum->delete();
-        return redirect()->route('kurikulum.index')->with('success', 'Kurikulum berhasil dihapus.');
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('admin.kurikulum.index')->with('success', 'Kurikulum berhasil dihapus.');
     }
 
     public function setActive(Kurikulum $kurikulum)
@@ -66,6 +70,7 @@ class KurikulumController extends Controller
             Kurikulum::query()->update(['is_active' => false]);
             $kurikulum->update(['is_active' => true]);
         });
-        return redirect()->route('kurikulum.index')->with('success', "Kurikulum {$kurikulum->nama_kurikulum} berhasil diaktifkan.");
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('admin.kurikulum.index')->with('success', "Kurikulum {$kurikulum->nama_kurikulum} berhasil diaktifkan.");
     }
 }

@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
 use App\Models\Pengaturan;
 
@@ -24,7 +23,6 @@ class PengaturanController extends Controller
     {
         // Ambil semua data kecuali _token
         $data = $request->except('_token');
-
         foreach ($data as $key => $value) {
             // Gunakan updateOrCreate untuk membuat atau memperbarui pengaturan
             Pengaturan::updateOrCreate(
@@ -32,7 +30,8 @@ class PengaturanController extends Controller
                 ['value' => $value]
             );
         }
-
-        return redirect()->route('pengaturan.index')->with('success', 'Pengaturan berhasil disimpan.');
+        
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('admin.pengaturan.index')->with('success', 'Pengaturan berhasil disimpan.');
     }
 }

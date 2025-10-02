@@ -7,7 +7,8 @@
             <div class="card">
                 <div class="card-header"><h1>Tambah Slide Baru</h1></div>
                 <div class="card-body">
-                    <form action="{{ route('slideshows.store') }}" method="POST" enctype="multipart/form-data">
+                    {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                    <form action="{{ route('admin.slideshows.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="mb-3">
                             <label for="judul" class="form-label">Judul (Opsional)</label>
@@ -36,7 +37,8 @@
 
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">Simpan Slide</button>
-                            <a href="{{ route('slideshows.index') }}" class="btn btn-secondary">Batal</a>
+                            {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                            <a href="{{ route('admin.slideshows.index') }}" class="btn btn-secondary">Batal</a>
                         </div>
                     </form>
                 </div>

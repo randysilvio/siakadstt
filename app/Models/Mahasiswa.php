@@ -8,19 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/**
- * @property-read \App\Models\User|null $user
- * @property-read \App\Models\ProgramStudi|null $programStudi
- * @property-read \App\Models\Dosen|null $dosenWali
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MataKuliah[] $mataKuliahs
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Pembayaran[] $pembayarans
- * @property int $id
- * @property string $nim
- * @property string $nama_lengkap
- * @property int $program_studi_id
- * @property string|null $status_krs
- * @property string|null $catatan_kaprodi
- */
 class Mahasiswa extends Model
 {
     use HasFactory;
@@ -29,7 +16,7 @@ class Mahasiswa extends Model
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',
         'nomor_telepon', 'nama_ibu_kandung', 'status_mahasiswa', 'tahun_masuk',
-        'status_krs', 'catatan_kaprodi'
+        'status_krs', 'catatan_kaprodi', 'foto_profil'
     ];
 
     public function user(): BelongsTo
@@ -59,9 +46,14 @@ class Mahasiswa extends Model
         return $this->belongsTo(Dosen::class, 'dosen_wali_id');
     }
 
-    /**
-     * Menghitung Indeks Prestasi Kumulatif (IPK).
-     */
+    public function getFotoProfilUrlAttribute()
+    {
+        if ($this->foto_profil) {
+            return asset('storage/' . $this->foto_profil);
+        }
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama_lengkap) . '&background=random';
+    }
+
     public function hitungIpk(): float
     {
         $krsLulus = $this->mataKuliahs()->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])->get();
@@ -85,53 +77,10 @@ class Mahasiswa extends Model
         return ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0.00;
     }
 
-    /**
-     * Menghitung total SKS yang sudah lulus.
-     */
     public function totalSksLulus(): int
     {
         return $this->mataKuliahs()
             ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
             ->sum('sks');
-    }
-
-    /**
-     * Menghitung Indeks Prestasi Semester (IPS) untuk tahun akademik tertentu.
-     */
-    public function hitungIps(int $tahunAkademikId): array
-    {
-        $krsSemester = $this->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $tahunAkademikId)
-            ->wherePivotNotNull('nilai')
-            ->get();
-
-        if ($krsSemester->isEmpty()) {
-            return ['ips' => 0.00, 'total_sks' => 0, 'nilaiBobot' => []];
-        }
-
-        $total_sks_semester = 0;
-        $total_bobot_sks_semester = 0;
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-        $nilaiBobot = [];
-
-        foreach ($krsSemester as $mk) {
-            $sks = $mk->sks;
-            $nilai = $mk->pivot->nilai;
-
-            if (isset($bobot_nilai[$nilai])) {
-                $total_sks_semester += $sks;
-                $bobot = $bobot_nilai[$nilai] * $sks;
-                $total_bobot_sks_semester += $bobot;
-                $nilaiBobot[$mk->id] = $bobot;
-            }
-        }
-
-        $ips = ($total_sks_semester > 0) ? round($total_bobot_sks_semester / $total_sks_semester, 2) : 0.00;
-
-        return [
-            'ips' => $ips,
-            'total_sks' => $total_sks_semester,
-            'nilaiBobot' => $nilaiBobot,
-        ];
     }
 }

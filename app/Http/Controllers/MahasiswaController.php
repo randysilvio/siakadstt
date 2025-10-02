@@ -65,6 +65,8 @@ class MahasiswaController extends Controller
             'alamat' => 'nullable|string',
             'nomor_telepon' => 'nullable|string|max:15',
             'tahun_masuk' => 'required|digits:4|integer|min:1990',
+            // PERBAIKAN: Menambahkan validasi untuk 'nama_ibu_kandung'
+            'nama_ibu_kandung' => 'nullable|string|max:255',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -73,7 +75,7 @@ class MahasiswaController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
             ]);
-            // PERBAIKAN: Menggunakan relasi untuk menetapkan role
+            
             $user->roles()->attach(\App\Models\Role::where('name', 'mahasiswa')->first());
 
             $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
@@ -106,19 +108,36 @@ class MahasiswaController extends Controller
             'program_studi_id' => 'required|exists:program_studis,id',
             'dosen_wali_id' => 'nullable|exists:dosens,id',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class . ',email,' . $mahasiswa->user_id],
+            // PERBAIKAN: Menambahkan validasi yang relevan saat update
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_lahir' => 'nullable|date',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'alamat' => 'nullable|string',
+            'nomor_telepon' => 'nullable|string|max:15',
+            'tahun_masuk' => 'required|digits:4|integer|min:1990',
+            'nama_ibu_kandung' => 'nullable|string|max:255',
+            'status_mahasiswa' => 'required|string',
         ]);
-
+    
         DB::transaction(function () use ($request, $mahasiswa) {
-            $mahasiswa->update($request->except(['email', '_token', '_method']));
-
+            // Perbarui data mahasiswa
+            $mahasiswa->update($request->except(['email', 'password', 'password_confirmation', '_token', '_method']));
+    
+            // Perbarui data user terkait
             if ($mahasiswa->user) {
-                $mahasiswa->user->update([
+                $userData = [
                     'name' => $request->nama_lengkap,
                     'email' => $request->email,
-                ]);
+                ];
+                // Perbarui password hanya jika diisi
+                if ($request->filled('password')) {
+                    $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
+                    $userData['password'] = Hash::make($request->password);
+                }
+                $mahasiswa->user->update($userData);
             }
         });
-
+    
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
     }
 
@@ -127,9 +146,9 @@ class MahasiswaController extends Controller
         DB::transaction(function () use ($mahasiswa) {
             if ($mahasiswa->user) {
                 $mahasiswa->user->delete();
-            } else {
-                $mahasiswa->delete();
             }
+            // Hapus mahasiswa secara eksplisit jika user tidak ada atau jika relasi tidak di-cascade
+            $mahasiswa->delete();
         });
 
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');

@@ -3,7 +3,8 @@
 @section('content')
 <div class="container">
     <h1>Tambah Kurikulum Baru</h1>
-    <form action="{{ route('kurikulum.store') }}" method="POST">
+    {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+    <form action="{{ route('admin.kurikulum.store') }}" method="POST">
         @csrf
         <div class="mb-3">
             <label for="nama_kurikulum" class="form-label">Nama Kurikulum</label>
@@ -16,7 +17,8 @@
             @error('tahun')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <button type="submit" class="btn btn-primary">Simpan</button>
-        <a href="{{ route('kurikulum.index') }}" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+        <a href="{{ route('admin.kurikulum.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 </div>
 @endsection

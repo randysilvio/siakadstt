@@ -52,8 +52,17 @@ class AuthController extends Controller
     {
         /** @var \App\Models\User|null $user */
         $user = $request->user();
+
         if ($user) {
-            $user->currentAccessToken()->delete();
+            // --- PERBAIKAN DI SINI ---
+            // Kode dibuat lebih eksplisit untuk membantu PHPStan
+            // dan menambahkan pengecekan keamanan.
+            
+            /** @var \Laravel\Sanctum\PersonalAccessToken|null $token */
+            $token = $user->currentAccessToken();
+            if ($token) {
+                $token->delete();
+            }
         }
 
         return response()->json([

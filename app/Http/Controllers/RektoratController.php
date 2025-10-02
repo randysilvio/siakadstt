@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
+use App\Models\Dosen;
 use App\Models\Pembayaran;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
@@ -56,15 +57,20 @@ class RektoratController extends Controller
             ->orderBy('tahun_lulus', 'asc')
             ->pluck('total', 'tahun_lulus');
 
-        $labelsTahun = collect(range($limaTahunLalu, $tahunIni))->map(fn($year) => (string)$year);
-        $dataKeuangan = $labelsTahun->map(fn($year) => $trenKeuangan->get($year, 0));
-        $dataMahasiswaBaru = $labelsTahun->map(fn($year) => $mahasiswaBaru->get((int)$year, 0));
-        $dataLulusan = $labelsTahun->map(fn($year) => $lulusan->get((int)$year, 0));
+        // --- PERBAIKAN: Mengganti nama variabel agar sesuai dengan view ---
+        $grafikLabels = collect(range($limaTahunLalu, $tahunIni))->map(fn($year) => (string)$year);
+        
+        $grafikKeuanganData = $grafikLabels->map(fn($year) => $trenKeuangan->get($year, 0));
+        $grafikMahasiswaBaruData = $grafikLabels->map(fn($year) => $mahasiswaBaru->get((int)$year, 0));
+        $grafikLulusanData = $grafikLabels->map(fn($year) => $lulusan->get((int)$year, 0));
 
         $kinerjaProdi = ProgramStudi::with('kaprodi.user')
-            ->withCount(['mahasiswas as jumlah_mahasiswa_aktif' => function ($query) {
-                $query->where('status_mahasiswa', 'Aktif');
-            }])
+            ->withCount([
+                'mahasiswas as jumlah_mahasiswa_aktif' => function ($query) {
+                    $query->where('status_mahasiswa', 'Aktif');
+                },
+                'mahasiswas as jumlah_dosen' // Placeholder, asumsi relasi dosen ke prodi belum ada
+            ])
             ->get();
 
         return view('rektorat.dashboard', compact(
@@ -72,10 +78,10 @@ class RektoratController extends Controller
             'pendaftarTahunIni',
             'pendapatanSemesterIni',
             'mahasiswaLulusTahunIni',
-            'labelsTahun',
-            'dataKeuangan',
-            'dataMahasiswaBaru',
-            'dataLulusan',
+            'grafikLabels', // Variabel sekarang sudah benar
+            'grafikKeuanganData',
+            'grafikMahasiswaBaruData',
+            'grafikLulusanData',
             'kinerjaProdi'
         ));
     }

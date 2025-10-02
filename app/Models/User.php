@@ -8,6 +8,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // <-- PENAMBAHAN UNTUK SANCTUM
 
+/**
+ * --- BLOK BARU DITAMBAHKAN ---
+ * @property-read \App\Models\Mahasiswa|null $mahasiswa
+ * @property-read \App\Models\Dosen|null $dosen
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Role[] $roles
+ * --- AKHIR DARI BLOK BARU ---
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable; // <-- PENAMBAHAN UNTUK SANCTUM

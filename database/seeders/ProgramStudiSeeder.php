@@ -2,20 +2,19 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\ProgramStudi; // Import model
+use App\Models\ProgramStudi;
 
 class ProgramStudiSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * @return void
      */
-    public function run(): void
+    public function run()
     {
         ProgramStudi::create(['nama_prodi' => 'Teknik Informatika']);
         ProgramStudi::create(['nama_prodi' => 'Sistem Informasi']);
-        ProgramStudi::create(['nama_prodi' => 'Manajemen Bisnis']);
-        ProgramStudi::create(['nama_prodi' => 'Desain Komunikasi Visual']);
     }
 }

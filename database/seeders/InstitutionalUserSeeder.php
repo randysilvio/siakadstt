@@ -9,24 +9,31 @@ use Illuminate\Support\Facades\Hash;
 
 class InstitutionalUserSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
     {
-        // Akun untuk Tim Penjaminan Mutu
-        $userMutu = User::create([
-            'name' => 'Tim Penjaminan Mutu',
-            'email' => 'mutu@sttgpipapua.ac.id',
-            'password' => Hash::make('password'),
-        ]);
-        $mutuRole = Role::where('name', 'penjaminan_mutu')->first();
-        $userMutu->roles()->attach($mutuRole);
+        $roles = [
+            'penjaminan_mutu' => 'Tim Penjaminan Mutu',
+            'rektorat' => 'Pimpinan Rektorat',
+            'keuangan' => 'Staf Keuangan',
+            'pustakawan' => 'Staf Pustakawan',
+        ];
 
-        // Akun untuk Pimpinan / Rektorat
-        $userRektorat = User::create([
-            'name' => 'Rektorat STT GPI Papua',
-            'email' => 'rektorat@sttgpipapua.ac.id',
-            'password' => Hash::make('password'),
-        ]);
-        $rektoratRole = Role::where('name', 'rektorat')->first();
-        $userRektorat->roles()->attach($rektoratRole);
+        foreach ($roles as $roleName => $userName) {
+            $role = Role::where('name', $roleName)->first();
+
+            if ($role) {
+                $user = User::create([
+                    'name' => $userName,
+                    'email' => "{$roleName}@sak.com",
+                    'password' => Hash::make('password'),
+                ]);
+                $user->roles()->attach($role);
+            }
+        }
     }
 }

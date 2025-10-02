@@ -9,7 +9,8 @@
                     <h1>Unggah Dokumen Publik Baru</h1>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('dokumen-publik.store') }}" method="POST" enctype="multipart/form-data">
+                    {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                    <form action="{{ route('admin.dokumen-publik.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="mb-3">
                             <label for="judul_dokumen" class="form-label">Judul Dokumen <span class="text-danger">*</span></label>
@@ -38,7 +39,8 @@
 
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">Simpan Dokumen</button>
-                            <a href="{{ route('dokumen-publik.index') }}" class="btn btn-secondary">Batal</a>
+                            {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                            <a href="{{ route('admin.dokumen-publik.index') }}" class="btn btn-secondary">Batal</a>
                         </div>
                     </form>
                 </div>

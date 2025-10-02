@@ -208,6 +208,8 @@
             </div>
         @endif
 
+        {{-- PERBAIKAN: Menambahkan {{ $slot }} untuk mendukung layout komponen --}}
+        {{ $slot ?? '' }}
         @yield('content')
     </main>
 

@@ -3,7 +3,8 @@
 @section('content')
     <h1 class="mb-4">Edit Mata Kuliah</h1>
 
-    <form action="{{ route('mata-kuliah.update', $mataKuliah->id) }}" method="POST">
+    {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+    <form action="{{ route('admin.mata-kuliah.update', $mataKuliah->id) }}" method="POST">
         @csrf
         @method('PUT')
         <div class="card">
@@ -130,7 +131,8 @@
 
                 <hr>
                 <button type="submit" class="btn btn-primary mt-3">Simpan Perubahan</button>
-                <a href="{{ route('mata-kuliah.index') }}" class="btn btn-secondary mt-3">Batal</a>
+                {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                <a href="{{ route('admin.mata-kuliah.index') }}" class="btn btn-secondary mt-3">Batal</a>
             </div>
         </div>
     </form>

@@ -35,18 +35,21 @@ use App\Http\Controllers\Admin\EvaluasiSesiController;
 use App\Http\Controllers\Admin\EvaluasiPertanyaanController;
 use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\AbsensiController; // Controller Absensi
+use App\Http\Controllers\Admin\AbsensiController;
 // Controller baru untuk halaman publik
-use App\Http\Controllers\Public\DosenProfileController; // <-- PENAMBAHAN
+use App\Http\Controllers\Public\DosenProfileController;
 // Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
+use App\Http\Middleware\KaprodiMiddleware;
 use App\Http\Controllers\ChatbotController;
 // Controller untuk peran institusional
 use App\Http\Controllers\PenjaminanMutuController;
 use App\Http\Controllers\RektoratController;
 // Controller untuk Mahasiswa
 use App\Http\Controllers\EvaluasiController;
+// Controller untuk Dosen
+use App\Http\Controllers\DosenDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,11 +60,11 @@ use App\Http\Controllers\EvaluasiController;
 // --- RUTE PUBLIK ---
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
-
-// ========== PENAMBAHAN RUTE PROFIL DOSEN ==========
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
-// =================================================
+
+// --- PERBAIKAN: TAMBAHKAN RUTE INI UNTUK DETAIL PENGUMUMAN PUBLIK ---
+Route::get('/pengumuman/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
 
 // --- RUTE OTENTIKASI & DASHBOARD ---
@@ -73,6 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
     // Rute umum
@@ -123,13 +127,14 @@ Route::middleware('auth')->group(function () {
 
     // RUTE UNTUK DOSEN
     Route::middleware('role:dosen')->group(function () {
+         Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
          Route::delete('/perwalian/{mahasiswa}', [PerwalianController::class, 'destroy'])->name('perwalian.destroy');
     });
 
     // RUTE UNTUK KAPRODI
-    Route::middleware('role:kaprodi')->group(function () {
+    Route::middleware(KaprodiMiddleware::class)->group(function () {
         Route::get('/kaprodi/dashboard', [KaprodiDashboardController::class, 'index'])->name('kaprodi.dashboard');
         Route::get('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'show'])->name('kaprodi.krs.show');
         Route::patch('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'update'])->name('kaprodi.krs.update');

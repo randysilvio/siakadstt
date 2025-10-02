@@ -11,23 +11,33 @@ use Illuminate\Support\Facades\DB;
 
 class DosenUserSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
     {
-        DB::transaction(function () {
-            $user = User::create([
-                'name' => 'Budi Do Re Mi',
-                'email' => 'dosen@sak.com',
-                'password' => Hash::make('password'),
-            ]);
+        $dosenRole = Role::where('name', 'dosen')->first();
 
-            $dosenRole = Role::where('name', 'dosen')->first();
-            $user->roles()->attach($dosenRole);
+        if ($dosenRole) {
+            DB::transaction(function () use ($dosenRole) {
+                for ($i = 1; $i <= 10; $i++) {
+                    $user = User::create([
+                        'name' => "Dosen Pengajar {$i}",
+                        'email' => "dosen{$i}@sak.com",
+                        'password' => Hash::make('password'),
+                    ]);
 
-            Dosen::create([
-                'user_id' => $user->id,
-                'nidn' => '1234567890',
-                'nama_lengkap' => 'Budi Do Re Mi, S.Kom., M.Kom.',
-            ]);
-        });
+                    $user->roles()->attach($dosenRole);
+
+                    Dosen::create([
+                        'user_id' => $user->id,
+                        'nidn' => '00112233' . sprintf('%02d', $i), // Contoh NIDN unik
+                        'nama_lengkap' => "Dr. Dosen Pengajar {$i}, S.Kom., M.Kom.",
+                    ]);
+                }
+            });
+        }
     }
 }

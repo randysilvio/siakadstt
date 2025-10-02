@@ -35,15 +35,16 @@ class PembayaranController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'mahasiswa_id' => 'required|exists:mahasiswas,id',
             'jumlah' => 'required|integer|min:1',
             'semester' => 'required|string|max:50',
             'keterangan' => 'nullable|string',
         ]);
 
-        Pembayaran::create($request->all());
-        return redirect()->route('admin.pembayaran.index')->with('success', 'Tagihan berhasil dibuat.');
+        Pembayaran::create($validatedData);
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('pembayaran.index')->with('success', 'Tagihan berhasil dibuat.');
     }
 
     public function tandaiLunas(Pembayaran $pembayaran): RedirectResponse
@@ -52,13 +53,15 @@ class PembayaranController extends Controller
             'status' => 'lunas',
             'tanggal_bayar' => now(),
         ]);
-        return redirect()->route('admin.pembayaran.index')->with('success', 'Tagihan berhasil ditandai lunas.');
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('pembayaran.index')->with('success', 'Tagihan berhasil ditandai lunas.');
     }
     
     public function destroy(Pembayaran $pembayaran): RedirectResponse
     {
         $pembayaran->delete();
-        return redirect()->route('admin.pembayaran.index')->with('success', 'Tagihan berhasil dihapus.');
+        // PERBAIKAN: Menggunakan nama rute yang benar
+        return redirect()->route('pembayaran.index')->with('success', 'Tagihan berhasil dihapus.');
     }
 
     public function riwayat(): View

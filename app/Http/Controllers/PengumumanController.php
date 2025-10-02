@@ -13,14 +13,15 @@ class PengumumanController extends Controller
 {
     public function index(): View
     {
-        $pengumumans = Pengumuman::with('roles')->latest()->paginate(10);
+        $pengumumans = Pengumuman::latest()->paginate(10);
+        // PERBAIKAN: Mengarahkan ke view 'pengumuman.index'
         return view('pengumuman.index', compact('pengumumans'));
     }
 
     public function create(): View
     {
-        $roles = Role::where('name', '!=', 'admin')->get();
-        return view('pengumuman.create', compact('roles'));
+        // PERBAIKAN: Mengarahkan ke view 'pengumuman.create'
+        return view('pengumuman.create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -28,28 +29,24 @@ class PengumumanController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_roles' => 'required|array',
-            'target_roles.*' => 'exists:roles,id',
+            'target_role' => 'required|string|in:semua,admin,dosen,mahasiswa,tendik',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $pengumuman = Pengumuman::create($request->only('judul', 'konten'));
-            $pengumuman->roles()->sync($request->target_roles);
-        });
+        Pengumuman::create($request->only('judul', 'konten', 'target_role'));
 
         return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dibuat.');
     }
 
     public function show(Pengumuman $pengumuman): View
     {
+        // PERBAIKAN: Mengarahkan ke view 'pengumuman.show'
         return view('pengumuman.show', compact('pengumuman'));
     }
 
     public function edit(Pengumuman $pengumuman): View
     {
-        $roles = Role::where('name', '!=', 'admin')->get();
-        $pengumuman->load('roles');
-        return view('pengumuman.edit', compact('pengumuman', 'roles'));
+        // PERBAIKAN: Mengarahkan ke view 'pengumuman.edit'
+        return view('pengumuman.edit', compact('pengumuman'));
     }
 
     public function update(Request $request, Pengumuman $pengumuman): RedirectResponse
@@ -57,14 +54,10 @@ class PengumumanController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'konten' => 'required|string',
-            'target_roles' => 'required|array',
-            'target_roles.*' => 'exists:roles,id',
+            'target_role' => 'required|string|in:semua,admin,dosen,mahasiswa',
         ]);
 
-        DB::transaction(function () use ($request, $pengumuman) {
-            $pengumuman->update($request->only('judul', 'konten'));
-            $pengumuman->roles()->sync($request->target_roles);
-        });
+        $pengumuman->update($request->only('judul', 'konten', 'target_role'));
 
         return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil diperbarui.');
     }

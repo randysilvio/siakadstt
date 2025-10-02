@@ -11,11 +11,10 @@
                 <div class="card-body">
                     <div class="mb-3 text-muted">
                         <small>Dipublikasikan pada: {{ $pengumuman->created_at->format('d F Y, H:i') }}</small> | 
-                        <small>Target: {{ Str::ucfirst($pengumuman->target_role) }}</small>
+                        <small>Untuk: {{ Str::ucfirst($pengumuman->target_role) }}</small>
                     </div>
                     <hr>
                     <div class="fs-5">
-                        {{-- PERBAIKAN: Menghapus fungsi e() agar HTML dapat dirender --}}
                         {!! $pengumuman->konten !!}
                     </div>
                 </div>

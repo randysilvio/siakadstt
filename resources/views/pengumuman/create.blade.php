@@ -9,7 +9,8 @@
                     <h1>Buat Pengumuman Baru</h1>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('pengumuman.store') }}" method="POST">
+                    {{-- PERBAIKAN: Mengarahkan ke rute 'admin.pengumuman.store' --}}
+                    <form action="{{ route('admin.pengumuman.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label for="judul" class="form-label">Judul</label>
@@ -39,7 +40,8 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary">Simpan Pengumuman</button>
-                        <a href="{{ route('pengumuman.index') }}" class="btn btn-secondary">Batal</a>
+                        {{-- PERBAIKAN: Mengarahkan ke rute 'admin.pengumuman.index' --}}
+                        <a href="{{ route('admin.pengumuman.index') }}" class="btn btn-secondary">Batal</a>
                     </form>
                 </div>
             </div>

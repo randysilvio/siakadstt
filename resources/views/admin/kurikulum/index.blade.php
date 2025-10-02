@@ -4,10 +4,22 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Manajemen Kurikulum</h1>
-        {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+        {{-- Nama rute ini sudah benar --}}
         <a href="{{ route('admin.kurikulum.create') }}" class="btn btn-primary">Tambah Kurikulum Baru</a>
     </div>
-    {{-- ... (kode untuk menampilkan session success/error) ... --}}
+    
+    {{-- Menampilkan pesan sukses/error (opsional, tapi direkomendasikan) --}}
+    @if (session('success'))
+        <div class="alert alert-success" role="alert">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger" role="alert">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="card">
         <div class="card-body">
             <table class="table table-hover">
@@ -32,16 +44,16 @@
                                 @endif
                             </td>
                             <td>
-                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                {{-- Nama rute ini sudah benar --}}
                                 <form action="{{ route('admin.kurikulum.setActive', $kurikulum->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="btn btn-info btn-sm" {{ $kurikulum->is_active ? 'disabled' : '' }}>Aktifkan</button>
                                 </form>
-                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
+                                {{-- Nama rute ini sudah benar --}}
                                 <a href="{{ route('admin.kurikulum.edit', $kurikulum->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                {{-- PERBAIKAN: Menambahkan prefix 'admin.' pada nama rute --}}
-                                <form action="{{ route('admin.kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin?')">
+                                {{-- Nama rute ini sudah benar --}}
+                                <form action="{{ route('admin.kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kurikulum ini?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Hapus</button>

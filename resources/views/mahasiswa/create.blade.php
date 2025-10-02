@@ -3,7 +3,8 @@
 @section('content')
     <h1>Tambah Mahasiswa Baru</h1>
 
-    <form action="/mahasiswa" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Menggunakan helper route() untuk URL action yang benar --}}
+    <form action="{{ route('admin.mahasiswa.store') }}" method="POST" class="mt-4">
         @csrf
         <div class="card">
             <div class="card-header fw-bold">
@@ -128,7 +129,7 @@
 
         <div class="mt-4">
             <button type="submit" class="btn btn-primary">Simpan</button>
-            <a href="/mahasiswa" class="btn btn-secondary">Batal</a>
+            <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-secondary">Batal</a>
         </div>
     </form>
 @endsection

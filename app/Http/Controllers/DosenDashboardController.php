@@ -9,6 +9,15 @@ use App\Models\ProgramStudi;
 class DosenDashboardController extends Controller
 {
     /**
+     * --- TAMBAHAN: Melindungi controller dengan middleware ---
+     */
+    public function __construct()
+    {
+        // Middleware 'role:dosen' akan dijalankan untuk semua method di controller ini
+        $this->middleware('role:dosen');
+    }
+    
+    /**
      * Menampilkan halaman dashboard untuk dosen.
      */
     public function index()

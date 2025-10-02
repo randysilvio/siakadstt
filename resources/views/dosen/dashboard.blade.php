@@ -120,8 +120,8 @@
                     <div class="card-header">Pengumuman Terbaru</div>
                     <div class="list-group list-group-flush">
                         @forelse($pengumumans as $p)
-                            {{-- PERBAIKAN: Menggunakan nama rute admin untuk pengumuman --}}
-                            <a href="{{ route('admin.pengumuman.show', $p) }}" class="list-group-item list-group-item-action">
+                            {{-- PERBAIKAN: Mengarahkan ke rute publik yang benar --}}
+                            <a href="{{ route('pengumuman.public.show', $p) }}" class="list-group-item list-group-item-action">
                                 <h6 class="mb-1">{{ $p->judul }}</h6>
                                 <small class="text-muted">{{ $p->created_at->isoFormat('D MMMM YYYY') }}</small>
                             </a>

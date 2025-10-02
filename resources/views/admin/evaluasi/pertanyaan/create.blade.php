@@ -6,7 +6,8 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('evaluasi-pertanyaan.store') }}" method="POST">
+            {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+            <form action="{{ route('admin.evaluasi-pertanyaan.store') }}" method="POST">
                 @csrf
                 <div class="mb-3">
                     <label for="pertanyaan" class="form-label">Teks Pertanyaan</label>
@@ -41,7 +42,8 @@
                     </label>
                 </div>
                 <button type="submit" class="btn btn-primary">Simpan</button>
-                <a href="{{ route('evaluasi-pertanyaan.index') }}" class="btn btn-secondary">Batal</a>
+                {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
+                <a href="{{ route('admin.evaluasi-pertanyaan.index') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>
     </div>

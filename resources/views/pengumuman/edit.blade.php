@@ -1,7 +1,8 @@
 @extends('layouts.app')
 @section('content')
     <h1>Edit Pengumuman</h1>
-    <form action="{{ route('pengumuman.update', $pengumuman->id) }}" method="POST" class="mt-4">
+    {{-- PERBAIKAN: Mengarahkan ke rute 'admin.pengumuman.update' --}}
+    <form action="{{ route('admin.pengumuman.update', $pengumuman->id) }}" method="POST" class="mt-4">
         @csrf
         @method('PUT')
         <div class="mb-3">
@@ -25,6 +26,7 @@
             @error('target_role')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-        <a href="{{ route('pengumuman.index') }}" class="btn btn-secondary">Batal</a>
+        {{-- PERBAIKAN: Mengarahkan ke rute 'admin.pengumuman.index' --}}
+        <a href="{{ route('admin.pengumuman.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection
