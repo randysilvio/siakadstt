@@ -13,6 +13,7 @@ use App\Models\Koleksi;
 use App\Models\Pembayaran;
 use App\Models\Jadwal;
 use App\Models\TahunAkademik;
+use App\Models\Peminjaman; // <-- PERBAIKAN: Menambahkan model Peminjaman
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -116,7 +117,6 @@ class DashboardController extends Controller
             ]);
         }
         elseif ($user->hasRole('keuangan')) {
-            // --- PERBAIKAN: Menambahkan data yang akan dikirim ke view ---
             $pembayaranTerbaru = Pembayaran::where('status', 'lunas')
                 ->with('mahasiswa')
                 ->latest('tanggal_bayar')
@@ -139,9 +139,15 @@ class DashboardController extends Controller
             ]);
         }
         elseif ($user->hasRole('pustakawan')) {
+            // =======================================================================================
+            // ===== PERBAIKAN: Melengkapi semua data yang dibutuhkan oleh view perpustakaan.dashboard =====
+            // =======================================================================================
             return view('perpustakaan.dashboard', [
                 'totalJudul' => Koleksi::count(),
                 'totalEksemplar' => Koleksi::sum('jumlah_stok'),
+                'peminjamanAktif' => Peminjaman::where('status', 'Dipinjam')->count(),
+                'terlambat' => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(),
+                'aktivitasTerakhir' => Peminjaman::with(['user', 'koleksi'])->latest()->take(5)->get(),
                 'pengumumans' => $pengumumans
             ]);
         }

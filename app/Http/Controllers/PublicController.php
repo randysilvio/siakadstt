@@ -9,7 +9,7 @@ use App\Models\Dosen;
 use App\Models\Slideshow;
 use App\Models\DokumenPublik;
 use Illuminate\Http\Request;
-use Illuminate\View\View; // <-- Pastikan ini ada
+use Illuminate\View\View;
 
 class PublicController extends Controller
 {
@@ -60,14 +60,19 @@ class PublicController extends Controller
         return view('berita', compact('semuaBerita'));
     }
 
-    // --- FUNGSI BARU DITAMBAHKAN ---
     /**
      * Menampilkan detail satu pengumuman untuk publik.
      * Fungsi ini akan menangani rute 'pengumuman.public.show'.
      */
     public function showPengumuman(Pengumuman $pengumuman): View
     {
+        // --- BARIS PERBAIKAN ---
+        // Tambahkan pemeriksaan untuk memastikan hanya pengumuman publik yang bisa dibuka.
+        if ($pengumuman->target_role !== 'semua') {
+            abort(404); // Tampilkan halaman "Not Found" jika bukan untuk publik.
+        }
+        // --- AKHIR DARI PERBAIKAN ---
+        
         return view('pengumuman.public_show', compact('pengumuman'));
     }
-    // --- AKHIR DARI FUNGSI BARU ---
 }

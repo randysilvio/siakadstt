@@ -25,7 +25,7 @@ use App\Http\Controllers\VerumController;
 use App\Http\Controllers\VerumMateriController;
 use App\Http\Controllers\VerumTugasController;
 use App\Http\Controllers\VerumPresensiController;
-use App\Http\Controllers\PerpustakaanController;
+use App\Http\Controllers\PerpustakaanController; // <-- Pastikan ini ada
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\TendikController;
 // Controller baru untuk manajemen Admin
@@ -38,6 +38,8 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
 // Controller baru untuk halaman publik
 use App\Http\Controllers\Public\DosenProfileController;
+// Controller baru untuk Perpustakaan
+use App\Http\Controllers\Perpustakaan\PeminjamanController;
 // Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
@@ -62,8 +64,6 @@ Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
-
-// --- PERBAIKAN: TAMBAHKAN RUTE INI UNTUK DETAIL PENGUMUMAN PUBLIK ---
 Route::get('/pengumuman/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
 
@@ -78,6 +78,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
+
+    // ==================================================================================
+    // ===== PERBAIKAN: Rute 'show' pengumuman yang konflik telah dihapus dari sini =====
+    // ==================================================================================
 
     // Rute umum
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
@@ -100,9 +104,15 @@ Route::middleware('auth')->group(function () {
 
     // BLOK UNTUK MODUL PERPUSTAKAAN
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
-        Route::get('/', [PerpustakaanController::class, 'index'])->name('index');
+        // --- INI BARIS YANG DIPERBAIKI ---
+        Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
+
         Route::middleware('role:pustakawan')->group(function() {
             Route::resource('koleksi', KoleksiController::class);
+            Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'create', 'store']);
+            Route::get('/pengembalian', [PeminjamanController::class, 'showReturnForm'])->name('peminjaman.returnForm');
+            Route::post('/pengembalian', [PeminjamanController::class, 'processReturn'])->name('peminjaman.processReturn');
+            Route::get('/peminjaman/history', [PeminjamanController::class, 'history'])->name('peminjaman.history');
         });
     });
 
@@ -179,7 +189,6 @@ Route::middleware('auth')->group(function () {
         
         // Rute untuk menampilkan form tambah tendik
         Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
-        // Rute untuk memproses penyimpanan data tendik baru
         Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
 
         // Rute Manajemen Absensi
@@ -200,7 +209,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/kurikulum/{kurikulum}/set-active', [KurikulumController::class, 'setActive'])->name('kurikulum.setActive');
         Route::resource('mata-kuliah', MataKuliahController::class);
         Route::resource('dosen', DosenController::class);
+        
+        // =========================================================================================
+        // ===== PERBAIKAN: Memberikan rute resource penuh kepada admin, termasuk 'create' & 'show'
+        // =========================================================================================
         Route::resource('pengumuman', PengumumanController::class);
+        
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::resource('kalender', KalenderController::class)->except(['show']);
         Route::resource('slideshows', SlideshowController::class);

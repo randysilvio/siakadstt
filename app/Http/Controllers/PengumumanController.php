@@ -8,19 +8,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth; // <-- Perubahan 1: Mengimpor Auth facade
 
 class PengumumanController extends Controller
 {
     public function index(): View
     {
         $pengumumans = Pengumuman::latest()->paginate(10);
-        // PERBAIKAN: Mengarahkan ke view 'pengumuman.index'
         return view('pengumuman.index', compact('pengumumans'));
     }
 
     public function create(): View
     {
-        // PERBAIKAN: Mengarahkan ke view 'pengumuman.create'
         return view('pengumuman.create');
     }
 
@@ -39,13 +38,24 @@ class PengumumanController extends Controller
 
     public function show(Pengumuman $pengumuman): View
     {
-        // PERBAIKAN: Mengarahkan ke view 'pengumuman.show'
-        return view('pengumuman.show', compact('pengumuman'));
+        // =======================================================================================
+        // ===== PERBAIKAN: Menambahkan logika otorisasi untuk memvalidasi hak akses pengguna =====
+        // =======================================================================================
+        $user = Auth::user();
+
+        // Izinkan akses jika:
+        // 1. Pengumuman ditujukan untuk 'semua'.
+        // 2. ATAU pengguna memiliki peran yang sesuai dengan target pengumuman.
+        if ($pengumuman->target_role === 'semua' || $user->hasRole($pengumuman->target_role)) {
+            return view('pengumuman.show', compact('pengumuman'));
+        }
+
+        // Jika tidak memenuhi syarat, tolak akses dengan pesan error 403 (Forbidden).
+        abort(403, 'ANDA TIDAK MEMILIKI WEWENANG UNTUK MELIHAT PENGUMUMAN INI.');
     }
 
     public function edit(Pengumuman $pengumuman): View
     {
-        // PERBAIKAN: Mengarahkan ke view 'pengumuman.edit'
         return view('pengumuman.edit', compact('pengumuman'));
     }
 

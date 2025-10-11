@@ -47,7 +47,8 @@ class SlideshowController extends Controller
             'is_aktif' => $request->has('is_aktif'),
         ]);
 
-        return redirect()->route('slideshows.index')->with('success', 'Slide berhasil ditambahkan.');
+        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
+        return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil ditambahkan.');
     }
 
     /**
@@ -85,7 +86,8 @@ class SlideshowController extends Controller
 
         $slideshow->save();
 
-        return redirect()->route('slideshows.index')->with('success', 'Slide berhasil diperbarui.');
+        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
+        return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil diperbarui.');
     }
 
     /**
@@ -100,6 +102,7 @@ class SlideshowController extends Controller
 
         $slideshow->delete();
 
-        return redirect()->route('slideshows.index')->with('success', 'Slide berhasil dihapus.');
+        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
+        return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil dihapus.');
     }
 }

@@ -2,52 +2,59 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Koleksi;
-use App\Models\Pengumuman;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Schema; // Import Schema facade
+use App\Models\Koleksi;      
+use App\Models\Peminjaman;   
+use Carbon\Carbon;
 
 class PerpustakaanController extends Controller
 {
-    /**
-     * Menampilkan halaman katalog online (OPAC) untuk semua user.
-     */
-    public function index(Request $request): View
-    {
-        $query = Koleksi::query();
-
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where('judul', 'like', "%{$search}%")
-                  ->orWhere('pengarang', 'like', "%{$search}%")
-                  ->orWhere('penerbit', 'like', "%{$search}%");
-        }
-
-        $koleksis = $query->latest()->paginate(12);
-
-        return view('perpustakaan.index', compact('koleksis'));
-    }
-
     /**
      * Menampilkan halaman dashboard khusus untuk pustakawan.
      */
     public function dashboard(): View
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-
+        // 1. Statistik Utama
         $totalJudul = Koleksi::count();
-        $totalEksemplar = Koleksi::sum('jumlah_stok');
-        
-        $pengumumans = Pengumuman::query()
-            ->whereHas('roles', function ($q) use ($user) {
-                $q->whereIn('id', $user->roles->pluck('id'));
-            })
+        // === DIPERBAIKI ===
+        // Menggunakan nama kolom 'jumlah_stok' yang benar sesuai database Anda.
+        $totalEksemplar = Koleksi::sum('jumlah_stok'); 
+        $peminjamanAktif = Peminjaman::where('status', 'Dipinjam')->count();
+
+        // 2. Data Peminjaman Terlambat
+        $peminjamanTerlambat = Peminjaman::with(['koleksi', 'user'])
+            ->where('status', 'Dipinjam')
+            ->where('jatuh_tempo', '<', Carbon::now())
+            ->get();
+        $terlambatCount = $peminjamanTerlambat->count();
+
+        // 3. Aktivitas Sirkulasi Terakhir
+        $aktivitasTerakhir = Peminjaman::with(['user', 'koleksi'])
             ->latest()
             ->take(5)
             ->get();
-        
-        return view('perpustakaan.dashboard', compact('totalJudul', 'totalEksemplar', 'pengumumans'));
+
+        // === DIPERBAIKI ===
+        // Kueri ini sekarang aman. Ia hanya akan mengurutkan berdasarkan 'total_pinjam'
+        // jika kolom tersebut memang ada di tabel Anda untuk menghindari error.
+        $koleksiPopuler = Koleksi::query()
+            ->when(Schema::hasColumn('perpustakaan_koleksi', 'total_pinjam'), function ($query) {
+                return $query->orderBy('total_pinjam', 'desc');
+            })
+            ->take(5)
+            ->get();
+
+        // Mengirim semua data yang dibutuhkan oleh view
+        return view('perpustakaan.dashboard', compact(
+            'totalJudul',
+            'totalEksemplar',
+            'peminjamanAktif',
+            'terlambatCount',
+            'peminjamanTerlambat',
+            'aktivitasTerakhir',
+            'koleksiPopuler'
+        ));
     }
 }
