@@ -6,7 +6,8 @@
         <div class="card-body p-5">
             <div class="row">
                 <div class="col-lg-4 text-center">
-                    <img src="{{ $dosen->foto_profil_url }}" class="rounded-circle img-fluid mb-4 border border-3" alt="Foto {{ $dosen->nama_lengkap }}" style="width: 200px; height: 200px; object-fit: cover;">
+                    {{-- [PERBAIKAN FINAL] Menggunakan $dosen->foto_profil --}}
+                    <img src="{{ $dosen->foto_profil }}" class="rounded-circle img-fluid mb-4 border border-3" alt="Foto {{ $dosen->nama_lengkap }}" style="width: 200px; height: 200px; object-fit: cover;">
                     <h2 class="h4">{{ $dosen->nama_lengkap }}</h2>
                     <p class="text-muted">{{ $dosen->jabatan_akademik ?? 'Dosen' }}</p>
 

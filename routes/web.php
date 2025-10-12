@@ -104,10 +104,12 @@ Route::middleware('auth')->group(function () {
 
     // BLOK UNTUK MODUL PERPUSTAKAAN
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
-        // --- INI BARIS YANG DIPERBAIKI ---
-        Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
-
+        
+        // [PERBAIKAN] Seluruh rute perpustakaan sekarang dilindungi oleh middleware 'pustakawan'
         Route::middleware('role:pustakawan')->group(function() {
+            // Rute dashboard sekarang aman di dalam grup ini
+            Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
+
             Route::resource('koleksi', KoleksiController::class);
             Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'create', 'store']);
             Route::get('/pengembalian', [PeminjamanController::class, 'showReturnForm'])->name('peminjaman.returnForm');

@@ -11,12 +11,22 @@
 
 @section('content')
 <div class="container">
+    {{-- ================================================================= --}}
+    {{-- KODE YANG DIPERBAIKI ADA DI BLOK INI --}}
+    {{-- ================================================================= --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Kalender Akademik</h2>
-        @if(Auth::user()->role == 'admin')
-            <a href="{{ route('kalender.index') }}" class="btn btn-outline-primary">Manajemen Kalender</a>
-        @endif
+        {{-- PERBAIKAN: Cek relasi 'roles' bukan properti 'role' dan sesuaikan route --}}
+        @auth
+            @if(Auth::user()->roles->contains('name', 'admin'))
+                <a href="{{ route('admin.kalender.index') }}" class="btn btn-outline-primary">Manajemen Kalender</a>
+            @endif
+        @endauth
     </div>
+    {{-- ================================================================= --}}
+    {{-- AKHIR DARI BLOK PERBAIKAN --}}
+    {{-- ================================================================= --}}
+    
     <div class="card">
         <div class="card-body">
             <div id='calendar'></div>
@@ -24,7 +34,6 @@
     </div>
 </div>
 
-<!-- Modal Detail Event (Tidak ada perubahan) -->
 <div class="modal fade" id="eventDetailModal" tabindex="-1" aria-labelledby="eventDetailModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

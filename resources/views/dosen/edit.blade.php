@@ -8,7 +8,7 @@
             <hr>
             <div class="card">
                 <div class="card-body">
-                    {{-- PERBAIKAN: Menggunakan rute admin & menambahkan enctype untuk upload file --}}
+                    {{-- [PERBAIKAN FINAL] Menggunakan rute admin & enctype --}}
                     <form action="{{ route('admin.dosen.update', $dosen) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PATCH')
@@ -28,15 +28,15 @@
                         
                         <hr class="my-4">
 
-                        {{-- =============================================== --}}
-                        {{-- ===== PENAMBAHAN FORM UNTUK PROFIL PUBLIK ===== --}}
-                        {{-- =============================================== --}}
                         <h4>Profil Publik</h4>
 
                         <div class="mb-3">
                             <label for="foto_profil" class="form-label">Foto Profil</label>
-                            @if($dosen->foto_profil)
-                                <img src="{{ $dosen->foto_profil_url }}" alt="Foto Profil" class="img-thumbnail d-block mb-2" width="150">
+                            {{-- [PERBAIKAN FINAL] Menggunakan $dosen->foto_profil dan validasi --}}
+                            @if($dosen->getRawOriginal('foto_profil'))
+                                <img src="{{ $dosen->foto_profil }}" alt="Foto Profil" class="img-thumbnail d-block mb-2" width="150">
+                            @else
+                                <p class="form-text">Belum ada foto profil.</p>
                             @endif
                             <input type="file" class="form-control @error('foto_profil') is-invalid @enderror" id="foto_profil" name="foto_profil">
                             <div class="form-text">Kosongkan jika tidak ingin mengubah foto. Format: JPG, PNG. Maksimal 2MB.</div>
@@ -93,7 +93,7 @@
                             Password tidak dapat diubah dari halaman ini. Pengguna dapat mengubah passwordnya sendiri melalui halaman profil atau fitur "Lupa Password".
                         </div>
                         
-                        {{-- PERBAIKAN: Menggunakan rute admin --}}
+                        {{-- [PERBAIKAN FINAL] Menggunakan rute admin --}}
                         <a href="{{ route('admin.dosen.index') }}" class="btn btn-secondary">Batal</a>
                         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
                     </form>

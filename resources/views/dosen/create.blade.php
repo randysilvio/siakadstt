@@ -2,7 +2,7 @@
 @section('content')
     <h1>Tambah Dosen Baru</h1>
 
-    {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+    {{-- [PERBAIKAN FINAL] Menggunakan rute admin --}}
     <form action="{{ route('admin.dosen.store') }}" method="POST" class="mt-4">
         @csrf
         <div class="mb-3">
@@ -36,7 +36,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan</button>
-        {{-- PERBAIKAN: Menggunakan nama rute admin --}}
+        {{-- [PERBAIKAN FINAL] Menggunakan rute admin --}}
         <a href="{{ route('admin.dosen.index') }}" class="btn btn-secondary">Batal</a>
     </form>
 @endsection

@@ -9,7 +9,6 @@
         </div>
     </div>
 
-    {{-- Form Pencarian dan Filter --}}
     <div class="card mb-4">
         <div class="card-body">
             <form action="{{ route('dosen.public.index') }}" method="GET">
@@ -25,13 +24,14 @@
         </div>
     </div>
 
-    {{-- Daftar Dosen --}}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         @forelse ($dosens as $dosen)
             <div class="col">
                 <div class="card h-100 text-center shadow-sm">
                     <div class="card-body d-flex flex-column">
-                        <img src="{{ $dosen->foto_profil_url }}" class="rounded-circle mx-auto mb-3" alt="Foto {{ $dosen->nama_lengkap }}" style="width: 120px; height: 120px; object-fit: cover;">
+                        
+                        <img src="{{ $dosen->foto_profil }}" class="rounded-circle mx-auto mb-3 border" alt="Foto {{ $dosen->nama_lengkap }}" style="width: 120px; height: 120px; object-fit: cover;">
+                        
                         <h5 class="card-title">{{ $dosen->nama_lengkap }}</h5>
                         <p class="card-text text-muted">{{ $dosen->jabatan_akademik ?? 'Dosen' }}</p>
                         <a href="{{ route('dosen.public.show', $dosen->nidn) }}" class="btn btn-outline-primary mt-auto">Lihat Profil</a>
@@ -47,7 +47,6 @@
         @endforelse
     </div>
 
-    {{-- Paginasi --}}
     <div class="d-flex justify-content-center mt-4">
         {{ $dosens->appends(request()->query())->links() }}
     </div>

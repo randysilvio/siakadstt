@@ -8,43 +8,48 @@ use App\Models\Mahasiswa;
 use App\Models\Dosen;
 use App\Models\Slideshow;
 use App\Models\DokumenPublik;
+use App\Models\KegiatanAkademik;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PublicController extends Controller
 {
     /**
-     * Menampilkan halaman publik utama (welcome).
+     * Menampilkan halaman publik utama (welcome) dengan struktur baru.
      */
     public function index(): View
     {
-        // Data untuk Slideshow, diurutkan berdasarkan kolom 'urutan'
-        $slides = Slideshow::where('is_aktif', true)->orderBy('urutan')->get();
-
-        // Data untuk Berita Terbaru di halaman utama
+        // --- Data untuk Berita / Pengumuman ---
+        // Ambil 4 berita terbaru untuk layout baru (1 utama + 3 sekunder)
         $beritaTerbaru = Pengumuman::where('target_role', 'semua')
                                    ->latest()
-                                   ->take(3)
+                                   ->take(4)
                                    ->get();
-        
-        // Data untuk Program Studi
-        $programStudi = ProgramStudi::orderBy('nama_prodi')->get();
+        // Pisahkan berita utama (pertama) dari berita lainnya
+        $beritaUtama = $beritaTerbaru->first();
+        $beritaLainnya = $beritaTerbaru->skip(1);
 
-        // Data untuk Statistik
+        // --- Data Lainnya (Tetap Sama) ---
+        $slides = Slideshow::where('is_aktif', true)->orderBy('urutan')->get();
+        $programStudi = ProgramStudi::orderBy('nama_prodi')->get();
         $totalMahasiswa = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
         $totalDosen = Dosen::count();
-
-        // Data untuk Dokumen Publik
         $dokumen = DokumenPublik::latest()->take(5)->get();
+        $kegiatanTerdekat = KegiatanAkademik::where('tanggal_mulai', '>=', now())
+                                            ->orderBy('tanggal_mulai', 'asc')
+                                            ->take(3)
+                                            ->get();
 
-        // Kirim semua data ke view
+        // --- Kirim semua data yang dibutuhkan ke view ---
         return view('welcome', [
             'slides' => $slides,
-            'berita' => $beritaTerbaru,
+            'beritaUtama' => $beritaUtama,
+            'beritaLainnya' => $beritaLainnya,
             'programStudi' => $programStudi,
             'totalMahasiswa' => $totalMahasiswa,
             'totalDosen' => $totalDosen,
             'dokumen' => $dokumen,
+            'kegiatanTerdekat' => $kegiatanTerdekat,
         ]);
     }
 
@@ -55,24 +60,18 @@ class PublicController extends Controller
     {
         $semuaBerita = Pengumuman::where('target_role', 'semua')
                                 ->latest()
-                                ->paginate(9); // Menampilkan 9 berita per halaman
-                                
+                                ->paginate(9);
         return view('berita', compact('semuaBerita'));
     }
 
     /**
      * Menampilkan detail satu pengumuman untuk publik.
-     * Fungsi ini akan menangani rute 'pengumuman.public.show'.
      */
     public function showPengumuman(Pengumuman $pengumuman): View
     {
-        // --- BARIS PERBAIKAN ---
-        // Tambahkan pemeriksaan untuk memastikan hanya pengumuman publik yang bisa dibuka.
         if ($pengumuman->target_role !== 'semua') {
-            abort(404); // Tampilkan halaman "Not Found" jika bukan untuk publik.
+            abort(404);
         }
-        // --- AKHIR DARI PERBAIKAN ---
-        
         return view('pengumuman.public_show', compact('pengumuman'));
     }
 }

@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
-use App\Models\Role;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\Auth; // <-- Perubahan 1: Mengimpor Auth facade
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // <-- [BARU] Import Storage
 
 class PengumumanController extends Controller
 {
@@ -27,31 +26,32 @@ class PengumumanController extends Controller
     {
         $request->validate([
             'judul' => 'required|string|max:255',
+            'kategori' => 'required|in:berita,pengumuman',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi foto
             'konten' => 'required|string',
             'target_role' => 'required|string|in:semua,admin,dosen,mahasiswa,tendik',
         ]);
 
-        Pengumuman::create($request->only('judul', 'konten', 'target_role'));
+        $data = $request->only('judul', 'kategori', 'konten', 'target_role');
 
-        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dibuat.');
+        // [BARU] Logika untuk menyimpan foto
+        if ($request->hasFile('foto')) {
+            $data['foto'] = $request->file('foto')->store('pengumuman', 'public');
+        }
+
+        Pengumuman::create($data);
+
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil dibuat.');
     }
 
     public function show(Pengumuman $pengumuman): View
     {
-        // =======================================================================================
-        // ===== PERBAIKAN: Menambahkan logika otorisasi untuk memvalidasi hak akses pengguna =====
-        // =======================================================================================
+        // Logika otorisasi tetap sama
         $user = Auth::user();
-
-        // Izinkan akses jika:
-        // 1. Pengumuman ditujukan untuk 'semua'.
-        // 2. ATAU pengguna memiliki peran yang sesuai dengan target pengumuman.
         if ($pengumuman->target_role === 'semua' || $user->hasRole($pengumuman->target_role)) {
             return view('pengumuman.show', compact('pengumuman'));
         }
-
-        // Jika tidak memenuhi syarat, tolak akses dengan pesan error 403 (Forbidden).
-        abort(403, 'ANDA TIDAK MEMILIKI WEWENANG UNTUK MELIHAT PENGUMUMAN INI.');
+        abort(403, 'ANDA TIDAK MEMILIKI WEWENANG UNTUK MELIHAT INI.');
     }
 
     public function edit(Pengumuman $pengumuman): View
@@ -63,18 +63,37 @@ class PengumumanController extends Controller
     {
         $request->validate([
             'judul' => 'required|string|max:255',
+            'kategori' => 'required|in:berita,pengumuman',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi foto
             'konten' => 'required|string',
-            'target_role' => 'required|string|in:semua,admin,dosen,mahasiswa',
+            'target_role' => 'required|string|in:semua,admin,dosen,mahasiswa,tendik',
         ]);
 
-        $pengumuman->update($request->only('judul', 'konten', 'target_role'));
+        $data = $request->only('judul', 'kategori', 'konten', 'target_role');
 
-        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil diperbarui.');
+        // [BARU] Logika untuk update foto
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama jika ada
+            if ($pengumuman->foto) {
+                Storage::disk('public')->delete($pengumuman->foto);
+            }
+            // Simpan foto baru
+            $data['foto'] = $request->file('foto')->store('pengumuman', 'public');
+        }
+
+        $pengumuman->update($data);
+
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil diperbarui.');
     }
 
     public function destroy(Pengumuman $pengumuman): RedirectResponse
     {
+        // [BARU] Hapus foto dari storage saat data dihapus
+        if ($pengumuman->foto) {
+            Storage::disk('public')->delete($pengumuman->foto);
+        }
+
         $pengumuman->delete();
-        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dihapus.');
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil dihapus.');
     }
 }
