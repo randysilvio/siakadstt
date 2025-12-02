@@ -129,9 +129,6 @@ class VerumController extends Controller
     {
         $request->validate(['konten' => 'required|string']);
 
-        // Otorisasi: Pastikan user adalah anggota kelas (dosen atau mahasiswa)
-        // Logika ini bisa ditambahkan jika diperlukan
-
         VerumPostingan::create([
             'kelas_id' => $verum_kela->id,
             'user_id' => Auth::id(),
@@ -140,5 +137,29 @@ class VerumController extends Controller
 
         return back()->with('success', 'Postingan berhasil ditambahkan.');
     }
-}
 
+    /**
+     * [BARU] Memulai sesi video conference (Hanya Dosen).
+     */
+    public function startMeeting(VerumKelas $verum_kela): RedirectResponse
+    {
+        // Pastikan hanya dosen pemilik kelas yang bisa mulai
+        if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
+            $verum_kela->update(['is_meeting_active' => true]);
+            return back()->with('success', 'Ruang kelas online telah dibuka.');
+        }
+        return back()->with('error', 'Anda tidak memiliki akses.');
+    }
+
+    /**
+     * [BARU] Mengakhiri sesi video conference (Hanya Dosen).
+     */
+    public function stopMeeting(VerumKelas $verum_kela): RedirectResponse
+    {
+        if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
+            $verum_kela->update(['is_meeting_active' => false]);
+            return back()->with('success', 'Kelas online telah diakhiri.');
+        }
+        return back()->with('error', 'Anda tidak memiliki akses.');
+    }
+}

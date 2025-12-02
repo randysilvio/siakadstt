@@ -19,10 +19,14 @@ use Illuminate\Http\RedirectResponse;
 
 class DosenController extends Controller
 {
+    /**
+     * Menampilkan daftar dosen dengan Smart Filter.
+     */
     public function index(Request $request): View
     {
         $query = Dosen::with('user')->latest();
 
+        // 1. Filter Pencarian Teks (Nama, NIDN, Email)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -34,9 +38,26 @@ class DosenController extends Controller
             });
         }
 
+        // 2. Filter Jabatan Akademik
+        if ($request->filled('jabatan')) {
+            $query->where('jabatan_akademik', $request->input('jabatan'));
+        }
+
+        // 3. Filter Bidang Keahlian (Pencarian Parsial)
+        if ($request->filled('keahlian')) {
+            $query->where('bidang_keahlian', 'like', "%{$request->input('keahlian')}%");
+        }
+
         $dosens = $query->paginate(10)->withQueryString();
 
-        return view('dosen.index', compact('dosens'));
+        // Ambil data unik untuk dropdown filter
+        $jabatans = Dosen::select('jabatan_akademik')
+                        ->whereNotNull('jabatan_akademik')
+                        ->distinct()
+                        ->orderBy('jabatan_akademik')
+                        ->pluck('jabatan_akademik');
+
+        return view('dosen.index', compact('dosens', 'jabatans'));
     }
 
     public function create(): View
@@ -63,7 +84,11 @@ class DosenController extends Controller
                 'password' => Hash::make($request->password),
             ]);
             
-            $user->assignRole('dosen');
+            // Assign role dosen
+            $dosenRole = \App\Models\Role::where('name', 'dosen')->first();
+            if ($dosenRole) {
+                $user->roles()->attach($dosenRole);
+            }
 
             Dosen::create([
                 'user_id' => $user->id,
@@ -117,10 +142,18 @@ class DosenController extends Controller
             $dosen->update($dataUpdate);
 
             if ($dosen->user) {
-                $dosen->user->update([
+                $userData = [
                     'name' => $request->nama_lengkap,
                     'email' => $request->email,
-                ]);
+                ];
+                
+                // Update password jika diisi
+                if ($request->filled('password')) {
+                    $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
+                    $userData['password'] = Hash::make($request->password);
+                }
+                
+                $dosen->user->update($userData);
             }
         });
 
@@ -135,7 +168,7 @@ class DosenController extends Controller
             }
 
             if ($dosen->user) {
-                $dosen->user->delete(); // This will also delete the dosen due to database constraints
+                $dosen->user->delete();
             } else {
                 $dosen->delete();
             }

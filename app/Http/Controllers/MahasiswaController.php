@@ -20,10 +20,14 @@ use Illuminate\View\View;
 
 class MahasiswaController extends Controller
 {
+    /**
+     * Menampilkan daftar mahasiswa dengan Smart Filter.
+     */
     public function index(Request $request): View
     {
         $query = Mahasiswa::with(['programStudi', 'user.roles'])->latest();
 
+        // 1. Filter Pencarian Teks (Nama, NIM, Email)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -33,14 +37,33 @@ class MahasiswaController extends Controller
             });
         }
 
+        // 2. Filter Program Studi
         if ($request->filled('program_studi_id')) {
             $query->where('program_studi_id', $request->input('program_studi_id'));
         }
 
-        $mahasiswas = $query->paginate(10)->withQueryString();
-        $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
+        // 3. [BARU] Filter Angkatan (Tahun Masuk)
+        if ($request->filled('angkatan')) {
+            $query->where('tahun_masuk', $request->input('angkatan'));
+        }
 
-        return view('mahasiswa.index', compact('mahasiswas', 'program_studis'));
+        // 4. [BARU] Filter Status Mahasiswa
+        if ($request->filled('status')) {
+            $query->where('status_mahasiswa', $request->input('status'));
+        }
+
+        $mahasiswas = $query->paginate(10)->withQueryString();
+        
+        // Data untuk Dropdown Filter
+        $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
+        
+        // [BARU] Ambil daftar tahun masuk unik untuk filter angkatan
+        $angkatans = Mahasiswa::select('tahun_masuk')
+                        ->distinct()
+                        ->orderBy('tahun_masuk', 'desc')
+                        ->pluck('tahun_masuk');
+
+        return view('mahasiswa.index', compact('mahasiswas', 'program_studis', 'angkatans'));
     }
 
     public function create(): View
@@ -65,7 +88,6 @@ class MahasiswaController extends Controller
             'alamat' => 'nullable|string',
             'nomor_telepon' => 'nullable|string|max:15',
             'tahun_masuk' => 'required|digits:4|integer|min:1990',
-            // PERBAIKAN: Menambahkan validasi untuk 'nama_ibu_kandung'
             'nama_ibu_kandung' => 'nullable|string|max:255',
         ]);
 
@@ -108,7 +130,6 @@ class MahasiswaController extends Controller
             'program_studi_id' => 'required|exists:program_studis,id',
             'dosen_wali_id' => 'nullable|exists:dosens,id',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class . ',email,' . $mahasiswa->user_id],
-            // PERBAIKAN: Menambahkan validasi yang relevan saat update
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:L,P',
@@ -120,16 +141,13 @@ class MahasiswaController extends Controller
         ]);
     
         DB::transaction(function () use ($request, $mahasiswa) {
-            // Perbarui data mahasiswa
             $mahasiswa->update($request->except(['email', 'password', 'password_confirmation', '_token', '_method']));
     
-            // Perbarui data user terkait
             if ($mahasiswa->user) {
                 $userData = [
                     'name' => $request->nama_lengkap,
                     'email' => $request->email,
                 ];
-                // Perbarui password hanya jika diisi
                 if ($request->filled('password')) {
                     $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
                     $userData['password'] = Hash::make($request->password);
@@ -147,7 +165,6 @@ class MahasiswaController extends Controller
             if ($mahasiswa->user) {
                 $mahasiswa->user->delete();
             }
-            // Hapus mahasiswa secara eksplisit jika user tidak ada atau jika relasi tidak di-cascade
             $mahasiswa->delete();
         });
 
@@ -158,6 +175,7 @@ class MahasiswaController extends Controller
     {
         $search = $request->input('search');
         $program_studi_id = $request->input('program_studi_id');
+        // Catatan: Jika ingin filter angkatan/status ikut terekspor, update juga constructor MahasiswasExport
         return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 

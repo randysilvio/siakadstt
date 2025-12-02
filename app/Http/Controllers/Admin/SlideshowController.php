@@ -10,11 +10,28 @@ use Illuminate\Support\Facades\Storage;
 class SlideshowController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource with Smart Filter.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $slides = Slideshow::orderBy('urutan')->paginate(10);
+        $query = Slideshow::orderBy('urutan', 'asc');
+
+        // 1. Filter Pencarian Judul
+        if ($request->filled('search')) {
+            $query->where('judul', 'like', '%' . $request->input('search') . '%');
+        }
+
+        // 2. Filter Status Aktif
+        if ($request->filled('status')) {
+            if ($request->input('status') == 'aktif') {
+                $query->where('is_aktif', true);
+            } elseif ($request->input('status') == 'tidak_aktif') {
+                $query->where('is_aktif', false);
+            }
+        }
+
+        $slides = $query->paginate(10)->withQueryString();
+        
         return view('admin.slideshow.index', compact('slides'));
     }
 
@@ -47,7 +64,6 @@ class SlideshowController extends Controller
             'is_aktif' => $request->has('is_aktif'),
         ]);
 
-        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
         return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil ditambahkan.');
     }
 
@@ -86,7 +102,6 @@ class SlideshowController extends Controller
 
         $slideshow->save();
 
-        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
         return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil diperbarui.');
     }
 
@@ -102,7 +117,6 @@ class SlideshowController extends Controller
 
         $slideshow->delete();
 
-        // PERBAIKAN: Ganti nama rute menjadi 'admin.slideshows.index'
         return redirect()->route('admin.slideshows.index')->with('success', 'Slide berhasil dihapus.');
     }
 }

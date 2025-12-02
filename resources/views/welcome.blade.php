@@ -5,290 +5,439 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sistem Administrasi Kampus - STT GPI Papua</title>
 
+    {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|raleway:700,800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
     
+    {{-- Libraries --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    {{-- Custom Styles --}}
     <style>
         body { font-family: 'Figtree', sans-serif; background-color: #f8fafc; }
         .font-heading { font-family: 'Raleway', sans-serif; }
-        .splide__slide img {
-            width: 100%;
-            height: 65vh;
-            object-fit: cover;
-        }
-        .quick-link-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .quick-link-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        
+        /* Slideshow Height */
+        .hero-height { height: 75vh; }
+        @media (max-width: 768px) { .hero-height { height: 50vh; } }
+        
+        .splide__slide img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Hover Effects */
+        .hover-card { transition: all 0.3s ease; }
+        .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        /* Date Box Style */
+        .date-box { 
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); 
+            color: white; 
         }
     </style>
 </head>
-<body class="antialiased text-slate-800">
+<body class="antialiased text-slate-800 flex flex-col min-h-screen">
 
+    {{-- ================= HEADER / NAVBAR ================= --}}
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="{{ route('welcome') }}" class="flex items-center space-x-3">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI Papua" class="h-12 w-12">
+            {{-- Logo & Brand --}}
+            <a href="{{ route('welcome') }}" class="flex items-center space-x-3 group">
+                <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI Papua" class="h-12 w-12 transition-transform group-hover:scale-110">
                 <div class="hidden sm:block">
-                    <span class="font-bold text-lg text-slate-800">STT GPI Papua</span>
-                    <p class="text-xs text-gray-500">Sistem Informasi Akademik</p>
+                    <span class="font-heading font-bold text-xl text-slate-800 block leading-tight">STT GPI PAPUA</span>
+                    <span class="text-xs text-teal-600 font-semibold tracking-wide">SISTEM INFORMASI AKADEMIK</span>
                 </div>
             </a>
-            <div class="flex items-center space-x-2 md:space-x-4">
-                 <a href="#berita" class="text-gray-600 hover:text-teal-600 font-medium hidden md:block">Berita</a>
-                 <a href="#prodi" class="text-gray-600 hover:text-teal-600 font-medium hidden md:block">Program Studi</a>
-                 <a href="#dokumen" class="text-gray-600 hover:text-teal-600 font-medium hidden md:block">Dokumen</a>
-                 <a href="{{ route('login') }}" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-full transition duration-300 text-sm">
-                    LOGIN
+
+            {{-- Desktop Menu --}}
+            <div class="hidden md:flex items-center space-x-6">
+                 <a href="#berita" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Berita</a>
+                 <a href="#prodi" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Program Studi</a>
+                 <a href="#dokumen" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Dokumen</a>
+                 <a href="{{ route('login') }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 shadow-md transform hover:scale-105">
+                    LOGIN SIAKAD
                 </a>
             </div>
+
+            {{-- Mobile Menu Button (Hamburger) --}}
+            <button class="md:hidden text-gray-600 focus:outline-none">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
         </nav>
     </header>
 
-    <main>
-        <section class="relative text-white">
+    <main class="flex-grow">
+        {{-- ================= HERO SLIDESHOW ================= --}}
+        <section class="relative bg-slate-900">
             @if($slides->isNotEmpty())
-                <div id="hero-slideshow" class="splide" aria-label="Galeri Kegiatan Kampus">
-                    <div class="splide__track"><ul class="splide__list">
-                        @foreach($slides as $slide)
-                        <li class="splide__slide">
-                            <img src="{{ asset('storage/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
-                            <div class="absolute inset-0 bg-slate-800/50"></div>
-                            <div class="absolute inset-0 z-10 container mx-auto px-6 h-full flex flex-col items-start justify-center text-left">
-                                @if($slide->judul)
-                                <h1 class="text-4xl md:text-5xl font-heading font-extrabold max-w-2xl" style="text-shadow: 2px 2px 8px rgba(0,0,0,0.7);">{{ $slide->judul }}</h1>
-                                @endif
-                            </div>
-                        </li>
-                        @endforeach
-                    </ul></div>
+                <div id="hero-slideshow" class="splide hero-height" aria-label="Galeri Kegiatan Kampus">
+                    <div class="splide__track h-full">
+                        <ul class="splide__list h-full">
+                            @foreach($slides as $slide)
+                            <li class="splide__slide relative">
+                                <img src="{{ asset('storage/' . $slide->gambar) }}" alt="{{ $slide->judul }}">
+                                {{-- Gradient Overlay --}}
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
+                                <div class="absolute bottom-0 left-0 w-full p-8 md:p-16 pb-24 md:pb-32">
+                                    <div class="container mx-auto">
+                                        @if($slide->judul)
+                                            <h2 class="text-3xl md:text-5xl font-heading font-bold text-white mb-2 leading-tight max-w-4xl drop-shadow-lg opacity-0 translate-y-4 animate-fade-in-up">
+                                                {{ $slide->judul }}
+                                            </h2>
+                                        @endif
+                                        <div class="h-1 w-20 bg-teal-500 rounded mt-4"></div>
+                                    </div>
+                                </div>
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @else
+                {{-- Fallback jika tidak ada slide --}}
+                <div class="hero-height relative bg-slate-800 flex items-center justify-center">
+                    <div class="text-center text-white px-4">
+                        <h1 class="text-4xl md:text-6xl font-heading font-bold mb-4">Selamat Datang</h1>
+                        <p class="text-xl text-gray-300">Sistem Informasi Akademik STT GPI Papua</p>
+                    </div>
                 </div>
             @endif
         </section>
 
-        <section id="akses-cepat" class="bg-white -mt-16 relative z-20 container mx-auto rounded-xl shadow-lg p-6">
-             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
-                <a href="{{ route('berita.index') }}" class="quick-link-card p-4 rounded-lg">
-                    <div class="flex justify-center items-center h-16 w-16 bg-sky-100 text-sky-600 rounded-full mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3h2m-4 3h2m-4 3h2" /></svg>
-                    </div>
-                    <p class="mt-3 font-semibold text-sm text-slate-700">Berita & Info</p>
-                </a>
-                <a href="{{ route('dosen.public.index') }}" class="quick-link-card p-4 rounded-lg">
-                    <div class="flex justify-center items-center h-16 w-16 bg-teal-100 text-teal-600 rounded-full mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-1.781-4.121M12 10.875a4 4 0 100-5.292M12 10.875a4 4 0 110 5.292m0 0v2.25m0 0c-1.472 0-2.882.265-4.185.75M12 16.5c1.472 0 2.882.265 4.185.75m-8.37 0a4.5 4.5 0 01-4.185-.75M12 10.875a4 4 0 100-5.292M12 10.875c-1.472 0-2.882.265-4.185.75M12 10.875c1.472 0 2.882.265 4.185.75m-4.185 5.25a4.5 4.5 0 01-4.185-.75" /></svg>
-                    </div>
-                    <p class="mt-3 font-semibold text-sm text-slate-700">Direktori Dosen</p>
-                </a>
-                <a href="#dokumen" class="quick-link-card p-4 rounded-lg">
-                    <div class="flex justify-center items-center h-16 w-16 bg-indigo-100 text-indigo-600 rounded-full mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    </div>
-                    <p class="mt-3 font-semibold text-sm text-slate-700">Unduh Dokumen</p>
-                </a>
-                <a href="#kontak" class="quick-link-card p-4 rounded-lg">
-                    <div class="flex justify-center items-center h-16 w-16 bg-gray-100 text-gray-600 rounded-full mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2V7a2 2 0 012-2h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H17z" /></svg>
-                    </div>
-                    <p class="mt-3 font-semibold text-sm text-slate-700">Kontak Kami</p>
-                </a>
-                <a href="{{ route('login') }}" class="quick-link-card p-4 rounded-lg">
-                    <div class="flex justify-center items-center h-16 w-16 bg-amber-100 text-amber-600 rounded-full mx-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-                    </div>
-                    <p class="mt-3 font-semibold text-sm text-slate-700">Login SIAKAD</p>
-                </a>
-            </div>
-        </section>
+        {{-- ================= AKSES CEPAT (QUICK LINKS) ================= --}}
+        <section class="relative z-20 -mt-16 container mx-auto px-4">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 border-b-4 border-teal-500">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+                    {{-- Item 1: Berita --}}
+                    <a href="#berita" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-blue-600 group-hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3h2m-4 3h2m-4 3h2" /></svg>
+                        </div>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-blue-600">Berita & Info</span>
+                    </a>
 
-        <section id="statistik" class="py-20">
-            <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold font-heading text-slate-800">Kampus dalam Angka</h2>
-                    <p class="text-gray-600 mt-2">Data statistik terkini dari komunitas akademik kami.</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center max-w-4xl mx-auto">
-                    <div class="bg-white border border-gray-200 p-8 rounded-xl shadow-sm">
-                        <div class="text-teal-500 mb-4">
-                            <svg class="h-12 w-12 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
+                    {{-- Item 2: Direktori Dosen --}}
+                    <a href="{{ route('dosen.public.index') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-teal-600 group-hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-1.781-4.121" /></svg>
                         </div>
-                        <h3 class="text-5xl font-bold text-slate-800" data-counter-target="{{ $totalMahasiswa ?? 0 }}">0</h3>
-                        <p class="text-gray-600 mt-2 text-xl font-semibold">Mahasiswa Aktif</p>
-                    </div>
-                    <div class="bg-white border border-gray-200 p-8 rounded-xl shadow-sm">
-                        <div class="text-sky-500 mb-4">
-                           <svg class="h-12 w-12 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-2.072-1.037a3.75 3.75 0 01-1.08-5.320c.426-.85.99-1.643 1.66-2.385a3.75 3.75 0 015.321 1.08l2.072 1.037m0 0a48.29 48.29 0 005.372 0l2.072-1.037a3.75 3.75 0 015.321-1.08c.67.742 1.235 1.536 1.66 2.385a3.75 3.75 0 01-1.08 5.321l-2.072 1.037m0 0c-2.228.328-4.536.46-6.872.46s-4.644-.132-6.872-.46m13.745 0l-1.55-2.68a3.75 3.75 0 00-5.321-1.08l-1.55 2.68m0 0a49.331 49.331 0 00-2.343.834" /></svg>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-teal-600">Direktori Dosen</span>
+                    </a>
+
+                    {{-- Item 3: Dokumen --}}
+                    <a href="#dokumen" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-indigo-600 group-hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         </div>
-                        <h3 class="text-5xl font-bold text-slate-800" data-counter-target="{{ $totalDosen ?? 0 }}">0</h3>
-                        <p class="text-gray-600 mt-2 text-xl font-semibold">Dosen Pengajar</p>
-                    </div>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-indigo-600">Unduh Dokumen</span>
+                    </a>
+
+                    {{-- Item 4: Kontak --}}
+                    <a href="#kontak" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-orange-600 group-hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        </div>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-orange-600">Kontak Kami</span>
+                    </a>
+
+                    {{-- Item 5: Login --}}
+                    <a href="{{ route('login') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-slate-800 group-hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                        </div>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-slate-800">Login SIAKAD</span>
+                    </a>
                 </div>
             </div>
         </section>
 
-        <section id="berita" class="py-20 bg-white">
+        {{-- ================= STATISTIK (KAMPUS DALAM ANGKA) ================= --}}
+        <section class="py-16 bg-white">
             <div class="container mx-auto px-6">
-                <div class="text-left mb-12">
-                    <h2 class="text-4xl font-bold font-heading text-slate-800">Berita & Informasi</h2>
-                    <p class="text-gray-600 mt-2">Dapatkan kabar dan pengumuman terbaru dari kampus.</p>
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl md:text-4xl font-heading font-bold text-slate-800">Kampus dalam Angka</h2>
+                    <p class="text-gray-500 mt-2">Data statistik terkini komunitas akademik STT GPI Papua.</p>
                 </div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                    @if($beritaUtama)
-                    <a href="{{ route('pengumuman.public.show', $beritaUtama) }}" class="group block">
-                        <div class="overflow-hidden rounded-xl shadow-md">
-                            <img src="{{ $beritaUtama->foto ? asset('storage/' . $beritaUtama->foto) : 'https://via.placeholder.com/800x500/64748b/ffffff?text=Berita+Utama' }}" alt="{{ $beritaUtama->judul }}" class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500" style="aspect-ratio: 16/10;">
-                        </div>
-                        <p class="text-sm text-teal-600 font-semibold mt-4">{{ $beritaUtama->created_at->isoFormat('D MMMM YYYY') }}</p>
-                        <h3 class="text-2xl font-bold text-slate-800 mt-2 group-hover:text-teal-700 transition-colors">{{ $beritaUtama->judul }}</h3>
-                        <p class="text-gray-600 mt-2 leading-relaxed">{{ Str::limit(strip_tags($beritaUtama->konten), 120) }}</p>
-                    </a>
-                    @endif
-
-                    <div class="space-y-6">
-                        @forelse($beritaLainnya as $item)
-                        <a href="{{ route('pengumuman.public.show', $item) }}" class="group flex items-center space-x-4">
-                            <div class="w-24 h-24 lg:w-32 lg:h-32 flex-shrink-0 overflow-hidden rounded-lg shadow-sm">
-                                <img src="{{ $item->foto ? asset('storage/' . $item->foto) : 'https://via.placeholder.com/200x200/94a3b8/ffffff?text=Info' }}" alt="{{ $item->judul }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                            </div>
-                            <div>
-                                <p class="text-xs text-teal-600 font-semibold">{{ $item->created_at->isoFormat('D MMMM YYYY') }}</p>
-                                <h4 class="font-bold text-slate-800 mt-1 group-hover:text-teal-700 transition-colors">{{ $item->judul }}</h4>
-                            </div>
-                        </a>
-                        @empty
-                        <p class="text-gray-500">Belum ada berita lainnya.</p>
-                        @endforelse
-                        <div class="pt-4">
-                           <a href="{{ route('berita.index') }}" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300">Lihat Semua Berita</a>
-                        </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {{-- Stat Mahasiswa --}}
+                    <div class="bg-gradient-to-br from-teal-50 to-white border border-teal-100 p-8 rounded-2xl shadow-sm text-center hover:shadow-md transition duration-300">
+                        <h3 class="text-5xl font-bold text-teal-600 mb-2" data-counter-target="{{ $totalMahasiswa ?? 0 }}">0</h3>
+                        <p class="text-lg font-semibold text-slate-700">Mahasiswa Aktif</p>
+                    </div>
+                    {{-- Stat Dosen --}}
+                    <div class="bg-gradient-to-br from-sky-50 to-white border border-sky-100 p-8 rounded-2xl shadow-sm text-center hover:shadow-md transition duration-300">
+                        <h3 class="text-5xl font-bold text-sky-600 mb-2" data-counter-target="{{ $totalDosen ?? 0 }}">0</h3>
+                        <p class="text-lg font-semibold text-slate-700">Dosen Pengajar</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section id="prodi" class="py-20 bg-gray-50">
+        {{-- ================= BERITA & AGENDA (SPLIT LAYOUT) ================= --}}
+        <section id="berita" class="py-16 bg-slate-50">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col lg:flex-row gap-12">
+                    
+                    {{-- KOLOM KIRI: BERITA TERBARU (65%) --}}
+                    <div class="lg:w-2/3">
+                        <div class="flex justify-between items-end mb-8">
+                            <div>
+                                <h2 class="text-3xl font-heading font-bold text-slate-800">Berita Terkini</h2>
+                                <div class="h-1 w-20 bg-teal-500 rounded mt-2"></div>
+                            </div>
+                            <a href="{{ route('berita.index') }}" class="text-teal-600 hover:text-teal-800 font-semibold text-sm flex items-center">
+                                Lihat Semua <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </a>
+                        </div>
+
+                        {{-- Berita Utama --}}
+                        @if($beritaUtama)
+                        <div class="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 mb-8 bg-white h-[400px]">
+                            <img src="{{ $beritaUtama->foto ? asset('storage/' . $beritaUtama->foto) : 'https://via.placeholder.com/800x600/e2e8f0/475569?text=STT+GPI' }}" 
+                                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="{{ $beritaUtama->judul }}">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                            <div class="absolute bottom-0 left-0 p-8 w-full">
+                                <span class="inline-block px-3 py-1 bg-teal-600 text-white text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
+                                    {{ $beritaUtama->kategori }}
+                                </span>
+                                <a href="{{ route('pengumuman.public.show', $beritaUtama) }}">
+                                    <h3 class="text-2xl md:text-3xl font-bold text-white hover:text-teal-200 transition mb-2 leading-tight">
+                                        {{ $beritaUtama->judul }}
+                                    </h3>
+                                </a>
+                                <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ Str::limit(strip_tags($beritaUtama->konten), 150) }}</p>
+                                <div class="flex items-center text-gray-400 text-xs">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    {{ $beritaUtama->created_at->isoFormat('D MMMM YYYY') }}
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Berita Lainnya (Grid) --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @forelse($beritaLainnya as $item)
+                            <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden border border-gray-100 flex flex-col h-full">
+                                <div class="h-48 overflow-hidden relative">
+                                    <img src="{{ $item->foto ? asset('storage/' . $item->foto) : 'https://via.placeholder.com/400x300/e2e8f0/475569?text=News' }}" 
+                                         class="w-full h-full object-cover transition-transform duration-500 hover:scale-110" alt="{{ $item->judul }}">
+                                    <div class="absolute top-4 left-4 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-slate-800">
+                                        {{ $item->kategori }}
+                                    </div>
+                                </div>
+                                <div class="p-5 flex-grow flex flex-col">
+                                    <div class="text-xs text-teal-600 font-semibold mb-2">{{ $item->created_at->isoFormat('D MMMM YYYY') }}</div>
+                                    <a href="{{ route('pengumuman.public.show', $item) }}" class="block mb-2">
+                                        <h4 class="font-bold text-lg text-slate-800 hover:text-teal-600 transition line-clamp-2">{{ $item->judul }}</h4>
+                                    </a>
+                                    <p class="text-gray-500 text-sm line-clamp-2 flex-grow">{{ Str::limit(strip_tags($item->konten), 100) }}</p>
+                                </div>
+                            </div>
+                            @empty
+                                <div class="col-span-2 text-center text-gray-500 py-4">Tidak ada berita lain.</div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    {{-- KOLOM KANAN: AGENDA KAMPUS (35%) --}}
+                    <div class="lg:w-1/3">
+                        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden sticky top-24">
+                            <div class="p-6 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
+                                <h3 class="font-heading font-bold text-xl text-slate-800">Agenda Kampus</h3>
+                                <span class="bg-teal-100 text-teal-700 text-xs font-bold px-2 py-1 rounded">Terdekat</span>
+                            </div>
+                            <div class="divide-y divide-gray-100">
+                                @forelse($kegiatanTerdekat as $kegiatan)
+                                <div class="p-5 hover:bg-slate-50 transition group">
+                                    <div class="flex items-start space-x-4">
+                                        {{-- Kotak Tanggal --}}
+                                        <div class="date-box rounded-lg p-2 w-16 text-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                                            <span class="block text-2xl font-bold leading-none">{{ $kegiatan->tanggal_mulai->format('d') }}</span>
+                                            <span class="block text-xs uppercase font-semibold opacity-90">{{ $kegiatan->tanggal_mulai->isoFormat('MMM') }}</span>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-bold text-slate-800 leading-snug mb-1 group-hover:text-teal-600 transition">{{ $kegiatan->judul_kegiatan }}</h4>
+                                            <p class="text-xs text-gray-500 mb-2 line-clamp-2">{{ Str::limit($kegiatan->deskripsi, 60) }}</p>
+                                            <span class="inline-flex items-center text-xs text-gray-400">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                {{ $kegiatan->tanggal_mulai->format('H:i') }} WIT
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="p-8 text-center text-gray-500">
+                                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <p>Belum ada agenda terdekat.</p>
+                                </div>
+                                @endforelse
+                            </div>
+                            <div class="p-4 bg-gray-50 text-center border-t border-gray-100">
+                                <a href="#" class="text-sm font-semibold text-teal-600 hover:text-teal-800">Lihat Kalender Lengkap &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        {{-- ================= PROGRAM STUDI (TANPA FOTO) ================= --}}
+        <section id="prodi" class="py-16 bg-white">
             <div class="container mx-auto px-6">
                 <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold font-heading text-slate-800">Program Studi</h2>
-                    <p class="text-gray-600 mt-2">Temukan panggilan dan tujuan Anda bersama kami.</p>
+                    <h2 class="text-3xl font-heading font-bold text-slate-800">Program Studi</h2>
+                    <p class="text-gray-500 mt-2">Pilihan program studi unggulan untuk masa depan pelayanan Anda.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                     @forelse ($programStudi as $prodi)
-                    <div class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col text-center">
-                        <h3 class="text-2xl font-bold text-slate-800">{{ $prodi->nama_prodi }}</h3>
-                        <p class="text-gray-700 mt-4 flex-grow">{{ $prodi->deskripsi_singkat ?? 'Program studi unggulan yang dirancang untuk mempersiapkan pemimpin masa depan.' }}</p>
-                        <a href="#" class="text-teal-600 font-semibold mt-6 inline-block hover:text-teal-700">Selengkapnya →</a>
+                    <div class="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-xl hover:border-teal-200 transition-all duration-300 group relative overflow-hidden">
+                        {{-- Hiasan Background --}}
+                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                        
+                        <div class="relative z-10">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-3 group-hover:text-teal-600 transition">{{ $prodi->nama_prodi }}</h3>
+                            <div class="h-1 w-12 bg-gray-200 group-hover:bg-teal-500 transition mb-4 rounded"></div>
+                            <p class="text-gray-600 leading-relaxed mb-6">
+                                {{ $prodi->deskripsi_singkat ?? 'Program studi ini dirancang untuk memperlengkapi mahasiswa dengan pengetahuan teologi yang mendalam dan keterampilan praktis.' }}
+                            </p>
+                            <a href="#" class="inline-flex items-center text-teal-600 font-bold hover:text-teal-800 transition">
+                                Pelajari Selengkapnya 
+                                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            </a>
+                        </div>
                     </div>
                     @empty
-                    <p class="text-center text-gray-500 md:col-span-2">Informasi program studi akan segera tersedia.</p>
+                    <div class="col-span-2 text-center text-gray-500">Informasi program studi segera tersedia.</div>
                     @endforelse
                 </div>
             </div>
         </section>
-        
-        <section id="dokumen" class="py-20 bg-white">
+
+        {{-- ================= DOKUMEN PUBLIK ================= --}}
+        <section id="dokumen" class="py-16 bg-slate-50">
             <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold font-heading text-slate-800">Unduh Dokumen</h2>
-                    <p class="text-gray-600 mt-2">Dokumen dan formulir penting yang bisa Anda unduh.</p>
+                <div class="flex flex-col md:flex-row justify-between items-center mb-10">
+                    <div class="mb-4 md:mb-0">
+                        <h2 class="text-3xl font-heading font-bold text-slate-800">Unduh Dokumen</h2>
+                        <p class="text-gray-500 mt-1">Berkas akademik dan formulir resmi.</p>
+                    </div>
                 </div>
-                <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <ul class="space-y-4">
-                        @forelse($dokumen as $doc)
-                        <li class="p-4 flex items-center justify-between border-b last:border-b-0">
-                            <div class="flex items-center space-x-4">
-                               <svg class="h-6 w-6 text-teal-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                <h4 class="font-bold text-slate-800">{{ $doc->judul_dokumen }}</h4>
-                            </div>
-                            <a href="{{ asset('storage/' . $doc->file_path) }}" download class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 text-sm">Unduh</a>
-                        </li>
-                        @empty
-                        <li class="text-center text-gray-500 py-4">Belum ada dokumen yang tersedia.</li>
-                        @endforelse
-                    </ul>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @forelse($dokumen as $doc)
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex items-start space-x-4 group">
+                        <div class="bg-indigo-50 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition">{{ $doc->judul_dokumen }}</h4>
+                            <p class="text-xs text-gray-400 mb-3">{{ $doc->created_at->format('d M Y') }}</p>
+                            <a href="{{ asset('storage/' . $doc->file_path) }}" download class="text-sm font-semibold text-indigo-500 hover:text-indigo-700 inline-flex items-center">
+                                Download <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="col-span-3 text-center py-8 text-gray-500">Belum ada dokumen publik.</div>
+                    @endforelse
                 </div>
             </div>
         </section>
-
     </main>
 
-    <footer id="kontak" class="bg-slate-800 text-white">
-        <div class="container mx-auto px-6 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+    {{-- ================= FOOTER ================= --}}
+    <footer id="kontak" class="bg-slate-900 text-white pt-16 pb-8 border-t-4 border-teal-600">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                {{-- Kolom 1: Identitas --}}
                 <div>
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI Papua" class="h-16 w-16 mb-4">
-                    <p class="text-gray-400 text-sm">Sekolah Tinggi Teologi Gereja Protestan Indonesia di Papua. Mempersiapkan pemimpin yang melayani dengan integritas dan kompetensi.</p>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-10 w-10 brightness-200 grayscale">
+                        <span class="font-bold text-xl tracking-wider">STT GPI PAPUA</span>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Institusi pendidikan teologi yang berdedikasi melahirkan pemimpin-pemimpin berintegritas, berilmu, dan siap melayani.
+                    </p>
+                    <div class="flex space-x-4">
+                        {{-- Social Icons Placeholders --}}
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-facebook fa-lg"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-instagram fa-lg"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-youtube fa-lg"></i></a>
+                    </div>
                 </div>
+
+                {{-- Kolom 2: Kontak --}}
                 <div>
-                    <h3 class="font-bold text-lg text-white mb-4">Kontak Kami</h3>
-                    <ul class="text-gray-400 text-sm space-y-3">
-                        <li class="flex items-start"><svg class="h-5 w-5 mr-3 mt-1 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>Jl. Jenderal Sudirman, Fakfak, Papua Barat</li>
-                        <li class="flex items-start"><svg class="h-5 w-5 mr-3 mt-1 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>info@sttgpipapua.ac.id</li>
-                        <li class="flex items-start"><svg class="h-5 w-5 mr-3 mt-1 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>(0956) 123-456</li>
+                    <h3 class="font-bold text-lg mb-6 border-l-4 border-teal-500 pl-3">Hubungi Kami</h3>
+                    <ul class="space-y-4 text-sm text-slate-300">
+                        <li class="flex items-start">
+                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Jl. Jenderal Sudirman, Fakfak, Papua Barat
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            info@sttgpipapua.ac.id
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            (0956) 123-456
+                        </li>
                     </ul>
                 </div>
+
+                {{-- Kolom 3: Tautan --}}
                 <div>
-                    <h3 class="font-bold text-lg text-white mb-4">Akademik</h3>
-                    <ul class="text-gray-400 text-sm space-y-2">
-                        <li><a href="#prodi" class="hover:text-teal-400 transition-colors">Program Studi</a></li>
-                        <li><a href="#dokumen" class="hover:text-teal-400 transition-colors">Unduh Dokumen</a></li>
+                    <h3 class="font-bold text-lg mb-6 border-l-4 border-teal-500 pl-3">Akademik</h3>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li><a href="#prodi" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Program Studi</a></li>
+                        <li><a href="{{ route('dosen.public.index') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Direktori Dosen</a></li>
+                        <li><a href="#" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Kalender Akademik</a></li>
+                        <li><a href="#dokumen" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Unduh Dokumen</a></li>
                     </ul>
                 </div>
-                 <div>
-                    <h3 class="font-bold text-lg text-white mb-4">Mahasiswa</h3>
-                    <ul class="text-gray-400 text-sm space-y-2">
-                        <li><a href="{{ route('login') }}" class="hover:text-teal-400 transition-colors">Login SIAKAD</a></li>
-                        <li><a href="#" class="hover:text-teal-400 transition-colors">Penerimaan Mahasiswa Baru</a></li>
-                        <li><a href="#" class="hover:text-teal-400 transition-colors">Layanan Mahasiswa</a></li>
+
+                {{-- Kolom 4: Mahasiswa --}}
+                <div>
+                    <h3 class="font-bold text-lg mb-6 border-l-4 border-teal-500 pl-3">Mahasiswa</h3>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li><a href="{{ route('login') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Login SIAKAD</a></li>
+                        <li><a href="#" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Pendaftaran Baru</a></li>
+                        <li><a href="{{ route('perpustakaan.index') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Perpustakaan</a></li>
                     </ul>
                 </div>
             </div>
-        </div>
-        <div class="bg-slate-900 py-4">
-            <div class="container mx-auto px-6 text-center text-sm text-gray-500">
-                © {{ date('Y') }} STT GPI Papua. Hak Cipta Dilindungi.
+
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; {{ date('Y') }} STT GPI Papua. Hak Cipta Dilindungi.</p>
             </div>
         </div>
     </footer>
 
+    {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        // Inisialisasi Slideshow
+        // Init Slideshow
         if(document.querySelector('#hero-slideshow')){
           new Splide('#hero-slideshow',{
-            type: 'fade',
-            rewind: true,
-            perPage: 1,
-            autoplay: true,
-            interval: 5000,
-            pauseOnHover: false,
-            arrows: false,
-            pagination: true,
+            type: 'fade', rewind: true, perPage: 1, autoplay: true, interval: 6000, pauseOnHover: false, arrows: false, pagination: true,
           }).mount();
         }
 
-        // Inisialisasi Counter Statistik
+        // Init Counter Animation
         const counters = document.querySelectorAll('[data-counter-target]');
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const counter = entry.target;
                     const target = parseInt(counter.getAttribute('data-counter-target'), 10);
-                    const duration = 1500;
-                    if (target === 0) {
-                        counter.innerText = '0';
-                        observer.unobserve(counter);
-                        return;
-                    }
+                    if (target === 0) { counter.innerText = '0'; return; }
+                    const duration = 2000; 
                     const increment = target / (duration / 16);
                     let current = 0;
-                    
                     const updateCounter = () => {
                         current += increment;
                         if (current < target) {
@@ -303,7 +452,6 @@
                 }
             });
         }, { threshold: 0.5 });
-
         counters.forEach(counter => observer.observe(counter));
       });
     </script>

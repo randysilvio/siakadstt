@@ -8,157 +8,128 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class ChatbotService
 {
-    protected ?string $witAiToken;
-    protected string $witApiVersion;
-    protected string $defaultResponse = 'Maaf, saya kurang mengerti. Anda bisa bertanya seperti, "cara isi krs", "jadwal kuliah hari selasa", atau "info tentang stt gpi papua".';
+    protected ?string $apiKey;
+    
+    // PERBAIKAN UTAMA: 
+    // Menggunakan 'gemini-2.0-flash' sesuai daftar yang Anda kirimkan.
+    protected string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
     public function __construct()
     {
-        $this->witAiToken = config('witai.token');
-        $this->witApiVersion = config('witai.api_version');
+        $this->apiKey = config('services.gemini.key');
     }
 
-    public function getResponse(string $message): string
+    public function getResponse(string $userMessage): string
     {
-        if (!$this->witAiToken) {
-            Log::error('WIT_AI_TOKEN tidak diatur di file .env');
-            return 'Maaf, layanan asisten virtual sedang tidak terkonfigurasi dengan benar.';
+        if (empty($this->apiKey)) {
+            Log::error('GEMINI_API_KEY kosong.');
+            return "Error Konfigurasi: API Key tidak ditemukan. Cek config/services.php.";
         }
 
         try {
-            $response = Http::withToken((string) $this->witAiToken)
-                ->get('https://api.wit.ai/message', [
-                    'v' => $this->witApiVersion,
-                    'q' => $message,
+            $systemInstruction = $this->buildSystemPrompt();
+
+            // Kirim Request
+            $response = Http::withoutVerifying()
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("{$this->baseUrl}?key={$this->apiKey}", [
+                    'contents' => [
+                        ['parts' => [['text' => $systemInstruction . "\n\nUser: " . $userMessage . "\nAI:"]]]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'maxOutputTokens' => 500,
+                    ]
                 ]);
 
-            if (!$response->successful()) {
-                throw new \Exception('Gagal menghubungi Wit.ai API. Status: ' . $response->status());
+            if ($response->failed()) {
+                $errorBody = $response->json();
+                $errorMessage = $errorBody['error']['message'] ?? $response->body();
+                Log::error('Gemini API Error: ' . $errorMessage);
+                
+                // Jika 2.0 gagal, kita coba fallback ke 'gemini-flash-latest' yang juga ada di daftar Anda
+                if (str_contains($errorMessage, 'not found')) {
+                    return $this->retryWithFallbackModel($userMessage, $systemInstruction);
+                }
+
+                return "Maaf, ada gangguan koneksi ke AI:\n" . $errorMessage;
             }
 
             $data = $response->json();
-            
-            if (empty($data['intents'])) {
-                return $this->defaultResponse;
-            }
-
-            $intent = $data['intents'][0] ?? [];
-            $intentName = $intent['name'] ?? null;
-            $confidence = $intent['confidence'] ?? 0;
-
-            if ($confidence < 0.75 || !$intentName) { 
-                return $this->defaultResponse;
-            }
-
-            $entities = $data['entities'] ?? [];
-            $handlerMethod = 'handle' . Str::studly($intentName);
-
-            if (method_exists($this, $handlerMethod)) {
-                return $this->{$handlerMethod}($entities);
-            }
-
-            return $this->defaultResponse;
+            $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Maaf, saya tidak bisa menjawab (Safety Filter).';
+            return nl2br(trim($reply));
 
         } catch (\Exception $e) {
-            Log::error('Error saat berkomunikasi dengan Wit.ai: ' . $e->getMessage());
-            return 'Maaf, terjadi kesalahan saat menghubungi asisten virtual.';
+            return "Terjadi kesalahan sistem:\n" . $e->getMessage();
         }
     }
 
-    protected function handleSapaan(array $entities): string
+    // Fungsi cadangan: Menggunakan 'gemini-flash-latest'
+    protected function retryWithFallbackModel($userMessage, $systemInstruction)
     {
-        $responses = [
-            "Shalom! Selamat datang di ZoeChat, asisten virtual SIAKAD STT GPI Papua. Ada yang bisa saya bantu?",
-            "Halo! Saya ZoeChat, siap membantu Anda menavigasi SIAKAD STT GPI Papua. Apa yang ingin Anda ketahui?"
-        ];
-        return $responses[array_rand($responses)];
-    }
-    
-    protected function handleTerimaKasih(array $entities): string
-    {
-        return 'Sama-sama! Senang bisa membantu Anda.';
-    }
-
-    protected function handleInfoKampus(array $entities): string
-    {
-        $responseText = "Sekolah Tinggi Theologia (STT) Gereja Protestan Indonesia (GPI) di Papua adalah lembaga pendidikan tinggi teologi yang berlokasi di Fakfak, Papua Barat. Kami berkomitmen untuk mempersiapkan para pemimpin gereja dan pelayan Tuhan yang kompeten dan berintegritas untuk melayani di tanah Papua dan sekitarnya.\n\n";
-        $responseText .= "SIAKAD ini adalah sistem digital terpusat kami untuk membantu seluruh civitas akademika—mahasiswa, dosen, dan staf—dalam mengelola kegiatan perkuliahan secara efisien dan transparan.";
-        return nl2br($responseText);
-    }
-
-    protected function handleMahasiswaIsiKRS(array $entities): string
-    {
-        $responseText = "Tentu, berikut adalah langkah-langkah detail untuk mengisi Kartu Rencana Studi (KRS):\n\n";
-        $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
-        $responseText .= "2. Dari menu navigasi, klik **KRS**.\n";
-        $responseText .= "3. Halaman akan menampilkan daftar mata kuliah yang tersedia untuk semester aktif.\n";
-        $responseText .= "4. **Centang** kotak di sebelah kiri nama mata kuliah yang ingin Anda ambil.\n";
-        $responseText .= "5. Perhatikan **Total SKS Diambil** di bagian atas untuk memastikan tidak melebihi batas maksimum Anda.\n";
-        $responseText .= "6. Jika sudah yakin, klik tombol **\"Simpan KRS\"**. Status KRS Anda akan berubah menjadi \"Menunggu Persetujuan\" dari Kaprodi.";
-        return nl2br($responseText);
-    }
-    
-    protected function handleMahasiswaAksesVerum(array $entities): string
-    {
-        $responseText = "Tentu, berikut adalah panduan untuk mengakses Kelas Virtual (Verum) sebagai mahasiswa:\n\n";
-        $responseText .= "1. **Login** ke akun SIAKAD Anda.\n";
-        $responseText .= "2. Dari menu navigasi utama di bagian atas, klik **Verum**.\n";
-        $responseText .= "3. Anda akan melihat daftar semua kelas virtual dari mata kuliah yang Anda ambil di semester ini.\n";
-        $responseText .= "4. Klik pada salah satu kelas untuk masuk dan melihat **materi**, **tugas**, dan **forum diskusi**.";
-        return nl2br($responseText);
-    }
-
-    protected function handleJadwalKuliah(array $entities): string
-    {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        if (!$user || !$user->hasRole('mahasiswa') || !$user->mahasiswa) {
-            return 'Fitur ini hanya tersedia untuk mahasiswa yang sedang login.';
+        try {
+            $fallbackUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+            
+            $response = Http::withoutVerifying()
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("{$fallbackUrl}?key={$this->apiKey}", [
+                    'contents' => [['parts' => [['text' => $systemInstruction . "\n\nUser: " . $userMessage . "\nAI:"]]]]
+                ]);
+                
+            $data = $response->json();
+            $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Maaf, fallback model juga gagal.';
+            return nl2br(trim($reply));
+        } catch (\Exception $e) {
+            return "Gagal menghubungkan ke semua model AI.";
         }
-        $mahasiswa = $user->mahasiswa;
+    }
 
-        $specificDay = $this->extractEntityValue($entities, 'hari:hari');
-        $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
-        if (!$tahunAkademikAktif) {
-            return 'Saat ini tidak ada semester yang aktif.';
-        }
+    protected function buildSystemPrompt(): string
+    {
+        $now = Carbon::now();
+        $today = $now->isoFormat('dddd, D MMMM Y');
+        $jam = $now->format('H:i');
 
-        $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
+        $userDataContext = "Pengguna: TAMU (Belum Login)";
         
-        $jadwalQuery = Jadwal::whereHas('mataKuliah.mahasiswas', function ($query) use ($mahasiswa, $tahunAkademikAktif) {
-            $query->where('mahasiswas.id', $mahasiswa->id)
-                  ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id);
-        });
-
-        if ($specificDay) {
-            $jadwalQuery->where('hari', 'like', '%' . $specificDay . '%');
+        if (Auth::check() && Auth::user()->hasRole('mahasiswa') && Auth::user()->mahasiswa) {
+            $mhs = Auth::user()->mahasiswa;
+            $jadwal = $this->getJadwalMahasiswaFormatted($mhs);
+            $userDataContext = "User: {$mhs->nama_lengkap} (Mhs)\nJadwal:\n$jadwal";
+        } elseif (Auth::check() && Auth::user()->hasRole('dosen')) {
+            $userDataContext = "User: " . Auth::user()->name . " (Dosen)";
         }
 
-        $jadwals = $jadwalQuery->with('mataKuliah.dosen.user')
-            ->get()
-            ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+        return <<<EOT
+Kamu adalah ZoeChat, asisten akademik STT GPI Papua.
+Waktu: $today $jam.
+Konteks: $userDataContext
 
-        if ($jadwals->isEmpty()) {
-            return $specificDay ? "Tidak ada jadwal kuliah untuk hari {$specificDay}." : 'Anda belum memiliki jadwal kuliah untuk semester ini.';
-        }
-
-        $responseText = $specificDay ? "Berikut adalah jadwal kuliah Anda untuk hari **{$specificDay}**:\n" : "Berikut adalah jadwal kuliah Anda untuk semester ini:\n";
-        foreach ($jadwals as $jadwal) {
-            $jamMulai = Carbon::parse($jadwal->jam_mulai)->format('H:i');
-            $jamSelesai = Carbon::parse($jadwal->jam_selesai)->format('H:i');
-            $namaDosen = optional(optional($jadwal->mataKuliah)->dosen)->nama_lengkap ?? 'N/A';
-            $responseText .= "- **{$jamMulai} - {$jamSelesai}**: {$jadwal->mataKuliah->nama_mk} (Dosen: {$namaDosen})\n";
-        }
-
-        return nl2br($responseText);
+Jawablah pertanyaan seputar kampus dengan ramah & ringkas.
+EOT;
     }
 
-    private function extractEntityValue(array $entities, string $entityName): ?string
+    protected function getJadwalMahasiswaFormatted($mahasiswa): string
     {
-        return $entities[$entityName][0]['value'] ?? null;
+        $ta = TahunAkademik::where('is_active', 1)->first();
+        if (!$ta) return "Tidak ada semester aktif.";
+
+        $jadwals = Jadwal::whereHas('mataKuliah.mahasiswas', function ($q) use ($mahasiswa, $ta) {
+            $q->where('mahasiswas.id', $mahasiswa->id)
+              ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $ta->id);
+        })->with('mataKuliah.dosen')->get();
+
+        if ($jadwals->isEmpty()) return "Belum ada jadwal.";
+
+        $output = "";
+        foreach ($jadwals as $j) {
+            $mk = $j->mataKuliah->nama_mk ?? '-';
+            $jam = Carbon::parse($j->jam_mulai)->format('H:i');
+            $output .= "- {$j->hari}, {$jam}: {$mk}\n";
+        }
+        return $output;
     }
 }

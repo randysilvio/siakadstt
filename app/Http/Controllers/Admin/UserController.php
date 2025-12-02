@@ -11,26 +11,38 @@ use Illuminate\Support\Facades\DB;
 class UserController extends Controller
 {
     /**
-     * Menampilkan daftar semua pengguna.
+     * Menampilkan daftar semua pengguna dengan Smart Filter.
      */
     public function index(Request $request)
     {
-        $search = $request->input('search');
+        $query = User::with('roles')->latest();
 
-        $users = User::with('roles')
-            ->when($search, function ($query, $search) {
-                return $query->where('name', 'like', "%{$search}%")
-                             ->orWhere('email', 'like', "%{$search}%");
-            })
-            ->latest()
-            ->paginate(15);
+        // 1. Filter Pencarian Teks (Nama, Email)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
 
-        return view('admin.user.index', compact('users'));
+        // 2. [BARU] Filter Peran (Role)
+        if ($request->filled('role_id')) {
+            $roleId = $request->input('role_id');
+            // Mencari user yang memiliki role tertentu melalui relasi many-to-many
+            $query->whereHas('roles', function ($q) use ($roleId) {
+                $q->where('roles.id', $roleId);
+            });
+        }
+
+        $users = $query->paginate(15)->withQueryString();
+        
+        // Data untuk Dropdown Filter
+        $roles = Role::orderBy('display_name')->get();
+
+        return view('admin.user.index', compact('users', 'roles'));
     }
 
-    /**
-     * Menampilkan formulir untuk mengedit peran seorang pengguna.
-     */
     public function edit(User $user)
     {
         $roles = Role::all();
@@ -38,9 +50,6 @@ class UserController extends Controller
         return view('admin.user.edit', compact('user', 'roles', 'userRoles'));
     }
 
-    /**
-     * Memperbarui peran seorang pengguna.
-     */
     public function update(Request $request, User $user)
     {
         $request->validate([
@@ -48,38 +57,28 @@ class UserController extends Controller
             'roles.*' => 'exists:roles,id'
         ]);
 
-        // Menggunakan sync untuk memperbarui peran
         $user->roles()->sync($request->input('roles', []));
 
-        // PERBAIKAN: Menggunakan nama rute admin yang benar
         return redirect()->route('admin.user.index')->with('success', 'Peran untuk pengguna ' . $user->name . ' berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus pengguna.
-     * PERINGATAN: Ini akan menghapus data user beserta relasinya (dosen/mahasiswa).
-     */
     public function destroy(User $user)
     {
-        // Pengecekan keamanan dasar: jangan biarkan user menghapus dirinya sendiri
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
         DB::transaction(function () use ($user) {
-            // Hapus data terkait (dosen/mahasiswa) terlebih dahulu jika ada
             if ($user->dosen) {
                 $user->dosen->delete();
             }
             if ($user->mahasiswa) {
                 $user->mahasiswa->delete();
             }
-            // Hapus relasi peran dan kemudian hapus user
             $user->roles()->detach();
             $user->delete();
         });
 
-        // PERBAIKAN: Menggunakan nama rute admin yang benar
         return redirect()->route('admin.user.index')->with('success', 'Pengguna berhasil dihapus.');
     }
 }

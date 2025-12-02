@@ -10,11 +10,19 @@ use Illuminate\Support\Facades\Storage;
 class DokumenPublikController extends Controller
 {
     /**
-     * Menampilkan daftar semua dokumen publik.
+     * Menampilkan daftar dokumen dengan fitur pencarian.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $dokumens = DokumenPublik::latest()->paginate(10);
+        $query = DokumenPublik::latest();
+
+        // Filter Pencarian Judul
+        if ($request->filled('search')) {
+            $query->where('judul_dokumen', 'like', '%' . $request->input('search') . '%');
+        }
+
+        $dokumens = $query->paginate(10)->withQueryString();
+        
         return view('admin.dokumen-publik.index', compact('dokumens'));
     }
 
@@ -34,10 +42,10 @@ class DokumenPublikController extends Controller
         $request->validate([
             'judul_dokumen' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'file_dokumen' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:5120', // Maksimal 5MB
+            'file_dokumen' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240', // Max 10MB biar aman
         ]);
 
-        // Simpan file ke storage/app/public/dokumen-publik
+        // Simpan file
         $filePath = $request->file('file_dokumen')->store('dokumen-publik', 'public');
 
         DokumenPublik::create([
@@ -46,7 +54,8 @@ class DokumenPublikController extends Controller
             'file_path' => $filePath,
         ]);
 
-        return redirect()->route('dokumen-publik.index')->with('success', 'Dokumen publik berhasil diunggah.');
+        // [PERBAIKAN] Menggunakan nama rute admin yang benar
+        return redirect()->route('admin.dokumen-publik.index')->with('success', 'Dokumen publik berhasil diunggah.');
     }
 
     /**
@@ -59,9 +68,9 @@ class DokumenPublikController extends Controller
             Storage::disk('public')->delete($dokumen_publik->file_path);
         }
 
-        // Hapus record dari database
         $dokumen_publik->delete();
 
-        return redirect()->route('dokumen-publik.index')->with('success', 'Dokumen publik berhasil dihapus.');
+        // [PERBAIKAN] Menggunakan nama rute admin yang benar
+        return redirect()->route('admin.dokumen-publik.index')->with('success', 'Dokumen publik berhasil dihapus.');
     }
 }

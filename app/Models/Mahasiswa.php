@@ -54,6 +54,9 @@ class Mahasiswa extends Model
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama_lengkap) . '&background=random';
     }
 
+    /**
+     * Menghitung IPK (Indeks Prestasi Kumulatif) - Semua Semester
+     */
     public function hitungIpk(): float
     {
         $krsLulus = $this->mataKuliahs()->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])->get();
@@ -63,7 +66,7 @@ class Mahasiswa extends Model
 
         $total_bobot_sks = 0;
         $total_sks = 0;
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1];
+        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
 
         foreach ($krsLulus as $mk) {
             $sks = $mk->sks;
@@ -77,10 +80,57 @@ class Mahasiswa extends Model
         return ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0.00;
     }
 
+    /**
+     * Menghitung Total SKS yang sudah lulus
+     */
     public function totalSksLulus(): int
     {
         return $this->mataKuliahs()
             ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
             ->sum('sks');
+    }
+
+    /**
+     * [BARU] Menghitung IPS (Indeks Prestasi Semester)
+     * Mengembalikan Array lengkap agar kompatibel dengan view KHS
+     */
+    public function hitungIps($tahun_akademik_id)
+    {
+        // 1. Ambil matkul di semester tertentu yang sudah dinilai
+        $krs = $this->mataKuliahs()
+                    ->wherePivot('tahun_akademik_id', $tahun_akademik_id)
+                    ->wherePivotNotNull('nilai')
+                    ->get();
+
+        $total_sks = 0;
+        $total_bobot_sks = 0;
+        $nilaiBobot = []; // Menyimpan bobot per matkul (misal: 3 SKS * 4 = 12)
+        
+        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+
+        foreach ($krs as $mk) {
+            $nilai = $mk->pivot->nilai;
+            $sks = $mk->sks;
+
+            if (isset($bobot_nilai[$nilai])) {
+                $bobot = $bobot_nilai[$nilai];
+                $sub_total = $sks * $bobot;
+
+                $total_sks += $sks;
+                $total_bobot_sks += $sub_total;
+                
+                // Simpan untuk ditampilkan di tabel
+                $nilaiBobot[$mk->id] = $sub_total;
+            }
+        }
+
+        $ips = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
+
+        // Mengembalikan array agar view index.blade.php tidak error
+        return [
+            'ips' => $ips,
+            'total_sks' => $total_sks,
+            'nilaiBobot' => $nilaiBobot
+        ];
     }
 }

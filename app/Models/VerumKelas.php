@@ -1,5 +1,6 @@
 <?php
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,21 +15,36 @@ use Illuminate\Database\Eloquent\Model;
  */
 class VerumKelas extends Model {
     use HasFactory;
+    
     protected $table = 'verum_kelas';
-    protected $fillable = ['mata_kuliah_id', 'dosen_id', 'tahun_akademik_id', 'nama_kelas', 'deskripsi', 'kode_kelas'];
+
+    // [PERBAIKAN] Menambahkan 'is_meeting_active' agar bisa di-update oleh Controller
+    protected $fillable = [
+        'mata_kuliah_id', 
+        'dosen_id', 
+        'tahun_akademik_id', 
+        'nama_kelas', 
+        'deskripsi', 
+        'kode_kelas',
+        'is_meeting_active' // <-- Baris PENTING ini yang sebelumnya kurang
+    ];
 
     public function mataKuliah() {
         return $this->belongsTo(MataKuliah::class);
     }
+    
     public function dosen() {
         return $this->belongsTo(Dosen::class);
     }
+    
     public function tahunAkademik() {
         return $this->belongsTo(TahunAkademik::class);
     }
+    
     public function materi() {
         return $this->hasMany(VerumMateri::class, 'kelas_id');
     }
+    
     public function tugas() {
         return $this->hasMany(VerumTugas::class, 'kelas_id');
     }
