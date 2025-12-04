@@ -25,20 +25,21 @@ use App\Http\Controllers\VerumController;
 use App\Http\Controllers\VerumMateriController;
 use App\Http\Controllers\VerumTugasController;
 use App\Http\Controllers\VerumPresensiController;
-use App\Http\Controllers\PerpustakaanController; // <-- Pastikan ini ada
+use App\Http\Controllers\PerpustakaanController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\TendikController;
-// Controller baru untuk manajemen Admin
+// Controller untuk manajemen Admin
 use App\Http\Controllers\Admin\SlideshowController;
 use App\Http\Controllers\Admin\DokumenPublikController;
 use App\Http\Controllers\Admin\EvaluasiSesiController;
 use App\Http\Controllers\Admin\EvaluasiPertanyaanController;
+use App\Http\Controllers\Admin\EvaluasiHasilController; // <-- TAMBAHAN BARU
 use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
-// Controller baru untuk halaman publik
+// Controller untuk halaman publik
 use App\Http\Controllers\Public\DosenProfileController;
-// Controller baru untuk Perpustakaan
+// Controller untuk Perpustakaan
 use App\Http\Controllers\Perpustakaan\PeminjamanController;
 // Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
@@ -79,10 +80,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    // ==================================================================================
-    // ===== PERBAIKAN: Rute 'show' pengumuman yang konflik telah dihapus dari sini =====
-    // ==================================================================================
-
     // Rute umum
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
@@ -94,7 +91,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
         
-        // [BARU] Rute untuk Meeting Online (Jitsi)
+        // Rute untuk Meeting Online (Jitsi)
         Route::patch('/kelas/{verum_kela}/start-meeting', [VerumController::class, 'startMeeting'])->name('meeting.start')->middleware('role:dosen');
         Route::patch('/kelas/{verum_kela}/stop-meeting', [VerumController::class, 'stopMeeting'])->name('meeting.stop')->middleware('role:dosen');
 
@@ -109,12 +106,8 @@ Route::middleware('auth')->group(function () {
 
     // BLOK UNTUK MODUL PERPUSTAKAAN
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
-        
-        // [PERBAIKAN] Seluruh rute perpustakaan sekarang dilindungi oleh middleware 'pustakawan'
         Route::middleware('role:pustakawan')->group(function() {
-            // Rute dashboard sekarang aman di dalam grup ini
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
-
             Route::resource('koleksi', KoleksiController::class);
             Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'create', 'store']);
             Route::get('/pengembalian', [PeminjamanController::class, 'showReturnForm'])->name('peminjaman.returnForm');
@@ -136,7 +129,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/krs/cetak', [CetakController::class, 'cetakKrs'])->name('krs.cetak.final');
         Route::get('/riwayat-pembayaran', [PembayaranController::class, 'riwayat'])->name('pembayaran.riwayat');
 
-        // Rute untuk Evaluasi Dosen
+        // Rute untuk Evaluasi Dosen (Mahasiswa Mengisi)
         Route::get('/evaluasi', [EvaluasiController::class, 'index'])->name('evaluasi.index');
         Route::get('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'show'])->name('evaluasi.show');
         Route::post('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'store'])->name('evaluasi.store');
@@ -217,17 +210,22 @@ Route::middleware('auth')->group(function () {
         Route::resource('mata-kuliah', MataKuliahController::class);
         Route::resource('dosen', DosenController::class);
         
-        // =========================================================================================
-        // ===== PERBAIKAN: Memberikan rute resource penuh kepada admin, termasuk 'create' & 'show'
-        // =========================================================================================
         Route::resource('pengumuman', PengumumanController::class);
         
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::resource('kalender', KalenderController::class)->except(['show']);
         Route::resource('slideshows', SlideshowController::class);
         Route::resource('dokumen-publik', DokumenPublikController::class);
+        
+        // Rute Evaluasi (Manajemen Sesi & Pertanyaan)
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
         Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
+
+        // === [BARU] Rute Hasil Evaluasi ===
+        Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
+        Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
+        // ==================================
+
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
 
         // Rute-rute tunggal

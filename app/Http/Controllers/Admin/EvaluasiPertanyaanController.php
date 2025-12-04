@@ -35,7 +35,8 @@ class EvaluasiPertanyaanController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil dibuat.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil dibuat.');
     }
 
     public function edit(EvaluasiPertanyaan $evaluasi_pertanyaan)
@@ -59,14 +60,15 @@ class EvaluasiPertanyaanController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil diperbarui.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil diperbarui.');
     }
 
     public function destroy(EvaluasiPertanyaan $evaluasi_pertanyaan)
     {
-        // Anda bisa menambahkan pengecekan di sini jika pertanyaan sudah pernah digunakan
         $evaluasi_pertanyaan->delete();
 
-        return redirect()->route('evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil dihapus.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-pertanyaan.index')->with('success', 'Pertanyaan evaluasi berhasil dihapus.');
     }
 }

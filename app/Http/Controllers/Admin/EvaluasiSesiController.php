@@ -17,7 +17,7 @@ class EvaluasiSesiController extends Controller
 
     public function create()
     {
-        // PERBAIKAN: Mengubah 'nama_tahun_akademik' menjadi 'tahun' sesuai skema database
+        // Mengambil data tahun akademik untuk dropdown
         $tahunAkademik = TahunAkademik::orderBy('tahun', 'desc')->get();
         return view('admin.evaluasi.sesi.create', compact('tahunAkademik'));
     }
@@ -40,12 +40,12 @@ class EvaluasiSesiController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil dibuat.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil dibuat.');
     }
 
     public function edit(EvaluasiSesi $evaluasi_sesi)
     {
-        // PERBAIKAN: Mengubah 'nama_tahun_akademik' menjadi 'tahun' sesuai skema database
         $tahunAkademik = TahunAkademik::orderBy('tahun', 'desc')->get();
         return view('admin.evaluasi.sesi.edit', [
             'sesi' => $evaluasi_sesi,
@@ -71,18 +71,20 @@ class EvaluasiSesiController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil diperbarui.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil diperbarui.');
     }
 
     public function destroy(EvaluasiSesi $evaluasi_sesi)
     {
-        // Tambahkan pengecekan jika sesi memiliki jawaban, untuk mencegah penghapusan
+        // Opsional: Cek jika ada jawaban sebelum menghapus
         // if ($evaluasi_sesi->jawaban()->exists()) {
-        //     return back()->with('error', 'Sesi ini tidak dapat dihapus karena sudah memiliki data jawaban.');
+        //     return back()->with('error', 'Gagal hapus: Sesi ini sudah memiliki data jawaban.');
         // }
         
         $evaluasi_sesi->delete();
 
-        return redirect()->route('evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil dihapus.');
+        // PERBAIKAN: Menambahkan 'admin.' pada route
+        return redirect()->route('admin.evaluasi-sesi.index')->with('success', 'Sesi evaluasi berhasil dihapus.');
     }
 }

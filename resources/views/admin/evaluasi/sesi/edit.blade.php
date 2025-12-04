@@ -6,9 +6,11 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('evaluasi-sesi.update', $sesi->id) }}" method="POST">
+            {{-- PERBAIKAN: Route menggunakan 'admin.evaluasi-sesi.update' --}}
+            <form action="{{ route('admin.evaluasi-sesi.update', $sesi->id) }}" method="POST">
                 @csrf
                 @method('PUT')
+                
                 <div class="mb-3">
                     <label for="nama_sesi" class="form-label">Nama Sesi</label>
                     <input type="text" class="form-control @error('nama_sesi') is-invalid @enderror" id="nama_sesi" name="nama_sesi" value="{{ old('nama_sesi', $sesi->nama_sesi) }}" required>
@@ -16,18 +18,23 @@
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                 <div class="mb-3">
+
+                <div class="mb-3">
                     <label for="tahun_akademik_id" class="form-label">Tahun Akademik</label>
                     <select class="form-select @error('tahun_akademik_id') is-invalid @enderror" id="tahun_akademik_id" name="tahun_akademik_id" required>
                         <option value="">Pilih Tahun Akademik</option>
                         @foreach ($tahunAkademik as $ta)
-                            <option value="{{ $ta->id }}" {{ old('tahun_akademik_id', $sesi->tahun_akademik_id) == $ta->id ? 'selected' : '' }}>{{ $ta->nama_tahun_akademik }}</option>
+                            {{-- Menggunakan $ta->tahun sesuai model --}}
+                            <option value="{{ $ta->id }}" {{ old('tahun_akademik_id', $sesi->tahun_akademik_id) == $ta->id ? 'selected' : '' }}>
+                                {{ $ta->tahun ?? $ta->nama_tahun_akademik }} - Semester {{ $ta->semester }}
+                            </option>
                         @endforeach
                     </select>
                     @error('tahun_akademik_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_mulai" class="form-label">Tanggal Mulai</label>
@@ -44,6 +51,7 @@
                         @enderror
                     </div>
                 </div>
+
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $sesi->is_active) ? 'checked' : '' }}>
                     <label class="form-check-label" for="is_active">
@@ -52,7 +60,9 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary">Perbarui</button>
-                <a href="{{ route('evaluasi-sesi.index') }}" class="btn btn-secondary">Batal</a>
+                
+                {{-- PERBAIKAN: Route menggunakan 'admin.evaluasi-sesi.index' --}}
+                <a href="{{ route('admin.evaluasi-sesi.index') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>
     </div>

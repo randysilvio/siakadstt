@@ -19,12 +19,9 @@
     
     @stack('styles')
 </head>
-{{-- ======================================================= --}}
-{{-- ===== PERBAIKAN 1: Menambahkan kelas Bootstrap untuk tata letak "sticky footer" ===== --}}
-{{-- ======================================================= --}}
 <body class="d-flex flex-column min-vh-100">
 
-    {{-- Navigasi Utama Anda --}}
+    {{-- Navigasi Utama --}}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <div class="container">
             @auth
@@ -38,16 +35,18 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     @auth
-                        {{-- Menu Pustakawan yang Disederhanakan --}}
+                        {{-- Menu Pustakawan --}}
                         @if (Auth::user()->hasRole('pustakawan'))
                             <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                             <li class="nav-item"><a class="nav-link" href="{{ route('perpustakaan.koleksi.index') }}">Manajemen Koleksi</a></li>
                         @else
-                            {{-- Menu asli untuk peran lain --}}
+                            {{-- Menu Default --}}
                             <li class="nav-item"><a class="nav-link" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                             @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('dosen') || Auth::user()->hasRole('mahasiswa'))
                                 <li class="nav-item"><a class="nav-link" href="{{ route('verum.index') }}">Verum</a></li>
                             @endif
+                            
+                            {{-- Menu Admin --}}
                             @if(Auth::user()->hasRole('admin'))
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="akademikDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Akademik</a>
@@ -83,9 +82,13 @@
                                     <ul class="dropdown-menu" aria-labelledby="sistemDropdown">
                                         <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
                                         <li><hr class="dropdown-divider"></li>
+                                        
+                                        {{-- ===== UPDATE DISINI: Menambahkan Menu Hasil Evaluasi ===== --}}
                                         <li><h6 class="dropdown-header">Manajemen Evaluasi</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.evaluasi-pertanyaan.index') }}">Pertanyaan Evaluasi</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.evaluasi-hasil.index') }}">Hasil Evaluasi</a></li> {{-- <-- BARU --}}
+                                        
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
                                     </ul>
@@ -98,6 +101,8 @@
                                     </ul>
                                 </li>
                             @endif
+
+                            {{-- Menu Dosen --}}
                             @if(Auth::user()->hasRole('dosen'))
                                 <li class="nav-item"><a class="nav-link" href="{{ route('perwalian.index') }}">Mahasiswa Wali</a></li>
                             @endif
@@ -107,6 +112,8 @@
                             @if(Auth::user()->hasRole('keuangan'))
                                  <li class="nav-item"><a class="nav-link" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
                             @endif
+                            
+                            {{-- Menu Mahasiswa --}}
                             @if(Auth::user()->hasRole('mahasiswa'))
                                 <li class="nav-item"><a class="nav-link" href="{{ route('krs.index') }}">KRS</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('khs.index') }}">KHS</a></li>
@@ -141,21 +148,16 @@
         </div>
     </nav>
 
-    {{-- Konten Utama Halaman (misal: dasbor, form, tabel) --}}
     <main class="container mt-4 mb-5">
         @yield('content')
     </main>
 
-    {{-- ======================================================= --}}
-    {{-- ===== PERBAIKAN 2: Menambahkan kelas mt-auto agar footer selalu di bawah ===== --}}
-    {{-- ======================================================= --}}
     <footer class="footer mt-auto py-3 bg-dark text-white">
         <div class="container text-center">
             <span>&copy; {{ date('Y') }} SIAKAD STT GPI Papua</span>
         </div>
     </footer>
 
-    {{-- Scripts --}}
     @include('partials.chatbot')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -163,4 +165,3 @@
     @stack('scripts')
 </body>
 </html>
-

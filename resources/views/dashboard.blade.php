@@ -9,8 +9,37 @@
         @if(isset($mahasiswa))
             <h2 class="mb-4">Dasbor Mahasiswa</h2>
             
+            {{-- ===== UPDATE BARU: Alert Notifikasi Evaluasi Dosen ===== --}}
+            {{-- Menggunakan logika langsung di View untuk memastikan alert muncul jika ada sesi aktif --}}
+            @php
+                // Cek manual jika variabel controller belum tersedia
+                $cekSesiAktif = \App\Models\EvaluasiSesi::where('is_active', true)
+                                ->where('tanggal_mulai', '<=', now())
+                                ->where('tanggal_selesai', '>=', now())
+                                ->exists();
+                // Prioritaskan variabel dari controller jika ada ($periodeEvaluasiAktif), jika tidak pakai hasil cek manual
+                $tampilkanAlert = (isset($periodeEvaluasiAktif) && $periodeEvaluasiAktif) || $cekSesiAktif;
+            @endphp
+
+            @if($tampilkanAlert)
+                <div class="alert alert-primary d-flex align-items-center mb-4 shadow-sm" role="alert">
+                    <i class="fa-solid fa-bullhorn fs-3 me-3"></i>
+                    <div>
+                        <h5 class="alert-heading fw-bold mb-1">Periode Evaluasi Dosen Sedang Berlangsung!</h5>
+                        <p class="mb-0">
+                            Silakan isi kuesioner evaluasi untuk mata kuliah yang Anda ambil semester ini. 
+                            Masukan Anda sangat berharga.
+                        </p>
+                        <a href="{{ route('evaluasi.index') }}" class="btn btn-sm btn-primary mt-2">
+                            <i class="fa-solid fa-pen-to-square"></i> Mulai Evaluasi Sekarang
+                        </a>
+                    </div>
+                </div>
+            @endif
+            {{-- ========================================================== --}}
+            
             {{-- Notifikasi Tagihan --}}
-            @if($memiliki_tagihan)
+            @if(isset($memiliki_tagihan) && $memiliki_tagihan)
                 <div class="alert alert-danger" role="alert">
                     <strong>Perhatian!</strong> Anda memiliki tagihan pembayaran yang belum lunas.
                     <a href="{{ route('pembayaran.riwayat') }}" class="alert-link">Lihat Riwayat Pembayaran</a> untuk melanjutkan proses akademik.
@@ -18,7 +47,6 @@
             @endif
 
             <div class="row">
-                <!-- Kolom Kiri: Profil & Jadwal -->
                 <div class="col-lg-8">
                     {{-- Kartu Profil --}}
                     <div class="card mb-4">
@@ -84,13 +112,11 @@
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Aksi Cepat, IPK, SKS & Pengumuman -->
                 <div class="col-lg-4">
-                    {{-- [KODE BARU DITAMBAHKAN] Kartu Aksi Cepat --}}
+                    {{-- Kartu Aksi Cepat --}}
                     <div class="card mb-4">
                         <div class="card-header fw-bold">Aksi Cepat</div>
                         <div class="list-group list-group-flush">
-                            {{-- Tombol ini hanya muncul jika periode KRS aktif dan KRS belum final --}}
                             @if(isset($periodeKrsAktif) && $periodeKrsAktif && $mahasiswa->status_krs !== 'Disetujui')
                                 <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action list-group-item-primary">
                                     <strong>Isi / Ubah Kartu Rencana Studi (KRS)</strong>
@@ -98,8 +124,8 @@
                                 </a>
                             @endif
 
-                             {{-- Tombol ini hanya muncul jika periode evaluasi aktif --}}
-                            @if(isset($periodeEvaluasiAktif) && $periodeEvaluasiAktif)
+                            {{-- Tombol Evaluasi (Redundan jika sudah ada alert, tapi tetap bagus disimpan) --}}
+                            @if($tampilkanAlert)
                                 <a href="{{ route('evaluasi.index') }}" class="list-group-item list-group-item-action list-group-item-success">
                                     <strong>Isi Kuesioner Evaluasi Dosen</strong>
                                     <small class="d-block text-muted">Bantu tingkatkan kualitas pengajaran.</small>
@@ -162,19 +188,17 @@
     @endif
 
     {{-- ============================================================== --}}
-    {{-- TAMPILAN DASHBOARD DOSEN (dan peran lainnya) --}}
+    {{-- TAMPILAN DASHBOARD DOSEN --}}
     {{-- ============================================================== --}}
     @if(Auth::user()->hasRole('dosen'))
         <h2 class="mb-4">Dasbor Dosen</h2>
-        {{-- ... (Konten dasbor dosen dapat ditambahkan di sini) ... --}}
+        <div class="alert alert-info">Selamat datang, Bapak/Ibu Dosen. Silakan gunakan menu di atas untuk mengelola perwalian atau perkuliahan.</div>
     @endif
     
     @if(Auth::user()->hasRole('admin'))
         <h2 class="mb-4">Dasbor Administrator</h2>
         <p>Selamat datang, Administrator. Gunakan menu navigasi di atas untuk mengelola sistem.</p>
     @endif
-
-    {{-- ... (Tambahkan blok untuk peran lain seperti pustakawan, keuangan, dll. jika perlu) ... --}}
 
 </div>
 @endsection
@@ -222,7 +246,6 @@
                     }
                 });
             } else {
-                // Tampilkan pesan jika tidak ada data untuk grafik
                 ctx.font = "16px Arial";
                 ctx.fillStyle = "#888";
                 ctx.textAlign = "center";
