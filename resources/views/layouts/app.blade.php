@@ -6,11 +6,18 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sistem Administrasi Kampus</title>
     
-    {{-- Memuat semua CSS utama dari CDN --}}
+    {{-- CSS Bootstrap 5 --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    {{-- CSS Select2 (Optional jika dipakai) --}}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    
+    {{-- Font Awesome --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    {{-- Bootstrap Icons --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     {{-- Memuat CSS Tailwind hanya jika di halaman berita untuk menghindari konflik --}}
     @if(request()->routeIs('berita.index'))
@@ -22,16 +29,26 @@
 <body class="d-flex flex-column min-vh-100">
 
     {{-- Navigasi Utama --}}
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow">
         <div class="container">
+            {{-- BRAND / LOGO --}}
             @auth
-                <a class="navbar-brand" href="{{ route('dashboard') }}">SIAKAD</a>
+                <a class="navbar-brand fw-bold" href="{{ route('dashboard') }}">
+                    <i class="fa-solid fa-graduation-cap me-2"></i>SIAKAD
+                </a>
             @else
-                <a class="navbar-brand" href="/">SIAKAD</a>
+                <a class="navbar-brand fw-bold" href="/">
+                    <i class="fa-solid fa-graduation-cap me-2"></i>SIAKAD
+                </a>
             @endauth
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            {{-- TOMBOL HAMBURGER (MOBILE) --}}
+            {{-- Perhatikan data-bs-target="#navbarNav" harus sama dengan ID div di bawah --}}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
+            {{-- MENU ITEMS --}}
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     @auth
@@ -82,13 +99,10 @@
                                     <ul class="dropdown-menu" aria-labelledby="sistemDropdown">
                                         <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Manajemen Pembayaran</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        
-                                        {{-- ===== UPDATE DISINI: Menambahkan Menu Hasil Evaluasi ===== --}}
                                         <li><h6 class="dropdown-header">Manajemen Evaluasi</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.evaluasi-pertanyaan.index') }}">Pertanyaan Evaluasi</a></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.evaluasi-hasil.index') }}">Hasil Evaluasi</a></li> {{-- <-- BARU --}}
-                                        
+                                        <li><a class="dropdown-item" href="{{ route('admin.evaluasi-hasil.index') }}">Hasil Evaluasi</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
                                     </ul>
@@ -127,14 +141,16 @@
                 <ul class="navbar-nav ms-auto">
                     @auth
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ Auth::user()->name }}</a>
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa-solid fa-user-circle me-1"></i>{{ Auth::user()->name }}
+                            </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Profile</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <button type="submit" class="dropdown-item">Logout</button>
+                                        <button type="submit" class="dropdown-item text-danger">Logout</button>
                                     </form>
                                 </li>
                             </ul>
@@ -158,10 +174,19 @@
         </div>
     </footer>
 
+    {{-- Chatbot --}}
     @include('partials.chatbot')
+
+    {{-- Script JavaScript --}}
+    {{-- JQuery --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    {{-- Bootstrap Bundle (WAJIB: Termasuk Popper.js untuk Dropdown/Collapse) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {{-- Select2 JS --}}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     @stack('scripts')
 </body>
 </html>
