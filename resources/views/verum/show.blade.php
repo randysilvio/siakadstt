@@ -15,7 +15,7 @@
                 <p class="card-text text-secondary mb-0">{{ $verum_kela->deskripsi }}</p>
             </div>
 
-            {{-- [BARU] PANEL KONTROL MEETING (VIDEO CONFERENCE) --}}
+            {{-- PANEL KONTROL MEETING (VIDEO CONFERENCE) --}}
             <div class="text-end">
                 @if($verum_kela->is_meeting_active)
                     <div class="mb-2">
@@ -76,7 +76,7 @@
     </div>
 </div>
 
-{{-- [BARU] MODAL UNTUK JITSI MEET --}}
+{{-- MODAL UNTUK JITSI MEET --}}
 <div class="modal fade" id="jitsiModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 95vw;">
         <div class="modal-content" style="height: 90vh;">
@@ -147,7 +147,7 @@
 @endsection
 
 @push('scripts')
-{{-- [BARU] Script Jitsi Meet External API --}}
+{{-- Script Jitsi Meet External API --}}
 <script src='https://meet.jit.si/external_api.js'></script>
 <script>
     let jitsiApi = null;
@@ -156,44 +156,48 @@
     function joinMeeting() {
         jitsiModal.show();
 
-        // Nama Room Unik (STT-GPI-[KODE KELAS]) untuk mencegah tabrakan dengan meeting orang lain
+        // Nama Room Unik
         const roomName = "STTGPI-Verum-{{ $verum_kela->kode_kelas }}";
         const domain = "meet.jit.si";
+        
         const options = {
             roomName: roomName,
             width: '100%',
             height: '100%',
             parentNode: document.querySelector('#jitsi-container'),
             userInfo: {
-                displayName: "{{ Auth::user()->name }}" // Menggunakan nama user yang sedang login
+                displayName: "{{ Auth::user()->name }}"
             },
             configOverwrite: { 
+                // PERBAIKAN: Ubah ke 'true' agar pop-up login Jitsi bisa muncul
+                prejoinPageEnabled: true, 
                 startWithAudioMuted: true, 
-                startWithVideoMuted: true,
-                prejoinPageEnabled: false // Langsung masuk tanpa halaman pre-join
+                startWithVideoMuted: true
             },
             interfaceConfigOverwrite: {
+                // Menyederhanakan toolbar agar lebih rapi
                 TOOLBAR_BUTTONS: [
-                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                    'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-                    'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-                    'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-                    'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+                    'microphone', 'camera', 'chat', 'desktop', 'fullscreen',
+                    'raisehand', 'tileview', 'hangup', 'toggle-camera', 
+                    'videoquality', 'filmstrip', 'invite', 'stats'
                 ],
             },
             lang: 'id'
         };
 
-        // Bersihkan instance lama jika ada (untuk mencegah duplikasi)
+        // Bersihkan instance lama jika ada
         if(jitsiApi) { jitsiApi.dispose(); }
 
-        // Mulai Jitsi
-        jitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-        // Event listener saat user menutup panggilan (tombol merah di dalam Jitsi)
-        jitsiApi.addEventListener('videoConferenceLeft', function () {
-            closeMeeting();
-        });
+        // PERBAIKAN: Gunakan setTimeout agar Modal Bootstrap selesai render dulu
+        // Ini mencegah masalah iframe tidak muncul atau error ukuran layar
+        setTimeout(() => {
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+            
+            // Event listener saat user menutup panggilan
+            jitsiApi.addEventListener('videoConferenceLeft', function () {
+                closeMeeting();
+            });
+        }, 500); // Jeda 0.5 detik
     }
 
     function closeMeeting() {
