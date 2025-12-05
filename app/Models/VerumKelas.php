@@ -18,7 +18,7 @@ class VerumKelas extends Model
         'nama_kelas',
         'deskripsi',
         'kode_kelas',
-        'is_meeting_active', // Pastikan kolom ini sudah dibuat di Langkah 1
+        'is_meeting_active', // <-- Kolom yang baru kita tambah di Langkah 1
     ];
 
     public function mataKuliah()
@@ -37,9 +37,9 @@ class VerumKelas extends Model
     }
 
     /**
-     * PERBAIKAN UTAMA DISINI:
-     * Menambahkan parameter kedua 'kelas_id' secara eksplisit
-     * agar Laravel tidak mencari 'verum_kelas_id' yang menyebabkan error.
+     * PERBAIKAN FATAL:
+     * Menambahkan parameter kedua 'kelas_id' secara eksplisit.
+     * Tanpa ini, Laravel mencari 'verum_kelas_id' dan menyebabkan error 500.
      */
     public function materi()
     {
@@ -58,6 +58,6 @@ class VerumKelas extends Model
 
     public function presensi()
     {
-        return $this->hasMany(VerumPresensi::class, 'kelas_id'); // Asumsi tabel presensi juga pakai kelas_id
+        return $this->hasMany(VerumPresensi::class, 'kelas_id');
     }
 }
