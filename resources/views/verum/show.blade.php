@@ -79,14 +79,14 @@
 {{-- MODAL UNTUK JITSI MEET --}}
 <div class="modal fade" id="jitsiModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 95vw;">
-        <div class="modal-content" style="height: 90vh;">
+        <div class="modal-content">
             <div class="modal-header bg-dark text-white py-2">
                 <h5 class="modal-title fs-6"><i class="bi bi-camera-video-fill me-2 text-danger"></i>Kelas Online: {{ $verum_kela->nama_kelas }}</h5>
                 <button type="button" class="btn-close btn-close-white" onclick="closeMeeting()" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0 bg-black">
-                {{-- Container tempat Jitsi akan di-render --}}
-                <div id="jitsi-container" style="width: 100%; height: 100%;"></div>
+            <div class="modal-body p-0 bg-black position-relative">
+                {{-- Container Jitsi dengan tinggi pasti 80vh --}}
+                <div id="jitsi-container" style="width: 100%; height: 80vh;"></div>
             </div>
         </div>
     </div>
@@ -154,50 +154,65 @@
     const jitsiModal = new bootstrap.Modal(document.getElementById('jitsiModal'));
 
     function joinMeeting() {
+        // 1. Tampilkan Modal
         jitsiModal.show();
 
-        // Nama Room Unik
-        const roomName = "STTGPI-Verum-{{ $verum_kela->kode_kelas }}";
+        // 2. Siapkan Konfigurasi Jitsi
+        // Bersihkan nama room dari spasi agar lebih kompatibel
+        const kodeKelas = "{{ $verum_kela->kode_kelas }}";
+        const roomName = "STTGPI-Verum-" + kodeKelas.replace(/\s+/g, ''); 
         const domain = "meet.jit.si";
         
         const options = {
             roomName: roomName,
             width: '100%',
-            height: '100%',
+            height: '100%', 
             parentNode: document.querySelector('#jitsi-container'),
             userInfo: {
                 displayName: "{{ Auth::user()->name }}"
             },
             configOverwrite: { 
-                // PERBAIKAN: Ubah ke 'true' agar pop-up login Jitsi bisa muncul
-                prejoinPageEnabled: true, 
+                prejoinPageEnabled: true, // Wajib TRUE agar tombol Login muncul
                 startWithAudioMuted: true, 
                 startWithVideoMuted: true
             },
             interfaceConfigOverwrite: {
-                // Menyederhanakan toolbar agar lebih rapi
                 TOOLBAR_BUTTONS: [
                     'microphone', 'camera', 'chat', 'desktop', 'fullscreen',
                     'raisehand', 'tileview', 'hangup', 'toggle-camera', 
                     'videoquality', 'filmstrip', 'invite', 'stats'
                 ],
+                SHOW_JITSI_WATERMARK: false
             },
             lang: 'id'
         };
 
-        // Bersihkan instance lama jika ada
-        if(jitsiApi) { jitsiApi.dispose(); }
+        // 3. Bersihkan Jitsi lama jika ada
+        if(jitsiApi) { jitsiApi.dispose(); jitsiApi = null; }
+        document.querySelector('#jitsi-container').innerHTML = ""; 
 
-        // PERBAIKAN: Gunakan setTimeout agar Modal Bootstrap selesai render dulu
-        // Ini mencegah masalah iframe tidak muncul atau error ukuran layar
+        // 4. Mulai Jitsi dengan jeda waktu
         setTimeout(() => {
-            jitsiApi = new JitsiMeetExternalAPI(domain, options);
-            
-            // Event listener saat user menutup panggilan
-            jitsiApi.addEventListener('videoConferenceLeft', function () {
-                closeMeeting();
-            });
-        }, 500); // Jeda 0.5 detik
+            try {
+                jitsiApi = new JitsiMeetExternalAPI(domain, options);
+                
+                // === PERBAIKAN PENTING ===
+                // Saya MEMATIKAN event listener 'videoConferenceLeft' di bawah ini.
+                // Ini mencegah modal tertutup otomatis jika Jitsi mengirim sinyal disconnect
+                // (yang sering terjadi jika belum login atau beda protokol http/https)
+                
+                // jitsiApi.addEventListener('videoConferenceLeft', function () {
+                //    closeMeeting();
+                // });
+                
+                console.log("Jitsi API Loaded");
+
+            } catch (error) {
+                console.error("Gagal memuat Jitsi:", error);
+                document.querySelector('#jitsi-container').innerHTML = 
+                    '<div class="text-white text-center p-5"><h3>Gagal memuat Jitsi.</h3><p>Pastikan Anda mengakses web menggunakan <b>HTTPS</b>.</p></div>';
+            }
+        }, 500);
     }
 
     function closeMeeting() {
@@ -205,11 +220,11 @@
             jitsiApi.dispose();
             jitsiApi = null;
         }
+        document.querySelector('#jitsi-container').innerHTML = "";
         jitsiModal.hide();
     }
 </script>
 <style>
-    /* Animasi Berdenyut untuk Badge LIVE */
     @keyframes pulse {
         0% { opacity: 1; }
         50% { opacity: 0.5; }
