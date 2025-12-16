@@ -21,15 +21,8 @@ class KrsController extends Controller
             abort(403, 'Data mahasiswa tidak ditemukan untuk pengguna ini.');
         }
 
-        // =====================================================================
-        // PERUBAHAN: Hapus Redirect agar mahasiswa tetap bisa LIHAT KRS-nya
-        // =====================================================================
-        // if ($mahasiswa->status_krs === 'Disetujui') {
-        //     return redirect()->route('dashboard')->with('warning', '...');
-        // }
-        
-        // Kita kirim variabel flag agar di View tombol simpan bisa disembunyikan
-        $isLocked = ($mahasiswa->status_krs === 'Disetujui' || $mahasiswa->status_krs === 'Menunggu Persetujuan');
+        // Cek status kunci (Lock)
+        $isLocked = ($mahasiswa->status_krs === 'Disetujui');
 
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
@@ -79,12 +72,12 @@ class KrsController extends Controller
             'max_sks' => $max_sks,
             'mk_lulus_ids' => $mk_lulus_ids,
             'periodeAktif' => $periodeAktif,
-            'isLocked' => $isLocked // Kirim status kunci ke view
+            'isLocked' => $isLocked // Variabel kunci dikirim ke view
         ]);
     }
 
     /**
-     * Menyimpan data KRS yang diajukan.
+     * Menyimpan data KRS (Bulk Update / Sync).
      */
     public function store(Request $request)
     {
@@ -92,7 +85,7 @@ class KrsController extends Controller
         
         // PENGAMANAN: Pastikan tetap tidak bisa simpan jika sudah disetujui
         if ($mahasiswa->status_krs === 'Disetujui') {
-            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final.');
+            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final dan disetujui Dosen Wali.');
         }
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
@@ -161,11 +154,31 @@ class KrsController extends Controller
 
         $mahasiswa->mataKuliahs()->sync($syncData);
 
+        // Reset status jika sebelumnya ditolak, agar dosen bisa cek ulang
         if ($mahasiswa->status_krs !== 'Ditolak') {
             $mahasiswa->status_krs = 'Menunggu Persetujuan';
             $mahasiswa->save();
         }
 
         return redirect()->route('krs.index')->with('success', 'KRS berhasil disimpan.');
+    }
+
+    /**
+     * [BARU] Menghapus satu mata kuliah dari KRS Mahasiswa.
+     * Hanya bisa dilakukan jika status KRS belum 'Disetujui'.
+     */
+    public function destroy($id)
+    {
+        $mahasiswa = Auth::user()->mahasiswa;
+
+        // 1. Cek Keamanan Status
+        if ($mahasiswa->status_krs === 'Disetujui') {
+            return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Wali.');
+        }
+
+        // 2. Lakukan Penghapusan (Detach)
+        $mahasiswa->mataKuliahs()->detach($id);
+
+        return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
     }
 }

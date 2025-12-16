@@ -14,27 +14,20 @@ use Illuminate\Http\RedirectResponse;
 
 class EvaluasiController extends Controller
 {
-    /**
-     * Menampilkan daftar mata kuliah yang dapat dievaluasi oleh mahasiswa.
-     */
     public function index(): View
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        if (!$mahasiswa) {
-            abort(403, 'Hanya mahasiswa yang dapat mengakses halaman ini.');
-        }
+        if (!$mahasiswa) { abort(403, 'Hanya mahasiswa yang dapat mengakses halaman ini.'); }
 
         $sesiAktif = EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
                                 ->first();
 
-        if (!$sesiAktif) {
-            return view('evaluasi.tidak_ada_sesi');
-        }
+        if (!$sesiAktif) { return view('evaluasi.tidak_ada_sesi'); }
 
         $mataKuliah = collect();
         if ($mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
@@ -53,9 +46,6 @@ class EvaluasiController extends Controller
         return view('evaluasi.index', compact('sesiAktif', 'mataKuliah', 'evaluasiSelesai'));
     }
 
-    /**
-     * Menampilkan formulir kuesioner evaluasi untuk mata kuliah tertentu.
-     */
     public function show(MataKuliah $mataKuliah): View | RedirectResponse
     {
         $sesiAktif = EvaluasiSesi::where('is_active', true)
@@ -72,9 +62,6 @@ class EvaluasiController extends Controller
         return view('evaluasi.form', compact('sesiAktif', 'mataKuliah', 'pertanyaan'));
     }
 
-    /**
-     * Menyimpan hasil evaluasi dari formulir.
-     */
     public function store(Request $request, MataKuliah $mataKuliah): RedirectResponse
     {
         /** @var \App\Models\User $user */
@@ -82,9 +69,7 @@ class EvaluasiController extends Controller
         $mahasiswa = $user->mahasiswa;
         $dosen = $mataKuliah->dosen;
 
-        if (!$mahasiswa || !$dosen) {
-            abort(403, 'Data mahasiswa atau dosen tidak valid.');
-        }
+        if (!$mahasiswa || !$dosen) { abort(403, 'Data mahasiswa atau dosen tidak valid.'); }
 
         $request->validate([
             'sesi_id' => 'required|exists:evaluasi_sesi,id',
@@ -97,7 +82,17 @@ class EvaluasiController extends Controller
         DB::transaction(function () use ($request, $mahasiswa, $dosen, $mataKuliah, $sesiId) {
             foreach ($request->input('jawaban', []) as $pertanyaanId => $jawaban) {
                 $pertanyaan = EvaluasiPertanyaan::find($pertanyaanId);
+                
                 if ($pertanyaan) {
+                    // LOGIKA BARU: VALIDASI SKALA 1-4
+                    $nilaiSkala = null;
+                    if ($pertanyaan->tipe_jawaban == 'skala_1_5') {
+                        $val = intval($jawaban);
+                        if ($val < 1) $val = 1;
+                        if ($val > 4) $val = 4; // Paksa max 4
+                        $nilaiSkala = $val;
+                    }
+
                     EvaluasiJawaban::updateOrCreate(
                         [
                             'evaluasi_sesi_id' => $sesiId,
@@ -107,7 +102,7 @@ class EvaluasiController extends Controller
                             'evaluasi_pertanyaan_id' => $pertanyaanId,
                         ],
                         [
-                            'jawaban_skala' => ($pertanyaan->tipe_jawaban == 'skala_1_5') ? $jawaban : null,
+                            'jawaban_skala' => $nilaiSkala,
                             'jawaban_teks' => ($pertanyaan->tipe_jawaban == 'teks') ? $jawaban : null,
                         ]
                     );

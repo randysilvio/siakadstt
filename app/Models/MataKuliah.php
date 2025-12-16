@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * --- BLOK INI DIPERBARUI ---
  * @property-read object|null $pivot
  * @property-read \App\Models\Dosen|null $dosen
  * @property-read \App\Models\Kurikulum|null $kurikulum
@@ -26,6 +25,7 @@ class MataKuliah extends Model
         'sks',
         'semester',
         'dosen_id',
+        'file_rps', // <--- TAMBAHAN BARU
     ];
 
     public function kurikulum()

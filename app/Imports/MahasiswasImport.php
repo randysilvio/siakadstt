@@ -10,6 +10,8 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Carbon\Carbon;
 
 class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
 {
@@ -22,13 +24,27 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
 
     public function model(array $row)
     {
-        // --- PERBAIKAN LOGIKA PENYIMPANAN ---
+        $nim = trim((string) $row['nim']);
+        $tahunMasuk = trim((string) $row['tahun_masuk']);
+        $noTelp = trim((string) $row['nomor_telepon']);
 
-        // Inisialisasi variabel untuk menampung model yang berhasil dibuat
+        // Handle Tanggal Lahir (Excel Serial vs Text)
+        $tanggalLahir = null;
+        if (!empty($row['tanggal_lahir'])) {
+            try {
+                if (is_numeric($row['tanggal_lahir'])) {
+                    $tanggalLahir = Date::excelToDateTimeObject($row['tanggal_lahir'])->format('Y-m-d');
+                } else {
+                    $tanggalLahir = Carbon::parse($row['tanggal_lahir'])->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                $tanggalLahir = null;
+            }
+        }
+
         $mahasiswa = null; 
         
-        DB::transaction(function () use ($row, &$mahasiswa) {
-            // 1. Cari atau buat user baru
+        DB::transaction(function () use ($row, $nim, $tahunMasuk, $noTelp, $tanggalLahir, &$mahasiswa) {
             $user = User::firstOrCreate(
                 ['email' => $row['email']],
                 [
@@ -37,48 +53,40 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation
                 ]
             );
 
-            // 2. Lampirkan peran 'mahasiswa' ke pengguna
             if ($this->mahasiswaRole) {
                 $user->roles()->syncWithoutDetaching($this->mahasiswaRole->id);
             }
 
-            // 3. Buat dan SIMPAN data mahasiswa secara eksplisit di dalam transaksi
-            // Hasilnya disimpan ke dalam variabel $mahasiswa
-            $mahasiswa = Mahasiswa::create([
-                'user_id'           => $user->id,
-                'nim'               => $row['nim'],
-                'nama_lengkap'      => $row['nama_lengkap'],
-                'program_studi_id'  => $row['program_studi_id'],
-                'dosen_wali_id'     => $row['dosen_wali_id'],
-                'tahun_masuk'       => $row['tahun_masuk'],
-                'tempat_lahir'      => $row['tempat_lahir'],
-                'tanggal_lahir'     => !empty($row['tanggal_lahir']) ? \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['tanggal_lahir'])->format('Y-m-d') : null,
-                'jenis_kelamin'     => $row['jenis_kelamin'],
-                'alamat'            => $row['alamat'],
-                'nomor_telepon'     => $row['nomor_telepon'],
-                'status_mahasiswa'  => 'Aktif',
-            ]);
+            $mahasiswa = Mahasiswa::updateOrCreate(
+                ['nim' => $nim],
+                [
+                    'user_id'           => $user->id,
+                    'nama_lengkap'      => $row['nama_lengkap'],
+                    'program_studi_id'  => $row['program_studi_id'],
+                    'dosen_wali_id'     => $row['dosen_wali_id'],
+                    'tahun_masuk'       => $tahunMasuk,
+                    'tempat_lahir'      => $row['tempat_lahir'],
+                    'tanggal_lahir'     => $tanggalLahir,
+                    'jenis_kelamin'     => $row['jenis_kelamin'],
+                    'alamat'            => $row['alamat'],
+                    'nomor_telepon'     => $noTelp,
+                    'status_mahasiswa'  => 'Aktif',
+                ]
+            );
         });
         
-        // 4. Kembalikan model yang sudah tersimpan
         return $mahasiswa;
     }
 
     public function rules(): array
     {
         return [
-            'nim'               => 'required|string|unique:mahasiswas,nim',
-            'nama_lengkap'      => 'required|string|max:255',
-            'program_studi_id'  => 'required|integer|exists:program_studis,id',
-            'email'             => 'required|email|unique:users,email', 
-            'password'          => 'required|string|min:8',
-            'dosen_wali_id'     => 'nullable|integer|exists:dosens,id',
-            'tahun_masuk'       => 'required|digits:4|integer',
-            'tempat_lahir'      => 'nullable|string',
-            'tanggal_lahir'     => 'nullable|numeric',
-            'jenis_kelamin'     => 'nullable|in:L,P',
-            'alamat'            => 'nullable|string',
-            'nomor_telepon'     => 'nullable|string',
+            'nim'               => 'required', 
+            'nama_lengkap'      => 'required',
+            'program_studi_id'  => 'required|integer',
+            'email'             => 'required|email', 
+            'password'          => 'required|min:6',
+            'tahun_masuk'       => 'required',
         ];
     }
 }

@@ -13,23 +13,22 @@ use Illuminate\Http\RedirectResponse;
 
 class VerumController extends Controller
 {
-    /**
-     * Terapkan middleware otorisasi pada method tertentu.
-     */
     public function __construct()
     {
-        // Middleware ini akan memastikan hanya user dengan role 'dosen'
-        // yang bisa mengakses method create dan store.
-        $this->middleware('role:dosen')->only(['create', 'store']);
+        // HANYA DOSEN yang boleh membuat kelas atau mengatur meeting
+        $this->middleware('role:dosen')->only(['create', 'store', 'startMeeting', 'stopMeeting']);
     }
 
-    /**
-     * Menampilkan daftar kelas Verum yang bisa diakses oleh pengguna.
-     */
     public function index(): View
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        
+        // 1. BLOKIR ADMIN dan user tanpa peran akademik
+        if ($user->hasRole('admin') && !$user->hasRole('dosen') && !$user->hasRole('mahasiswa')) {
+            abort(403, 'Akses ditolak. Administrator tidak memiliki akses ke E-Learning.');
+        }
+
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
         $semuaKelas = collect();
 
@@ -38,57 +37,67 @@ class VerumController extends Controller
                    ->with('error', 'Saat ini tidak ada Tahun Akademik yang aktif.');
         }
 
-        // Logika baru menggunakan sistem multi-peran
+        // 2. Logika Tampilan Berdasarkan Peran
         if ($user->hasRole('dosen') && $user->dosen) {
+            // Dosen hanya melihat kelas miliknya
             $semuaKelas = VerumKelas::where('dosen_id', $user->dosen->id)
                                 ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-                                ->with('mataKuliah') // Eager load relasi yang dibutuhkan di view
+                                ->with('mataKuliah')
                                 ->get();
         } elseif ($user->hasRole('mahasiswa') && $user->mahasiswa) {
+            // Mahasiswa hanya melihat kelas yang diambil di KRS
             $krsMataKuliahIds = $user->mahasiswa->mataKuliahs()->pluck('mata_kuliahs.id');
 
             $semuaKelas = VerumKelas::whereIn('mata_kuliah_id', $krsMataKuliahIds)
                                 ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-                                ->with(['mataKuliah', 'dosen.user']) // Eager load relasi
+                                ->with(['mataKuliah', 'dosen.user'])
                                 ->get();
+        } else {
+            // Jika user tidak punya data dosen/mahasiswa valid
+            abort(403, 'Data profil akademik tidak ditemukan.');
         }
 
         return view('verum.index', compact('semuaKelas'));
     }
 
-    /**
-     * Menampilkan detail satu kelas Verum.
-     */
     public function show(VerumKelas $verum_kela): View
     {
-        // Lakukan otorisasi di sini jika diperlukan
-        // Contoh: $this->authorize('view', $verum_kela);
+        $user = Auth::user();
+
+        // BLOKIR ADMIN
+        if ($user->hasRole('admin') && !$user->hasRole('dosen')) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        // Validasi Kepemilikan Akses
+        $isDosenPemilik = $user->dosen && $user->dosen->id == $verum_kela->dosen_id;
+        $isMahasiswaTerdaftar = false;
+
+        if ($user->mahasiswa) {
+            // Cek apakah mahasiswa mengambil matkul ini
+            $isMahasiswaTerdaftar = $user->mahasiswa->mataKuliahs->contains($verum_kela->mata_kuliah_id);
+        }
+
+        if (!$isDosenPemilik && !$isMahasiswaTerdaftar) {
+            abort(403, 'Anda tidak terdaftar di kelas ini.');
+        }
 
         $verum_kela->load(['materi', 'tugas', 'postingan.user', 'presensi.kehadiran']);
         return view('verum.show', compact('verum_kela'));
     }
 
-    /**
-     * Menampilkan form untuk membuat kelas baru.
-     */
     public function create(): View
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
-
-        // Pengecekan data dosen tetap diperlukan untuk memastikan relasi ada
+        // Middleware sudah handle role:dosen, tapi pastikan data dosen ada
         if (!$user->dosen) {
-             abort(404, 'Data dosen tidak ditemukan untuk pengguna ini.');
+             abort(404, 'Data dosen tidak ditemukan.');
         }
 
         $mataKuliahs = $user->dosen->mataKuliahs;
-
         return view('verum.create', compact('mataKuliahs'));
     }
 
-    /**
-     * Menyimpan kelas baru yang dibuat.
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -97,17 +106,16 @@ class VerumController extends Controller
             'deskripsi' => 'nullable|string'
         ]);
 
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
 
         if (!$tahunAkademikAktif) {
-            return back()->with('error', 'Tidak dapat membuat kelas karena tidak ada tahun akademik yang aktif.');
+            return back()->with('error', 'Tidak ada tahun akademik aktif.');
         }
 
-        // Pengecekan data dosen tetap diperlukan
-        if (!$user->dosen) {
-            return back()->with('error', 'Data dosen tidak valid.');
+        // Validasi: Dosen hanya boleh buat kelas untuk matkul yang dia ampu
+        if (!$user->dosen->mataKuliahs->contains($request->mata_kuliah_id)) {
+            return back()->with('error', 'Anda tidak mengampu mata kuliah ini.');
         }
 
         VerumKelas::create([
@@ -122,13 +130,10 @@ class VerumController extends Controller
         return redirect()->route('verum.index')->with('success', 'Kelas Verum berhasil dibuat.');
     }
 
-    /**
-     * Menyimpan postingan baru di forum kelas.
-     */
     public function storePost(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
         $request->validate(['konten' => 'required|string']);
-
+        // Akses view show() sudah divalidasi, jadi aman untuk insert
         VerumPostingan::create([
             'kelas_id' => $verum_kela->id,
             'user_id' => Auth::id(),
@@ -138,12 +143,9 @@ class VerumController extends Controller
         return back()->with('success', 'Postingan berhasil ditambahkan.');
     }
 
-    /**
-     * [BARU] Memulai sesi video conference (Hanya Dosen).
-     */
     public function startMeeting(VerumKelas $verum_kela): RedirectResponse
     {
-        // Pastikan hanya dosen pemilik kelas yang bisa mulai
+        // Hanya Dosen Pemilik
         if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
             $verum_kela->update(['is_meeting_active' => true]);
             return back()->with('success', 'Ruang kelas online telah dibuka.');
@@ -151,11 +153,9 @@ class VerumController extends Controller
         return back()->with('error', 'Anda tidak memiliki akses.');
     }
 
-    /**
-     * [BARU] Mengakhiri sesi video conference (Hanya Dosen).
-     */
     public function stopMeeting(VerumKelas $verum_kela): RedirectResponse
     {
+        // Hanya Dosen Pemilik
         if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
             $verum_kela->update(['is_meeting_active' => false]);
             return back()->with('success', 'Kelas online telah diakhiri.');

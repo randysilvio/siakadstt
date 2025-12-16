@@ -9,7 +9,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0 fw-bold">Manajemen Perwalian</h1>
-            <p class="text-muted mb-0">Kelola daftar mahasiswa bimbingan akademik Anda.</p>
+            <p class="text-muted mb-0">Kelola mahasiswa bimbingan dan validasi KRS.</p>
         </div>
         <div class="card bg-primary text-white border-0 shadow-sm px-3 py-2">
             <div class="d-flex align-items-center">
@@ -37,7 +37,7 @@
 
     {{-- TABEL 1: MAHASISWA PERWALIAN SAAT INI --}}
     <div class="card shadow-sm border-0 mb-5">
-        <div class="card-header bg-white py-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-person-check-fill me-2"></i>Mahasiswa Bimbingan Saya</h5>
         </div>
         <div class="card-body p-0">
@@ -47,32 +47,62 @@
                         <tr>
                             <th class="ps-4">NIM</th>
                             <th>Nama Mahasiswa</th>
-                            <th>Program Studi</th>
                             <th>Angkatan</th>
-                            <th class="text-end pe-4">Aksi</th>
+                            <th class="text-center">Status KRS</th>
+                            <th class="text-end pe-4" style="min-width: 200px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($mahasiswa_wali as $mahasiswa)
                             <tr>
                                 <td class="ps-4 fw-bold">{{ $mahasiswa->nim }}</td>
-                                <td>{{ $mahasiswa->nama_lengkap }}</td>
-                                <td>{{ $mahasiswa->programStudi->nama_prodi }}</td>
+                                <td>
+                                    {{ $mahasiswa->nama_lengkap }}
+                                    <small class="d-block text-muted">{{ $mahasiswa->programStudi->nama_prodi }}</small>
+                                </td>
                                 <td>{{ $mahasiswa->tahun_masuk }}</td>
+                                <td class="text-center">
+                                    @if($mahasiswa->status_krs == 'Disetujui')
+                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Disetujui
+                                        </span>
+                                    @elseif($mahasiswa->status_krs == 'Menunggu Persetujuan')
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill">
+                                            <i class="bi bi-hourglass-split me-1"></i> Menunggu
+                                        </span>
+                                    @elseif($mahasiswa->status_krs == 'Ditolak')
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
+                                            <i class="bi bi-x-circle-fill me-1"></i> Ditolak
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">
+                                            <i class="bi bi-pencil me-1"></i> Draft
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="text-end pe-4">
-                                    <form action="{{ route('perwalian.destroy', $mahasiswa->id) }}" method="POST" class="d-inline">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Hapus {{ $mahasiswa->nama_lengkap }} dari daftar bimbingan?')">
-                                            <i class="bi bi-person-dash"></i> Lepas
-                                        </button>
-                                    </form>
+                                    <div class="btn-group">
+                                        {{-- Tombol Detail / Validasi (Untuk melihat matkul & Force Delete) --}}
+                                        {{-- Pastikan Route::get('/perwalian/{mahasiswa}', ...) sudah dibuat di web.php --}}
+                                        <a href="{{ route('perwalian.show', $mahasiswa->id) }}" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-eye"></i> Detail
+                                        </a>
+
+                                        {{-- Tombol Lepas --}}
+                                        <form action="{{ route('perwalian.destroy', $mahasiswa->id) }}" method="POST" class="d-inline">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-end" onclick="return confirm('Lepas mahasiswa {{ $mahasiswa->nama_lengkap }} dari daftar bimbingan?')" title="Lepas Perwalian">
+                                                <i class="bi bi-person-dash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="5" class="text-center py-5 text-muted">
                                     <i class="bi bi-folder2-open fs-1 d-block mb-2"></i>
-                                    Anda belum memiliki mahasiswa bimbingan. Silakan tambahkan di bawah.
+                                    Anda belum memiliki mahasiswa bimbingan.
                                 </td>
                             </tr>
                         @endforelse
@@ -85,7 +115,8 @@
     <hr class="my-5 border-secondary opacity-25">
 
     {{-- BAGIAN 2: TAMBAH MAHASISWA BARU --}}
-    <h3 class="mb-3 fw-bold">Tambah Mahasiswa Bimbingan</h3>
+    <h3 class="mb-3 fw-bold"><i class="bi bi-person-plus me-2"></i>Tambah Mahasiswa Bimbingan</h3>
+    <p class="text-muted mb-4">Cari mahasiswa yang belum memiliki Dosen Wali dan tambahkan ke daftar Anda.</p>
     
     {{-- Smart Filter Bar --}}
     <div class="card mb-4 shadow-sm border-0">
@@ -99,7 +130,6 @@
                         </div>
                     </div>
                     
-                    {{-- [PERBAIKAN] Menggunakan submitFilter() --}}
                     <div class="col-md-3">
                         <select name="program_studi_id" class="form-select" onchange="submitFilter()">
                             <option value="">-- Semua Prodi --</option>
@@ -111,10 +141,9 @@
                         </select>
                     </div>
                     
-                    {{-- [PERBAIKAN] Menggunakan submitFilter() --}}
                     <div class="col-md-3">
                         <select name="angkatan" class="form-select" onchange="submitFilter()">
-                            <option value="">-- Angkatan --</option>
+                            <option value="">-- Semua Angkatan --</option>
                             @foreach($angkatans as $thn)
                                 <option value="{{ $thn }}" {{ request('angkatan') == $thn ? 'selected' : '' }}>
                                     {{ $thn }}
@@ -123,9 +152,12 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <a href="{{ route('perwalian.index') }}" class="btn btn-outline-secondary w-100">Reset</a>
+                        <a href="{{ route('perwalian.index') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
                     </div>
                 </div>
+                {{-- Tombol submit tersembunyi untuk enter key pada search --}}
                 <button type="submit" class="d-none"></button>
             </form>
         </div>
@@ -136,9 +168,9 @@
         @csrf
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold text-secondary">Daftar Mahasiswa Belum Memiliki Wali</h6>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-person-plus-fill me-1"></i> Tambahkan yang Dipilih
+                <h6 class="mb-0 fw-bold text-secondary">Mahasiswa Tersedia (Belum Punya Wali)</h6>
+                <button type="submit" class="btn btn-primary btn-sm px-4">
+                    <i class="bi bi-plus-lg me-1"></i> Klaim Terpilih
                 </button>
             </div>
             <div class="card-body p-0">
@@ -161,7 +193,7 @@
                                     <td class="text-center">
                                         <input class="form-check-input student-checkbox" type="checkbox" name="mahasiswa_ids[]" value="{{ $mahasiswa->id }}">
                                     </td>
-                                    <td class="fw-bold">{{ $mahasiswa->nim }}</td>
+                                    <td class="fw-bold text-primary">{{ $mahasiswa->nim }}</td>
                                     <td>{{ $mahasiswa->nama_lengkap }}</td>
                                     <td><span class="badge bg-light text-dark border">{{ $mahasiswa->programStudi->nama_prodi }}</span></td>
                                     <td>{{ $mahasiswa->tahun_masuk }}</td>
@@ -192,29 +224,30 @@
     </form>
 </div>
 
-{{-- SCRIPT JAVASCRIPT UNTUK MENJAGA POSISI SCROLL --}}
+{{-- SCRIPT: Scroll Retention & Check All --}}
 <script>
-    // 1. Script Check All
-    document.getElementById('checkAll').addEventListener('change', function() {
-        let checkboxes = document.querySelectorAll('.student-checkbox');
-        checkboxes.forEach(cb => cb.checked = this.checked);
-    });
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Check All Functionality
+        const checkAll = document.getElementById('checkAll');
+        if(checkAll){
+            checkAll.addEventListener('change', function() {
+                let checkboxes = document.querySelectorAll('.student-checkbox');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+            });
+        }
 
-    // 2. Script Simpan Posisi Scroll saat Filter
-    function submitFilter() {
-        // Simpan posisi scroll saat ini ke Session Storage
-        sessionStorage.setItem('scrollPosition', window.scrollY);
-        // Submit form
-        document.getElementById('filterForm').submit();
-    }
-
-    // 3. Script Kembalikan Posisi Scroll setelah Reload
-    document.addEventListener("DOMContentLoaded", function(event) { 
+        // 2. Restore Scroll Position
         var scrollpos = sessionStorage.getItem('scrollPosition');
         if (scrollpos) {
             window.scrollTo(0, scrollpos);
             sessionStorage.removeItem('scrollPosition');
         }
     });
+
+    // 3. Save Scroll Position on Filter
+    function submitFilter() {
+        sessionStorage.setItem('scrollPosition', window.scrollY);
+        document.getElementById('filterForm').submit();
+    }
 </script>
 @endsection

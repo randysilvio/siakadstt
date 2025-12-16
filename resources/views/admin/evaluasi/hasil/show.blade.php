@@ -2,9 +2,13 @@
 
 @section('content')
 <div class="container">
-    <div class="mb-3">
-        <a href="{{ route('admin.evaluasi-hasil.index', ['sesi_id' => $sesi->id]) }}" class="text-decoration-none">
-            <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <a href="{{ route('admin.evaluasi-hasil.index', ['sesi_id' => $sesi->id]) }}" class="text-decoration-none btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+        {{-- TOMBOL CETAK PDF --}}
+        <a href="{{ route('admin.evaluasi-hasil.cetak', ['sesi' => $sesi->id, 'dosen' => $dosen->id]) }}" target="_blank" class="btn btn-dark btn-sm">
+            <i class="bi bi-printer-fill me-1"></i> Cetak Laporan
         </a>
     </div>
 
@@ -16,11 +20,12 @@
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
             <div class="card bg-light border-0">
                 <div class="card-body text-center py-2">
-                    <small class="text-muted d-block">Total Rata-rata Akhir</small>
-                    <span class="display-6 fw-bold {{ $totalRataRata >= 4 ? 'text-success' : ($totalRataRata >= 3 ? 'text-warning' : 'text-danger') }}">
+                    <small class="text-muted d-block">Total Rata-rata (Skala 4)</small>
+                    {{-- Ubah logika warna karena max sekarang 4 --}}
+                    <span class="display-6 fw-bold {{ $totalRataRata >= 3.5 ? 'text-success' : ($totalRataRata >= 2.5 ? 'text-warning' : 'text-danger') }}">
                         {{ number_format($totalRataRata, 2) }}
                     </span>
-                    <span class="text-muted fs-5">/ 5.00</span>
+                    <span class="text-muted fs-5">/ 4.00</span>
                 </div>
             </div>
         </div>
@@ -31,7 +36,7 @@
         <div class="col-lg-7 mb-4">
             <div class="card h-100">
                 <div class="card-header fw-bold">
-                    Rincian Penilaian (Skala 1-5)
+                    Rincian Penilaian (Skala 1-4)
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -42,10 +47,11 @@
                                         <td style="width: 50px;" class="align-middle fw-bold text-muted">#{{ $item->urutan }}</td>
                                         <td class="align-middle">{{ $item->pertanyaan }}</td>
                                         <td style="width: 150px;" class="align-middle">
-                                            @php $persen = ($item->skor_rata_rata / 5) * 100; @endphp
+                                            {{-- PERUBAHAN: Dibagi 4 dikali 100 --}}
+                                            @php $persen = ($item->skor_rata_rata / 4) * 100; @endphp
                                             <div class="d-flex align-items-center">
                                                 <div class="progress flex-grow-1 me-2" style="height: 8px;">
-                                                    <div class="progress-bar {{ $item->skor_rata_rata >= 4 ? 'bg-success' : ($item->skor_rata_rata >= 3 ? 'bg-warning' : 'bg-danger') }}" 
+                                                    <div class="progress-bar {{ $item->skor_rata_rata >= 3 ? 'bg-success' : ($item->skor_rata_rata >= 2 ? 'bg-warning' : 'bg-danger') }}" 
                                                          role="progressbar" style="width: {{ $persen }}%"></div>
                                                 </div>
                                                 <span class="fw-bold">{{ number_format($item->skor_rata_rata, 2) }}</span>

@@ -3,7 +3,7 @@
 namespace App\Imports;
 
 use App\Models\MataKuliah;
-use App\Models\Dosen; // Tambahkan ini
+use App\Models\Dosen;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -14,32 +14,36 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation
 
     public function __construct()
     {
-        // Ambil semua data dosen untuk pencocokan NIDN
+        // Cache NIDN -> ID
         $this->dosens = Dosen::pluck('id', 'nidn');
     }
     
     public function model(array $row)
     {
-        // Cari ID dosen berdasarkan NIDN dari file Excel
-        $dosenId = $this->dosens->get($row['nidn_dosen']);
+        $nidn = trim((string) $row['nidn_dosen']);
+        $dosenId = $this->dosens->get($nidn);
+        $kodeMK = trim((string) $row['kode_mk']);
 
-        return new MataKuliah([
-            'kode_mk' => $row['kode_mk'],
-            'nama_mk' => $row['nama_mk'],
-            'sks' => $row['sks'],
-            'semester' => $row['semester'],
-            'dosen_id' => $dosenId, // Gunakan ID dosen yang ditemukan
-        ]);
+        // Jika kode MK sudah ada, update. Jika belum, create.
+        return MataKuliah::updateOrCreate(
+            ['kode_mk' => $kodeMK],
+            [
+                'nama_mk'   => $row['nama_mk'],
+                'sks'       => $row['sks'],
+                'semester'  => $row['semester'],
+                'dosen_id'  => $dosenId, // Bisa null jika NIDN tidak ditemukan di DB
+            ]
+        );
     }
 
     public function rules(): array
     {
         return [
-            'kode_mk' => 'required|string|unique:mata_kuliahs,kode_mk',
-            'nama_mk' => 'required|string',
-            'sks' => 'required|integer',
-            'semester' => 'required|integer',
-            'nidn_dosen' => 'required|exists:dosens,nidn', // Validasi NIDN dosen harus ada
+            'kode_mk'    => 'required',
+            'nama_mk'    => 'required',
+            'sks'        => 'required|integer',
+            'semester'   => 'required|integer',
+            'nidn_dosen' => 'required', // Validasi 'exists' dihapus agar row tidak gagal total, tapi dosen_id jadi null
         ];
     }
 }

@@ -10,6 +10,12 @@
     .rating-group .form-check {
         margin-bottom: 0;
     }
+    /* Tambahan styling agar label lebih jelas */
+    .scale-label {
+        font-weight: bold;
+        font-size: 0.9em;
+        color: #555;
+    }
 </style>
 @endsection
 
@@ -38,16 +44,19 @@
                     <div class="mb-4">
                         <p><strong>{{ $index + 1 }}. {{ $p->pertanyaan }}</strong></p>
 
-                        @if ($p->tipe_jawaban == 'skala_1_5')
+                        @if ($p->tipe_jawaban == 'skala_1_5') {{-- Nama tipe di DB tetap skala_1_5 tidak masalah --}}
                             <div class="rating-group">
-                                <span class="me-2">Sangat Buruk</span>
-                                @for ($i = 1; $i <= 5; $i++)
+                                <span class="me-2 scale-label text-danger">Kurang (1)</span>
+                                
+                                {{-- PERUBAHAN: Loop hanya sampai 4 --}}
+                                @for ($i = 1; $i <= 4; $i++)
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="radio" name="jawaban[{{ $p->id }}]" id="skala_{{ $p->id }}_{{ $i }}" value="{{ $i }}" required>
                                     <label class="form-check-label" for="skala_{{ $p->id }}_{{ $i }}">{{ $i }}</label>
                                 </div>
                                 @endfor
-                                <span class="ms-2">Sangat Baik</span>
+                                
+                                <span class="ms-2 scale-label text-success">Sangat Baik (4)</span>
                             </div>
                         @elseif ($p->tipe_jawaban == 'teks')
                             <textarea name="jawaban[{{ $p->id }}]" class="form-control" rows="3" placeholder="Tuliskan masukan atau saran Anda di sini..." required></textarea>

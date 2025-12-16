@@ -12,40 +12,45 @@ use Illuminate\View\View;
 class NilaiController extends Controller
 {
     /**
-     * Menampilkan daftar mata kuliah untuk dipilih (HANYA UNTUK ADMIN).
+     * Menampilkan daftar mata kuliah (HANYA UNTUK DOSEN PENGAMPU).
      */
     public function index(): View
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Menggunakan Gate untuk otorisasi yang lebih bersih
-        $this->authorize('viewAny', MataKuliah::class);
+        // 1. BLOKIR ADMIN & Peran Lain
+        if (!$user->hasRole('dosen') || !$user->dosen) {
+            abort(403, 'Akses ditolak. Halaman ini hanya untuk Dosen Pengampu.');
+        }
 
-        $mata_kuliahs = MataKuliah::with('dosen.user')->get();
+        // 2. Hanya ambil mata kuliah milik dosen tersebut
+        $mata_kuliahs = MataKuliah::where('dosen_id', $user->dosen->id)->get();
+        
         return view('nilai.index', compact('mata_kuliahs'));
     }
 
     /**
-     * Menampilkan form untuk input nilai (ADMIN, DOSEN PENGAMPU & KAPRODI).
+     * Menampilkan form input nilai (HANYA DOSEN PENGAMPU).
      */
     public function show(MataKuliah $mataKuliah): View
     {
-        // Otorisasi menggunakan Gate yang sudah kita definisikan
-        $this->authorize('inputNilai', $mataKuliah);
+        $user = Auth::user();
 
-        // Ambil tahun akademik yang sedang aktif.
+        // 1. Validasi Kepemilikan Mata Kuliah
+        if (!$user->dosen || $user->dosen->id !== $mataKuliah->dosen_id) {
+            abort(403, 'Anda tidak berhak menginput nilai untuk mata kuliah ini.');
+        }
+
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
 
         if (!$tahunAkademikAktif) {
-            // Mengatur relasi mahasiswas menjadi koleksi kosong jika tidak ada semester aktif
             $mataKuliah->setRelation('mahasiswas', collect());
-            session()->flash('error', 'Tidak ada Tahun Akademik yang aktif. Silakan hubungi Administrator.');
+            session()->flash('error', 'Tidak ada Tahun Akademik yang aktif.');
         } else {
-            // Muat relasi 'mahasiswas' HANYA untuk mahasiswa yang mengambil
-            // mata kuliah ini di semester yang sedang aktif.
+            // Load mahasiswa di semester aktif saja
             $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
-                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id);
+                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
+                      ->orderBy('nama_lengkap', 'asc');
             }]);
         }
         
@@ -53,7 +58,7 @@ class NilaiController extends Controller
     }
 
     /**
-     * Menyimpan nilai yang diinput (ADMIN, DOSEN PENGAMPU & KAPRODI).
+     * Menyimpan nilai (HANYA DOSEN PENGAMPU).
      */
     public function store(Request $request): RedirectResponse
     {
@@ -63,17 +68,17 @@ class NilaiController extends Controller
         ]);
     
         $mataKuliah = MataKuliah::findOrFail($request->mata_kuliah_id);
+        $user = Auth::user();
 
-        // Otorisasi menggunakan Gate sebelum menyimpan
-        $this->authorize('inputNilai', $mataKuliah);
+        // 1. Validasi Kepemilikan (Double Check sebelum save)
+        if (!$user->dosen || $user->dosen->id !== $mataKuliah->dosen_id) {
+            abort(403, 'Akses ditolak. Validasi dosen gagal.');
+        }
 
-        // Ambil tahun akademik yang sedang aktif.
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
         
         if ($request->has('nilai')) {
             foreach ($request->nilai as $mahasiswa_id => $nilai) {
-                // Gunakan wherePivot untuk memastikan kita HANYA mengupdate
-                // record nilai untuk semester yang aktif.
                 $mataKuliah->mahasiswas()
                     ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
                     ->updateExistingPivot($mahasiswa_id, ['nilai' => $nilai ? strtoupper($nilai) : null]);

@@ -2,113 +2,136 @@
 
 @section('content')
 <div class="container">
-    {{-- Bagian Header (mengikuti struktur asli Anda) --}}
-    <h2 class="mb-4">Dasbor Perpustakaan</h2>
-    <p class="lead">Selamat datang kembali, {{ Auth::user()->name }}</p>
-    <hr class="mb-4">
-
-    {{-- =============================================== --}}
-    {{-- BAGIAN BARU: Tombol Aksi Cepat --}}
-    {{-- =============================================== --}}
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <a href="{{ route('perpustakaan.peminjaman.create') }}" class="btn btn-primary btn-lg w-100 py-3 shadow-sm">
-                <i class="fas fa-plus-circle me-2"></i>Catat Peminjaman Baru
-            </a>
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="mb-0 fw-bold text-dark">Dashboard Perpustakaan</h2>
+            <p class="text-muted mb-0">Kelola sirkulasi dan koleksi perpustakaan.</p>
         </div>
-        <div class="col-md-4 mb-3">
-            <a href="{{ route('perpustakaan.peminjaman.returnForm') }}" class="btn btn-success btn-lg w-100 py-3 shadow-sm">
-                <i class="fas fa-undo-alt me-2"></i>Proses Pengembalian
-            </a>
-        </div>
-        <div class="col-md-4 mb-3">
-            <a href="{{ route('perpustakaan.koleksi.index') }}" class="btn btn-info btn-lg w-100 py-3 shadow-sm">
-                <i class="fas fa-book me-2"></i>Kelola Koleksi Buku
-            </a>
+        <div class="text-end">
+            <span class="badge bg-light text-dark border p-2">
+                <i class="bi bi-clock me-1"></i> {{ now()->format('d M Y, H:i') }}
+            </span>
         </div>
     </div>
 
-    {{-- =============================================== --}}
-    {{-- BAGIAN BARU: Kartu Statistik Lengkap --}}
-    {{-- =============================================== --}}
-    <div class="row">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card text-white bg-primary shadow h-100">
+    {{-- KARTU STATISTIK UTAMA --}}
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-primary text-white" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
                 <div class="card-body">
-                    <h5 class="card-title">Total Judul Buku</h5>
-                    <p class="card-text fs-2 fw-bold">{{ $totalJudul ?? 0 }}</p>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold opacity-75 mb-1">Total Judul</h6>
+                            <h2 class="fw-bold mb-0">{{ $totalJudul ?? 0 }}</h2>
+                        </div>
+                        <i class="bi bi-journal-bookmark-fill fs-3 opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card text-white bg-secondary shadow h-100">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-info text-white" style="background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);">
                 <div class="card-body">
-                    <h5 class="card-title">Total Eksemplar</h5>
-                    <p class="card-text fs-2 fw-bold">{{ $totalEksemplar ?? 0 }}</p>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold opacity-75 mb-1">Total Eksemplar</h6>
+                            <h2 class="fw-bold mb-0">{{ $totalEksemplar ?? 0 }}</h2>
+                        </div>
+                        <i class="bi bi-collection-fill fs-3 opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card text-white bg-success shadow h-100">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-success text-white" style="background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);">
                 <div class="card-body">
-                    <h5 class="card-title">Peminjaman Aktif</h5>
-                    <p class="card-text fs-2 fw-bold">{{ $peminjamanAktif ?? 0 }}</p>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold opacity-75 mb-1">Sedang Dipinjam</h6>
+                            <h2 class="fw-bold mb-0">{{ $peminjamanAktif ?? 0 }}</h2>
+                        </div>
+                        <i class="bi bi-box-arrow-right fs-3 opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card text-white bg-danger shadow h-100">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-danger text-white" style="background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);">
                 <div class="card-body">
-                    <h5 class="card-title">Buku Terlambat</h5>
-                    <p class="card-text fs-2 fw-bold">{{ $terlambat ?? 0 }}</p>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small fw-bold opacity-75 mb-1">Terlambat</h6>
+                            <h2 class="fw-bold mb-0">{{ $terlambat ?? 0 }}</h2>
+                        </div>
+                        <i class="bi bi-exclamation-triangle-fill fs-3 opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- =============================================== --}}
-    {{-- BAGIAN BARU: Aktivitas & Laporan --}}
-    {{-- =============================================== --}}
-    <div class="row">
-        {{-- Panel Kiri: Aktivitas --}}
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header fw-bold">Aktivitas Sirkulasi Terakhir</div>
+    <div class="row g-4 mb-5">
+        {{-- MENU AKSI CEPAT --}}
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="fw-bold mb-0 text-secondary"><i class="bi bi-lightning-fill me-2 text-warning"></i>Aksi Cepat</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ route('perpustakaan.peminjaman.create') }}" class="btn btn-outline-primary py-3 text-start">
+                            <i class="bi bi-plus-circle-fill me-2 fs-5 align-middle"></i> Catat Peminjaman
+                        </a>
+                        <a href="{{ route('perpustakaan.peminjaman.returnForm') }}" class="btn btn-outline-success py-3 text-start">
+                            <i class="bi bi-arrow-return-left me-2 fs-5 align-middle"></i> Proses Pengembalian
+                        </a>
+                        <a href="{{ route('perpustakaan.koleksi.index') }}" class="btn btn-outline-dark py-3 text-start">
+                            <i class="bi bi-book-half me-2 fs-5 align-middle"></i> Kelola Koleksi Buku
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- AKTIVITAS TERAKHIR --}}
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-secondary"><i class="bi bi-clock-history me-2"></i>Aktivitas Sirkulasi</h5>
+                    <a href="{{ route('perpustakaan.peminjaman.history') }}" class="small text-decoration-none fw-bold">Lihat Semua</a>
+                </div>
                 <div class="list-group list-group-flush">
                     @forelse ($aktivitasTerakhir as $aktivitas)
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ $aktivitas->user->name ?? 'N/A' }}</h6>
-                                <small>{{ \Carbon\Carbon::parse($aktivitas->created_at)->diffForHumans() }}</small>
+                        <div class="list-group-item px-4 py-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle p-2 me-3 text-secondary">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-dark">{{ $aktivitas->user->name ?? 'User Dihapus' }}</h6>
+                                        <small class="text-muted">{{ $aktivitas->koleksi->judul ?? 'Buku Dihapus' }}</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    @if($aktivitas->status == 'Dipinjam')
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill px-3">Meminjam</span>
+                                    @else
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3">Mengembalikan</span>
+                                    @endif
+                                    <div class="small text-muted mt-1">{{ $aktivitas->updated_at->diffForHumans() }}</div>
+                                </div>
                             </div>
-                            <p class="mb-1">
-                                @if($aktivitas->status == 'Dipinjam')
-                                    Meminjam buku: <strong>{{ $aktivitas->koleksi->judul ?? 'N/A' }}</strong>
-                                @else
-                                    Mengembalikan buku: <strong>{{ $aktivitas->koleksi->judul ?? 'N/A' }}</strong>
-                                @endif
-                            </p>
                         </div>
                     @empty
-                        <div class="list-group-item text-center text-muted">Belum ada aktivitas.</div>
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">Belum ada aktivitas sirkulasi.</p>
+                        </div>
                     @endforelse
-                </div>
-            </div>
-        </div>
-        {{-- Panel Kanan: Laporan & Riwayat --}}
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header fw-bold">Laporan & Riwayat</div>
-                <div class="list-group list-group-flush">
-                    <a href="{{ route('perpustakaan.peminjaman.index') }}" class="list-group-item list-group-item-action">Lihat Semua Peminjaman Aktif</a>
-                    <a href="{{ route('perpustakaan.peminjaman.history') }}" class="list-group-item list-group-item-action">Lihat Riwayat Peminjaman</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-@push('styles')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-@endpush
 @endsection

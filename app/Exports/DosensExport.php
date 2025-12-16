@@ -6,34 +6,33 @@ use App\Models\Dosen;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize
+class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, WithMapping
 {
     public function collection()
     {
-        // PERBAIKAN: Memilih semua kolom yang relevan untuk diekspor
-        return Dosen::select(
-            'nidn', 
-            'nama_lengkap', 
-            'email_institusi', 
-            'jabatan_akademik', 
-            'bidang_keahlian', 
-            'link_google_scholar', 
-            'link_sinta'
-        )->get();
+        return Dosen::all();
+    }
+
+    public function map($dosen): array
+    {
+        return [
+            $dosen->nidn,
+            $dosen->nama_lengkap,
+            $dosen->email_institusi,
+            $dosen->jabatan_akademik,
+            $dosen->bidang_keahlian,
+            $dosen->link_google_scholar,
+            $dosen->link_sinta,
+        ];
     }
 
     public function headings(): array
     {
-        // PERBAIKAN: Menambahkan header kolom yang sesuai
         return [
-            'NIDN',
-            'Nama Lengkap',
-            'Email Institusi',
-            'Jabatan Akademik',
-            'Bidang Keahlian',
-            'Link Google Scholar',
-            'Link SINTA',
+            'NIDN', 'Nama Lengkap', 'Email Institusi', 'Jabatan Akademik', 
+            'Bidang Keahlian', 'Link Google Scholar', 'Link SINTA'
         ];
     }
 }

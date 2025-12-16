@@ -6,7 +6,6 @@
 
     <div class="card">
         <div class="card-body">
-            {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
             <form action="{{ route('admin.evaluasi-pertanyaan.store') }}" method="POST">
                 @csrf
                 <div class="mb-3">
@@ -20,9 +19,11 @@
                     <div class="col-md-6 mb-3">
                         <label for="tipe_jawaban" class="form-label">Tipe Jawaban</label>
                         <select class="form-select @error('tipe_jawaban') is-invalid @enderror" id="tipe_jawaban" name="tipe_jawaban" required>
-                            <option value="skala_1_5" {{ old('tipe_jawaban') == 'skala_1_5' ? 'selected' : '' }}>Skala 1-5</option>
+                            {{-- PERBAIKAN: Value tetap 'skala_1_5' agar match database, tapi Label diganti 1-4 --}}
+                            <option value="skala_1_5" {{ old('tipe_jawaban') == 'skala_1_5' ? 'selected' : '' }}>Skala 1-4 (Tanpa Nilai Tengah)</option>
                             <option value="teks" {{ old('tipe_jawaban') == 'teks' ? 'selected' : '' }}>Teks</option>
                         </select>
+                        <div class="form-text small text-muted">Pilih "Skala 1-4" untuk penilaian angka, atau "Teks" untuk masukan/saran.</div>
                         @error('tipe_jawaban')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -42,7 +43,6 @@
                     </label>
                 </div>
                 <button type="submit" class="btn btn-primary">Simpan</button>
-                {{-- PERBAIKAN: Menggunakan nama rute yang benar --}}
                 <a href="{{ route('admin.evaluasi-pertanyaan.index') }}" class="btn btn-secondary">Batal</a>
             </form>
         </div>
