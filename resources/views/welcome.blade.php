@@ -8,6 +8,7 @@
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|raleway:700,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     {{-- Libraries --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
@@ -39,7 +40,7 @@
 
     {{-- ================= HEADER / NAVBAR ================= --}}
     <header class="bg-white shadow-sm sticky top-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center bg-white relative z-50">
             {{-- Logo & Brand --}}
             <a href="{{ route('welcome') }}" class="flex items-center space-x-3 group">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI Papua" class="h-12 w-12 transition-transform group-hover:scale-110">
@@ -60,16 +61,28 @@
             </div>
 
             {{-- Mobile Menu Button (Hamburger) --}}
-            <button class="md:hidden text-gray-600 focus:outline-none">
+            <button id="mobile-menu-btn" class="md:hidden text-gray-600 focus:outline-none p-2 rounded hover:bg-gray-100">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
         </nav>
+
+        {{-- Mobile Menu Dropdown (Hidden by default) --}}
+        <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl z-40 transition-all duration-300 origin-top transform">
+            <div class="flex flex-col p-6 space-y-4">
+                <a href="#berita" class="mobile-link text-base font-semibold text-gray-600 hover:text-teal-600 py-2 border-b border-gray-50">Berita</a>
+                <a href="#prodi" class="mobile-link text-base font-semibold text-gray-600 hover:text-teal-600 py-2 border-b border-gray-50">Program Studi</a>
+                <a href="#dokumen" class="mobile-link text-base font-semibold text-gray-600 hover:text-teal-600 py-2 border-b border-gray-50">Dokumen</a>
+                <a href="{{ route('login') }}" class="bg-teal-600 text-white text-center py-3 rounded-lg font-bold shadow hover:bg-teal-700 mt-2">
+                    LOGIN SIAKAD
+                </a>
+            </div>
+        </div>
     </header>
 
     <main class="flex-grow">
         {{-- ================= HERO SLIDESHOW ================= --}}
         <section class="relative bg-slate-900">
-            @if($slides->isNotEmpty())
+            @if(isset($slides) && $slides->isNotEmpty())
                 <div id="hero-slideshow" class="splide hero-height" aria-label="Galeri Kegiatan Kampus">
                     <div class="splide__track h-full">
                         <ul class="splide__list h-full">
@@ -95,8 +108,9 @@
                 </div>
             @else
                 {{-- Fallback jika tidak ada slide --}}
-                <div class="hero-height relative bg-slate-800 flex items-center justify-center">
-                    <div class="text-center text-white px-4">
+                <div class="hero-height relative bg-slate-800 flex items-center justify-center bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop');">
+                    <div class="absolute inset-0 bg-slate-900/60"></div>
+                    <div class="relative z-10 text-center text-white px-4">
                         <h1 class="text-4xl md:text-6xl font-heading font-bold mb-4">Selamat Datang</h1>
                         <p class="text-xl text-gray-300">Sistem Informasi Akademik STT GPI Papua</p>
                     </div>
@@ -111,7 +125,7 @@
                     {{-- Item 1: Berita --}}
                     <a href="#berita" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
                         <div class="h-14 w-14 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-blue-600 group-hover:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3h2m-4 3h2m-4 3h2" /></svg>
+                            <i class="fa-regular fa-newspaper text-2xl"></i>
                         </div>
                         <span class="text-sm font-bold text-slate-700 group-hover:text-blue-600">Berita & Info</span>
                     </a>
@@ -119,7 +133,7 @@
                     {{-- Item 2: Direktori Dosen --}}
                     <a href="{{ route('dosen.public.index') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
                         <div class="h-14 w-14 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-teal-600 group-hover:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21v-1a6 6 0 00-1.781-4.121" /></svg>
+                            <i class="fa-solid fa-chalkboard-user text-2xl"></i>
                         </div>
                         <span class="text-sm font-bold text-slate-700 group-hover:text-teal-600">Direktori Dosen</span>
                     </a>
@@ -127,7 +141,7 @@
                     {{-- Item 3: Dokumen --}}
                     <a href="#dokumen" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
                         <div class="h-14 w-14 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-indigo-600 group-hover:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <i class="fa-solid fa-file-arrow-down text-2xl"></i>
                         </div>
                         <span class="text-sm font-bold text-slate-700 group-hover:text-indigo-600">Unduh Dokumen</span>
                     </a>
@@ -135,7 +149,7 @@
                     {{-- Item 4: Kontak --}}
                     <a href="#kontak" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
                         <div class="h-14 w-14 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-orange-600 group-hover:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                            <i class="fa-solid fa-phone text-2xl"></i>
                         </div>
                         <span class="text-sm font-bold text-slate-700 group-hover:text-orange-600">Kontak Kami</span>
                     </a>
@@ -143,7 +157,7 @@
                     {{-- Item 5: Login --}}
                     <a href="{{ route('login') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
                         <div class="h-14 w-14 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-slate-800 group-hover:text-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                            <i class="fa-solid fa-right-to-bracket text-2xl"></i>
                         </div>
                         <span class="text-sm font-bold text-slate-700 group-hover:text-slate-800">Login SIAKAD</span>
                     </a>
@@ -162,11 +176,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     {{-- Stat Mahasiswa --}}
                     <div class="bg-gradient-to-br from-teal-50 to-white border border-teal-100 p-8 rounded-2xl shadow-sm text-center hover:shadow-md transition duration-300">
+                        <div class="text-teal-600 text-4xl mb-2"><i class="fa-solid fa-user-graduate"></i></div>
                         <h3 class="text-5xl font-bold text-teal-600 mb-2" data-counter-target="{{ $totalMahasiswa ?? 0 }}">0</h3>
                         <p class="text-lg font-semibold text-slate-700">Mahasiswa Aktif</p>
                     </div>
                     {{-- Stat Dosen --}}
                     <div class="bg-gradient-to-br from-sky-50 to-white border border-sky-100 p-8 rounded-2xl shadow-sm text-center hover:shadow-md transition duration-300">
+                        <div class="text-sky-600 text-4xl mb-2"><i class="fa-solid fa-person-chalkboard"></i></div>
                         <h3 class="text-5xl font-bold text-sky-600 mb-2" data-counter-target="{{ $totalDosen ?? 0 }}">0</h3>
                         <p class="text-lg font-semibold text-slate-700">Dosen Pengajar</p>
                     </div>
@@ -187,12 +203,12 @@
                                 <div class="h-1 w-20 bg-teal-500 rounded mt-2"></div>
                             </div>
                             <a href="{{ route('berita.index') }}" class="text-teal-600 hover:text-teal-800 font-semibold text-sm flex items-center">
-                                Lihat Semua <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                Lihat Semua <i class="fa-solid fa-arrow-right ml-2"></i>
                             </a>
                         </div>
 
                         {{-- Berita Utama --}}
-                        @if($beritaUtama)
+                        @if(isset($beritaUtama) && $beritaUtama)
                         <div class="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 mb-8 bg-white h-[400px]">
                             <img src="{{ $beritaUtama->foto ? asset('storage/' . $beritaUtama->foto) : 'https://via.placeholder.com/800x600/e2e8f0/475569?text=STT+GPI' }}" 
                                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="{{ $beritaUtama->judul }}">
@@ -208,7 +224,7 @@
                                 </a>
                                 <p class="text-gray-300 text-sm mb-4 line-clamp-2">{{ Str::limit(strip_tags($beritaUtama->konten), 150) }}</p>
                                 <div class="flex items-center text-gray-400 text-xs">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <i class="fa-regular fa-calendar mr-2"></i>
                                     {{ $beritaUtama->created_at->isoFormat('D MMMM YYYY') }}
                                 </div>
                             </div>
@@ -235,7 +251,9 @@
                                 </div>
                             </div>
                             @empty
-                                <div class="col-span-2 text-center text-gray-500 py-4">Tidak ada berita lain.</div>
+                                @if(!isset($beritaUtama))
+                                <div class="col-span-2 text-center text-gray-500 py-4">Belum ada berita.</div>
+                                @endif
                             @endforelse
                         </div>
                     </div>
@@ -260,7 +278,7 @@
                                             <h4 class="font-bold text-slate-800 leading-snug mb-1 group-hover:text-teal-600 transition">{{ $kegiatan->judul_kegiatan }}</h4>
                                             <p class="text-xs text-gray-500 mb-2 line-clamp-2">{{ Str::limit($kegiatan->deskripsi, 60) }}</p>
                                             <span class="inline-flex items-center text-xs text-gray-400">
-                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                <i class="fa-regular fa-clock mr-1"></i>
                                                 {{ $kegiatan->tanggal_mulai->format('H:i') }} WIT
                                             </span>
                                         </div>
@@ -268,7 +286,7 @@
                                 </div>
                                 @empty
                                 <div class="p-8 text-center text-gray-500">
-                                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <i class="fa-regular fa-calendar-xmark text-4xl text-gray-300 mb-3"></i>
                                     <p>Belum ada agenda terdekat.</p>
                                 </div>
                                 @endforelse
@@ -283,7 +301,7 @@
             </div>
         </section>
 
-        {{-- ================= PROGRAM STUDI (TANPA FOTO) ================= --}}
+        {{-- ================= PROGRAM STUDI ================= --}}
         <section id="prodi" class="py-16 bg-white">
             <div class="container mx-auto px-6">
                 <div class="text-center mb-12">
@@ -304,8 +322,7 @@
                                 {{ $prodi->deskripsi_singkat ?? 'Program studi ini dirancang untuk memperlengkapi mahasiswa dengan pengetahuan teologi yang mendalam dan keterampilan praktis.' }}
                             </p>
                             <a href="#" class="inline-flex items-center text-teal-600 font-bold hover:text-teal-800 transition">
-                                Pelajari Selengkapnya 
-                                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                Pelajari Selengkapnya <i class="fa-solid fa-arrow-right ml-2 transform group-hover:translate-x-1 transition"></i>
                             </a>
                         </div>
                     </div>
@@ -330,13 +347,13 @@
                     @forelse($dokumen as $doc)
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex items-start space-x-4 group">
                         <div class="bg-indigo-50 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <i class="fa-solid fa-file-pdf text-xl"></i>
                         </div>
                         <div class="flex-grow">
                             <h4 class="font-bold text-slate-800 mb-1 group-hover:text-indigo-600 transition">{{ $doc->judul_dokumen }}</h4>
                             <p class="text-xs text-gray-400 mb-3">{{ $doc->created_at->format('d M Y') }}</p>
                             <a href="{{ asset('storage/' . $doc->file_path) }}" download class="text-sm font-semibold text-indigo-500 hover:text-indigo-700 inline-flex items-center">
-                                Download <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Download <i class="fa-solid fa-download ml-1"></i>
                             </a>
                         </div>
                     </div>
@@ -362,10 +379,9 @@
                         Institusi pendidikan teologi yang berdedikasi melahirkan pemimpin-pemimpin berintegritas, berilmu, dan siap melayani.
                     </p>
                     <div class="flex space-x-4">
-                        {{-- Social Icons Placeholders --}}
-                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-facebook fa-lg"></i></a>
-                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-instagram fa-lg"></i></a>
-                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fab fa-youtube fa-lg"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fa-brands fa-facebook fa-lg"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fa-brands fa-instagram fa-lg"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fa-brands fa-youtube fa-lg"></i></a>
                     </div>
                 </div>
 
@@ -374,15 +390,15 @@
                     <h3 class="font-bold text-lg mb-6 border-l-4 border-teal-500 pl-3">Hubungi Kami</h3>
                     <ul class="space-y-4 text-sm text-slate-300">
                         <li class="flex items-start">
-                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <i class="fa-solid fa-location-dot mt-1 mr-3 text-teal-500"></i>
                             Jl. Jenderal Sudirman, Fakfak, Papua Barat
                         </li>
                         <li class="flex items-center">
-                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <i class="fa-solid fa-envelope mr-3 text-teal-500"></i>
                             info@sttgpipapua.ac.id
                         </li>
                         <li class="flex items-center">
-                            <svg class="w-5 h-5 mr-3 text-teal-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            <i class="fa-solid fa-phone mr-3 text-teal-500"></i>
                             (0956) 123-456
                         </li>
                     </ul>
@@ -418,16 +434,37 @@
 
     {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    
+    {{-- Script JavaScript Mobile Menu & Animation --}}
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        // Init Slideshow
+        
+        // 1. Mobile Menu Toggle Logic
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        if(mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // Tutup menu saat link diklik
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+        }
+
+        // 2. Init Slideshow
         if(document.querySelector('#hero-slideshow')){
           new Splide('#hero-slideshow',{
             type: 'fade', rewind: true, perPage: 1, autoplay: true, interval: 6000, pauseOnHover: false, arrows: false, pagination: true,
           }).mount();
         }
 
-        // Init Counter Animation
+        // 3. Init Counter Animation
         const counters = document.querySelectorAll('[data-counter-target]');
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
