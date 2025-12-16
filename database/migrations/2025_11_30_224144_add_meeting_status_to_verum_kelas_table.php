@@ -9,15 +9,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('verum_kelas', function (Blueprint $table) {
-            // Menyimpan status apakah meeting aktif
-            $table->boolean('is_meeting_active')->default(false)->after('kode_kelas');
+            // CEK DULU: Hanya buat kolom jika kolom tersebut BELUM ada
+            if (!Schema::hasColumn('verum_kelas', 'is_meeting_active')) {
+                $table->boolean('is_meeting_active')->default(false)->after('kode_kelas');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('verum_kelas', function (Blueprint $table) {
-            $table->dropColumn('is_meeting_active');
+            // Cek dulu sebelum hapus, untuk menghindari error saat rollback
+            if (Schema::hasColumn('verum_kelas', 'is_meeting_active')) {
+                $table->dropColumn('is_meeting_active');
+            }
         });
     }
 };
