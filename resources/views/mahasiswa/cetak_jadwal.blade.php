@@ -5,11 +5,19 @@
     <title>Jadwal Kuliah - {{ $mahasiswa->nim }}</title>
     <style>
         body { font-family: sans-serif; font-size: 12px; }
+        
+        /* Kop Surat Styling */
+        .kop-surat { width: 100%; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .kop-logo { width: 80px; height: auto; }
+        .kop-text { text-align: center; }
+        .kop-text h2 { margin: 0; font-size: 18px; text-transform: uppercase; font-weight: bold; }
+        .kop-text h3 { margin: 2px 0; font-size: 14px; font-weight: bold; }
+        .kop-text p { margin: 0; font-size: 11px; font-style: italic; }
+
         .header { text-align: center; margin-bottom: 20px; }
         .header h2 { margin: 0; font-size: 16px; text-transform: uppercase; }
-        .header p { margin: 2px 0; }
         
-        .info-table { width: 100%; margin-bottom: 15px; }
+        .info-table { width: 100%; margin-bottom: 15px; border: none; }
         .info-table td { padding: 3px; vertical-align: top; }
         
         .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -23,7 +31,22 @@
 </head>
 <body>
 
-    @include('profile.partials._kop')
+    {{-- Header Kop Surat Manual --}}
+    <table class="kop-surat">
+        <tr>
+            <td style="width: 15%; text-align: center;">
+                {{-- Menggunakan public_path agar terbaca oleh DOMPDF --}}
+                <img src="{{ public_path('images/logo.png') }}" class="kop-logo" alt="Logo">
+            </td>
+            <td style="width: 85%;" class="kop-text">
+                <h2>SEKOLAH TINGGI TEOLOGI</h2>
+                <h2>GEREJA PROTESTAN INDONESIA PAPUA</h2>
+                <h3>(STT GPI PAPUA) FAKFAK</h3>
+                <p>Jalan Ahmad Yani, Kabupaten Fakfak, Papua Barat</p>
+                <p>Website: sttgpipapua.ac.id | Email: info@sttgpipapua.ac.id</p>
+            </td>
+        </tr>
+    </table>
 
     <div class="header">
         <h3 style="text-decoration: underline; margin-bottom: 5px;">JADWAL KULIAH</h3>

@@ -22,17 +22,23 @@ class Dosen extends Model
         'link_sinta',
         'foto_profil',
     ];
-    
-    // [PERBAIKAN FINAL] Nama accessor diubah agar bisa dipanggil dengan $dosen->foto_profil
-    public function getFotoProfilAttribute($value)
+
+    // Menambahkan atribut virtual ke output JSON
+    protected $appends = ['foto_url'];
+
+    /**
+     * [PERBAIKAN] Menggunakan Virtual Attribute 'foto_url'.
+     * Panggil di View: {{ $dosen->foto_url }}
+     * * Atribut asli '$dosen->foto_profil' tetap berisi path murni (misal: "dosen/foto.jpg")
+     * agar fungsi Storage::delete($dosen->foto_profil) bekerja dengan benar.
+     */
+    public function getFotoUrlAttribute()
     {
-        if ($value) {
-            // Pastikan Anda sudah menjalankan `php artisan storage:link`
-            return asset('storage/' . $value);
+        if ($this->foto_profil) {
+            return asset('storage/' . $this->foto_profil);
         }
 
-        // Mengembalikan gambar default jika tidak ada foto
-        // Pastikan gambar default ada di public/images/default-avatar.png
+        // Gambar default lokal
         return asset('images/default-avatar.png');
     }
 

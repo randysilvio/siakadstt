@@ -18,6 +18,9 @@ class Mahasiswa extends Model
         'nomor_telepon', 'nama_ibu_kandung', 'status_mahasiswa', 'tahun_masuk',
         'status_krs', 'catatan_kaprodi', 'foto_profil'
     ];
+    
+    // Menambahkan atribut virtual
+    protected $appends = ['foto_profil_url'];
 
     public function user(): BelongsTo
     {
@@ -46,12 +49,17 @@ class Mahasiswa extends Model
         return $this->belongsTo(Dosen::class, 'dosen_wali_id');
     }
 
+    /**
+     * [PERBAIKAN] Menggunakan asset lokal untuk privasi.
+     * Tidak lagi mengirim nama mahasiswa ke server pihak ketiga (ui-avatars).
+     */
     public function getFotoProfilUrlAttribute()
     {
         if ($this->foto_profil) {
             return asset('storage/' . $this->foto_profil);
         }
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama_lengkap) . '&background=random';
+        // Pastikan Anda punya file ini di folder public/images/
+        return asset('images/default-student.png');
     }
 
     /**
