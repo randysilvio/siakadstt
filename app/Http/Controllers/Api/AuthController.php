@@ -11,9 +11,6 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Handle a login request for the mobile application.
-     */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -22,7 +19,7 @@ class AuthController extends Controller
         ]);
 
         /** @var \App\Models\User|null $user */
-        $user = User::where('email', $request->email)->first();
+        $user = User::with('roles')->where('email', $request->email)->first();
 
         // 1. Cek User & Password
         if (!$user || !Hash::check($request->password, (string)$user->password)) {
@@ -31,40 +28,28 @@ class AuthController extends Controller
             ]);
         }
 
-        // 2. [PERBAIKAN] HAPUS BLOKIRAN MAHASISWA
-        // Kode yang memblokir 'hasRole(mahasiswa)' sudah dihapus di sini
-        // agar mahasiswa bisa masuk dan mengakses fitur KHS/KRS.
-
-        // 3. Buat Token
+        // 2. Buat Token
         $token = $user->createToken('mobile-app-token')->plainTextToken;
+
+        // 3. Ambil Role (FIX: Gunakan relasi roles() manual, bukan getRoleNames())
+        // Mengambil role pertama yang dimiliki user
+        $roleName = $user->roles->first() ? $user->roles->first()->name : null;
 
         return response()->json([
             'message' => 'Login berhasil',
             'user' => $user->only('id', 'name', 'email'), 
             'token' => $token,
-            // Opsional: Kirim role agar frontend bisa langsung redirect (Dashboard vs Home)
-            'role' => $user->getRoleNames()->first() 
+            'role' => $roleName // Kirim role agar frontend tahu (dosen/mahasiswa)
         ]);
     }
 
-    /**
-     * Handle a logout request for the mobile application.
-     */
     public function logout(Request $request): JsonResponse
     {
-        /** @var \App\Models\User|null $user */
         $user = $request->user();
-
         if ($user) {
-            /** @var \Laravel\Sanctum\PersonalAccessToken|null $token */
-            $token = $user->currentAccessToken();
-            if ($token) {
-                $token->delete();
-            }
+            $user->currentAccessToken()->delete();
         }
 
-        return response()->json([
-            'message' => 'Logout berhasil'
-        ]);
+        return response()->json(['message' => 'Logout berhasil']);
     }
 }
