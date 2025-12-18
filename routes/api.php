@@ -25,24 +25,27 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     
     // 1. DATA USER & PROFIL
-    // Endpoint ini dipanggil setiap kali aplikasi dibuka untuk cek role & nama
     Route::get('/user', function (Request $request) {
         $user = $request->user();
         
-        // Load data relasi profil (Mahasiswa/Dosen)
-        // Gunakan 'hasRole' dari User.php Anda
+        // --- LOGIKA PENENTUAN ROLE ---
+        // Kita cek manual agar pasti
+        $roleName = 'umum'; // Default
+
         if ($user->hasRole('mahasiswa')) {
+            $roleName = 'mahasiswa';
             $user->load('mahasiswa.programStudi');
         } elseif ($user->hasRole('dosen')) {
+            $roleName = 'dosen';
             $user->load('dosen');
+        } elseif ($user->hasRole('pegawai') || $user->hasRole('admin')) {
+            $roleName = 'pegawai'; // Anggap admin/pegawai sama untuk tampilan HP
+        } else {
+            // Ambil dari database jika ada role lain
+            $roleName = $user->roles->first() ? $user->roles->first()->name : 'umum';
         }
-        
-        // [PERBAIKAN UTAMA] 
-        // Mengambil nama role secara manual dari relasi, bukan library Spatie.
-        // Ini mencegah error "Call to undefined method getRoleNames()"
-        $roleName = $user->roles->first() ? $user->roles->first()->name : null;
 
-        // Gabungkan data user dengan nama role
+        // Gabungkan data user dengan nama role yang sudah dipastikan
         $userData = $user->toArray();
         $userData['role'] = $roleName; 
         
@@ -59,18 +62,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/status-absensi', [AbsensiController::class, 'getStatusHariIni']);
 
     // 3. FITUR KEUANGAN (Mahasiswa)
-    // Menampilkan riwayat pembayaran SPP/SKS
     Route::get('/riwayat-pembayaran-mahasiswa', [AbsensiController::class, 'riwayatPembayaranMahasiswa']);
 
     // 4. FITUR AKADEMIK (Umum)
-    // Kalender Akademik & Jadwal Harian
     Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);
     Route::get('/jadwal-hari-ini', [KalenderController::class, 'jadwalHariIni']); 
 
     // 5. FITUR NILAI / KHS (Mahasiswa)
-    // Menampilkan IPK, IPS, dan Nilai per semester
     Route::get('/khs-mahasiswa', [AbsensiController::class, 'getKhsMahasiswa']);
 
-    // 6. STATISTIK (Opsional - Dashboard Admin)
+    // 6. STATISTIK
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
 });
