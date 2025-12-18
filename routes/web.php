@@ -37,6 +37,9 @@ use App\Http\Controllers\Admin\EvaluasiHasilController;
 use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
+// [TAMBAHAN BARU] Controller untuk Pengaturan Absensi
+use App\Http\Controllers\Admin\PengaturanAbsensiController;
+
 // Controller untuk halaman publik
 use App\Http\Controllers\Public\DosenProfileController;
 // Controller untuk Perpustakaan
@@ -121,8 +124,6 @@ Route::middleware('auth')->group(function () {
         Route::middleware([CekStatusPembayaranMiddleware::class, CekPeriodeKrsMiddleware::class])->group(function () {
             Route::get('/krs', [KrsController::class, 'index'])->name('krs.index');
             Route::post('/krs', [KrsController::class, 'store'])->name('krs.store');
-            
-            // Rute Hapus Item KRS
             Route::delete('/krs/{krs}', [KrsController::class, 'destroy'])->name('krs.destroy');
         });
         Route::get('/khs', [KhsController::class, 'index'])->name('khs.index');
@@ -130,13 +131,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/khs/cetak', [CetakController::class, 'cetakKhs'])->name('khs.cetak');
         Route::get('/transkrip/cetak', [CetakController::class, 'cetakTranskrip'])->name('transkrip.cetak');
         Route::get('/krs/cetak', [CetakController::class, 'cetakKrs'])->name('krs.cetak.final');
-        
-        // [BARU] Rute Cetak Jadwal Kuliah
         Route::get('/jadwal/cetak', [CetakController::class, 'cetakJadwal'])->name('jadwal.cetak');
-        
         Route::get('/riwayat-pembayaran', [PembayaranController::class, 'riwayat'])->name('pembayaran.riwayat');
-
-        // Rute untuk Evaluasi Dosen
         Route::get('/evaluasi', [EvaluasiController::class, 'index'])->name('evaluasi.index');
         Route::get('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'show'])->name('evaluasi.show');
         Route::post('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'store'])->name('evaluasi.store');
@@ -145,20 +141,12 @@ Route::middleware('auth')->group(function () {
     // RUTE UNTUK DOSEN
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
-         
-         // Rute Upload RPS Dosen
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
-         
-         // Manajemen Perwalian
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
          Route::delete('/perwalian/{mahasiswa}', [PerwalianController::class, 'destroy'])->name('perwalian.destroy');
-
-         // Detail Perwalian & Validasi KRS
          Route::get('/perwalian/{mahasiswa}', [PerwalianController::class, 'show'])->name('perwalian.show');
          Route::patch('/perwalian/{mahasiswa}/status', [PerwalianController::class, 'updateStatus'])->name('perwalian.updateStatus');
-
-         // Rute Dosen menghapus Mata Kuliah Mahasiswa Bimbingan
          Route::delete('/perwalian/krs/{mahasiswa}/{mk}', [PerwalianController::class, 'destroyKrs'])->name('perwalian.krs.destroy');
     });
 
@@ -169,40 +157,28 @@ Route::middleware('auth')->group(function () {
         Route::patch('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'update'])->name('kaprodi.krs.update');
     });
 
-    // RUTE UNTUK PENJAMINAN MUTU
+    // RUTE UNTUK PENJAMINAN MUTU & REKTORAT
     Route::middleware('role:penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
         Route::get('/dashboard', [PenjaminanMutuController::class, 'dashboard'])->name('dashboard');
     });
-
-    // RUTE UNTUK REKTORAT
     Route::middleware('role:rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
     });
 
-
-    // RUTE BERSAMA UNTUK ADMIN & DOSEN & KAPRODI
+    // RUTE BERSAMA
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
 
-
-    // =================================================================
-    // GRUP RUTE UNTUK KEUANGAN (ADMIN DILARANG MASUK SINI)
-    // =================================================================
-    // Perubahan: Hanya role 'keuangan'
+    // GRUP RUTE KEUANGAN
     Route::middleware(['role:keuangan'])->group(function() {
         Route::get('/pembayaran/generate', [PembayaranController::class, 'generate'])->name('pembayaran.generate');
         Route::post('/pembayaran/generate', [PembayaranController::class, 'storeGenerate'])->name('pembayaran.storeGenerate');
         Route::get('/pembayaran/cetak', [PembayaranController::class, 'cetakLaporan'])->name('pembayaran.cetak');
-        
-        // Resource CRUD lengkap (Kecuali 'show')
-        // Ini otomatis mengaktifkan rute edit/update untuk cicilan
         Route::resource('pembayaran', PembayaranController::class)->except(['show']);
-        
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
     });
 
-
-    // GRUP RUTE KHUSUS HANYA UNTUK ADMIN
+    // GRUP RUTE ADMIN
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
@@ -223,8 +199,6 @@ Route::middleware('auth')->group(function () {
         // Rute Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {
             Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
-            
-            // [BARU] Rute untuk Cetak Laporan
             Route::get('/laporan/cetak', [AbsensiController::class, 'laporanCetak'])->name('laporan.cetak');
 
             Route::get('/lokasi', [AbsensiController::class, 'lokasiIndex'])->name('lokasi.index');
@@ -233,6 +207,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/lokasi/{lokasi}/edit', [AbsensiController::class, 'lokasiEdit'])->name('lokasi.edit');
             Route::put('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiUpdate'])->name('lokasi.update');
             Route::delete('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiDestroy'])->name('lokasi.destroy');
+            
+            // [TAMBAHAN BARU] Rute Pengaturan Absensi (Control Panel)
+            Route::get('/pengaturan', [PengaturanAbsensiController::class, 'index'])->name('pengaturan.index');
+            Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
         Route::resource('mahasiswa', MahasiswaController::class);
@@ -251,7 +229,6 @@ Route::middleware('auth')->group(function () {
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
         Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
 
-        // Rute Hasil Evaluasi (Admin)
         Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}/cetak', [EvaluasiHasilController::class, 'cetak'])->name('evaluasi-hasil.cetak');

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiPegawai;
 use App\Models\LokasiKerja;
+// [TAMBAHAN BARU] Import Model Pengaturan
+use App\Models\PengaturanAbsensi; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -34,7 +36,31 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda sudah melakukan check-in hari ini.'], 422);
         }
 
-        // Cek Lokasi
+        // =========================================================
+        // [TAMBAHAN BARU] LOGIKA CEK JAM MASUK & TOLERANSI
+        // =========================================================
+        // 1. Ambil Pengaturan dari Database (default jika kosong)
+        $setting = PengaturanAbsensi::first();
+        $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
+        $toleransi = $setting ? $setting->toleransi_terlambat_menit : 15;
+
+        // 2. Hitung Batas Waktu (Jam Masuk + Toleransi)
+        // Carbon createFromFormat menggunakan tanggal hari ini secara otomatis
+        $batasWaktu = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi);
+        $waktuSekarang = Carbon::now();
+
+        // 3. Tentukan Status
+        $statusKehadiran = 'Hadir'; // Default
+        $pesanResponse = 'Check-in berhasil.';
+
+        // Jika waktu sekarang LEBIH BESAR dari batas waktu -> ALPHA
+        if ($waktuSekarang->format('H:i:s') > $batasWaktu->format('H:i:s')) {
+            $statusKehadiran = 'Alpha';
+            $pesanResponse = 'Absen diterima, namun status Anda ALPHA karena terlambat melebihi toleransi.';
+        }
+        // =========================================================
+
+        // Cek Lokasi (Logika Radius)
         $lokasiKerja = LokasiKerja::all();
         $lokasiValid = null;
         $jarakTerdekat = 999999999;
@@ -65,6 +91,7 @@ class AbsensiController extends Controller
 
         $path = $request->file('foto_check_in')->store('foto-absensi', 'public');
 
+        // Simpan Data dengan Status yang sudah dihitung (Hadir/Alpha)
         $absensi = AbsensiPegawai::updateOrCreate(
             ['user_id' => $user->id, 'tanggal_absensi' => $today],
             [
@@ -73,15 +100,16 @@ class AbsensiController extends Controller
                 'latitude_check_in' => $latUser,
                 'longitude_check_in' => $longUser,
                 'foto_check_in' => $path,
-                'status_kehadiran' => 'Hadir',
+                'status_kehadiran' => $statusKehadiran, // <--- Menggunakan variabel dinamis
             ]
         );
 
         return response()->json([
-            'message' => 'Check-in berhasil.',
+            'message' => $pesanResponse,
             'data' => [
                 'check_in' => $absensi->waktu_check_in,
                 'lokasi' => $lokasiValid->nama_lokasi,
+                'status' => $statusKehadiran, // Kirim balik status agar user tahu
             ],
         ], 201);
     }
@@ -144,6 +172,7 @@ class AbsensiController extends Controller
             return response()->json([
                 'check_in' => $status->waktu_check_in,
                 'check_out' => $status->waktu_check_out,
+                'status_kehadiran' => $status->status_kehadiran,
             ]);
         }
         return response()->json(null);
@@ -190,7 +219,6 @@ class AbsensiController extends Controller
 
         $mahasiswa = $user->mahasiswa;
         
-        // Ambil matkul yang sudah ada nilai, grouping by Semester (Tahun Akademik)
         $transkrip = $mahasiswa->mataKuliahs()
             ->wherePivotNotNull('nilai')
             ->orderBy('pivot_tahun_akademik_id', 'desc') 
@@ -201,7 +229,6 @@ class AbsensiController extends Controller
 
         $hasil = [];
         foreach ($transkrip as $tahunId => $matkuls) {
-            // Hitung IPS per semester
             $dataIps = $mahasiswa->hitungIps($tahunId); 
             
             $listMatkul = $matkuls->map(function($mk) {

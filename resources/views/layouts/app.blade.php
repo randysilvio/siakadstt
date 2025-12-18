@@ -115,7 +115,6 @@
                         @endif
 
                         {{-- ========== MENU PERAN: MAHASISWA ========== --}}
-                        {{-- Logika: Mengelompokkan menu KRS, KHS, dll agar rapi --}}
                         @if(Auth::user()->hasRole('mahasiswa'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -154,7 +153,7 @@
                             @endif
                         @endif
 
-                        {{-- ========== MENU PERAN: ADMIN (Sesuai Struktur Asli) ========== --}}
+                        {{-- ========== MENU PERAN: ADMIN ========== --}}
                         @if(Auth::user()->hasRole('admin'))
                             {{-- Grup Akademik --}}
                             <li class="nav-item dropdown">
@@ -185,9 +184,9 @@
                                 </ul>
                             </li>
 
-                            {{-- Grup Konten & Sistem --}}
+                            {{-- Grup Konten & Sistem (UPDATED) --}}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'pembayaran*', 'admin/evaluasi*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'pembayaran*', 'admin/evaluasi*', 'admin/pengaturan*', 'admin/absensi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-hdd-rack"></i>Sistem
                                 </a>
                                 <ul class="dropdown-menu">
@@ -196,10 +195,21 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.slideshows.index') }}">Slideshow</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.dokumen-publik.index') }}">Dokumen</a></li>
                                     <li><hr class="dropdown-divider"></li>
+                                    
                                     <li><h6 class="dropdown-header">Administrasi</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('pembayaran.index') }}">Keuangan</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.laporan.index') }}">Absensi</a></li>
+                                    
+                                    {{-- MENU ABSENSI --}}
+                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.laporan.index') }}">Laporan Absensi</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.absensi.lokasi.index') }}">Lokasi Absensi</a></li>
+                                    
+                                    {{-- [BARU] Menu Setting Jam Absensi (IKON DIHAPUS SESUAI PERMINTAAN) --}}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.absensi.pengaturan.index') }}">
+                                            Setting Jam & Toleransi
+                                        </a>
+                                    </li>
+
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Evaluasi & Pengaturan</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.evaluasi-sesi.index') }}">Sesi Evaluasi</a></li>
