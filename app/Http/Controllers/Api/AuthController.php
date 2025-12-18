@@ -24,24 +24,26 @@ class AuthController extends Controller
         /** @var \App\Models\User|null $user */
         $user = User::where('email', $request->email)->first();
 
+        // 1. Cek User & Password
         if (!$user || !Hash::check($request->password, (string)$user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email atau password yang Anda masukkan salah.'],
             ]);
         }
 
-        if ($user->hasRole('mahasiswa')) {
-             throw ValidationException::withMessages([
-                'email' => ['Akses ditolak. Aplikasi ini hanya untuk dosen & pegawai.'],
-            ]);
-        }
+        // 2. [PERBAIKAN] HAPUS BLOKIRAN MAHASISWA
+        // Kode yang memblokir 'hasRole(mahasiswa)' sudah dihapus di sini
+        // agar mahasiswa bisa masuk dan mengakses fitur KHS/KRS.
 
+        // 3. Buat Token
         $token = $user->createToken('mobile-app-token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login berhasil',
-            'user' => $user->only('id', 'name', 'email'), // Hanya kirim data yang perlu
+            'user' => $user->only('id', 'name', 'email'), 
             'token' => $token,
+            // Opsional: Kirim role agar frontend bisa langsung redirect (Dashboard vs Home)
+            'role' => $user->getRoleNames()->first() 
         ]);
     }
 
@@ -54,10 +56,6 @@ class AuthController extends Controller
         $user = $request->user();
 
         if ($user) {
-            // --- PERBAIKAN DI SINI ---
-            // Kode dibuat lebih eksplisit untuk membantu PHPStan
-            // dan menambahkan pengecekan keamanan.
-            
             /** @var \Laravel\Sanctum\PersonalAccessToken|null $token */
             $token = $user->currentAccessToken();
             if ($token) {

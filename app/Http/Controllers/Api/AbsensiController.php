@@ -11,22 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class AbsensiController extends Controller
 {
-    /**
-     * Menangani permintaan check-in dari pegawai.
-     */
+    // =========================================================================
+    // 1. FITUR ABSENSI (Check-in, Check-out, History, Radius)
+    // =========================================================================
+
     public function checkIn(Request $request)
     {
-        // PERBAIKAN 1: Tambah validasi max ukuran file (5MB) agar tidak error saat upload dari HP
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'foto_check_in' => 'required|image|max:5120', 
+            'foto_check_in' => 'required|image|max:5120', // Max 5MB
         ]);
 
         $user = $request->user();
         $today = Carbon::today();
 
-        // Cek apakah user sudah absen hari ini
         $absensiHariIni = AbsensiPegawai::where('user_id', $user->id)
             ->whereDate('tanggal_absensi', $today)
             ->first();
@@ -35,58 +34,37 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda sudah melakukan check-in hari ini.'], 422);
         }
 
-        // PERBAIKAN 2: Logika Cek Jarak dengan Debugging Info
+        // Cek Lokasi
         $lokasiKerja = LokasiKerja::all();
         $lokasiValid = null;
+        $jarakTerdekat = 999999999;
         
-        // Variabel untuk menyimpan info debugging jika gagal
-        $jarakTerdekat = 999999999; 
-        $namaLokasiTerdekat = '-';
-        $radiusLokasiTerdekat = 0;
-
-        // Pastikan koordinat dari request dibaca sebagai float
         $latUser = (float) $request->latitude;
         $longUser = (float) $request->longitude;
 
         foreach ($lokasiKerja as $lokasi) {
             $jarak = $this->hitungJarak(
-                $latUser,
-                $longUser,
-                (float) $lokasi->latitude,
-                (float) $lokasi->longitude
+                $latUser, $longUser,
+                (float) $lokasi->latitude, (float) $lokasi->longitude
             );
 
-            // Simpan data lokasi terdekat untuk pesan error yang informatif
-            if ($jarak < $jarakTerdekat) {
-                $jarakTerdekat = $jarak;
-                $namaLokasiTerdekat = $lokasi->nama_lokasi;
-                $radiusLokasiTerdekat = $lokasi->radius_toleransi_meter;
-            }
+            if ($jarak < $jarakTerdekat) $jarakTerdekat = $jarak;
 
-            // Cek apakah user berada dalam radius lokasi ini
             if ($jarak <= $lokasi->radius_toleransi_meter) {
                 $lokasiValid = $lokasi;
-                break; // Ketemu lokasi valid, hentikan loop
+                break;
             }
         }
 
-        // Jika tidak ada lokasi yang cocok, kirim respon error detail
         if (!$lokasiValid) {
             return response()->json([
                 'message' => 'Posisi Anda diluar jangkauan lokasi kerja.',
-                'debug_info' => [
-                    'jarak_terdeteksi' => round($jarakTerdekat, 2) . ' meter',
-                    'lokasi_terdekat' => $namaLokasiTerdekat,
-                    'radius_diizinkan' => $radiusLokasiTerdekat . ' meter',
-                    'selisih' => round($jarakTerdekat - $radiusLokasiTerdekat, 2) . ' meter (Anda terlalu jauh)'
-                ]
+                'debug_info' => ['jarak_terdeteksi' => round($jarakTerdekat, 2) . ' meter']
             ], 422);
         }
 
-        // Simpan Foto
         $path = $request->file('foto_check_in')->store('foto-absensi', 'public');
 
-        // Simpan Data Absensi
         $absensi = AbsensiPegawai::updateOrCreate(
             ['user_id' => $user->id, 'tanggal_absensi' => $today],
             [
@@ -108,15 +86,12 @@ class AbsensiController extends Controller
         ], 201);
     }
 
-    /**
-     * Menangani permintaan check-out dari pegawai.
-     */
     public function checkOut(Request $request)
     {
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'foto_check_out' => 'required|image|max:5120', // Tambah validasi max 5MB
+            'foto_check_out' => 'required|image|max:5120',
         ]);
 
         $user = $request->user();
@@ -150,22 +125,15 @@ class AbsensiController extends Controller
         ]);
     }
     
-    /**
-     * Mengambil riwayat absensi pengguna.
-     */
     public function getHistory(Request $request)
     {
-        $history = AbsensiPegawai::with('lokasiKerja') // Load relasi lokasi biar lengkap
+        $history = AbsensiPegawai::with('lokasiKerja')
             ->where('user_id', $request->user()->id)
             ->orderBy('tanggal_absensi', 'desc')
             ->paginate(15);
-
         return response()->json($history);
     }
     
-    /**
-     * Mendapatkan status absensi hari ini.
-     */
     public function getStatusHariIni(Request $request)
     {
         $status = AbsensiPegawai::where('user_id', $request->user()->id)
@@ -178,22 +146,101 @@ class AbsensiController extends Controller
                 'check_out' => $status->waktu_check_out,
             ]);
         }
-        
         return response()->json(null);
     }
+
+    // =========================================================================
+    // 2. FITUR KEUANGAN (Mahasiswa)
+    // =========================================================================
     
-    /**
-     * Menghitung jarak antara dua titik koordinat (Haversine Formula).
-     * Hasil dalam satuan Meter.
-     */
+    public function riwayatPembayaranMahasiswa(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user->hasRole('mahasiswa') || !$user->mahasiswa) {
+            return response()->json([]);
+        }
+
+        $pembayarans = $user->mahasiswa->pembayarans()
+            ->orderBy('semester', 'desc')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'semester' => $item->semester,
+                    'jumlah' => $item->jumlah,
+                    'status' => $item->status,
+                    'tanggal' => $item->tanggal_bayar ? date('d M Y', strtotime($item->tanggal_bayar)) : '-'
+                ];
+            });
+
+        return response()->json($pembayarans);
+    }
+
+    // =========================================================================
+    // 3. FITUR KHS / NILAI (Mahasiswa)
+    // =========================================================================
+
+    public function getKhsMahasiswa(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->hasRole('mahasiswa') || !$user->mahasiswa) {
+            return response()->json(['message' => 'Data mahasiswa tidak ditemukan'], 404);
+        }
+
+        $mahasiswa = $user->mahasiswa;
+        
+        // Ambil matkul yang sudah ada nilai, grouping by Semester (Tahun Akademik)
+        $transkrip = $mahasiswa->mataKuliahs()
+            ->wherePivotNotNull('nilai')
+            ->orderBy('pivot_tahun_akademik_id', 'desc') 
+            ->get()
+            ->groupBy(function($item) {
+                return $item->pivot->tahun_akademik_id;
+            });
+
+        $hasil = [];
+        foreach ($transkrip as $tahunId => $matkuls) {
+            // Hitung IPS per semester
+            $dataIps = $mahasiswa->hitungIps($tahunId); 
+            
+            $listMatkul = $matkuls->map(function($mk) {
+                return [
+                    'kode' => $mk->kode_mk,
+                    'nama' => $mk->nama_mk,
+                    'sks' => $mk->sks,
+                    'nilai' => $mk->pivot->nilai,
+                ];
+            });
+
+            $hasil[] = [
+                'semester_id' => $tahunId,
+                'ips' => $dataIps['ips'],
+                'total_sks' => $dataIps['total_sks'],
+                'mata_kuliah' => $listMatkul
+            ];
+        }
+
+        return response()->json([
+            'mahasiswa' => [
+                'nama' => $mahasiswa->nama_lengkap,
+                'nim' => $mahasiswa->nim,
+                'prodi' => $mahasiswa->programStudi->nama_prodi ?? '-',
+                'ipk' => $mahasiswa->hitungIpk(),
+                'total_sks_lulus' => $mahasiswa->totalSksLulus()
+            ],
+            'khs' => $hasil
+        ]);
+    }
+
+    // =========================================================================
+    // HELPER
+    // =========================================================================
     private function hitungJarak($lat1, $lon1, $lat2, $lon2)
     {
-        $earthRadius = 6371000; // Radius bumi dalam meter
-
-        $latFrom = deg2rad($lat1);
-        $lonFrom = deg2rad($lon1);
-        $latTo = deg2rad($lat2);
-        $lonTo = deg2rad($lon2);
+        $earthRadius = 6371000; 
+        $latFrom = deg2rad($lat1); $lonFrom = deg2rad($lon1);
+        $latTo = deg2rad($lat2); $lonTo = deg2rad($lon2);
 
         $latDelta = $latTo - $latFrom;
         $lonDelta = $lonTo - $lonFrom;
