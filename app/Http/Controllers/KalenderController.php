@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
+// Pastikan Anda mengimport Model Jadwal Kuliah Anda (sesuaikan nama modelnya)
+use App\Models\JadwalKuliah; 
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -91,7 +93,7 @@ class KalenderController extends Controller
     }
 
     /**
-     * Menampilkan halaman kalender publik.
+     * Menampilkan halaman kalender publik (FullCalendar Web).
      */
     public function halamanKalender(): View
     {
@@ -99,7 +101,7 @@ class KalenderController extends Controller
     }
 
     /**
-     * Menyediakan data event untuk FullCalendar.
+     * Menyediakan data event untuk FullCalendar (Web).
      */
     public function getEvents(Request $request): JsonResponse
     {
@@ -121,6 +123,7 @@ class KalenderController extends Controller
         $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi']);
 
         $events = $kegiatans->map(function ($kegiatan) {
+            // FullCalendar exclusive end date fix
             $kegiatan->end = Carbon::parse($kegiatan->end)->addDay()->toDateString();
             return $kegiatan;
         });
@@ -129,7 +132,8 @@ class KalenderController extends Controller
     }
     
     /**
-     * Menyediakan data kalender untuk API aplikasi seluler.
+     * [API MOBILE] Data Kalender Akademik.
+     * Mengambil semua kegiatan (tanpa limit) agar kalender penuh terisi.
      */
     public function getKalenderUntukApi(Request $request): JsonResponse
     {
@@ -141,16 +145,86 @@ class KalenderController extends Controller
         }
         $userRoleIds = $user->roles->pluck('id');
 
-        // Mengambil 5 kegiatan terdekat yang akan datang
+        // Mengambil data mulai dari 1 bulan yang lalu agar user bisa lihat history bulan berjalan
         $kegiatans = KegiatanAkademik::query()
-            ->where('tanggal_selesai', '>=', Carbon::today())
+            ->where('tanggal_selesai', '>=', Carbon::today()->startOfMonth()->subMonths(1))
             ->whereHas('roles', function ($q) use ($userRoleIds) {
                 $q->whereIn('roles.id', $userRoleIds);
             })
             ->orderBy('tanggal_mulai', 'asc')
-            ->limit(5)
+            // ->limit(5)  <-- DIHAPUS agar kalender di HP muncul semua
             ->get();
             
         return response()->json($kegiatans);
+    }
+
+    /**
+     * [API MOBILE] Jadwal Kuliah Hari Ini.
+     * Digunakan di DashboardScreen.tsx
+     */
+    public function jadwalHariIni(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        // Setup Hari dalam Bahasa Indonesia
+        Carbon::setLocale('id');
+        $hariIni = Carbon::now()->isoFormat('dddd'); // Senin, Selasa, dst.
+
+        $jadwal = [];
+
+        if ($user->hasRole('mahasiswa')) {
+            // Logika Mahasiswa: Ambil dari KRS yang diambil user
+            // Asumsi: Ada relasi 'mataKuliahs' di model Mahasiswa, dan tabel pivot/matkul punya data 'hari', 'jam_mulai'
+            
+            $mahasiswa = $user->mahasiswa; // Pastikan relasi user->mahasiswa ada
+            if($mahasiswa) {
+                 // Query contoh (sesuaikan dengan struktur tabel Jadwal/KRS Anda)
+                 // Ini mengambil mata kuliah yang diambil mahasiswa, lalu memfilter hari
+                 $jadwal = \App\Models\JadwalKuliah::query()
+                    ->where('hari', $hariIni)
+                    ->whereHas('mataKuliah.mahasiswas', function($q) use ($mahasiswa) {
+                        $q->where('mahasiswas.id', $mahasiswa->id);
+                    })
+                    ->with(['mataKuliah', 'ruangan', 'dosen'])
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? 'Online/TBA',
+                            'dosen' => $item->dosen->nama_lengkap ?? '-'
+                        ];
+                    });
+            }
+
+        } elseif ($user->hasRole('dosen')) {
+            // Logika Dosen: Ambil jadwal mengajar dia
+            $dosen = $user->dosen;
+            if($dosen) {
+                $jadwal = \App\Models\JadwalKuliah::query()
+                    ->where('hari', $hariIni)
+                    ->where('dosen_id', $dosen->id)
+                    ->with(['mataKuliah', 'ruangan'])
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? '-',
+                            'dosen' => 'Anda Sendiri'
+                        ];
+                    });
+            }
+        }
+
+        return response()->json($jadwal);
     }
 }

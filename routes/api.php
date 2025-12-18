@@ -23,7 +23,19 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Rute default Laravel untuk mengambil data user
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        // Load relasi mahasiswa/dosen agar role dan datanya lengkap di Apps
+        $user = $request->user();
+        if ($user->hasRole('mahasiswa')) {
+            $user->load('mahasiswa');
+        } elseif ($user->hasRole('dosen')) {
+            $user->load('dosen');
+        }
+        
+        // Inject role name ke response JSON untuk logic frontend
+        $userData = $user->toArray();
+        $userData['role'] = $user->getRoleNames()->first(); 
+        
+        return $userData;
     });
 
     // Rute untuk logout
@@ -35,8 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/absensi/riwayat', [AbsensiController::class, 'getHistory']);
     Route::get('/status-absensi', [AbsensiController::class, 'getStatusHariIni']);
 
-    // --- RUTE UNTUK KALENDER AKADEMIK ---
+    // --- RUTE UNTUK KALENDER & JADWAL (MOBILE APPS) ---
     Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);
+    Route::get('/jadwal-hari-ini', [KalenderController::class, 'jadwalHariIni']); // <-- Rute Baru
 
     // Rute statistik (jika masih diperlukan)
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
