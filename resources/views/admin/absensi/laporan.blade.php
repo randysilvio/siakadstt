@@ -7,9 +7,11 @@
             <h2 class="mb-0 fw-bold">Laporan Absensi Pegawai</h2>
             <p class="text-muted mb-0">Rekapitulasi kehadiran pegawai & dosen.</p>
         </div>
-        <button class="btn btn-outline-primary shadow-sm" onclick="window.print()">
+        {{-- TOMBOL CETAK DIPERBARUI --}}
+        {{-- Menggunakan route() dan request()->query() agar filter ikut tercetak --}}
+        <a href="{{ route('admin.absensi.laporan.cetak', request()->query()) }}" target="_blank" class="btn btn-outline-primary shadow-sm">
             <i class="bi bi-printer me-1"></i> Cetak Laporan
-        </button>
+        </a>
     </div>
 
     {{-- Filter Data --}}

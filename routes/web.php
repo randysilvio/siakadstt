@@ -223,6 +223,10 @@ Route::middleware('auth')->group(function () {
         // Rute Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {
             Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
+            
+            // [BARU] Rute untuk Cetak Laporan
+            Route::get('/laporan/cetak', [AbsensiController::class, 'laporanCetak'])->name('laporan.cetak');
+
             Route::get('/lokasi', [AbsensiController::class, 'lokasiIndex'])->name('lokasi.index');
             Route::get('/lokasi/create', [AbsensiController::class, 'lokasiCreate'])->name('lokasi.create');
             Route::post('/lokasi', [AbsensiController::class, 'lokasiStore'])->name('lokasi.store');

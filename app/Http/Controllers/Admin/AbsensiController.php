@@ -36,6 +36,38 @@ class AbsensiController extends Controller
     }
 
     /**
+     * [BARU] Mencetak Laporan Absensi (Print View)
+     */
+    public function laporanCetak(Request $request)
+    {
+        $query = AbsensiPegawai::with('user')->latest();
+
+        // 1. Terapkan Filter Nama (Sama seperti Index)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        // 2. Terapkan Filter Tanggal (Sama seperti Index)
+        if ($request->filled('tanggal')) {
+            $query->whereDate('tanggal_absensi', $request->tanggal);
+        }
+
+        // Ambil semua data tanpa pagination untuk dicetak
+        $laporan = $query->get(); 
+        
+        // Kirim info filter untuk judul laporan
+        $filterInfo = [];
+        if($request->filled('tanggal')) $filterInfo[] = 'Tanggal: ' . \Carbon\Carbon::parse($request->tanggal)->translatedFormat('d F Y');
+        if($request->filled('search')) $filterInfo[] = 'Pencarian: "' . $request->search . '"';
+
+        // Load view khusus cetak
+        return view('admin.absensi.laporan_cetak', compact('laporan', 'filterInfo'));
+    }
+
+    /**
      * Menampilkan halaman manajemen lokasi kerja.
      */
     public function lokasiIndex()
