@@ -8,11 +8,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-/**
- * @property-read \App\Models\Mahasiswa|null $mahasiswa
- * @property-read \App\Models\Dosen|null $dosen
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Role[] $roles
- */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -66,6 +61,17 @@ class User extends Authenticatable
         return $this->hasOne(Dosen::class);
     }
 
+    public function camaba()
+    {
+        return $this->hasOne(Camaba::class);
+    }
+
+    // [PERBAIKAN UTAMA] Relasi Pembayaran
+    public function pembayarans()
+    {
+        return $this->hasMany(Pembayaran::class);
+    }
+
     public function isKaprodi(): bool
     {
         if ($this->hasRole('dosen') && $this->dosen) {
@@ -74,11 +80,6 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * [PERBAIKAN UTAMA]
-     * Relasi ke data absensi pegawai. 
-     * Tanpa ini, Controller akan error saat mencetak laporan.
-     */
     public function absensiPegawai()
     {
         return $this->hasMany(AbsensiPegawai::class);

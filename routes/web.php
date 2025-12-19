@@ -37,8 +37,14 @@ use App\Http\Controllers\Admin\EvaluasiHasilController;
 use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
-// [TAMBAHAN BARU] Controller untuk Pengaturan Absensi
 use App\Http\Controllers\Admin\PengaturanAbsensiController;
+// Controller PMB Admin
+use App\Http\Controllers\Admin\PmbAdminController; 
+use App\Http\Controllers\Admin\PmbPeriodController;
+
+// Controller PMB User & Auth
+use App\Http\Controllers\Auth\PmbRegisterController;
+use App\Http\Controllers\PmbController;
 
 // Controller untuk halaman publik
 use App\Http\Controllers\Public\DosenProfileController;
@@ -70,6 +76,10 @@ Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
 Route::get('/pengumuman/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
+// [TAMBAHAN BARU] Rute Pendaftaran PMB (Publik)
+Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
+Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
+
 
 // --- RUTE OTENTIKASI & DASHBOARD ---
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -83,18 +93,28 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
+    // [TAMBAHAN BARU] RUTE KHUSUS CAMABA (Calon Mahasiswa)
+    Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function() {
+        // Pembayaran
+        Route::get('/pembayaran', [PmbController::class, 'showPaymentForm'])->name('pembayaran.show');
+        Route::post('/pembayaran', [PmbController::class, 'storePaymentProof'])->name('pembayaran.store');
+        
+        // Biodata
+        Route::get('/biodata', [PmbController::class, 'showBiodataForm'])->name('biodata.show');
+        Route::put('/biodata', [PmbController::class, 'updateBiodata'])->name('biodata.update');
+    });
+
     // Rute umum
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
 
-    // Rute untuk Modul Verum
+    // Rute untuk Modul Verum (E-Learning)
     Route::prefix('verum')->name('verum.')->group(function() {
         Route::get('/', [VerumController::class, 'index'])->name('index');
         Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('role:dosen');
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
         
-        // Rute untuk Meeting Online
         Route::patch('/kelas/{verum_kela}/start-meeting', [VerumController::class, 'startMeeting'])->name('meeting.start')->middleware('role:dosen');
         Route::patch('/kelas/{verum_kela}/stop-meeting', [VerumController::class, 'stopMeeting'])->name('meeting.stop')->middleware('role:dosen');
 
@@ -182,7 +202,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
-        // Rute Export/Import
+        // Export/Import
         Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
         Route::get('/mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
         Route::post('/mahasiswa/import', [MahasiswaController::class, 'import'])->name('mahasiswa.import');
@@ -196,7 +216,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
         Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
 
-        // Rute Manajemen Absensi
+        // Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {
             Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
             Route::get('/laporan/cetak', [AbsensiController::class, 'laporanCetak'])->name('laporan.cetak');
@@ -208,10 +228,20 @@ Route::middleware('auth')->group(function () {
             Route::put('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiUpdate'])->name('lokasi.update');
             Route::delete('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiDestroy'])->name('lokasi.destroy');
             
-            // [TAMBAHAN BARU] Rute Pengaturan Absensi (Control Panel)
             Route::get('/pengaturan', [PengaturanAbsensiController::class, 'index'])->name('pengaturan.index');
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
+
+        // [TAMBAHAN BARU] MANAJEMEN PMB (Admin Side)
+        // 1. Data Pendaftar & Verifikasi
+        Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
+        Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
+        Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
+        Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
+        
+        // 2. Setting Gelombang PMB
+        Route::resource('pmb-periods', PmbPeriodController::class);
+        Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
 
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('program-studi', ProgramStudiController::class);

@@ -55,6 +55,7 @@
                  <a href="#berita" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Berita</a>
                  <a href="#prodi" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Program Studi</a>
                  <a href="#dokumen" class="text-sm font-medium text-gray-600 hover:text-teal-600 transition">Dokumen</a>
+                 {{-- Tombol Login --}}
                  <a href="{{ route('login') }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 shadow-md transform hover:scale-105">
                     LOGIN SIAKAD
                 </a>
@@ -154,12 +155,12 @@
                         <span class="text-sm font-bold text-slate-700 group-hover:text-orange-600">Kontak Kami</span>
                     </a>
 
-                    {{-- Item 5: Login --}}
-                    <a href="{{ route('login') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
-                        <div class="h-14 w-14 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-slate-800 group-hover:text-white">
-                            <i class="fa-solid fa-right-to-bracket text-2xl"></i>
+                    {{-- Item 5: Login / PMB --}}
+                    <a href="{{ route('pmb.register') }}" class="group flex flex-col items-center text-center p-2 rounded-xl hover:bg-slate-50 transition">
+                        <div class="h-14 w-14 rounded-full bg-green-50 text-green-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm group-hover:bg-green-600 group-hover:text-white">
+                            <i class="fa-solid fa-user-plus text-2xl"></i>
                         </div>
-                        <span class="text-sm font-bold text-slate-700 group-hover:text-slate-800">Login SIAKAD</span>
+                        <span class="text-sm font-bold text-slate-700 group-hover:text-green-600">Daftar PMB</span>
                     </a>
                 </div>
             </div>
@@ -420,7 +421,8 @@
                     <h3 class="font-bold text-lg mb-6 border-l-4 border-teal-500 pl-3">Mahasiswa</h3>
                     <ul class="space-y-3 text-sm text-slate-300">
                         <li><a href="{{ route('login') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Login SIAKAD</a></li>
-                        <li><a href="#" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Pendaftaran Baru</a></li>
+                        {{-- [UPDATED] Link ke Pendaftaran PMB --}}
+                        <li><a href="{{ route('pmb.register') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Pendaftaran Baru</a></li>
                         <li><a href="{{ route('perpustakaan.index') }}" class="hover:text-teal-400 transition flex items-center"><span class="w-1 h-1 bg-teal-500 rounded-full mr-2"></span> Perpustakaan</a></li>
                     </ul>
                 </div>

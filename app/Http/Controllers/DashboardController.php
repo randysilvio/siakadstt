@@ -13,7 +13,7 @@ use App\Models\Koleksi;
 use App\Models\Pembayaran;
 use App\Models\Jadwal;
 use App\Models\TahunAkademik;
-use App\Models\Peminjaman; // <-- PERBAIKAN: Menambahkan model Peminjaman
+use App\Models\Peminjaman; 
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -24,6 +24,23 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        // =========================================================
+        // [TAMBAHAN BARU] Dashboard Khusus CAMABA (Calon Mahasiswa)
+        // =========================================================
+        if ($user->hasRole('camaba')) {
+            // Ambil data camaba
+            $camaba = $user->camaba; 
+            
+            // Ambil tagihan formulir pmb (query manual agar aman dari error relasi)
+            $tagihan = Pembayaran::where('user_id', $user->id)
+                            ->where('jenis_pembayaran', 'formulir_pmb')
+                            ->latest()
+                            ->first();
+            
+            return view('dashboard.camaba', compact('camaba', 'tagihan'));
+        }
+        // =========================================================
         
         $userRoles = $user->roles->pluck('name')->toArray();
         array_push($userRoles, 'semua');
@@ -139,9 +156,6 @@ class DashboardController extends Controller
             ]);
         }
         elseif ($user->hasRole('pustakawan')) {
-            // =======================================================================================
-            // ===== PERBAIKAN: Melengkapi semua data yang dibutuhkan oleh view perpustakaan.dashboard =====
-            // =======================================================================================
             return view('perpustakaan.dashboard', [
                 'totalJudul' => Koleksi::count(),
                 'totalEksemplar' => Koleksi::sum('jumlah_stok'),

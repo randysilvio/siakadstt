@@ -184,7 +184,28 @@
                                 </ul>
                             </li>
 
-                            {{-- Grup Konten & Sistem (UPDATED) --}}
+                            {{-- [MENU BARU] Grup PMB (Penerimaan Mahasiswa Baru) --}}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-plus-fill"></i>PMB
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Penerimaan Baru</h6></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.pmb.index') }}">
+                                            <i class="bi bi-file-earmark-person me-2"></i>Data Pendaftar
+                                        </a>
+                                    </li>
+                                    {{-- [SUB MENU] Setting Gelombang --}}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ route('admin.pmb-periods.index') }}">
+                                            <i class="bi bi-calendar-range me-2"></i>Setting Gelombang
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            {{-- Grup Konten & Sistem --}}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'pembayaran*', 'admin/evaluasi*', 'admin/pengaturan*', 'admin/absensi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-hdd-rack"></i>Sistem
@@ -203,7 +224,7 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.absensi.laporan.index') }}">Laporan Absensi</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.absensi.lokasi.index') }}">Lokasi Absensi</a></li>
                                     
-                                    {{-- [BARU] Menu Setting Jam Absensi (IKON DIHAPUS SESUAI PERMINTAAN) --}}
+                                    {{-- Menu Setting Jam Absensi --}}
                                     <li>
                                         <a class="dropdown-item" href="{{ route('admin.absensi.pengaturan.index') }}">
                                             Setting Jam & Toleransi
