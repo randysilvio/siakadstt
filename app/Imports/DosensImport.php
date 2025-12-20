@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
-class DosensImport implements ToModel, WithHeadingRow, WithValidation
+class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
     private $dosenRole;
 
@@ -22,26 +23,38 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation
 
     public function model(array $row)
     {
+        if (!isset($row['nidn']) || !isset($row['email'])) {
+            return null;
+        }
+
         return DB::transaction(function () use ($row) {
-            // 1. Create/Get User
-            $user = User::firstOrCreate(
-                ['email' => $row['email']],
-                [
+            $email = trim($row['email']);
+            $nidn = trim((string) $row['nidn']);
+            
+            // 1. Cek User
+            $user = User::where('email', $email)->first();
+
+            if ($user) {
+                $dataUpdate = ['name' => $row['nama_lengkap']];
+                if (!empty($row['password'])) {
+                    $dataUpdate['password'] = Hash::make($row['password']);
+                }
+                $user->update($dataUpdate);
+            } else {
+                $user = User::create([
                     'name' => $row['nama_lengkap'],
+                    'email' => $email,
                     'password' => Hash::make($row['password']),
-                ]
-            );
+                ]);
+            }
 
             if ($this->dosenRole) {
                 $user->roles()->syncWithoutDetaching($this->dosenRole->id);
             }
 
-            // 2. Create/Update Dosen Profile
-            // Trim NIDN agar bersih dari spasi
-            $nidn = trim((string) $row['nidn']);
-
+            // 2. Update/Create Profil Dosen
             return Dosen::updateOrCreate(
-                ['nidn' => $nidn], // Kunci pencarian
+                ['nidn' => $nidn],
                 [
                     'user_id'             => $user->id,
                     'nama_lengkap'        => $row['nama_lengkap'],
@@ -62,7 +75,6 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation
             'nidn' => 'required',
             'nama_lengkap' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:6',
         ];
     }
 }

@@ -7,8 +7,9 @@ use App\Models\Dosen;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
-class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation
+class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
     private $dosens;
 
@@ -20,18 +21,24 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation
     
     public function model(array $row)
     {
-        $nidn = trim((string) $row['nidn_dosen']);
-        $dosenId = $this->dosens->get($nidn);
-        $kodeMK = trim((string) $row['kode_mk']);
+        if (!isset($row['kode_mk']) || !isset($row['nama_mk'])) {
+            return null;
+        }
 
-        // Jika kode MK sudah ada, update. Jika belum, create.
+        $kodeMK = trim((string) $row['kode_mk']);
+        
+        // Cari ID Dosen di cache (tanpa query database berulang)
+        $nidn = trim((string) ($row['nidn_dosen'] ?? ''));
+        $dosenId = $this->dosens->get($nidn); 
+
         return MataKuliah::updateOrCreate(
             ['kode_mk' => $kodeMK],
             [
                 'nama_mk'   => $row['nama_mk'],
                 'sks'       => $row['sks'],
                 'semester'  => $row['semester'],
-                'dosen_id'  => $dosenId, // Bisa null jika NIDN tidak ditemukan di DB
+                'dosen_id'  => $dosenId,
+                'kurikulum_id' => $row['kurikulum_id'] ?? null, 
             ]
         );
     }
@@ -43,7 +50,6 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation
             'nama_mk'    => 'required',
             'sks'        => 'required|integer',
             'semester'   => 'required|integer',
-            'nidn_dosen' => 'required', // Validasi 'exists' dihapus agar row tidak gagal total, tapi dosen_id jadi null
         ];
     }
 }

@@ -14,25 +14,22 @@ use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
 {
-    public function title(): string
-    {
-        return 'Template Impor Dosen';
-    }
+    public function title(): string { return 'Template Dosen'; }
 
     public function collection(): Collection
     {
         return new Collection([
             [
                 'nidn' => '0912345601',
-                'nama_lengkap' => 'Dr. Budi Santoso, M.Kom.',
-                'email' => 'budi.santoso@example.com',
+                'nama_lengkap' => 'Dr. Budi Santoso',
+                'email' => 'budi@contoh.com',
                 'password' => 'password123',
-                'jabatan_akademik' => 'Lektor Kepala',
-                'bidang_keahlian' => 'Rekayasa Perangkat Lunak, AI',
-                'deskripsi_diri' => 'Dosen senior dengan pengalaman mengajar.',
-                'email_institusi' => 'budi.s@sttgpipapua.ac.id',
-                'link_google_scholar' => 'https://scholar.google.com/citations?user=xxxx',
-                'link_sinta' => 'https://sinta.kemdikbud.go.id/authors/profile/xxxx',
+                'jabatan_akademik' => 'Lektor',
+                'bidang_keahlian' => 'Teologi',
+                'deskripsi_diri' => 'Dosen Tetap',
+                'email_institusi' => 'budi@kampus.ac.id',
+                'link_google_scholar' => '',
+                'link_sinta' => '',
             ]
         ]);
     }
@@ -46,23 +43,13 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
         ];
     }
 
-    public function columnFormats(): array
-    {
-        return [
-            'A' => NumberFormat::FORMAT_TEXT, // NIDN Text
-        ];
-    }
+    public function columnFormats(): array { return ['A' => NumberFormat::FORMAT_TEXT]; }
 
     public function registerEvents(): array
     {
         return [
             AfterSheet::class => function(AfterSheet $event) {
-                $sheet = $event->sheet;
-                // Style Header (Teal)
-                $sheet->getStyle('A1:J1')->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-                    'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']],
-                ]);
+                $event->sheet->getStyle('A1:J1')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']]]);
             },
         ];
     }

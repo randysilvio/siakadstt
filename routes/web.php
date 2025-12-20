@@ -161,6 +161,10 @@ Route::middleware('auth')->group(function () {
     // RUTE UNTUK DOSEN
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
+         
+         // [PERBAIKAN] URL diganti agar tidak bentrok dengan rute publik '/dosen/{nidn}'
+         Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
+
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');

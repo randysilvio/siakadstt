@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Dosen;
+use App\Models\Kurikulum;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -15,10 +16,7 @@ use Illuminate\Support\Collection;
 
 class MataKuliahImportTemplateExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
 {
-    public function title(): string
-    {
-        return 'Template Mata Kuliah';
-    }
+    public function title(): string { return 'Template Mata Kuliah'; }
 
     public function collection(): Collection
     {
@@ -28,7 +26,8 @@ class MataKuliahImportTemplateExport implements FromCollection, WithHeadings, Wi
                 'nama_mk' => 'Pengantar Teologi',
                 'sks' => '3',
                 'semester' => '1',
-                'nidn_dosen' => 'Isi NIDN (Lihat Kolom G)', 
+                'nidn_dosen' => '00123456', 
+                'kurikulum_id' => '1',
             ]
         ]);
     }
@@ -36,19 +35,14 @@ class MataKuliahImportTemplateExport implements FromCollection, WithHeadings, Wi
     public function headings(): array
     {
         return [
-            'kode_mk', 'nama_mk', 'sks', 'semester', 'nidn_dosen',
-            '', // Spasi F
-            'REFERENSI DOSEN (NIDN - NAMA)', // G
+            'kode_mk', 'nama_mk', 'sks', 'semester', 'nidn_dosen', 'kurikulum_id',
+            '', 'REF: NIDN DOSEN', 'REF: ID KURIKULUM'
         ];
     }
 
     public function columnFormats(): array
     {
-        return [
-            'A' => NumberFormat::FORMAT_TEXT, // Kode MK
-            'E' => NumberFormat::FORMAT_TEXT, // NIDN Input
-            'G' => NumberFormat::FORMAT_TEXT, // NIDN Ref
-        ];
+        return [ 'A' => NumberFormat::FORMAT_TEXT, 'E' => NumberFormat::FORMAT_TEXT, 'H' => NumberFormat::FORMAT_TEXT ];
     }
 
     public function registerEvents(): array
@@ -56,27 +50,27 @@ class MataKuliahImportTemplateExport implements FromCollection, WithHeadings, Wi
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
+                $sheet->getStyle('A1:F1')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']]]);
+                $sheet->getStyle('H1:I1')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF475569']]]);
 
-                // Header Styles
-                $sheet->getStyle('A1:E1')->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-                    'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']],
-                ]);
-                $sheet->getStyle('G1')->applyFromArray([
-                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-                    'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF64748B']],
-                ]);
-
-                // REFERENSI DOSEN (NIDN)
+                // REF DATA
                 $dosens = Dosen::select('nidn', 'nama_lengkap')->get();
                 $row = 2;
                 foreach($dosens as $dosen) {
-                    $sheet->setCellValueExplicit('G' . $row, $dosen->nidn . ' - ' . $dosen->nama_lengkap, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('H' . $row, $dosen->nidn . ' - ' . $dosen->nama_lengkap, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $row++;
+                }
+                
+                $kurikulums = Kurikulum::select('id', 'nama_kurikulum', 'tahun')->orderBy('tahun', 'desc')->get();
+                $row = 2;
+                foreach($kurikulums as $k) {
+                    $sheet->setCellValue('I' . $row, $k->id . ' - ' . $k->nama_kurikulum . ' (' . $k->tahun . ')');
                     $row++;
                 }
 
-                $sheet->getColumnDimension('F')->setWidth(2);
-                $sheet->getColumnDimension('G')->setAutoSize(true);
+                $sheet->getColumnDimension('G')->setWidth(3);
+                $sheet->getColumnDimension('H')->setAutoSize(true);
+                $sheet->getColumnDimension('I')->setAutoSize(true);
             }
         ];
     }
