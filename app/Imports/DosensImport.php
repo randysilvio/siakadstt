@@ -11,6 +11,8 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Carbon\Carbon;
 
 class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
@@ -23,17 +25,44 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
 
     public function model(array $row)
     {
-        if (!isset($row['nidn']) || !isset($row['email'])) {
+        // Skip baris kosong
+        if (empty($row['nidn']) || empty($row['email'])) {
             return null;
         }
 
-        return DB::transaction(function () use ($row) {
+        // Handle Date
+        $tanggalLahir = null;
+        if (!empty($row['tanggal_lahir'])) {
+            try {
+                if (is_numeric($row['tanggal_lahir'])) {
+                    $tanggalLahir = Date::excelToDateTimeObject($row['tanggal_lahir'])->format('Y-m-d');
+                } else {
+                    $tanggalLahir = Carbon::parse($row['tanggal_lahir'])->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                $tanggalLahir = null;
+            }
+        }
+        
+        $tmtSk = null;
+        if (!empty($row['tmt_sk_pengangkatan'])) {
+            try {
+                if (is_numeric($row['tmt_sk_pengangkatan'])) {
+                    $tmtSk = Date::excelToDateTimeObject($row['tmt_sk_pengangkatan'])->format('Y-m-d');
+                } else {
+                    $tmtSk = Carbon::parse($row['tmt_sk_pengangkatan'])->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                $tmtSk = null;
+            }
+        }
+
+        return DB::transaction(function () use ($row, $tanggalLahir, $tmtSk) {
             $email = trim($row['email']);
             $nidn = trim((string) $row['nidn']);
             
-            // 1. Cek User
+            // 1. User Logic
             $user = User::where('email', $email)->first();
-
             if ($user) {
                 $dataUpdate = ['name' => $row['nama_lengkap']];
                 if (!empty($row['password'])) {
@@ -52,15 +81,25 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
                 $user->roles()->syncWithoutDetaching($this->dosenRole->id);
             }
 
-            // 2. Update/Create Profil Dosen
+            // 2. Dosen Profile Logic (Lengkap)
             return Dosen::updateOrCreate(
                 ['nidn' => $nidn],
                 [
                     'user_id'             => $user->id,
                     'nama_lengkap'        => $row['nama_lengkap'],
+                    'nik'                 => $row['nik'] ?? null,
+                    'nuptk'               => $row['nuptk'] ?? null,
+                    'npwp'                => $row['npwp'] ?? null,
+                    'tempat_lahir'        => $row['tempat_lahir'] ?? null,
+                    'tanggal_lahir'       => $tanggalLahir,
+                    'jenis_kelamin'       => $row['jenis_kelamin'] ?? null,
+                    'alamat'              => $row['alamat'] ?? null,
+                    'status_kepegawaian'  => $row['status_kepegawaian'] ?? 'Dosen Tetap',
+                    'no_sk_pengangkatan'  => $row['no_sk_pengangkatan'] ?? null,
+                    'tmt_sk_pengangkatan' => $tmtSk,
+                    'pangkat_golongan'    => $row['pangkat_golongan'] ?? null,
                     'jabatan_akademik'    => $row['jabatan_akademik'] ?? null,
                     'bidang_keahlian'     => $row['bidang_keahlian'] ?? null,
-                    'deskripsi_diri'      => $row['deskripsi_diri'] ?? null,
                     'email_institusi'     => $row['email_institusi'] ?? null,
                     'link_google_scholar' => $row['link_google_scholar'] ?? null,
                     'link_sinta'          => $row['link_sinta'] ?? null,

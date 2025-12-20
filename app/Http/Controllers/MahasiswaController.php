@@ -20,48 +20,35 @@ use Illuminate\View\View;
 
 class MahasiswaController extends Controller
 {
-    /**
-     * Menampilkan daftar mahasiswa dengan Smart Filter.
-     */
     public function index(Request $request): View
     {
         $query = Mahasiswa::with(['programStudi', 'user.roles'])->latest();
 
-        // 1. Filter Pencarian Teks (Nama, NIM, Email)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
                   ->orWhere('nim', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%") // Tambahan pencarian NIK
                   ->orWhereHas('user', fn($userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
             });
         }
 
-        // 2. Filter Program Studi
         if ($request->filled('program_studi_id')) {
             $query->where('program_studi_id', $request->input('program_studi_id'));
         }
 
-        // 3. [BARU] Filter Angkatan (Tahun Masuk)
         if ($request->filled('angkatan')) {
             $query->where('tahun_masuk', $request->input('angkatan'));
         }
 
-        // 4. [BARU] Filter Status Mahasiswa
         if ($request->filled('status')) {
             $query->where('status_mahasiswa', $request->input('status'));
         }
 
         $mahasiswas = $query->paginate(10)->withQueryString();
-        
-        // Data untuk Dropdown Filter
         $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
-        
-        // [BARU] Ambil daftar tahun masuk unik untuk filter angkatan
-        $angkatans = Mahasiswa::select('tahun_masuk')
-                        ->distinct()
-                        ->orderBy('tahun_masuk', 'desc')
-                        ->pluck('tahun_masuk');
+        $angkatans = Mahasiswa::select('tahun_masuk')->distinct()->orderBy('tahun_masuk', 'desc')->pluck('tahun_masuk');
 
         return view('mahasiswa.index', compact('mahasiswas', 'program_studis', 'angkatans'));
     }
@@ -69,26 +56,54 @@ class MahasiswaController extends Controller
     public function create(): View
     {
         $program_studis = ProgramStudi::all();
-        $dosens = Dosen::all();
+        $dosens = Dosen::orderBy('nama_lengkap')->get();
         return view('mahasiswa.create', compact('program_studis', 'dosens'));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        // Validasi Standar PDDikti Feeder
         $request->validate([
-            'nim' => 'required|unique:mahasiswas|max:10',
-            'nama_lengkap' => 'required|string|max:255',
-            'program_studi_id' => 'required|exists:program_studis,id',
-            'dosen_wali_id' => 'nullable|exists:dosens,id',
+            // Akun
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'tempat_lahir' => 'nullable|string|max:100',
-            'tanggal_lahir' => 'nullable|date',
-            'jenis_kelamin' => 'nullable|in:L,P',
-            'alamat' => 'nullable|string',
-            'nomor_telepon' => 'nullable|string|max:15',
+            
+            // Akademik
+            'nim' => 'required|unique:mahasiswas|max:20',
+            'program_studi_id' => 'required|exists:program_studis,id',
+            'dosen_wali_id' => 'nullable|exists:dosens,id',
             'tahun_masuk' => 'required|digits:4|integer|min:1990',
-            'nama_ibu_kandung' => 'nullable|string|max:255',
+            'jalur_pendaftaran' => 'nullable|string',
+
+            // Data Pribadi (NIK Wajib)
+            'nama_lengkap' => 'required|string|max:255',
+            'nik' => 'required|digits:16|unique:mahasiswas,nik',
+            'nisn' => 'nullable|digits_between:10,12',
+            'kewarganegaraan' => 'required|string',
+            'tempat_lahir' => 'required|string|max:100',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required|in:L,P',
+            'agama' => 'nullable|string',
+            'nomor_telepon' => 'nullable|string|max:15',
+
+            // Alamat Detail
+            'alamat' => 'nullable|string',
+            'dusun' => 'nullable|string',
+            'rt' => 'nullable|numeric',
+            'rw' => 'nullable|numeric',
+            'kelurahan' => 'nullable|string',
+            'kecamatan' => 'nullable|string',
+            'kode_pos' => 'nullable|numeric',
+            'jenis_tinggal' => 'nullable|string',
+            'alat_transportasi' => 'nullable|string',
+
+            // Data Orang Tua
+            'nama_ibu_kandung' => 'required|string|max:255', // Wajib Feeder
+            'nik_ibu' => 'nullable|digits:16',
+            'nik_ayah' => 'nullable|digits:16',
+            'nama_ayah' => 'nullable|string',
+            'penghasilan_ayah' => 'nullable|string',
+            'penghasilan_ibu' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -107,7 +122,7 @@ class MahasiswaController extends Controller
             Mahasiswa::create($mahasiswaData);
         });
 
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa dan akun login berhasil dibuat!');
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa lengkap berhasil disimpan!');
     }
 
     public function show(Mahasiswa $mahasiswa): RedirectResponse
@@ -118,26 +133,27 @@ class MahasiswaController extends Controller
     public function edit(Mahasiswa $mahasiswa): View
     {
         $program_studis = ProgramStudi::all();
-        $dosens = Dosen::all();
+        $dosens = Dosen::orderBy('nama_lengkap')->get();
         return view('mahasiswa.edit', compact('mahasiswa', 'program_studis', 'dosens'));
     }
 
     public function update(Request $request, Mahasiswa $mahasiswa): RedirectResponse
     {
         $request->validate([
-            'nim' => 'required|max:10|unique:mahasiswas,nim,' . $mahasiswa->id,
+            // Validasi Update (Ignore ID sendiri)
+            'nim' => 'required|max:20|unique:mahasiswas,nim,' . $mahasiswa->id,
+            'nik' => 'required|digits:16|unique:mahasiswas,nik,' . $mahasiswa->id,
             'nama_lengkap' => 'required|string|max:255',
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $mahasiswa->user_id],
+            
             'program_studi_id' => 'required|exists:program_studis,id',
-            'dosen_wali_id' => 'nullable|exists:dosens,id',
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class . ',email,' . $mahasiswa->user_id],
-            'tempat_lahir' => 'nullable|string|max:100',
-            'tanggal_lahir' => 'nullable|date',
-            'jenis_kelamin' => 'nullable|in:L,P',
-            'alamat' => 'nullable|string',
-            'nomor_telepon' => 'nullable|string|max:15',
-            'tahun_masuk' => 'required|digits:4|integer|min:1990',
-            'nama_ibu_kandung' => 'nullable|string|max:255',
+            'tahun_masuk' => 'required|digits:4',
+            'nama_ibu_kandung' => 'required|string', // Tetap wajib saat update
             'status_mahasiswa' => 'required|string',
+            
+            // Validasi field opsional lainnya bisa dilonggarkan atau disamakan dengan store
+            'nik_ayah' => 'nullable|digits:16',
+            'nik_ibu' => 'nullable|digits:16',
         ]);
     
         DB::transaction(function () use ($request, $mahasiswa) {
@@ -175,7 +191,6 @@ class MahasiswaController extends Controller
     {
         $search = $request->input('search');
         $program_studi_id = $request->input('program_studi_id');
-        // Catatan: Jika ingin filter angkatan/status ikut terekspor, update juga constructor MahasiswasExport
         return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 
@@ -193,7 +208,7 @@ class MahasiswaController extends Controller
             }
             return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         } catch (\Exception $e) {
-            return redirect()->route('admin.mahasiswa.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
         
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimpor!');

@@ -26,7 +26,7 @@ class UserController extends Controller
             });
         }
 
-        // 2. [BARU] Filter Peran (Role)
+        // 2. Filter Peran (Role)
         if ($request->filled('role_id')) {
             $roleId = $request->input('role_id');
             // Mencari user yang memiliki role tertentu melalui relasi many-to-many
@@ -69,12 +69,32 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($user) {
+            // [UPDATE] Hapus profil Tendik jika ada
+            if ($user->tendik) {
+                // Hapus foto profil tendik jika ada (optional, jika logika delete ada di Model boot)
+                if ($user->tendik->foto_profil) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->tendik->foto_profil);
+                }
+                $user->tendik->delete();
+            }
+
+            // Hapus profil Dosen jika ada
             if ($user->dosen) {
+                if ($user->dosen->foto_profil) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->dosen->foto_profil);
+                }
                 $user->dosen->delete();
             }
+
+            // Hapus profil Mahasiswa jika ada
             if ($user->mahasiswa) {
+                // Tambahkan logika hapus foto mahasiswa jika perlu
+                if ($user->mahasiswa->foto_profil) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->mahasiswa->foto_profil);
+                }
                 $user->mahasiswa->delete();
             }
+
             $user->roles()->detach();
             $user->delete();
         });

@@ -10,8 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\SkipsEmptyRows; // Wajib: Anti Baris Kosong
-
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Carbon\Carbon;
 
@@ -26,16 +25,17 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
     public function model(array $row)
     {
-        // 1. Cek baris kosong (Anti error "Field required")
+        // 1. Skip baris kosong
         if (empty($row['nim']) || empty($row['nama_lengkap'])) {
             return null;
         }
 
+        // 2. Sanitasi Data
         $nim = trim((string) $row['nim']);
         $email = trim($row['email']);
+        $nik = isset($row['nik']) ? trim((string) $row['nik']) : null; // NIK Wajib untuk Feeder
         
-        // 2. [FIX UTAMA] Sanitasi Dosen Wali ID
-        // Jika di Excel tertulis '0', kosong, atau strip, ubah jadi NULL agar DB tidak error
+        // Sanitasi Dosen Wali (0 atau '-' jadi null)
         $dosenWaliId = $row['dosen_wali_id'];
         if (empty($dosenWaliId) || $dosenWaliId == '0' || $dosenWaliId == '-') {
             $dosenWaliId = null;
@@ -55,7 +55,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             }
         }
 
-        return DB::transaction(function () use ($row, $nim, $email, $tanggalLahir, $dosenWaliId) {
+        return DB::transaction(function () use ($row, $nim, $email, $nik, $tanggalLahir, $dosenWaliId) {
             // A. UPDATE / CREATE USER
             $user = User::where('email', $email)->first();
             
@@ -82,16 +82,49 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 ['nim' => $nim], 
                 [
                     'user_id'           => $user->id,
-                    'nama_lengkap'      => $row['nama_lengkap'],
                     'program_studi_id'  => $row['program_studi_id'],
-                    'dosen_wali_id'     => $dosenWaliId, // Gunakan variabel yang sudah dibersihkan (bisa null)
+                    'dosen_wali_id'     => $dosenWaliId,
+                    'nama_lengkap'      => $row['nama_lengkap'],
                     'tahun_masuk'       => $row['tahun_masuk'],
+                    'status_mahasiswa'  => $row['status_mahasiswa'] ?? 'Aktif',
+                    
+                    // --- DATA PRIBADI ---
+                    'nik'               => $nik,
+                    'nisn'              => $row['nisn'] ?? null,
+                    'kewarganegaraan'   => $row['kewarganegaraan'] ?? 'WNI',
+                    'jalur_pendaftaran' => $row['jalur_pendaftaran'] ?? 'Mandiri',
                     'tempat_lahir'      => $row['tempat_lahir'] ?? null,
                     'tanggal_lahir'     => $tanggalLahir,
                     'jenis_kelamin'     => $row['jenis_kelamin'] ?? null,
-                    'alamat'            => $row['alamat'] ?? null,
+                    'agama'             => $row['agama'] ?? null,
                     'nomor_telepon'     => $row['nomor_telepon'] ?? null,
-                    'status_mahasiswa'  => $row['status_mahasiswa'] ?? 'Aktif',
+
+                    // --- ALAMAT DETAIL ---
+                    'alamat'            => $row['alamat'] ?? null,
+                    'dusun'             => $row['dusun'] ?? null,
+                    'rt'                => $row['rt'] ?? null,
+                    'rw'                => $row['rw'] ?? null,
+                    'kelurahan'         => $row['kelurahan'] ?? null,
+                    'kecamatan'         => $row['kecamatan'] ?? null,
+                    'kode_pos'          => $row['kode_pos'] ?? null,
+                    'jenis_tinggal'     => $row['jenis_tinggal'] ?? null,
+                    'alat_transportasi' => $row['alat_transportasi'] ?? null,
+
+                    // --- DATA ORANG TUA ---
+                    'nama_ibu_kandung'  => $row['nama_ibu_kandung'], // Wajib
+                    'nik_ibu'           => $row['nik_ibu'] ?? null,
+                    'pendidikan_ibu'    => $row['pendidikan_ibu'] ?? null,
+                    'pekerjaan_ibu'     => $row['pekerjaan_ibu'] ?? null,
+                    'penghasilan_ibu'   => $row['penghasilan_ibu'] ?? null,
+                    
+                    'nama_ayah'         => $row['nama_ayah'] ?? null,
+                    'nik_ayah'          => $row['nik_ayah'] ?? null,
+                    'pendidikan_ayah'   => $row['pendidikan_ayah'] ?? null,
+                    'pekerjaan_ayah'    => $row['pekerjaan_ayah'] ?? null,
+                    'penghasilan_ayah'  => $row['penghasilan_ayah'] ?? null,
+                    
+                    'nama_wali'         => $row['nama_wali'] ?? null,
+                    'pekerjaan_wali'    => $row['pekerjaan_wali'] ?? null,
                 ]
             );
         });
@@ -102,12 +135,9 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
         return [
             'nim'               => 'required', 
             'nama_lengkap'      => 'required',
-            // [PENTING] Validasi 'exists' mencegah error SQL Crash.
-            // ID Prodi harus benar-benar ada di tabel program_studis
             'program_studi_id'  => 'required|exists:program_studis,id', 
-            // Dosen Wali boleh kosong, tapi jika diisi angkanya harus ada di tabel dosens
-            'dosen_wali_id'     => 'nullable', 
             'email'             => 'required|email',
+            'nama_ibu_kandung'  => 'required', // Wajib Feeder
         ];
     }
 }

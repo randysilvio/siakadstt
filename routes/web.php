@@ -217,8 +217,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/mata-kuliah/import', [MataKuliahController::class, 'import'])->name('mata-kuliah.import');
         Route::get('/mata-kuliah/import/template', [MataKuliahController::class, 'downloadTemplate'])->name('mata-kuliah.import.template');
         
-        Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
-        Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
+        // [UPDATE] Manajemen Pegawai / Tendik (Resource Lengkap)
+        Route::resource('tendik', TendikController::class)->except(['show']);
 
         // Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {

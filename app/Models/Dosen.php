@@ -14,6 +14,21 @@ class Dosen extends Model
         'nidn',
         'nama_lengkap',
         'is_keuangan',
+        // --- Identitas Pribadi (Feeder) ---
+        'nik', 
+        'nuptk', 
+        'npwp', 
+        'tempat_lahir', 
+        'tanggal_lahir', 
+        'jenis_kelamin', 
+        'nomor_telepon', 
+        'alamat',
+        // --- Kepegawaian ---
+        'status_kepegawaian', 
+        'no_sk_pengangkatan', 
+        'tmt_sk_pengangkatan', 
+        'pangkat_golongan',
+        // --- Akademik ---
         'jabatan_akademik',
         'bidang_keahlian',
         'deskripsi_diri',
@@ -26,19 +41,11 @@ class Dosen extends Model
     // Menambahkan atribut virtual ke output JSON
     protected $appends = ['foto_url'];
 
-    /**
-     * [PERBAIKAN] Menggunakan Virtual Attribute 'foto_url'.
-     * Panggil di View: {{ $dosen->foto_url }}
-     * * Atribut asli '$dosen->foto_profil' tetap berisi path murni (misal: "dosen/foto.jpg")
-     * agar fungsi Storage::delete($dosen->foto_profil) bekerja dengan benar.
-     */
     public function getFotoUrlAttribute()
     {
         if ($this->foto_profil) {
             return asset('storage/' . $this->foto_profil);
         }
-
-        // Gambar default lokal
         return asset('images/default-avatar.png');
     }
 

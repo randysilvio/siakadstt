@@ -19,20 +19,25 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
     {
         return [
             $dosen->nidn,
+            "'" . $dosen->nik, // Format text agar tidak error ilmiah
             $dosen->nama_lengkap,
-            $dosen->email_institusi,
+            $dosen->jenis_kelamin,
+            $dosen->status_kepegawaian,
             $dosen->jabatan_akademik,
+            $dosen->pangkat_golongan,
             $dosen->bidang_keahlian,
-            $dosen->link_google_scholar,
-            $dosen->link_sinta,
+            $dosen->email_institusi,
+            $dosen->nuptk,
+            $dosen->npwp,
         ];
     }
 
     public function headings(): array
     {
         return [
-            'NIDN', 'Nama Lengkap', 'Email Institusi', 'Jabatan Akademik', 
-            'Bidang Keahlian', 'Link Google Scholar', 'Link SINTA'
+            'NIDN', 'NIK', 'Nama Lengkap', 'L/P', 'Status Pegawai',
+            'Jabatan Akademik', 'Pangkat', 'Bidang Keahlian',
+            'Email Institusi', 'NUPTK', 'NPWP'
         ];
     }
 }

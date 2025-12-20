@@ -16,25 +16,50 @@ use Illuminate\Support\Collection;
 
 class MahasiswaImportTemplateExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
 {
-    public function title(): string { return 'Template Mahasiswa'; }
+    public function title(): string
+    {
+        return 'Template Mahasiswa';
+    }
     
     public function collection(): Collection
     {
         return new Collection([
             [
-                'nim' => '202401001',
+                // Wajib
+                'nim' => '2025001',
                 'nama_lengkap' => 'Contoh Mahasiswa',
-                'program_studi_id' => '1', // WAJIB ISI ANGKA ID (LIHAT TABEL KANAN)
+                'program_studi_id' => '1', 
                 'dosen_wali_id' => '5',
                 'email' => 'mhs@contoh.com',
-                'password' => 'password123',
+                'password' => '123456',
+                'tahun_masuk' => '2025',
+                'status_mahasiswa' => 'Aktif',
+                
+                // Identitas
+                'nik' => '9102xxxxxxxxxxxx',
+                'nisn' => '005xxxxxxx',
+                'jalur_pendaftaran' => 'Mandiri',
                 'tempat_lahir' => 'Jayapura',
                 'tanggal_lahir' => '2005-08-17',
                 'jenis_kelamin' => 'L',
-                'alamat' => 'Jl. Merdeka No. 1',
-                'nomor_telepon' => '08123456789',
-                'tahun_masuk' => '2024',
-                'status_mahasiswa' => 'Aktif',
+                'agama' => 'Kristen Protestan',
+                'nomor_telepon' => '08123xxxx',
+
+                // Alamat
+                'alamat' => 'Jl. Merdeka No 1',
+                'dusun' => 'Dusun 1',
+                'rt' => '01',
+                'rw' => '02',
+                'kelurahan' => 'Vim',
+                'kecamatan' => 'Abepura',
+                'kode_pos' => '99xxx',
+                'jenis_tinggal' => 'Bersama Orang Tua',
+                'alat_transportasi' => 'Motor',
+
+                // Ortu
+                'nama_ibu_kandung' => 'Maria',
+                'nik_ibu' => '91xxxxxxxx',
+                'nama_ayah' => 'Yosep',
             ]
         ]);
     }
@@ -42,17 +67,40 @@ class MahasiswaImportTemplateExport implements FromCollection, WithHeadings, Wit
     public function headings(): array
     {
         return [
+            // Utama
             'nim', 'nama_lengkap', 'program_studi_id', 'dosen_wali_id',
-            'email', 'password', 'tempat_lahir', 'tanggal_lahir',
-            'jenis_kelamin', 'alamat', 'nomor_telepon', 'tahun_masuk', 'status_mahasiswa',
+            'email', 'password', 'tahun_masuk', 'status_mahasiswa',
+            
+            // Identitas
+            'nik', 'nisn', 'jalur_pendaftaran', 'tempat_lahir', 'tanggal_lahir', 
+            'jenis_kelamin', 'agama', 'nomor_telepon',
+            
+            // Alamat
+            'alamat', 'dusun', 'rt', 'rw', 'kelurahan', 'kecamatan', 
+            'kode_pos', 'jenis_tinggal', 'alat_transportasi',
+
+            // Ortu
+            'nama_ibu_kandung', 'nik_ibu', 'pendidikan_ibu', 'pekerjaan_ibu', 'penghasilan_ibu',
+            'nama_ayah', 'nik_ayah', 'pendidikan_ayah', 'pekerjaan_ayah', 'penghasilan_ayah',
+            'nama_wali', 'pekerjaan_wali',
+
             '', // Spasi
-            'REF: ID PRODI (Wajib Diisi)', 'REF: ID DOSEN WALI'
+            'REF: ID PRODI', 'REF: ID DOSEN'
         ];
     }
 
     public function columnFormats(): array
     {
-        return [ 'A' => NumberFormat::FORMAT_TEXT, 'K' => NumberFormat::FORMAT_TEXT ];
+        return [
+            'A' => NumberFormat::FORMAT_TEXT, // NIM
+            'I' => NumberFormat::FORMAT_TEXT, // NIK
+            'J' => NumberFormat::FORMAT_TEXT, // NISN
+            'R' => NumberFormat::FORMAT_TEXT, // RT
+            'S' => NumberFormat::FORMAT_TEXT, // RW
+            'V' => NumberFormat::FORMAT_TEXT, // Kode Pos
+            'X' => NumberFormat::FORMAT_TEXT, // NIK Ibu
+            'AB' => NumberFormat::FORMAT_TEXT, // NIK Ayah
+        ];
     }
 
     public function registerEvents(): array
@@ -60,28 +108,35 @@ class MahasiswaImportTemplateExport implements FromCollection, WithHeadings, Wit
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
-                // Header Styling
-                $sheet->getStyle('A1:M1')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']]]);
-                $sheet->getStyle('O1:P1')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF475569']]]);
+                
+                // Warnai Header
+                $sheet->getStyle('A1:AG1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']],
+                ]);
+                $sheet->getStyle('AI1:AJ1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                    'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF64748B']],
+                ]);
 
-                // GENERATE TABEL BANTUAN
-                $prodis = ProgramStudi::select('id', 'nama_prodi')->get();
+                // Referensi Data (Tabel Kanan)
+                $prodis = ProgramStudi::all();
                 $row = 2;
                 foreach ($prodis as $prodi) {
-                    $sheet->setCellValue('O' . $row, $prodi->id . ' - ' . $prodi->nama_prodi);
+                    $sheet->setCellValue('AI' . $row, $prodi->id . ' - ' . $prodi->nama_prodi);
                     $row++;
                 }
 
-                $dosens = Dosen::select('id', 'nama_lengkap')->get();
+                $dosens = Dosen::all();
                 $row = 2;
                 foreach ($dosens as $dosen) {
-                    $sheet->setCellValue('P' . $row, $dosen->id . ' - ' . $dosen->nama_lengkap);
+                    $sheet->setCellValue('AJ' . $row, $dosen->id . ' - ' . $dosen->nama_lengkap);
                     $row++;
                 }
-                
-                $sheet->getColumnDimension('N')->setWidth(3);
-                $sheet->getColumnDimension('O')->setAutoSize(true);
-                $sheet->getColumnDimension('P')->setAutoSize(true);
+
+                $sheet->getColumnDimension('AH')->setWidth(2); // Spasi
+                $sheet->getColumnDimension('AI')->setAutoSize(true);
+                $sheet->getColumnDimension('AJ')->setAutoSize(true);
             },
         ];
     }

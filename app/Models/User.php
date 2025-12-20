@@ -31,7 +31,7 @@ class User extends Authenticatable
         ];
     }
 
-    // RELASI KE ROLE
+    // --- RELASI KE ROLE (Sistem Multi-User) ---
     public function roles()
     {
         return $this->belongsToMany(Role::class);
@@ -51,6 +51,8 @@ class User extends Authenticatable
         $this->roles()->syncWithoutDetaching($role);
     }
 
+    // --- RELASI PROFIL PENGGUNA ---
+
     public function mahasiswa()
     {
         return $this->hasOne(Mahasiswa::class);
@@ -61,17 +63,29 @@ class User extends Authenticatable
         return $this->hasOne(Dosen::class);
     }
 
+    /**
+     * [BARU] Relasi ke Tendik (Tenaga Kependidikan)
+     * Ditambahkan untuk fitur pegawai administrasi.
+     */
+    public function tendik()
+    {
+        return $this->hasOne(Tendik::class);
+    }
+
     public function camaba()
     {
         return $this->hasOne(Camaba::class);
     }
 
-    // [PERBAIKAN UTAMA] Relasi Pembayaran
+    // --- FITUR LAINNYA ---
+
+    // Relasi ke Pembayaran (Keuangan)
     public function pembayarans()
     {
         return $this->hasMany(Pembayaran::class);
     }
 
+    // Cek apakah user adalah Ketua Program Studi
     public function isKaprodi(): bool
     {
         if ($this->hasRole('dosen') && $this->dosen) {
@@ -80,6 +94,7 @@ class User extends Authenticatable
         return false;
     }
 
+    // Relasi untuk fitur Absensi Pegawai
     public function absensiPegawai()
     {
         return $this->hasMany(AbsensiPegawai::class);
