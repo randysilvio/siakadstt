@@ -61,15 +61,16 @@
                 {{-- BAGIAN 2: DETAIL TAGIHAN --}}
                 <h5 class="fw-bold text-muted mb-3 border-bottom pb-2">2. Detail Tagihan</h5>
 
-                {{-- [PERBAIKAN UTAMA] Input Jenis Pembayaran --}}
                 <div class="mb-3">
                     <label for="jenis_pembayaran" class="form-label fw-bold">Jenis Pembayaran <span class="text-danger">*</span></label>
                     <select name="jenis_pembayaran" class="form-select" required>
                         <option value="">- Pilih Jenis -</option>
-                        <option value="spp">SPP (Sumbangan Pembinaan Pendidikan)</option>
+                        <option value="spp">SPP</option>
                         <option value="uang_gedung">Uang Gedung / Pembangunan</option>
                         <option value="sks">Biaya SKS</option>
                         <option value="registrasi">Registrasi Ulang / Heregistrasi</option>
+                        {{-- [TAMBAHAN BARU] Opsi PPL --}}
+                        <option value="biaya_ppl">Biaya PPL (Praktek Pengalaman Lapangan)</option>
                         <option value="wisuda">Biaya Wisuda</option>
                         <option value="lainnya">Lainnya</option>
                     </select>
