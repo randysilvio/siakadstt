@@ -19,7 +19,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 {
     public function headingRow(): int
     {
-        return 2; // Baris 1: Judul, Baris 2: Header
+        return 2; // Baris 1: Judul Template, Baris 2: Header Kolom
     }
 
     public function model(array $row)
@@ -31,37 +31,46 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
         $nim = trim((string) $row['nim']);
 
-        // 2. Cari Role Mahasiswa (Case Insensitive & Flexible)
-        // Mencari role dengan nama 'mahasiswa' atau 'student'
+        // 2. Cari Role Mahasiswa
         $role = Role::where('name', 'LIKE', 'mahasiswa')
                     ->orWhere('name', 'LIKE', 'student')
                     ->first();
-        
-        // Jika role tidak ketemu di DB, set default ID (sesuaikan ID role mahasiswa di DB Anda, biasanya 3)
         $roleId = $role ? $role->id : 3; 
 
-        // 3. Setup Prodi & Dosen (Logika Cerdas ID vs Nama)
+        // 3. Setup Prodi (PERBAIKAN KUNCI: 'program_studi')
         $prodiId = null;
-        if (!empty($row['program_studi_id'])) {
-            if (is_numeric($row['program_studi_id'])) {
-                $prodiId = $row['program_studi_id'];
+        // Cek 'program_studi' (sesuai CSV) ATAU 'program_studi_id' (jaga-jaga)
+        $inputProdi = $row['program_studi'] ?? $row['program_studi_id'] ?? null;
+
+        if (!empty($inputProdi)) {
+            if (is_numeric($inputProdi)) {
+                $prodiId = $inputProdi;
             } else {
-                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . $row['program_studi_id'] . '%')->first();
+                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . $inputProdi . '%')->first();
                 $prodiId = $prodi ? $prodi->id : null;
             }
         }
 
+        // Default Prodi jika Kosong (Agar tidak error SQL Integrity)
+        // PERINGATAN: Pastikan ID 1 ada di database (misal: Teologi)
+        if (empty($prodiId)) {
+            $prodiId = 1; 
+        }
+
+        // 4. Setup Dosen Wali (PERBAIKAN KUNCI: 'dosen_wali')
         $dosenWaliId = null;
-        if (!empty($row['dosen_wali_id'])) {
-            if (is_numeric($row['dosen_wali_id'])) {
-                $dosenWaliId = $row['dosen_wali_id'];
+        $inputDosen = $row['dosen_wali'] ?? $row['dosen_wali_id'] ?? null;
+
+        if (!empty($inputDosen)) {
+            if (is_numeric($inputDosen)) {
+                $dosenWaliId = $inputDosen;
             } else {
-                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . $row['dosen_wali_id'] . '%')->first();
+                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . $inputDosen . '%')->first();
                 $dosenWaliId = $dosen ? $dosen->id : null;
             }
         }
 
-        // 4. Parsing Tanggal Lahir
+        // 5. Parsing Tanggal Lahir
         $tanggalLahir = null;
         if (!empty($row['tanggal_lahir'])) {
             try {
@@ -73,34 +82,35 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             } catch (\Exception $e) { $tanggalLahir = null; }
         }
 
-        // 5. MANAJEMEN USER (FIXED: UPDATE OR CREATE)
-        // Gunakan updateOrCreate agar user yang sudah ada rolenya diperbaiki
+        // 6. MANAJEMEN USER (Update or Create)
         $email = !empty($row['email']) ? trim($row['email']) : $nim . '@student.sttgpipapua.ac.id';
         $password = !empty($row['password']) ? Hash::make($row['password']) : Hash::make($nim);
 
         $user = User::updateOrCreate(
-            ['email' => $email], // Kunci pencarian
+            ['email' => $email],
             [
                 'name' => $row['nama_lengkap'],
                 'password' => $password,
-                'role_id' => $roleId // PAKSA UPDATE ROLE DISINI
+                'role_id' => $roleId
             ]
         );
 
-        // Tambahan: Jika pakai Spatie Permission, paksa assign role via method ini
         if ($role && method_exists($user, 'assignRole')) {
             $user->assignRole($role->name);
         }
 
-        // 6. Simpan / Update Data Mahasiswa
+        // 7. Simpan Data Mahasiswa
         return Mahasiswa::updateOrCreate(
             ['nim' => $nim],
             [
                 'user_id'           => $user->id,
                 'nama_lengkap'      => $row['nama_lengkap'],
-                'program_studi_id'  => $prodiId,
+                'program_studi_id'  => $prodiId, // Pastikan tidak null
                 'dosen_wali_id'     => $dosenWaliId,
-                'angkatan'          => $row['tahun_masuk'] ?? date('Y'),
+                
+                // PERBAIKAN KUNCI: 'angkatan' (sesuai CSV)
+                'angkatan'          => $row['angkatan'] ?? $row['tahun_masuk'] ?? date('Y'),
+                
                 'status_mahasiswa'  => $row['status_mahasiswa'] ?? 'Aktif',
                 'nik'               => $row['nik'] ?? null,
                 'nisn'              => $row['nisn'] ?? null,
@@ -109,7 +119,10 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'tanggal_lahir'     => $tanggalLahir,
                 'jenis_kelamin'     => $row['jenis_kelamin'] ?? 'L',
                 'agama'             => $row['agama'] ?? 'Kristen Protestan',
-                'nomor_telepon'     => $row['nomor_telepon'] ?? null,
+                
+                // PERBAIKAN KUNCI: 'no_hp' (sesuai CSV)
+                'nomor_telepon'     => $row['no_hp'] ?? $row['nomor_telepon'] ?? null,
+                
                 'alamat'            => $row['alamat'] ?? null,
                 'nama_ibu_kandung'  => $row['nama_ibu_kandung'] ?? null,
                 'nama_ayah'         => $row['nama_ayah'] ?? null,
