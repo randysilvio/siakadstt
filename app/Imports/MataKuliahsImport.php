@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\MataKuliah;
 use App\Models\Dosen;
+use App\Models\ProgramStudi;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -11,34 +12,55 @@ use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
 class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
-    private $dosens;
-
-    public function __construct()
+    public function headingRow(): int
     {
-        // Cache NIDN -> ID
-        $this->dosens = Dosen::pluck('id', 'nidn');
+        return 2;
     }
-    
+
     public function model(array $row)
     {
-        if (!isset($row['kode_mk']) || !isset($row['nama_mk'])) {
+        // 1. Skip jika kode kosong
+        if (empty($row['kode_mk']) || empty($row['nama_mata_kuliah'])) {
             return null;
         }
 
-        $kodeMK = trim((string) $row['kode_mk']);
-        
-        // Cari ID Dosen di cache (tanpa query database berulang)
-        $nidn = trim((string) ($row['nidn_dosen'] ?? ''));
-        $dosenId = $this->dosens->get($nidn); 
+        // 2. LOGIKA CERDAS: DOSEN PENGAMPU
+        $dosenId = null;
+        if (!empty($row['dosen_pengampu'])) {
+            // Jika Angka (NIDN/ID)
+            if (is_numeric($row['dosen_pengampu'])) {
+                $dosen = Dosen::where('nidn', $row['dosen_pengampu'])->orWhere('id', $row['dosen_pengampu'])->first();
+                $dosenId = $dosen ? $dosen->id : null;
+            } 
+            // Jika Teks (Nama)
+            else {
+                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . $row['dosen_pengampu'] . '%')->first();
+                $dosenId = $dosen ? $dosen->id : null;
+            }
+        }
 
+        // 3. LOGIKA CERDAS: PROGRAM STUDI
+        $prodiId = null;
+        if (!empty($row['program_studi'])) {
+            if (is_numeric($row['program_studi'])) {
+                $prodiId = $row['program_studi'];
+            } else {
+                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . $row['program_studi'] . '%')->first();
+                $prodiId = $prodi ? $prodi->id : null;
+            }
+        }
+
+        // 4. Simpan / Update MK
         return MataKuliah::updateOrCreate(
-            ['kode_mk' => $kodeMK],
+            ['kode_mk' => trim($row['kode_mk'])],
             [
-                'nama_mk'   => $row['nama_mk'],
-                'sks'       => $row['sks'],
-                'semester'  => $row['semester'],
-                'dosen_id'  => $dosenId,
-                'kurikulum_id' => $row['kurikulum_id'] ?? null, 
+                'nama_mk'      => trim($row['nama_mata_kuliah']),
+                'sks'          => $row['sks'] ?? 2,
+                'semester'     => $row['semester'] ?? 1,
+                'prodi_id'     => $prodiId,
+                'dosen_id'     => $dosenId, // Hasil logika cerdas di atas
+                'kurikulum_id' => $row['kurikulum_id'] ?? null,
+                'deskripsi'    => $row['deskripsi'] ?? null,
             ]
         );
     }
@@ -46,10 +68,8 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, Skip
     public function rules(): array
     {
         return [
-            'kode_mk'    => 'required',
-            'nama_mk'    => 'required',
-            'sks'        => 'required|integer',
-            'semester'   => 'required|integer',
+            'kode_mk' => 'required',
+            'nama_mata_kuliah' => 'required',
         ];
     }
 }

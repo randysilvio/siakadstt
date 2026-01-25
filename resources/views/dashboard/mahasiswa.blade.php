@@ -20,7 +20,7 @@
 
             {{-- Info Mahasiswa --}}
             <div class="flex-grow-1">
-                <h2 class="mb-1 fw-bold text-dark">Selamat Datang, {{ explode(' ', $mahasiswa->nama_lengkap)[0] }}! 👋</h2>
+                <h2 class="mb-1 fw-bold text-dark">Selamat Datang, {{ explode(' ', $mahasiswa->nama_lengkap)[0] }}!</h2>
                 <p class="text-muted mb-0">{{ $mahasiswa->nama_lengkap }}</p>
                 <div class="d-flex align-items-center mt-2">
                     <span class="badge bg-primary me-2"><i class="bi bi-person-badge me-1"></i> {{ $mahasiswa->nim }}</span>
