@@ -73,7 +73,6 @@ use App\Http\Controllers\DosenDashboardController;
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
-Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
 Route::get('/pengumuman/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
 // [TAMBAHAN BARU] Rute Pendaftaran PMB (Publik)
@@ -217,6 +216,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/mata-kuliah/import', [MataKuliahController::class, 'import'])->name('mata-kuliah.import');
         Route::get('/mata-kuliah/import/template', [MataKuliahController::class, 'downloadTemplate'])->name('mata-kuliah.import.template');
         
+        Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
+        Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
+        
         // [UPDATE] Manajemen Pegawai / Tendik (Resource Lengkap)
         Route::resource('tendik', TendikController::class)->except(['show']);
 
@@ -240,6 +242,10 @@ Route::middleware('auth')->group(function () {
         // 1. Data Pendaftar & Verifikasi
         Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
         Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
+        
+        // [TAMBAHAN] Route Validasi Pembayaran
+        Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
+
         Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
         
@@ -275,5 +281,9 @@ Route::middleware('auth')->group(function () {
         Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
     });
 });
+
+// [PERBAIKAN] Rute Publik "Catch-All" dipindah ke BAWAH
+// Agar tidak menangkap rute dashboard/cetak jadwal milik Dosen
+Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
 
 require __DIR__.'/auth.php';

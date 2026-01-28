@@ -14,7 +14,7 @@
     </div>
 
     <div class="row">
-        {{-- KOLOM KIRI: DATA UTAMA (8 Kolom) --}}
+        {{-- KOLOM KIRI: DATA UTAMA --}}
         <div class="col-lg-8">
             
             {{-- 1. Kartu Profil Ringkas --}}
@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            {{-- 2. Detail Informasi (Tabs / Sections) --}}
+            {{-- 2. Detail Informasi --}}
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom">
                     <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-person-lines-fill me-2"></i>Informasi Lengkap</h6>
@@ -133,81 +133,100 @@
 
         </div>
 
-        {{-- KOLOM KANAN: PANEL AKSI (4 Kolom - Sticky) --}}
+        {{-- KOLOM KANAN: PANEL AKSI (STICKY) --}}
         <div class="col-lg-4">
             <div class="sticky-top" style="top: 20px; z-index: 10;">
                 
-                {{-- Status Saat Ini --}}
+                {{-- KARTU STATUS PENDAFTARAN --}}
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body text-center p-4">
-                        <h6 class="text-muted text-uppercase small fw-bold mb-3">Status Pendaftaran</h6>
+                        <h6 class="text-muted text-uppercase small fw-bold mb-3">Status Saat Ini</h6>
                         
                         @if($camaba->status_pendaftaran == 'lulus')
-                            <div class="mb-3">
-                                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                            </div>
+                            <div class="mb-3"><i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i></div>
                             <h4 class="fw-bold text-success mb-1">DITERIMA</h4>
-                            <p class="text-muted small">Mahasiswa Aktif</p>
+                            <p class="text-muted small">Sudah menjadi Mahasiswa Aktif</p>
+
                         @elseif($camaba->status_pendaftaran == 'tidak_lulus')
-                            <div class="mb-3">
-                                <i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>
-                            </div>
+                            <div class="mb-3"><i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i></div>
                             <h4 class="fw-bold text-danger mb-1">DITOLAK</h4>
-                            <p class="text-muted small">Mohon maaf, belum memenuhi kriteria.</p>
-                        @elseif($camaba->status_pendaftaran == 'menunggu_verifikasi')
-                            <div class="mb-3">
-                                <div class="spinner-grow text-warning" role="status" style="width: 3rem; height: 3rem;"></div>
-                            </div>
-                            <h4 class="fw-bold text-warning text-dark mb-1">MENUNGGU VERIFIKASI</h4>
-                            <p class="text-muted small">Silakan periksa data sebelum memutuskan.</p>
+                            <p class="text-muted small">Tidak memenuhi syarat.</p>
+
                         @else
-                            <div class="mb-3">
-                                <i class="bi bi-pencil-square text-secondary" style="font-size: 4rem;"></i>
-                            </div>
-                            <h4 class="fw-bold text-secondary mb-1">DRAFT</h4>
-                            <p class="text-muted small">Camaba belum melengkapi biodata.</p>
+                            {{-- Jika Belum Lulus/Tolak, Cek Status Pembayaran Dulu --}}
+                            @if($tagihan && $tagihan->status == 'lunas')
+                                <div class="mb-3"><div class="spinner-grow text-primary" role="status" style="width: 3rem; height: 3rem;"></div></div>
+                                <h4 class="fw-bold text-primary mb-1">PROSES SELEKSI</h4>
+                                <p class="text-muted small">Pembayaran Lunas. Menunggu Biodata & Keputusan.</p>
+                            @else
+                                <div class="mb-3"><i class="bi bi-wallet2 text-warning" style="font-size: 4rem;"></i></div>
+                                <h4 class="fw-bold text-warning text-dark mb-1">BELUM LUNAS</h4>
+                                <p class="text-muted small">Menunggu Pembayaran Formulir.</p>
+                            @endif
                         @endif
                     </div>
                 </div>
 
-                {{-- Panel Aksi (Hanya muncul jika belum diputuskan) --}}
-                @if($camaba->status_pendaftaran == 'menunggu_verifikasi' || $camaba->status_pendaftaran == 'draft')
+                {{-- KARTU AKSI ADMIN (LOGIKA BERTINGKAT) --}}
+                @if($camaba->status_pendaftaran != 'lulus' && $camaba->status_pendaftaran != 'tidak_lulus')
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-dark text-white fw-bold py-3">
-                        <i class="bi bi-gavel me-2"></i> Keputusan Panitia
+                        <i class="bi bi-gavel me-2"></i> Tindakan Admin
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info small mb-3">
-                            <i class="bi bi-info-circle-fill me-1"></i> 
-                            Jika diterima, sistem akan otomatis:
-                            <ul class="mb-0 ps-3 mt-1">
-                                <li>Membuat Akun Mahasiswa</li>
-                                <li>Membuat NIM Otomatis</li>
-                                <li>Mengubah status user login</li>
-                            </ul>
-                        </div>
 
-                        <form action="{{ route('admin.pmb.approve', $camaba->id) }}" method="POST" class="d-grid mb-3">
-                            @csrf
-                            @method('PUT')
-                            <button type="submit" class="btn btn-success fw-bold py-3" onclick="return confirm('Apakah Anda yakin menerima pendaftar ini? Tindakan ini tidak dapat dibatalkan.')">
-                                <i class="bi bi-check-lg me-2"></i> TERIMA MAHASISWA
-                            </button>
-                        </form>
+                        {{-- TAHAP 1: VALIDASI PEMBAYARAN --}}
+                        @if($tagihan && $tagihan->status != 'lunas')
+                            <h6 class="fw-bold border-bottom pb-2 mb-3 text-warning">1. Validasi Pembayaran</h6>
+                            
+                            @if($tagihan->bukti_bayar)
+                                <div class="alert alert-info small">
+                                    <i class="bi bi-info-circle me-1"></i> Bukti bayar sudah diupload.
+                                    <a href="{{ Storage::url($tagihan->bukti_bayar) }}" target="_blank" class="fw-bold text-decoration-underline">Lihat Bukti</a>
+                                </div>
+                                <form action="{{ route('admin.pmb.payment.approve', $tagihan->id) }}" method="POST" onsubmit="return confirm('Validasi pembayaran ini LUNAS?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success w-100 fw-bold mb-3">
+                                        <i class="bi bi-check-circle me-1"></i> VALIDASI LUNAS
+                                    </button>
+                                </form>
+                            @else
+                                <div class="alert alert-secondary small text-center">
+                                    Menunggu Camaba upload bukti bayar.
+                                </div>
+                            @endif
 
-                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                            <i class="bi bi-x-circle me-2"></i> Tolak Pendaftaran
-                        </button>
+                        {{-- TAHAP 2: VALIDASI KELULUSAN (Hanya muncul jika sudah Lunas) --}}
+                        @else
+                            <div class="alert alert-success small mb-3">
+                                <i class="bi bi-check-circle-fill me-1"></i> Pembayaran Lunas.
+                            </div>
+
+                            <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">2. Keputusan Seleksi</h6>
+                            
+                            @if(!$camaba->pilihan_prodi_1_id)
+                                <div class="alert alert-warning small">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Camaba belum melengkapi biodata (Prodi belum dipilih).
+                                </div>
+                            @else
+                                <form action="{{ route('admin.pmb.approve', $camaba->id) }}" method="POST" class="mb-2" onsubmit="return confirm('Yakin TERIMA calon mahasiswa ini? Sistem akan otomatis generate NIM.')">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit" class="btn btn-success w-100 fw-bold py-3">
+                                        <i class="bi bi-person-check-fill me-1"></i> TERIMA MAHASISWA
+                                    </button>
+                                </form>
+
+                                <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                    <i class="bi bi-x-circle me-1"></i> Tolak Pendaftaran
+                                </button>
+                            @endif
+                        @endif
+
                     </div>
                 </div>
                 @endif
-
-                {{-- Info Tambahan --}}
-                <div class="mt-4 text-muted small text-center">
-                    <p class="mb-1">Terdaftar pada: {{ $camaba->created_at->format('d M Y, H:i') }}</p>
-                    <p>Terakhir diupdate: {{ $camaba->updated_at->diffForHumans() }}</p>
-                </div>
-
+                
             </div>
         </div>
     </div>
@@ -222,18 +241,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center py-4">
-                <div class="mb-3 text-danger">
-                    <i class="bi bi-exclamation-triangle-fill fs-1"></i>
-                </div>
-                <p class="mb-0">Apakah Anda yakin ingin <strong>MENOLAK</strong> pendaftaran calon mahasiswa ini?</p>
-                <p class="text-muted small">Status akan berubah menjadi 'Tidak Lulus'.</p>
-            </div>
-            <div class="modal-footer border-0 pt-0 justify-content-center pb-4">
-                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Batal</button>
+                <div class="mb-3 text-danger"><i class="bi bi-exclamation-triangle-fill fs-1"></i></div>
+                <p class="mb-3">Apakah Anda yakin ingin <strong>MENOLAK</strong> pendaftaran ini?</p>
                 <form action="{{ route('admin.pmb.reject', $camaba->id) }}" method="POST">
                     @csrf
                     @method('PUT')
-                    <button type="submit" class="btn btn-danger px-4 fw-bold">Ya, Tolak</button>
+                    <textarea name="alasan" class="form-control mb-3" placeholder="Tuliskan alasan penolakan..." required></textarea>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold w-100">Ya, Tolak</button>
                 </form>
             </div>
         </div>
