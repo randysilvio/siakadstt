@@ -218,6 +218,7 @@
                                 <span class="inline-block px-3 py-1 bg-teal-600 text-white text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
                                     {{ $beritaUtama->kategori }}
                                 </span>
+                                {{-- [FIXED] Menambahkan parameter $beritaUtama --}}
                                 <a href="{{ route('pengumuman.public.show', $beritaUtama) }}">
                                     <h3 class="text-2xl md:text-3xl font-bold text-white hover:text-teal-200 transition mb-2 leading-tight">
                                         {{ $beritaUtama->judul }}
@@ -245,6 +246,7 @@
                                 </div>
                                 <div class="p-5 flex-grow flex flex-col">
                                     <div class="text-xs text-teal-600 font-semibold mb-2">{{ $item->created_at->isoFormat('D MMMM YYYY') }}</div>
+                                    {{-- [FIXED] Menambahkan parameter $item --}}
                                     <a href="{{ route('pengumuman.public.show', $item) }}" class="block mb-2">
                                         <h4 class="font-bold text-lg text-slate-800 hover:text-teal-600 transition line-clamp-2">{{ $item->judul }}</h4>
                                     </a>
@@ -366,7 +368,7 @@
         </section>
     </main>
 
-    {{-- ================= FOOTER ================= --}}
+    {{-- ================= FOOTER STANDAR ================= --}}
     <footer id="kontak" class="bg-slate-900 text-white pt-16 pb-8 border-t-4 border-teal-600">
         <div class="container mx-auto px-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">

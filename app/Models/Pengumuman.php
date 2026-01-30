@@ -14,11 +14,18 @@ class Pengumuman extends Model
 
     protected $fillable = [
         'judul',
+        'slug', // <--- TAMBAHKAN INI
         'kategori',
-        'foto', // <-- TAMBAHKAN INI
+        'foto',
         'konten',
         'target_role',
     ];
+
+    // INI KUNCI AGAR URL MENJADI SLUG, BUKAN ID
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
 
     public function roles(): BelongsToMany
     {

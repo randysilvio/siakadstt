@@ -15,21 +15,19 @@ use Illuminate\View\View;
 class PublicController extends Controller
 {
     /**
-     * Menampilkan halaman publik utama (welcome) dengan struktur baru.
+     * Menampilkan halaman publik utama (welcome).
      */
     public function index(): View
     {
-        // --- Data untuk Berita / Pengumuman ---
-        // Ambil 4 berita terbaru untuk layout baru (1 utama + 3 sekunder)
+        // Ambil 4 berita terbaru (1 utama + 3 sekunder)
         $beritaTerbaru = Pengumuman::where('target_role', 'semua')
                                    ->latest()
                                    ->take(4)
                                    ->get();
-        // Pisahkan berita utama (pertama) dari berita lainnya
         $beritaUtama = $beritaTerbaru->first();
         $beritaLainnya = $beritaTerbaru->skip(1);
 
-        // --- Data Lainnya (Tetap Sama) ---
+        // Data Lainnya
         $slides = Slideshow::where('is_aktif', true)->orderBy('urutan')->get();
         $programStudi = ProgramStudi::orderBy('nama_prodi')->get();
         $totalMahasiswa = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
@@ -40,7 +38,6 @@ class PublicController extends Controller
                                             ->take(3)
                                             ->get();
 
-        // --- Kirim semua data yang dibutuhkan ke view ---
         return view('welcome', [
             'slides' => $slides,
             'beritaUtama' => $beritaUtama,
@@ -54,7 +51,7 @@ class PublicController extends Controller
     }
 
     /**
-     * Menampilkan halaman daftar semua berita/pengumuman dengan paginasi.
+     * Menampilkan halaman daftar semua berita/pengumuman.
      */
     public function semuaBerita(): View
     {
@@ -66,11 +63,13 @@ class PublicController extends Controller
 
     /**
      * Menampilkan detail satu pengumuman untuk publik.
+     * Laravel otomatis mencari berdasarkan 'slug' (karena getRouteKeyName di model).
      */
     public function showPengumuman(Pengumuman $pengumuman): View
     {
+        // Pastikan hanya berita publik yang bisa diakses tanpa login
         if ($pengumuman->target_role !== 'semua') {
-            abort(404);
+            abort(404); 
         }
         return view('pengumuman.public_show', compact('pengumuman'));
     }

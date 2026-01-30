@@ -73,9 +73,8 @@ use App\Http\Controllers\DosenDashboardController;
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
-Route::get('/pengumuman/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
-// [TAMBAHAN BARU] Rute Pendaftaran PMB (Publik)
+// Rute Pendaftaran PMB (Publik)
 Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
 Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
 
@@ -92,13 +91,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    // [TAMBAHAN BARU] RUTE KHUSUS CAMABA (Calon Mahasiswa)
+    // RUTE KHUSUS CAMABA
     Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function() {
-        // Pembayaran
         Route::get('/pembayaran', [PmbController::class, 'showPaymentForm'])->name('pembayaran.show');
         Route::post('/pembayaran', [PmbController::class, 'storePaymentProof'])->name('pembayaran.store');
-        
-        // Biodata
         Route::get('/biodata', [PmbController::class, 'showBiodataForm'])->name('biodata.show');
         Route::put('/biodata', [PmbController::class, 'updateBiodata'])->name('biodata.update');
     });
@@ -160,10 +156,7 @@ Route::middleware('auth')->group(function () {
     // RUTE UNTUK DOSEN
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
-         
-         // [PERBAIKAN] URL diganti agar tidak bentrok dengan rute publik '/dosen/{nidn}'
          Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
-
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
@@ -218,38 +211,28 @@ Route::middleware('auth')->group(function () {
         
         Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
         Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
-        
-        // [UPDATE] Manajemen Pegawai / Tendik (Resource Lengkap)
         Route::resource('tendik', TendikController::class)->except(['show']);
 
         // Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {
             Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
             Route::get('/laporan/cetak', [AbsensiController::class, 'laporanCetak'])->name('laporan.cetak');
-
             Route::get('/lokasi', [AbsensiController::class, 'lokasiIndex'])->name('lokasi.index');
             Route::get('/lokasi/create', [AbsensiController::class, 'lokasiCreate'])->name('lokasi.create');
             Route::post('/lokasi', [AbsensiController::class, 'lokasiStore'])->name('lokasi.store');
             Route::get('/lokasi/{lokasi}/edit', [AbsensiController::class, 'lokasiEdit'])->name('lokasi.edit');
             Route::put('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiUpdate'])->name('lokasi.update');
             Route::delete('/lokasi/{lokasi}', [AbsensiController::class, 'lokasiDestroy'])->name('lokasi.destroy');
-            
             Route::get('/pengaturan', [PengaturanAbsensiController::class, 'index'])->name('pengaturan.index');
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
-        // [TAMBAHAN BARU] MANAJEMEN PMB (Admin Side)
-        // 1. Data Pendaftar & Verifikasi
+        // Manajemen PMB
         Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
         Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
-        
-        // [TAMBAHAN] Route Validasi Pembayaran
         Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
-
         Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
-        
-        // 2. Setting Gelombang PMB
         Route::resource('pmb-periods', PmbPeriodController::class);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
 
@@ -268,13 +251,11 @@ Route::middleware('auth')->group(function () {
         
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
         Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
-
         Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}/cetak', [EvaluasiHasilController::class, 'cetak'])->name('evaluasi-hasil.cetak');
         
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
-
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
@@ -282,8 +263,10 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// [PERBAIKAN] Rute Publik "Catch-All" dipindah ke BAWAH
-// Agar tidak menangkap rute dashboard/cetak jadwal milik Dosen
+// [RUTE PUBLIK CATCH-ALL] 
+// WAJIB diletakkan di PALING BAWAH file agar tidak mengganggu rute lain.
+// Tangkap {pengumuman} sebagai slug (via model binding) untuk URL "domain.com/judul-berita"
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
+Route::get('/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
 require __DIR__.'/auth.php';
