@@ -10,6 +10,7 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
 use App\Models\Jadwal; 
+use App\Models\Pengumuman; // [TAMBAHAN 1] Import Model Pengumuman
 
 class DosenDashboardController extends Controller
 {
@@ -27,7 +28,7 @@ class DosenDashboardController extends Controller
         
         $mata_kuliahs = $dosen->mataKuliahs()->withCount('mahasiswas')->get();
         
-        // Ambil Jadwal Mengajar untuk ditampilkan di Dashboard
+        // Ambil Jadwal Mengajar
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         $jadwalKuliah = collect();
 
@@ -46,23 +47,21 @@ class DosenDashboardController extends Controller
         $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
         $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
 
-        return view('dosen.dashboard', compact('dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'prodiYangDikepalai'));
+        // [TAMBAHAN 2] Ambil Data Pengumuman (Misal: 5 Terbaru)
+        // Pastikan Model Pengumuman sudah ada di App\Models\Pengumuman
+        $pengumumans = Pengumuman::latest()->take(5)->get();
+
+        // [TAMBAHAN 3] Masukkan 'pengumumans' ke compact
+        return view('dosen.dashboard', compact('dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'prodiYangDikepalai', 'pengumumans'));
     }
 
-    /**
-     * [FIXED] Cetak Jadwal Mengajar Dosen
-     * Perbaikan: Mengambil relasi program studi melalui kurikulum
-     */
     public function cetakJadwal()
     {
         $dosen = Auth::user()->dosen;
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // 1. Ambil semua ID mata kuliah yang diampu dosen
         $mkIds = $dosen->mataKuliahs()->pluck('id');
 
-        // 2. Ambil Jadwal berdasarkan ID matkul tersebut
-        // PERBAIKAN DI SINI: load 'mataKuliah.kurikulum.programStudi'
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
             ->whereIn('mata_kuliah_id', $mkIds)
             ->get()
@@ -71,7 +70,6 @@ class DosenDashboardController extends Controller
                 return $hariOrder[$jadwal->hari] ?? 99;
             });
 
-        // 3. Load View PDF
         $pdf = Pdf::loadView('dosen.cetak_jadwal', compact('dosen', 'jadwals', 'tahunAkademik'));
         
         return $pdf->stream('Jadwal_Mengajar_' . $dosen->nama_lengkap . '.pdf');

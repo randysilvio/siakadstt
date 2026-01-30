@@ -27,8 +27,19 @@
     </div>
 
     {{-- Notifikasi --}}
-    @if (session('success'))<div class="alert alert-success alert-dismissible fade show" role="alert">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>@endif
-    @if (session('error'))<div class="alert alert-danger alert-dismissible fade show" role="alert">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>@endif
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
     {{-- Smart Filter Bar --}}
     <div class="card mb-4 shadow-sm">
@@ -91,8 +102,8 @@
                                 <td class="fw-bold">{{ $dosen->nidn }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {{-- Foto Profil Kecil --}}
-                                        <img src="{{ $dosen->foto_profil }}" class="rounded-circle me-2 border" width="40" height="40" alt="Foto">
+                                        {{-- [PERBAIKAN] Menggunakan $dosen->foto_url agar path lengkap --}}
+                                        <img src="{{ $dosen->foto_url }}" class="rounded-circle me-2 border" width="40" height="40" alt="Foto" style="object-fit: cover;">
                                         <div>
                                             <div class="fw-semibold">{{ $dosen->nama_lengkap }}</div>
                                             @if($dosen->is_keuangan)

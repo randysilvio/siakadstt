@@ -7,6 +7,19 @@
         <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
+    {{-- [PERBAIKAN 1] Tampilkan Error Validasi Global --}}
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Gagal Memperbarui Data!</strong> Silakan periksa inputan berikut:
+            <ul class="mb-0 mt-2">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <form action="{{ route('admin.dosen.update', $dosen->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
@@ -32,16 +45,22 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nama Lengkap (Gelar)</label>
-                            <input type="text" class="form-control" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
+                            {{-- [PERBAIKAN 2] Tambahkan class is-invalid jika error --}}
+                            <input type="text" class="form-control @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
+                            @error('nama_lengkap') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">NIDN</label>
-                            <input type="text" class="form-control" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required>
+                            <input type="text" class="form-control @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required>
+                            @error('nidn') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">NIK (KTP) <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
+                            <input type="text" class="form-control @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
+                            @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+                        {{-- ... (lanjutan input lainnya, tambahkan @error seperti di atas jika perlu) ... --}}
+                        
                         <div class="col-md-6">
                             <label class="form-label">NPWP</label>
                             <input type="text" class="form-control" name="npwp" value="{{ old('npwp', $dosen->npwp) }}">
@@ -57,8 +76,8 @@
                         <div class="col-md-4">
                             <label class="form-label">Jenis Kelamin</label>
                             <select class="form-select" name="jenis_kelamin" required>
-                                <option value="L" {{ $dosen->jenis_kelamin == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                                <option value="P" {{ $dosen->jenis_kelamin == 'P' ? 'selected' : '' }}>Perempuan</option>
+                                <option value="L" {{ (old('jenis_kelamin', $dosen->jenis_kelamin) == 'L') ? 'selected' : '' }}>Laki-laki</option>
+                                <option value="P" {{ (old('jenis_kelamin', $dosen->jenis_kelamin) == 'P') ? 'selected' : '' }}>Perempuan</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -77,7 +96,7 @@
                 </div></div>
             </div>
 
-            {{-- TAB 2: KEPEGAWAIAN --}}
+            {{-- TAB 2: KEPEGAWAIAN (Tidak ada perubahan signifikan, pastikan value old() benar) --}}
             <div class="tab-pane fade" id="kepegawaian" role="tabpanel">
                 <div class="card shadow-sm border-0"><div class="card-body">
                     <div class="row g-3">
@@ -85,7 +104,7 @@
                             <label class="form-label">Status Kepegawaian</label>
                             <select class="form-select" name="status_kepegawaian" required>
                                 @foreach(['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'] as $st)
-                                    <option value="{{ $st }}" {{ $dosen->status_kepegawaian == $st ? 'selected' : '' }}>{{ $st }}</option>
+                                    <option value="{{ $st }}" {{ (old('status_kepegawaian', $dosen->status_kepegawaian) == $st) ? 'selected' : '' }}>{{ $st }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -98,7 +117,7 @@
                             <select class="form-select" name="jabatan_akademik">
                                 <option value="">- Pilih -</option>
                                 @foreach(['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'] as $jb)
-                                    <option value="{{ $jb }}" {{ $dosen->jabatan_akademik == $jb ? 'selected' : '' }}>{{ $jb }}</option>
+                                    <option value="{{ $jb }}" {{ (old('jabatan_akademik', $dosen->jabatan_akademik) == $jb) ? 'selected' : '' }}>{{ $jb }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -136,15 +155,19 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Email Login</label>
-                            <input type="email" class="form-control" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
+                            {{-- Email sangat rentan duplikat, wajib ada error handling --}}
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
+                            @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email Institusi</label>
-                            <input type="email" class="form-control" name="email_institusi" value="{{ old('email_institusi', $dosen->email_institusi) }}">
+                            <input type="email" class="form-control @error('email_institusi') is-invalid @enderror" name="email_institusi" value="{{ old('email_institusi', $dosen->email_institusi) }}">
+                            @error('email_institusi') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Password Baru (Opsional)</label>
-                            <input type="password" class="form-control" name="password" placeholder="Isi jika ingin ganti password">
+                            <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" placeholder="Isi jika ingin ganti password">
+                            @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Konfirmasi Password</label>
@@ -157,11 +180,12 @@
                                     <img src="{{ asset('storage/' . $dosen->foto_profil) }}" alt="Foto" class="img-thumbnail" width="100">
                                 </div>
                             @endif
-                            <input type="file" class="form-control" name="foto_profil">
+                            <input type="file" class="form-control @error('foto_profil') is-invalid @enderror" name="foto_profil">
+                            @error('foto_profil') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-12">
                             <div class="form-check form-switch mt-3">
-                                <input class="form-check-input" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ $dosen->is_keuangan ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ old('is_keuangan', $dosen->is_keuangan) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="is_keuangan">Berikan Akses Modul Keuangan?</label>
                             </div>
                         </div>
