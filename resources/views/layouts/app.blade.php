@@ -279,7 +279,8 @@
                                 <li><a class="dropdown-item" href="{{ route('profile.edit') }}"><i class="bi bi-person-gear me-2"></i>Edit Profil</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form method="POST" action="{{ route('logout') }}">
+                                    {{-- [PERBAIKAN] Tambahkan ID pada Form Logout --}}
+                                    <form id="logout-form" method="POST" action="{{ route('logout') }}">
                                         @csrf
                                         <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
                                     </form>
@@ -327,5 +328,43 @@
     </script>
     
     @stack('scripts')
+
+    {{-- [PERBAIKAN] Script Auto Logout (Idle 10 Menit) --}}
+    <script>
+        (function() {
+            // Waktu dalam milidetik (10 menit = 600.000 ms)
+            const idleDuration = 600 * 1000;
+            let idleTimer;
+
+            function resetTimer() {
+                clearTimeout(idleTimer);
+                // Set timer baru untuk logout
+                idleTimer = setTimeout(logoutUser, idleDuration);
+            }
+
+            function logoutUser() {
+                // Opsional: Tampilkan pesan alert sebelum redirect
+                alert("Sesi Anda telah berakhir karena tidak ada aktivitas selama 10 menit.");
+                
+                // Cari form logout dan submit
+                const form = document.getElementById('logout-form');
+                if (form) {
+                    form.submit();
+                } else {
+                    // Fallback jika form tidak ketemu (misal halaman login)
+                    window.location.href = '/'; 
+                }
+            }
+
+            // Event listener untuk mereset timer saat ada aktivitas user
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onmousedown = resetTimer; // Clicks
+            document.ontouchstart = resetTimer; // Touchscreen
+            document.onclick = resetTimer;     // Touchpad clicks
+            document.onkeydown = resetTimer;   // Typing
+            document.addEventListener('scroll', resetTimer, true); 
+        })();
+    </script>
 </body>
 </html>
