@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sistem Informasi Akademik - STT GPI Papua</title>
     
+    {{-- Favicon (Logo di Tab Browser) --}}
+    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
+
     {{-- CSS Bootstrap 5 --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     

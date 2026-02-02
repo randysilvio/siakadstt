@@ -62,6 +62,8 @@ use App\Http\Controllers\RektoratController;
 use App\Http\Controllers\EvaluasiController;
 // Controller untuk Dosen
 use App\Http\Controllers\DosenDashboardController;
+// Controller Auth Manual (Jika pakai UI/Breeze, ini opsional tapi aman ditambahkan)
+use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +79,15 @@ Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('
 // Rute Pendaftaran PMB (Publik)
 Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
 Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
+
+// --- RUTE LOGIN MANUAL (PERBAIKAN ERROR 404) ---
+// Pastikan Controller Auth ini ada. Jika pakai Laravel Breeze, auth.php di bawah sudah menghandle ini.
+// Namun jika error 404 muncul, tambahkan manual di sini sebagai fallback.
+Route::middleware('guest')->group(function () {
+    Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+});
+Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
 
 // --- RUTE OTENTIKASI & DASHBOARD ---
@@ -246,7 +257,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('pengumuman', PengumumanController::class);
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::resource('kalender', KalenderController::class)->except(['show']);
+        
+        // Rute Slideshows (Dalam Group Admin)
         Route::resource('slideshows', SlideshowController::class);
+        
         Route::resource('dokumen-publik', DokumenPublikController::class);
         
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
@@ -265,8 +279,8 @@ Route::middleware('auth')->group(function () {
 
 // [RUTE PUBLIK CATCH-ALL] 
 // WAJIB diletakkan di PALING BAWAH file agar tidak mengganggu rute lain.
-// Tangkap {pengumuman} sebagai slug (via model binding) untuk URL "domain.com/judul-berita"
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
 Route::get('/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
+// Auth routes dari Breeze/UI
 require __DIR__.'/auth.php';

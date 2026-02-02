@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sistem Administrasi Kampus - STT GPI Papua</title>
 
+    {{-- TAMBAHAN: Favicon (Logo di Tab Browser) --}}
+    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
+
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|raleway:700,800&display=swap" rel="stylesheet" />

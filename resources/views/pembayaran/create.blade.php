@@ -17,7 +17,10 @@
                     <select id="filter-prodi" class="form-select form-select-sm">
                         <option value="">- Semua Program Studi -</option>
                         @foreach ($prodis as $prodi)
-                            <option value="{{ $prodi->id }}">{{ $prodi->nama_program_studi }}</option>
+                            {{-- PERBAIKAN DISINI: Menggunakan 'nama_prodi' sebagai fallback --}}
+                            <option value="{{ $prodi->id }}">
+                                {{ $prodi->nama_prodi ?? $prodi->nama_program_studi ?? 'Nama Prodi Tidak Ditemukan' }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -44,13 +47,13 @@
                     <select class="form-select @error('mahasiswa_id') is-invalid @enderror" id="select-mahasiswa" name="mahasiswa_id" required>
                         <option></option>
                         @foreach ($mahasiswas as $mahasiswa)
-                            {{-- Kita simpan data prodi & angkatan di atribut data- --}}
+                            {{-- PERBAIKAN TAMPILAN OPTION MAHASISWA JUGA --}}
                             <option value="{{ $mahasiswa->id }}" 
                                     data-prodi="{{ $mahasiswa->program_studi_id }}" 
                                     data-angkatan="{{ $mahasiswa->tahun_masuk }}"
                                     {{ old('mahasiswa_id') == $mahasiswa->id ? 'selected' : '' }}>
                                 {{ $mahasiswa->nim }} - {{ $mahasiswa->nama_lengkap }} 
-                                ({{ $mahasiswa->programStudi->nama_program_studi ?? '-' }} - {{ $mahasiswa->tahun_masuk }})
+                                ({{ $mahasiswa->programStudi->nama_prodi ?? $mahasiswa->programStudi->nama_program_studi ?? '-' }} - {{ $mahasiswa->tahun_masuk }})
                             </option>
                         @endforeach
                     </select>
@@ -74,9 +77,27 @@
                     <input type="text" class="form-control @error('semester') is-invalid @enderror" id="semester" name="semester" value="{{ old('semester') }}" placeholder="Contoh: Gasal 2024/2025">
                 </div>
 
+                {{-- Input Jenis Pembayaran --}}
+                <div class="mb-3">
+                    <label for="jenis_pembayaran" class="form-label fw-bold">Jenis Pembayaran <span class="text-danger">*</span></label>
+                    <select name="jenis_pembayaran" class="form-select @error('jenis_pembayaran') is-invalid @enderror" required>
+                        <option value="">- Pilih Jenis -</option>
+                        <option value="spp" {{ old('jenis_pembayaran') == 'spp' ? 'selected' : '' }}>SPP</option>
+                        <option value="uang_gedung" {{ old('jenis_pembayaran') == 'uang_gedung' ? 'selected' : '' }}>Uang Gedung</option>
+                        <option value="sks" {{ old('jenis_pembayaran') == 'sks' ? 'selected' : '' }}>Biaya SKS</option>
+                        <option value="registrasi" {{ old('jenis_pembayaran') == 'registrasi' ? 'selected' : '' }}>Registrasi Ulang</option>
+                        <option value="biaya_ppl" {{ old('jenis_pembayaran') == 'biaya_ppl' ? 'selected' : '' }}>Biaya PPL</option>
+                        <option value="wisuda" {{ old('jenis_pembayaran') == 'wisuda' ? 'selected' : '' }}>Biaya Wisuda</option>
+                        <option value="lainnya" {{ old('jenis_pembayaran') == 'lainnya' ? 'selected' : '' }}>Lainnya</option>
+                    </select>
+                    @error('jenis_pembayaran')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="mb-3">
                     <label for="keterangan" class="form-label fw-bold">Keterangan (Opsional)</label>
-                    <textarea class="form-control" name="keterangan" rows="2" placeholder="Catatan tambahan..."></textarea>
+                    <textarea class="form-control" name="keterangan" rows="2" placeholder="Catatan tambahan...">{{ old('keterangan') }}</textarea>
                 </div>
 
                 <div class="d-flex justify-content-between">
@@ -103,15 +124,14 @@
         });
 
         // 2. Simpan semua opsi asli ke dalam array memori
-        // Ini penting karena Select2 memodifikasi DOM, kita butuh backup data murni
         var allOptions = [];
         $studentSelect.find('option').each(function() {
-            if($(this).val() !== '') { // Jangan simpan placeholder
+            if($(this).val() !== '') {
                 allOptions.push({
                     val: $(this).val(),
                     text: $(this).text(),
-                    prodi: $(this).data('prodi'), // Ambil data-prodi
-                    angkatan: $(this).data('angkatan') // Ambil data-angkatan
+                    prodi: $(this).data('prodi'), 
+                    angkatan: $(this).data('angkatan') 
                 });
             }
         });
@@ -121,19 +141,22 @@
             var selectedProdi = $('#filter-prodi').val();
             var selectedAngkatan = $('#filter-angkatan').val();
 
-            // Kosongkan select2 (kecuali placeholder)
+            // Kosongkan select2
             $studentSelect.empty();
             $studentSelect.append('<option></option>');
 
             // Loop data asli dan masukkan kembali hanya yang cocok
             var count = 0;
             $.each(allOptions, function(i, student) {
-                var matchProdi = (selectedProdi === "" || student.prodi == selectedProdi);
-                var matchAngkatan = (selectedAngkatan === "" || student.angkatan == selectedAngkatan);
+                // Konversi ke string agar aman saat perbandingan
+                var studentProdi = String(student.prodi);
+                var studentAngkatan = String(student.angkatan);
+                
+                var matchProdi = (selectedProdi === "" || studentProdi === String(selectedProdi));
+                var matchAngkatan = (selectedAngkatan === "" || studentAngkatan === String(selectedAngkatan));
 
                 if (matchProdi && matchAngkatan) {
                     var newOption = new Option(student.text, student.val, false, false);
-                    // Kita perlu set ulang data attribute agar filter tetap jalan jika user ganti filter lagi
                     $(newOption).attr('data-prodi', student.prodi);
                     $(newOption).attr('data-angkatan', student.angkatan);
                     $studentSelect.append(newOption);
@@ -141,13 +164,8 @@
                 }
             });
 
-            // Refresh Select2 agar sadar ada perubahan option
+            // Refresh Select2
             $studentSelect.trigger('change');
-            
-            // Opsional: Beri feedback jika kosong
-            if(count === 0) {
-                // Bisa tambahkan alert kecil atau console log
-            }
         }
 
         // 4. Event Listener pada Filter
