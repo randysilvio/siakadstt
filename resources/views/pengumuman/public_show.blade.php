@@ -3,6 +3,24 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    {{-- === META TAGS OPEN GRAPH (UNTUK FACEBOOK/WA) === --}}
+    {{-- Judul Berita --}}
+    <meta property="og:title" content="{{ $pengumuman->judul }} - STT GPI Papua" />
+    
+    {{-- Deskripsi Singkat (Ambil 150 karakter dari konten) --}}
+    <meta property="og:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($pengumuman->konten), 150) }}" />
+    
+    {{-- Gambar Utama (Wajib URL Publik/Lengkap) --}}
+    <meta property="og:image" content="{{ $pengumuman->foto ? asset('storage/' . $pengumuman->foto) : asset('images/logo.png') }}" />
+    
+    {{-- URL Halaman --}}
+    <meta property="og:url" content="{{ url()->current() }}" />
+    
+    {{-- Tipe Konten --}}
+    <meta property="og:type" content="article" />
+    {{-- ================================================ --}}
+
     <title>{{ $pengumuman->judul }} - STT GPI Papua</title>
 
     {{-- Fonts --}}
