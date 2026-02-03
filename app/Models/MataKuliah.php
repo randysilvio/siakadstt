@@ -25,12 +25,26 @@ class MataKuliah extends Model
         'sks',
         'semester',
         'dosen_id',
-        'file_rps', // <--- TAMBAHAN BARU
+        'file_rps',
     ];
 
     public function kurikulum()
     {
         return $this->belongsTo(Kurikulum::class);
+    }
+
+    // [TAMBAHAN] Helper untuk mengambil Prodi via Kurikulum
+    // Ini penting agar filter "Per Prodi" di laporan RPS berjalan lancar
+    public function programStudi()
+    {
+        return $this->hasOneThrough(
+            ProgramStudi::class,
+            Kurikulum::class,
+            'id', // Foreign key on kurikulums table...
+            'id', // Foreign key on program_studis table...
+            'kurikulum_id', // Local key on mata_kuliahs table...
+            'program_studi_id' // Local key on kurikulums table...
+        );
     }
 
     public function dosen()

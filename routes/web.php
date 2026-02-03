@@ -57,12 +57,13 @@ use App\Http\Middleware\KaprodiMiddleware;
 use App\Http\Controllers\ChatbotController;
 // Controller untuk peran institusional
 use App\Http\Controllers\PenjaminanMutuController;
+use App\Http\Controllers\MutuReportController; // <--- [TAMBAHAN WAJIB]
 use App\Http\Controllers\RektoratController;
 // Controller untuk Mahasiswa
 use App\Http\Controllers\EvaluasiController;
 // Controller untuk Dosen
 use App\Http\Controllers\DosenDashboardController;
-// Controller Auth Manual (Jika pakai UI/Breeze, ini opsional tapi aman ditambahkan)
+// Controller Auth Manual
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 
 /*
@@ -80,9 +81,7 @@ Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('
 Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
 Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
 
-// --- RUTE LOGIN MANUAL (PERBAIKAN ERROR 404) ---
-// Pastikan Controller Auth ini ada. Jika pakai Laravel Breeze, auth.php di bawah sudah menghandle ini.
-// Namun jika error 404 muncul, tambahkan manual di sini sebagai fallback.
+// --- RUTE LOGIN MANUAL ---
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
@@ -186,8 +185,16 @@ Route::middleware('auth')->group(function () {
 
     // RUTE UNTUK PENJAMINAN MUTU & REKTORAT
     Route::middleware('role:penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
+        // Dashboard
         Route::get('/dashboard', [PenjaminanMutuController::class, 'dashboard'])->name('dashboard');
+        
+        // --- [MODUL LAPORAN AKREDITASI - LENGKAP] ---
+        Route::get('/laporan', [MutuReportController::class, 'index'])->name('laporan.index');
+        Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
+        Route::post('/laporan/cetak-rps', [MutuReportController::class, 'cetakRps'])->name('laporan.cetak-rps');
+        Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
     });
+
     Route::middleware('role:rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
     });
@@ -245,7 +252,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
         Route::resource('pmb-periods', PmbPeriodController::class);
-        Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
+        Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'set-active'])->name('pmb-periods.set-active');
 
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('program-studi', ProgramStudiController::class);
