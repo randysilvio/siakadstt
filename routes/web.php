@@ -57,7 +57,7 @@ use App\Http\Middleware\KaprodiMiddleware;
 use App\Http\Controllers\ChatbotController;
 // Controller untuk peran institusional
 use App\Http\Controllers\PenjaminanMutuController;
-use App\Http\Controllers\MutuReportController; // <--- [TAMBAHAN WAJIB]
+use App\Http\Controllers\MutuReportController; 
 use App\Http\Controllers\RektoratController;
 // Controller untuk Mahasiswa
 use App\Http\Controllers\EvaluasiController;
@@ -191,6 +191,10 @@ Route::middleware('auth')->group(function () {
         // --- [MODUL LAPORAN AKREDITASI - LENGKAP] ---
         Route::get('/laporan', [MutuReportController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
+        
+        // [TAMBAHAN BARU] Cetak Beban Kerja Dosen
+        Route::get('/laporan/cetak-beban-dosen', [MutuReportController::class, 'cetakBebanDosen'])->name('laporan.cetak-beban-dosen');
+        
         Route::post('/laporan/cetak-rps', [MutuReportController::class, 'cetakRps'])->name('laporan.cetak-rps');
         Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
     });
