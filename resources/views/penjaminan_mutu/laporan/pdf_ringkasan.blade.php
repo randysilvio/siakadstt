@@ -24,7 +24,7 @@
     </style>
 </head>
 <body>
-    {{-- KOP SURAT DENGAN LOGO --}}
+    {{-- KOP SURAT --}}
     <table class="header-table">
         <tr>
             <td width="15%" align="center">
@@ -43,7 +43,7 @@
         Tanggal Cetak: {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}
     </div>
 
-    {{-- 1. INDIKATOR UTAMA (RASIO & JUMLAH) --}}
+    {{-- A. INDIKATOR UTAMA --}}
     <div class="section-title">A. Indikator Kinerja Utama</div>
     <table class="kpi-table">
         <thead>
@@ -58,13 +58,13 @@
             <tr>
                 <td>{{ number_format($jumlahMahasiswaAktif) }}</td>
                 <td>{{ number_format($jumlahDosen) }}</td>
-                <td><strong>1 : {{ $rasio }}</strong></td>
-                <td>{{ $rataIPK }}</td>
+                <td><strong>{{ $rasio }}</strong></td>
+                <td><strong>{{ number_format($rataIPK, 2) }}</strong></td>
             </tr>
         </tbody>
     </table>
 
-    {{-- 2. TREN PERTUMBUHAN --}}
+    {{-- B. TREN PERTUMBUHAN --}}
     <div class="section-title">B. Tren Pertumbuhan Mahasiswa (5 Tahun Terakhir)</div>
     <table class="kpi-table" style="width: 60%;">
         <thead>
@@ -83,7 +83,7 @@
         </tbody>
     </table>
 
-    {{-- 3. HASIL EVALUASI DOSEN (EDOM) --}}
+    {{-- C. HASIL EDOM --}}
     <div class="section-title">C. Hasil Evaluasi Kinerja Dosen (EDOM)</div>
     <p style="font-size: 11px;">
         Periode Evaluasi: <strong>{{ $sesiEdomAktif ? $sesiEdomAktif->nama_sesi : 'Tidak Ada Sesi Aktif' }}</strong><br>

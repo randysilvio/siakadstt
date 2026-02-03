@@ -13,15 +13,16 @@
                 <i class="bi bi-check-circle-fill me-1"></i> Sistem Aktif
             </span>
             
-            {{-- [UPDATE] Tombol ini sekarang mengarah ke Pusat Laporan --}}
+            {{-- TOMBOL KE PUSAT LAPORAN --}}
             <a href="{{ route('mutu.laporan.index') }}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-file-earmark-pdf-fill me-2"></i>Pusat Laporan Akreditasi
             </a>
         </div>
     </div>
 
-    {{-- 2. KARTU INDIKATOR KINERJA UTAMA (KPI) - STYLE MODERN --}}
+    {{-- 2. KARTU INDIKATOR KINERJA UTAMA (KPI) --}}
     <div class="row g-4 mb-5">
+        {{-- Total Mahasiswa --}}
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden bg-primary text-white" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
                 <div class="card-body">
@@ -35,6 +36,7 @@
             </div>
         </div>
 
+        {{-- Total Dosen --}}
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden bg-success text-white" style="background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);">
                 <div class="card-body">
@@ -48,6 +50,7 @@
             </div>
         </div>
 
+        {{-- Rasio Dosen --}}
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden bg-info text-white" style="background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);">
                 <div class="card-body">
@@ -61,11 +64,13 @@
             </div>
         </div>
 
+        {{-- Rata-rata IPK (DINAMIS) --}}
         <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden bg-warning text-dark" style="background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);">
                 <div class="card-body">
                     <h6 class="text-uppercase small opacity-75 fw-bold ls-1 mb-2">Rata-rata IPK</h6>
-                    <h2 class="display-5 fw-bold mb-0">3.45</h2>
+                    {{-- UPDATE DISINI: Menampilkan variabel $rataIPK --}}
+                    <h2 class="display-5 fw-bold mb-0">{{ number_format($rataIPK, 2) }}</h2>
                     <div class="mt-3 small opacity-75">
                         <i class="bi bi-award-fill me-1"></i> Prestasi Akademik
                     </div>
@@ -159,9 +164,8 @@
                                         </span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        {{-- Link ke detail evaluasi di admin --}}
                                         <a href="{{ route('admin.evaluasi-hasil.show', ['sesi' => $sesiEdomAktif->id, 'dosen' => $hasil->dosen_id]) }}" class="btn btn-sm btn-outline-primary shadow-sm">
-                                            Detail
+                                            Detail Evaluasi
                                         </a>
                                     </td>
                                 </tr>
@@ -189,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const distribusiStatusLabels = @json($distribusiStatusLabels);
     const distribusiStatusTotals = @json($distribusiStatusTotals);
 
-    // Grafik Tren Mahasiswa (Bar Chart)
+    // Grafik Tren Mahasiswa
     new Chart(document.getElementById('trenMahasiswaChart').getContext('2d'), {
         type: 'bar',
         data: {
@@ -212,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Grafik Distribusi Status (Doughnut Chart)
+    // Grafik Distribusi Status
     new Chart(document.getElementById('distribusiStatusChart').getContext('2d'), {
         type: 'doughnut',
         data: {

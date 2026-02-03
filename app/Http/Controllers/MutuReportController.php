@@ -15,31 +15,55 @@ use Illuminate\Support\Facades\DB;
 
 class MutuReportController extends Controller
 {
+    /**
+     * Halaman Utama Pusat Laporan
+     */
     public function index()
     {
         $prodis = ProgramStudi::orderBy('nama_prodi')->get();
-        $tahunTersedia = Mahasiswa::select('tahun_masuk')->distinct()->orderBy('tahun_masuk', 'desc')->pluck('tahun_masuk');
+        $tahunTersedia = Mahasiswa::select('tahun_masuk')
+                            ->distinct()
+                            ->orderBy('tahun_masuk', 'desc')
+                            ->pluck('tahun_masuk');
+        
         return view('penjaminan_mutu.laporan.index', compact('prodis', 'tahunTersedia'));
     }
 
-    // --- BARU: CETAK RINGKASAN DASHBOARD (RASIO, EDOM, TREN) ---
+    /**
+     * Cetak Ringkasan Kinerja (Laporan Eksekutif) - DINAMIS
+     */
     public function cetakRingkasan()
     {
         // 1. Data Kuantitatif
         $jumlahMahasiswaAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
         $jumlahDosen = Dosen::count();
-        $rasio = $jumlahDosen > 0 ? round($jumlahMahasiswaAktif / $jumlahDosen, 2) : 0;
-        $rataIPK = 3.45; // Contoh statis, bisa diganti query real jika transkrip sudah ada
+        $rasio = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
 
-        // 2. Data Tren Mahasiswa (Tabel)
+        // 2. Hitung Rata-rata IPK (Sama seperti dashboard)
+        $mahasiswas = Mahasiswa::with('mataKuliahs')->where('status_mahasiswa', 'Aktif')->get();
+        $totalIpk = 0; $count = 0;
+        
+        foreach ($mahasiswas as $mhs) {
+            $tSks = 0; $tBobot = 0;
+            foreach ($mhs->mataKuliahs as $mk) {
+                if(!$mk->pivot->nilai) continue;
+                $val = match ($mk->pivot->nilai) { 'A'=>4,'B'=>3,'C'=>2,'D'=>1, default=>0 };
+                $tSks += $mk->sks;
+                $tBobot += ($val * $mk->sks);
+            }
+            if ($tSks > 0) { $totalIpk += ($tBobot/$tSks); $count++; }
+        }
+        $rataIPK = $count > 0 ? round($totalIpk / $count, 2) : 0.00;
+
+        // 3. Tren Data Mahasiswa (5 Tahun Terakhir)
         $trenData = Mahasiswa::select('tahun_masuk', DB::raw('count(*) as total'))
             ->where('status_mahasiswa', 'Aktif')
             ->groupBy('tahun_masuk')
             ->orderBy('tahun_masuk', 'desc')
-            ->limit(5) // Ambil 5 tahun terakhir
+            ->limit(5)
             ->get();
 
-        // 3. Data EDOM (Evaluasi Dosen)
+        // 4. Data EDOM
         $sesiEdomAktif = EvaluasiSesi::where('is_active', true)->first();
         $hasilEdom = collect();
         if ($sesiEdomAktif) {
@@ -60,8 +84,9 @@ class MutuReportController extends Controller
         return $pdf->stream('Laporan_Ringkasan_Kinerja_Mutu.pdf');
     }
 
-    // ... (Method cetakRps dan cetakMahasiswa tetap sama, hanya view-nya nanti diupdate) ...
-    
+    /**
+     * Cetak Laporan RPS
+     */
     public function cetakRps(Request $request)
     {
         $request->validate([
@@ -86,16 +111,17 @@ class MutuReportController extends Controller
         $sudahUpload = $dataMataKuliah->whereNotNull('file_rps')->count();
         $persentase = $totalMK > 0 ? round(($sudahUpload / $totalMK) * 100, 1) : 0;
 
-        // View akan diupdate dengan logo
         $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_rps', compact('dataMataKuliah', 'judulLingkup', 'totalMK', 'sudahUpload', 'persentase'))
                   ->setPaper('a4', 'portrait');
 
-        return $pdf->stream('Laporan_Ketersediaan_RPS.pdf');
+        return $pdf->stream('Laporan_Ketersediaan_RPS_' . date('Ymd') . '.pdf');
     }
 
+    /**
+     * Cetak Laporan Student Body
+     */
     public function cetakMahasiswa(Request $request)
     {
-        // (Isi sama persis dengan sebelumnya, hanya view pdf_mahasiswa yang nanti diupdate logonya)
         $request->validate([
             'lingkup' => 'required',
             'program_studi_id' => 'required_if:lingkup,prodi',
@@ -108,16 +134,20 @@ class MutuReportController extends Controller
 
         foreach ($years as $tahun) {
             $queryMasuk = Mahasiswa::where('tahun_masuk', $tahun);
-            if ($request->lingkup == 'prodi') $queryMasuk->where('program_studi_id', $request->program_studi_id);
+            if ($request->lingkup == 'prodi') {
+                $queryMasuk->where('program_studi_id', $request->program_studi_id);
+            }
             $maba = $queryMasuk->count();
 
             $queryAktif = Mahasiswa::where('tahun_masuk', $tahun)->where('status_mahasiswa', 'Aktif');
-            if ($request->lingkup == 'prodi') $queryAktif->where('program_studi_id', $request->program_studi_id);
+            if ($request->lingkup == 'prodi') {
+                $queryAktif->where('program_studi_id', $request->program_studi_id);
+            }
             $aktif = $queryAktif->count();
 
             $laporan[$tahun] = [
-                'daya_tampung' => 50,
-                'calon_pendaftar' => $maba + rand(5, 15),
+                'daya_tampung' => 50, // Bisa disesuaikan dari DB jika ada
+                'calon_pendaftar' => $maba + rand(5, 15), // Simulasi jika belum ada tabel PMB
                 'lulus_seleksi' => $maba,
                 'mahasiswa_baru' => $maba,
                 'mahasiswa_aktif' => $aktif
@@ -134,6 +164,6 @@ class MutuReportController extends Controller
         $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_mahasiswa', compact('laporan', 'judulLingkup', 'years'))
                   ->setPaper('a4', 'landscape'); 
 
-        return $pdf->stream('Laporan_Student_Body.pdf');
+        return $pdf->stream('Laporan_Student_Body_' . date('Ymd') . '.pdf');
     }
 }
