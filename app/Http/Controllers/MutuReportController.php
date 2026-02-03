@@ -184,7 +184,7 @@ class MutuReportController extends Controller
             $aktif = $queryAktif->count();
 
             $laporan[$tahun] = [
-                'daya_tampung' => 50,
+                'daya_tampung' => 30,
                 'calon_pendaftar' => $maba + rand(5, 15),
                 'lulus_seleksi' => $maba,
                 'mahasiswa_baru' => $maba,
