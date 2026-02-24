@@ -60,7 +60,7 @@
                                             <i class="bi bi-upload me-1"></i> Bayar / Upload Bukti
                                         </a>
                                     </div>
-                                    <small class="d-block mt-2 text-danger fst-italic">*Segera upload bukti transfer</small>
+                                    <small class="d-block mt-2 text-danger fst-italic">*Segera upload bukti transfer atau hubungi kontak 085244449840; 082199858581; 085244619301; 85244261401 jika ada pertanyaan</small>
                                 @endif
                             @else
                                 <div class="alert alert-warning">Tagihan belum dibuat. Hubungi Admin.</div>
