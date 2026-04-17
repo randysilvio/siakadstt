@@ -10,20 +10,36 @@ use App\Models\User;
 use App\Models\Pembayaran; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // [TAMBAHAN] Import Log untuk melacak error tersembunyi
+use Illuminate\Support\Facades\Log;
 
 class PmbAdminController extends Controller
 {
+    /**
+     * Menampilkan daftar pendaftar dengan fitur Paginasi dan Smart Search.
+     */
     public function index(Request $request)
     {
         $query = Camaba::with(['user', 'prodi1', 'period'])
             ->orderBy('created_at', 'desc');
 
-        if ($request->status) {
+        // Filter berdasarkan Status Pendaftaran
+        if ($request->filled('status')) {
             $query->where('status_pendaftaran', $request->status);
         }
 
-        $pendaftars = $query->paginate(20);
+        // Fitur Smart Search: Mencari Nama User atau No Pendaftaran
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('no_pendaftaran', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Paginasi 20 data per halaman dan mempertahankan query string
+        $pendaftars = $query->paginate(20)->withQueryString();
 
         return view('admin.pmb.index', compact('pendaftars'));
     }
@@ -73,7 +89,6 @@ class PmbAdminController extends Controller
             $tahunMasuk = date('Y');
             $kodeProdi = $camaba->prodi1->kode_prodi ?? '00'; 
             
-            // [PERBAIKAN] Gunakan 'tahun_masuk' bukan 'created_at' agar pencarian NIM terakhir lebih akurat
             $lastMhs = Mahasiswa::where('program_studi_id', $camaba->pilihan_prodi_1_id)
                 ->where('tahun_masuk', $tahunMasuk)
                 ->orderBy('nim', 'desc')
@@ -99,7 +114,6 @@ class PmbAdminController extends Controller
                 'agama' => $camaba->agama,
                 'no_hp' => $camaba->no_hp,
                 'alamat' => $camaba->alamat,
-                // [PERBAIKAN] Tambahkan NIK dari tabel camaba agar tidak terjadi duplikat NIK kosong
                 'nik' => $camaba->nik ?? null, 
                 'tanggal_masuk' => now(),
                 'tahun_masuk' => $tahunMasuk, 
@@ -129,7 +143,6 @@ class PmbAdminController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // [TAMBAHAN] Catat error ke file laravel.log agar kita tahu jika masih ada "silent fail"
             Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
             
             return back()->with('error', 'Gagal memproses pendaftaran. Error sistem: ' . $e->getMessage());
