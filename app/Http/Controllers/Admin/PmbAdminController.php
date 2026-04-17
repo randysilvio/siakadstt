@@ -7,9 +7,10 @@ use App\Models\Camaba;
 use App\Models\Mahasiswa;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Pembayaran; // [TAMBAHAN] Import Model Pembayaran
+use App\Models\Pembayaran; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log; // [TAMBAHAN] Import Log untuk melacak error tersembunyi
 
 class PmbAdminController extends Controller
 {
@@ -29,7 +30,7 @@ class PmbAdminController extends Controller
 
     public function show(Camaba $camaba)
     {
-        // [TAMBAHAN] Load data tagihan untuk ditampilkan di view admin
+        // Load data tagihan untuk ditampilkan di view admin
         $tagihan = Pembayaran::where('user_id', $camaba->user_id)
             ->where('jenis_pembayaran', 'formulir_pmb')
             ->first();
@@ -38,8 +39,7 @@ class PmbAdminController extends Controller
     }
 
     /**
-     * [BARU] TAHAP 1: Verifikasi Pembayaran Formulir
-     * Admin klik ini agar Camaba bisa lanjut isi biodata.
+     * TAHAP 1: Verifikasi Pembayaran Formulir
      */
     public function approvePayment($id)
     {
@@ -63,7 +63,6 @@ class PmbAdminController extends Controller
             return back()->with('error', 'Camaba ini sudah menjadi mahasiswa aktif.');
         }
 
-        // [VALIDASI] Pastikan Biodata sudah diisi sebelum diluluskan
         if (!$camaba->pilihan_prodi_1_id) {
              return back()->with('error', 'Biodata belum lengkap (Prodi belum dipilih). Tidak bisa diluluskan.');
         }
@@ -74,14 +73,14 @@ class PmbAdminController extends Controller
             $tahunMasuk = date('Y');
             $kodeProdi = $camaba->prodi1->kode_prodi ?? '00'; 
             
+            // [PERBAIKAN] Gunakan 'tahun_masuk' bukan 'created_at' agar pencarian NIM terakhir lebih akurat
             $lastMhs = Mahasiswa::where('program_studi_id', $camaba->pilihan_prodi_1_id)
-                ->whereYear('created_at', $tahunMasuk)
+                ->where('tahun_masuk', $tahunMasuk)
                 ->orderBy('nim', 'desc')
                 ->first();
 
             $urutan = 1;
-            if ($lastMhs) {
-                // Ambil 3 digit terakhir (Pastikan NIM di DB formatnya konsisten angka)
+            if ($lastMhs && !empty($lastMhs->nim)) {
                 $lastUrutan = (int) substr($lastMhs->nim, -3);
                 $urutan = $lastUrutan + 1;
             }
@@ -100,8 +99,10 @@ class PmbAdminController extends Controller
                 'agama' => $camaba->agama,
                 'no_hp' => $camaba->no_hp,
                 'alamat' => $camaba->alamat,
+                // [PERBAIKAN] Tambahkan NIK dari tabel camaba agar tidak terjadi duplikat NIK kosong
+                'nik' => $camaba->nik ?? null, 
                 'tanggal_masuk' => now(),
-                'tahun_masuk' => $tahunMasuk, // [TAMBAHAN] Penting untuk filter angkatan
+                'tahun_masuk' => $tahunMasuk, 
                 'status_mahasiswa' => 'Aktif',
             ]);
 
@@ -128,7 +129,10 @@ class PmbAdminController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memproses: ' . $e->getMessage());
+            // [TAMBAHAN] Catat error ke file laravel.log agar kita tahu jika masih ada "silent fail"
+            Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
+            
+            return back()->with('error', 'Gagal memproses pendaftaran. Error sistem: ' . $e->getMessage());
         }
     }
 
