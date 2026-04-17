@@ -50,7 +50,7 @@
                             <th class="ps-4 py-3">No Pendaftaran</th>
                             <th>Nama Lengkap</th>
                             <th>Prodi Pilihan 1</th>
-                            <th>Nilai Rapor</th>
+                            <th>Waktu Mendaftar</th> {{-- Kolom Baru --}}
                             <th>Status</th>
                             <th class="text-end pe-4">Aksi</th>
                         </tr>
@@ -67,11 +67,9 @@
                                 </td>
                                 <td>{{ $item->prodi1->nama_prodi ?? '-' }}</td>
                                 <td>
-                                    @if($item->nilai_rata_rata_rapor)
-                                        <span class="badge bg-info text-dark">{{ $item->nilai_rata_rata_rapor }}</span>
-                                    @else
-                                        <span class="text-muted small">-</span>
-                                    @endif
+                                    {{-- Menampilkan Tanggal dan Jam mendaftar --}}
+                                    <div class="small fw-bold">{{ $item->created_at->translatedFormat('d M Y') }}</div>
+                                    <div class="small text-muted">{{ $item->created_at->format('H:i') }} WIT</div>
                                 </td>
                                 <td>
                                     @if($item->status_pendaftaran == 'lulus')
