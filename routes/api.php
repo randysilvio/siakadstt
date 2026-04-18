@@ -66,7 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 4. FITUR AKADEMIK (Umum)
     Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);
-    Route::get('/jadwal-hari-ini', [KalenderController::class, 'jadwalHariIni']); 
+    Route::get('/jadwal-kuliah', [KalenderController::class, 'jadwalKuliahUser']); 
 
     // 5. FITUR NILAI / KHS (Mahasiswa)
     Route::get('/khs-mahasiswa', [AbsensiController::class, 'getKhsMahasiswa']);
@@ -76,7 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 7. FITUR NOTIFIKASI
     Route::get('/notifikasi', function (Request $request) {
-        return response()->json($request->user()->notifications);
+        return response()->json($request->user()->notifications()->latest()->get());
     });
 
     Route::post('/notifikasi/{id}/read', function (Request $request, $id) {

@@ -232,4 +232,63 @@ class KalenderController extends Controller
 
         return response()->json($jadwal);
     }
+
+    /**
+     * [API MOBILE] Jadwal Kuliah Seluruhnya (Semester Ini).
+     */
+    public function jadwalKuliahUser(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $jadwal = [];
+
+        if ($user->hasRole('mahasiswa')) {
+            $mahasiswa = $user->mahasiswa;
+            if($mahasiswa) {
+                 $jadwal = \App\Models\JadwalKuliah::query()
+                    ->whereHas('mataKuliah.mahasiswas', function($q) use ($mahasiswa) {
+                        $q->where('mahasiswas.id', $mahasiswa->id);
+                    })
+                    ->with(['mataKuliah', 'ruangan', 'dosen'])
+                    ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'hari' => $item->hari,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? 'Online',
+                            'dosen' => $item->dosen->nama_lengkap ?? '-'
+                        ];
+                    });
+            }
+        } elseif ($user->hasRole('dosen')) {
+            $dosen = $user->dosen;
+            if($dosen) {
+                $jadwal = \App\Models\JadwalKuliah::query()
+                    ->where('dosen_id', $dosen->id)
+                    ->with(['mataKuliah', 'ruangan'])
+                    ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'hari' => $item->hari,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? 'Online',
+                            'dosen' => 'Anda Sendiri'
+                        ];
+                    });
+            }
+        }
+
+        return response()->json($jadwal);
+    }
 }
