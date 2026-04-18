@@ -5,12 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
-use App\Models\User; 
+use App\Models\User; // [TAMBAHAN]
 use App\Models\JadwalKuliah; 
-use App\Models\TahunAkademik; // [TAMBAHAN BARU]
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification; 
-use App\Notifications\GeneralNotification; 
+use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
+use App\Notifications\GeneralNotification; // [TAMBAHAN]
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,18 +17,27 @@ use Illuminate\View\View;
 
 class KalenderController extends Controller
 {
+    /**
+     * Menampilkan halaman manajemen kalender untuk admin.
+     */
     public function index(): View
     {
         $kegiatans = KegiatanAkademik::with('roles')->latest()->paginate(10);
         return view('kalender.index', compact('kegiatans'));
     }
 
+    /**
+     * Menampilkan formulir untuk membuat kegiatan baru.
+     */
     public function create(): View
     {
         $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
         return view('kalender.create', compact('roles'));
     }
 
+    /**
+     * Menyimpan kegiatan baru ke database.
+     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -44,6 +52,7 @@ class KalenderController extends Controller
         $kegiatan = KegiatanAkademik::create($request->except('target_roles'));
         $kegiatan->roles()->sync($request->target_roles);
 
+        // [TAMBAHAN] Kirim Notifikasi ke Mahasiswa/Dosen yang menjadi target role
         $targetRoleIds = $request->target_roles;
         $usersToNotify = User::whereHas('roles', function($q) use ($targetRoleIds) {
             $q->whereIn('roles.id', $targetRoleIds);
@@ -61,6 +70,9 @@ class KalenderController extends Controller
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil ditambahkan.');
     }
 
+    /**
+     * Menampilkan formulir untuk mengedit kegiatan.
+     */
     public function edit(KegiatanAkademik $kalender): View
     {
         $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
@@ -68,6 +80,9 @@ class KalenderController extends Controller
         return view('kalender.edit', compact('kalender', 'roles'));
     }
 
+    /**
+     * Memperbarui kegiatan di database.
+     */
     public function update(Request $request, KegiatanAkademik $kalender): RedirectResponse
     {
         $request->validate([
@@ -85,19 +100,29 @@ class KalenderController extends Controller
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil diperbarui.');
     }
 
+    /**
+     * Menghapus kegiatan dari database.
+     */
     public function destroy(KegiatanAkademik $kalender): RedirectResponse
     {
         $kalender->delete();
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil dihapus.');
     }
 
+    /**
+     * Menampilkan halaman kalender publik (FullCalendar Web).
+     */
     public function halamanKalender(): View
     {
         return view('kalender.show');
     }
 
+    /**
+     * Menyediakan data event untuk FullCalendar (Web).
+     */
     public function getEvents(Request $request): JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if (!$user || !$user->roles) {
@@ -115,6 +140,7 @@ class KalenderController extends Controller
         $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi']);
 
         $events = $kegiatans->map(function ($kegiatan) {
+            // FullCalendar exclusive end date fix
             $kegiatan->end = Carbon::parse($kegiatan->end)->addDay()->toDateString();
             return $kegiatan;
         });
@@ -122,8 +148,12 @@ class KalenderController extends Controller
         return response()->json($events);
     }
     
+    /**
+     * [API MOBILE] Data Kalender Akademik.
+     */
     public function getKalenderUntukApi(Request $request): JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         if (!$user || !$user->roles) {
@@ -142,10 +172,65 @@ class KalenderController extends Controller
         return response()->json($kegiatans);
     }
 
+    /**
+     * [API MOBILE] Jadwal Kuliah Hari Ini.
+     */
     public function jadwalHariIni(Request $request): JsonResponse
     {
-        // ... (Kode ini sudah tidak dipakai di mobile, tapi biarkan saja untuk web/keperluan lain)
-        return response()->json([]); 
+        $user = $request->user();
+        Carbon::setLocale('id');
+        $hariIni = Carbon::now()->isoFormat('dddd');
+
+        $jadwal = [];
+
+        if ($user->hasRole('mahasiswa')) {
+            $mahasiswa = $user->mahasiswa;
+            if($mahasiswa) {
+                 $jadwal = \App\Models\JadwalKuliah::query()
+                    ->where('hari', $hariIni)
+                    ->whereHas('mataKuliah.mahasiswas', function($q) use ($mahasiswa) {
+                        $q->where('mahasiswas.id', $mahasiswa->id);
+                    })
+                    ->with(['mataKuliah', 'ruangan', 'dosen'])
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? 'Online/TBA',
+                            'dosen' => $item->dosen->nama_lengkap ?? '-'
+                        ];
+                    });
+            }
+
+        } elseif ($user->hasRole('dosen')) {
+            $dosen = $user->dosen;
+            if($dosen) {
+                $jadwal = \App\Models\JadwalKuliah::query()
+                    ->where('hari', $hariIni)
+                    ->where('dosen_id', $dosen->id)
+                    ->with(['mataKuliah', 'ruangan'])
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? '-',
+                            'dosen' => 'Anda Sendiri'
+                        ];
+                    });
+            }
+        }
+
+        return response()->json($jadwal);
     }
 
     /**
@@ -159,41 +244,31 @@ class KalenderController extends Controller
         if ($user->hasRole('mahasiswa')) {
             $mahasiswa = $user->mahasiswa;
             if($mahasiswa) {
-                 // 1. CARI SEMESTER AKTIF
-                 $periodeAktif = TahunAkademik::where('is_active', true)->first();
-                 
-                 if ($periodeAktif) {
-                     // 2. Ambil Mata Kuliah yang direlasi di pivot table sesuai periode aktif
-                     $mkIds = $mahasiswa->mataKuliahs()
-                                 ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                                 ->pluck('mata_kuliahs.id')
-                                 ->toArray();
-
-                     // 3. Tarik Jadwal
-                     $jadwal = JadwalKuliah::query()
-                        ->whereIn('mata_kuliah_id', $mkIds)
-                        ->with(['mataKuliah', 'ruangan', 'dosen'])
-                        ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
-                        ->orderBy('jam_mulai')
-                        ->get()
-                        ->map(function($item) {
-                            return [
-                                'id' => $item->id,
-                                'hari' => $item->hari,
-                                'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
-                                'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
-                                'jam_mulai' => $item->jam_mulai,
-                                'jam_selesai' => $item->jam_selesai,
-                                'ruang' => $item->ruangan->nama_ruang ?? 'Online',
-                                'dosen' => $item->dosen->nama_lengkap ?? '-'
-                            ];
-                        });
-                 }
+                 $jadwal = \App\Models\JadwalKuliah::query()
+                    ->whereHas('mataKuliah.mahasiswas', function($q) use ($mahasiswa) {
+                        $q->where('mahasiswas.id', $mahasiswa->id);
+                    })
+                    ->with(['mataKuliah', 'ruangan', 'dosen'])
+                    ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+                    ->orderBy('jam_mulai')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'hari' => $item->hari,
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
+                            'jam_mulai' => $item->jam_mulai,
+                            'jam_selesai' => $item->jam_selesai,
+                            'ruang' => $item->ruangan->nama_ruang ?? 'Online',
+                            'dosen' => $item->dosen->nama_lengkap ?? '-'
+                        ];
+                    });
             }
         } elseif ($user->hasRole('dosen')) {
             $dosen = $user->dosen;
             if($dosen) {
-                $jadwal = JadwalKuliah::query()
+                $jadwal = \App\Models\JadwalKuliah::query()
                     ->where('dosen_id', $dosen->id)
                     ->with(['mataKuliah', 'ruangan'])
                     ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
@@ -203,8 +278,8 @@ class KalenderController extends Controller
                         return [
                             'id' => $item->id,
                             'hari' => $item->hari,
-                            'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
-                            'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
+                            'mata_kuliah' => $item->mataKuliah->nama_mk,
+                            'kode_mk' => $item->mataKuliah->kode_mk,
                             'jam_mulai' => $item->jam_mulai,
                             'jam_selesai' => $item->jam_selesai,
                             'ruang' => $item->ruangan->nama_ruang ?? 'Online',
