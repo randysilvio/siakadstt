@@ -89,6 +89,15 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group" role="group">
+                                        
+                                        {{-- [TAMBAHAN] Tombol Menyamar (Impersonate) --}}
+                                        @if($user->id !== Auth::id())
+                                            <a href="{{ route('admin.user.impersonate', $user->id) }}" class="btn btn-sm btn-dark" title="Login Sebagai User Ini" onclick="return confirm('Anda akan login sebagai {{ $user->name }}. Lanjutkan?');">
+                                                <i class="bi bi-box-arrow-in-right"></i> Login
+                                            </a>
+                                        @endif
+                                        {{-- [AKHIR TAMBAHAN] --}}
+
                                         <a href="{{ route('admin.user.edit', $user->id) }}" class="btn btn-sm btn-outline-warning" title="Ubah Peran">
                                             <i class="bi bi-shield-lock"></i>
                                         </a>

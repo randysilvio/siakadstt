@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
-// Pastikan Anda mengimport Model Jadwal Kuliah Anda (sesuaikan nama modelnya)
+use App\Models\User; // [TAMBAHAN]
 use App\Models\JadwalKuliah; 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
+use App\Notifications\GeneralNotification; // [TAMBAHAN]
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -49,6 +51,21 @@ class KalenderController extends Controller
 
         $kegiatan = KegiatanAkademik::create($request->except('target_roles'));
         $kegiatan->roles()->sync($request->target_roles);
+
+        // [TAMBAHAN] Kirim Notifikasi ke Mahasiswa/Dosen yang menjadi target role
+        $targetRoleIds = $request->target_roles;
+        $usersToNotify = User::whereHas('roles', function($q) use ($targetRoleIds) {
+            $q->whereIn('roles.id', $targetRoleIds);
+        })->get();
+
+        if ($usersToNotify->count() > 0) {
+            Notification::send($usersToNotify, new GeneralNotification(
+                'Agenda Akademik Baru',
+                $kegiatan->judul_kegiatan . ' dijadwalkan pada ' . Carbon::parse($kegiatan->tanggal_mulai)->translatedFormat('d F Y'),
+                route('kalender.halaman'),
+                'bi-calendar-event-fill text-warning'
+            ));
+        }
 
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil ditambahkan.');
     }
@@ -133,7 +150,6 @@ class KalenderController extends Controller
     
     /**
      * [API MOBILE] Data Kalender Akademik.
-     * Mengambil semua kegiatan (tanpa limit) agar kalender penuh terisi.
      */
     public function getKalenderUntukApi(Request $request): JsonResponse
     {
@@ -145,14 +161,12 @@ class KalenderController extends Controller
         }
         $userRoleIds = $user->roles->pluck('id');
 
-        // Mengambil data mulai dari 1 bulan yang lalu agar user bisa lihat history bulan berjalan
         $kegiatans = KegiatanAkademik::query()
             ->where('tanggal_selesai', '>=', Carbon::today()->startOfMonth()->subMonths(1))
             ->whereHas('roles', function ($q) use ($userRoleIds) {
                 $q->whereIn('roles.id', $userRoleIds);
             })
             ->orderBy('tanggal_mulai', 'asc')
-            // ->limit(5)  <-- DIHAPUS agar kalender di HP muncul semua
             ->get();
             
         return response()->json($kegiatans);
@@ -160,26 +174,18 @@ class KalenderController extends Controller
 
     /**
      * [API MOBILE] Jadwal Kuliah Hari Ini.
-     * Digunakan di DashboardScreen.tsx
      */
     public function jadwalHariIni(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        // Setup Hari dalam Bahasa Indonesia
         Carbon::setLocale('id');
-        $hariIni = Carbon::now()->isoFormat('dddd'); // Senin, Selasa, dst.
+        $hariIni = Carbon::now()->isoFormat('dddd');
 
         $jadwal = [];
 
         if ($user->hasRole('mahasiswa')) {
-            // Logika Mahasiswa: Ambil dari KRS yang diambil user
-            // Asumsi: Ada relasi 'mataKuliahs' di model Mahasiswa, dan tabel pivot/matkul punya data 'hari', 'jam_mulai'
-            
-            $mahasiswa = $user->mahasiswa; // Pastikan relasi user->mahasiswa ada
+            $mahasiswa = $user->mahasiswa;
             if($mahasiswa) {
-                 // Query contoh (sesuaikan dengan struktur tabel Jadwal/KRS Anda)
-                 // Ini mengambil mata kuliah yang diambil mahasiswa, lalu memfilter hari
                  $jadwal = \App\Models\JadwalKuliah::query()
                     ->where('hari', $hariIni)
                     ->whereHas('mataKuliah.mahasiswas', function($q) use ($mahasiswa) {
@@ -202,7 +208,6 @@ class KalenderController extends Controller
             }
 
         } elseif ($user->hasRole('dosen')) {
-            // Logika Dosen: Ambil jadwal mengajar dia
             $dosen = $user->dosen;
             if($dosen) {
                 $jadwal = \App\Models\JadwalKuliah::query()

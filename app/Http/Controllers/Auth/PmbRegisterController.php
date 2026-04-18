@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
+use App\Notifications\GeneralNotification; // [TAMBAHAN]
 
 class PmbRegisterController extends Controller
 {
@@ -48,15 +50,14 @@ class PmbRegisterController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            // 2. Assign Role 'camaba'
-            // Pastikan role 'camaba' ada di database
-            $roleCamaba = Role::firstOrCreate(['name' => 'camaba'], ['display_name' => 'Calon Mahasiswa']);
-            $user->roles()->attach($roleCamaba);
+            // 2. Berikan Role Camaba
+            $roleCamaba = Role::where('name', 'camaba')->first();
+            if ($roleCamaba) {
+                $user->roles()->attach($roleCamaba->id);
+            }
 
-            // 3. Buat Data Profil Camaba
-            $periode = PmbPeriod::find($request->pmb_period_id);
-            
-            // Generate No Pendaftaran Sementara (Format: REG-Tahun-UrutanUser)
+            // 3. Buat Data Camaba
+            $periode = PmbPeriod::findOrFail($request->pmb_period_id);
             $noPendaftaran = 'REG-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
             Camaba::create([
@@ -64,30 +65,38 @@ class PmbRegisterController extends Controller
                 'pmb_period_id' => $periode->id,
                 'no_pendaftaran' => $noPendaftaran,
                 'no_hp' => $request->no_hp,
-                'status_pendaftaran' => 'draft', // Status awal DRAFT (belum bayar/isi biodata)
+                'status_pendaftaran' => 'draft', 
             ]);
 
             // 4. Otomatis Buat Tagihan Pembayaran Formulir
-            // PERBAIKAN: Menggunakan user_id, dan set mahasiswa_id ke NULL
             Pembayaran::create([
-                'user_id' => $user->id,          // Relasi ke User (Camaba)
-                'mahasiswa_id' => null,          // Kosongkan karena belum jadi mahasiswa
+                'user_id' => $user->id,          
+                'mahasiswa_id' => null,          
                 'jenis_pembayaran' => 'formulir_pmb',
                 'jumlah' => $periode->biaya_pendaftaran ?? 250000,
                 'status' => 'belum_bayar',
-                'semester' => 'PMB',             // Penanda semester
+                'semester' => 'PMB',             
                 'keterangan' => 'Biaya Pendaftaran ' . $periode->nama_gelombang
             ]);
 
             DB::commit();
 
+            // [TAMBAHAN] Kirim Notifikasi ke semua Admin
+            $admins = User::whereHas('roles', function($q) { $q->where('name', 'admin'); })->get();
+            Notification::send($admins, new GeneralNotification(
+                'Pendaftar PMB Baru!', 
+                'Camaba baru atas nama ' . $user->name . ' telah mendaftar.', 
+                route('admin.pmb.index'), 
+                'bi-person-badge-fill text-success'
+            ));
+
             // 5. Auto Login & Redirect ke Dashboard Camaba
             Auth::login($user);
-            return redirect()->route('dashboard');
+            return redirect()->route('dashboard')->with('success', 'Pendaftaran berhasil! Silakan upload bukti pembayaran formulir.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Terjadi kesalahan pendaftaran: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Gagal memproses pendaftaran. Silakan coba lagi.')->withInput();
         }
     }
 }

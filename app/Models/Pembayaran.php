@@ -12,8 +12,8 @@ class Pembayaran extends Model
     protected $table = 'pembayarans';
 
     protected $fillable = [
-        'user_id',        // [TAMBAHAN BARU]
-        'mahasiswa_id',   // Ini sekarang boleh null
+        'user_id',
+        'mahasiswa_id',
         'semester',
         'jenis_pembayaran',
         'jumlah',
@@ -23,13 +23,18 @@ class Pembayaran extends Model
         'keterangan',
     ];
 
-    // Relasi Lama (Tetap pertahankan untuk backward compatibility)
+    /**
+     * [UPDATE] Konversi otomatis kolom tanggal menjadi objek Carbon.
+     */
+    protected $casts = [
+        'tanggal_bayar' => 'datetime',
+    ];
+
     public function mahasiswa()
     {
         return $this->belongsTo(Mahasiswa::class);
     }
 
-    // [TAMBAHAN BARU] Relasi ke User (untuk Camaba)
     public function user()
     {
         return $this->belongsTo(User::class);

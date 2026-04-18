@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth; // [TAMBAHAN] Wajib untuk fitur login menyamar
 
 class UserController extends Controller
 {
@@ -100,5 +101,41 @@ class UserController extends Controller
         });
 
         return redirect()->route('admin.user.index')->with('success', 'Pengguna berhasil dihapus.');
+    }
+
+    // --- [TAMBAHAN] FITUR MENYAMAR (IMPERSONATE) ---
+
+    public function impersonate($id)
+    {
+        $userToImpersonate = User::findOrFail($id);
+
+        // Jangan biarkan admin menyamar jadi dirinya sendiri
+        if ($userToImpersonate->id === Auth::id()) {
+            return back()->with('error', 'Anda tidak dapat menyamar menjadi diri sendiri.');
+        }
+
+        // Simpan ID admin asli ke dalam session
+        session()->put('impersonate_by', Auth::id());
+
+        // Paksa sistem untuk login menggunakan akun target
+        Auth::login($userToImpersonate);
+
+        // Arahkan ke dashboard sesuai role baru
+        return redirect()->route('dashboard')->with('success', 'Anda sekarang login sebagai ' . $userToImpersonate->name);
+    }
+
+    public function stopImpersonate()
+    {
+        // Cek apakah user ini benar-benar sedang menyamar
+        if (session()->has('impersonate_by')) {
+            $adminId = session()->pull('impersonate_by');
+            
+            // Kembalikan login ke ID Admin
+            Auth::loginUsingId($adminId);
+            
+            return redirect()->route('admin.user.index')->with('success', 'Penyamaran dihentikan. Anda telah kembali menjadi Admin.');
+        }
+
+        return redirect()->route('dashboard');
     }
 }

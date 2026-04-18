@@ -8,6 +8,7 @@ use App\Models\ProgramStudi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Notifications\KrsValidated; // [TAMBAHAN] Import class notifikasi
 
 class ValidasiKrsController extends Controller
 {
@@ -53,10 +54,17 @@ class ValidasiKrsController extends Controller
             abort(403, 'Aksi tidak diizinkan.');
         }
 
-        $mahasiswa->status_krs = $request->status_krs;
-        $mahasiswa->catatan_kaprodi = $request->catatan_kaprodi;
-        $mahasiswa->save();
+        // Update status KRS mahasiswa
+        $mahasiswa->update([
+            'status_krs' => $request->status_krs,
+            'catatan_kaprodi' => $request->catatan_kaprodi,
+        ]);
 
-        return redirect()->route('kaprodi.dashboard')->with('success', 'Status KRS mahasiswa berhasil diperbarui.');
+        // [TAMBAHAN] Kirim Notifikasi ke Mahasiswa terkait
+        if ($mahasiswa->user) {
+            $mahasiswa->user->notify(new KrsValidated($request->status_krs, $request->catatan_kaprodi));
+        }
+
+        return redirect()->route('kaprodi.dashboard')->with('success', 'KRS Mahasiswa berhasil di' . strtolower($request->status_krs) . '.');
     }
 }

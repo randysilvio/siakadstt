@@ -50,6 +50,10 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' => \App\Http\Middleware\AdminMiddleware::class, // <-- TAMBAHKAN ALIAS DI SINI
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        
+        // [TAMBAHAN ALIAS] Mendaftarkan fungsi hak akses dan fitur menyamar
+        'role' => \App\Http\Middleware\CheckRoleMiddleware::class, 
+        'no_nested_impersonation' => \App\Http\Middleware\PreventNestedImpersonation::class,
     ];
 }

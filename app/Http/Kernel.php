@@ -14,8 +14,9 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        \Illuminate\Http\Middleware\HandleCors::class,
+        \Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
+        \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
     ];
 
@@ -26,7 +27,7 @@ class Kernel extends HttpKernel
      */
     protected $middlewareGroups = [
         'web' => [
-            \App\Http\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
@@ -35,7 +36,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            'throttle:api',
+            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -49,24 +50,19 @@ class Kernel extends HttpKernel
      */
     protected $middlewareAliases = [
         'auth' => \App\Http\Middleware\Authenticate::class,
+        'auth.session' => \Illuminate\Session\Middleware\StartSession::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+        'precognitive' => \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        
+        // Middleware Kustom SIAKAD
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
-        'keuangan_tendik' => \App\Http\Middleware\KeuanganTendikMiddleware::class,
-        'dosen' => \App\Http\Middleware\DosenMiddleware::class,
-        'kaprodi' => \App\Http\Middleware\KaprodiMiddleware::class,
-        'mahasiswa' => \App\Http\Middleware\MahasiswaMiddleware::class,
-        'cek_pembayaran' => \App\Http\Middleware\CekStatusPembayaranMiddleware::class,
-        'cek_periode_krs' => \App\Http\Middleware\CekPeriodeKrsMiddleware::class,
-        'pustakawan' => \App\Http\Middleware\PustakawanMiddleware::class,
-        'admin_or_dosen' => \App\Http\Middleware\AdminOrDosenMiddleware::class,
-        'penjaminan_mutu' => \App\Http\Middleware\PenjaminanMutuMiddleware::class,
-        'rektorat' => \App\Http\Middleware\RektoratMiddleware::class,
         'role' => \App\Http\Middleware\CheckRoleMiddleware::class,
+        'no_nested_impersonation' => \App\Http\Middleware\PreventNestedImpersonation::class,
     ];
 }

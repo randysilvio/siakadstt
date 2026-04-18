@@ -3,39 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
+use App\Models\User; // [TAMBAHAN]
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str; // [WAJIB] Import ini untuk membuat Slug
+use Illuminate\Support\Str; 
+use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
+use App\Notifications\GeneralNotification; // [TAMBAHAN]
 
 class PengumumanController extends Controller
 {
-    /**
-     * Menampilkan daftar pengumuman dengan Smart Filter (Admin).
-     */
     public function index(Request $request): View
     {
         $query = Pengumuman::latest();
 
-        // 1. Filter Pencarian Teks (Judul)
         if ($request->filled('search')) {
             $query->where('judul', 'like', '%' . $request->input('search') . '%');
         }
-
-        // 2. Filter Kategori
         if ($request->filled('kategori')) {
             $query->where('kategori', $request->input('kategori'));
         }
-
-        // 3. Filter Target Role
         if ($request->filled('target_role')) {
             $query->where('target_role', $request->input('target_role'));
         }
 
         $pengumumans = $query->paginate(10)->withQueryString();
-        
         return view('pengumuman.index', compact('pengumumans'));
     }
 
@@ -55,32 +49,37 @@ class PengumumanController extends Controller
         ]);
 
         $data = $request->only('judul', 'kategori', 'konten', 'target_role');
-        
-        // [LOGIKA SLUG] Membuat slug dari judul + string acak agar unik
+        $data['user_id'] = Auth::id();
         $data['slug'] = Str::slug($request->judul) . '-' . Str::lower(Str::random(5));
 
         if ($request->hasFile('foto')) {
             $data['foto'] = $request->file('foto')->store('pengumuman', 'public');
         }
 
-        Pengumuman::create($data);
+        $pengumuman = Pengumuman::create($data);
 
-        return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil dibuat.');
-    }
-
-    public function show(Pengumuman $pengumuman): View
-    {
-        // Ini tampilan detail untuk Admin/Internal (bukan publik)
-        $user = Auth::user();
-        if ($pengumuman->target_role === 'semua' || $user->hasRole($pengumuman->target_role)) {
-            return view('pengumuman.show', compact('pengumuman'));
+        // [TAMBAHAN] Distribusi Notifikasi
+        if ($request->target_role == 'semua') {
+            $users = User::all();
+        } else {
+            $users = User::whereHas('roles', function($q) use ($request) {
+                $q->where('name', $request->target_role);
+            })->get();
         }
-        abort(403, 'ANDA TIDAK MEMILIKI WEWENANG UNTUK MELIHAT INI.');
+        
+        Notification::send($users, new GeneralNotification(
+            ucfirst($request->kategori) . ' Baru',
+            $request->judul,
+            route('pengumuman.public.show', $pengumuman->slug),
+            'bi-megaphone-fill text-info'
+        ));
+
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil ditambahkan dan notifikasi dikirim.');
     }
 
-    public function edit(Pengumuman $pengumuman): View 
-    { 
-        return view('pengumuman.edit', compact('pengumuman')); 
+    public function edit(Pengumuman $pengumuman): View
+    {
+        return view('pengumuman.edit', compact('pengumuman'));
     }
 
     public function update(Request $request, Pengumuman $pengumuman): RedirectResponse
@@ -95,13 +94,11 @@ class PengumumanController extends Controller
 
         $data = $request->only('judul', 'kategori', 'konten', 'target_role');
         
-        // [LOGIKA SLUG] Update slug hanya jika judul berubah
         if ($request->judul !== $pengumuman->judul) {
              $data['slug'] = Str::slug($request->judul) . '-' . Str::lower(Str::random(5));
         }
 
         if ($request->hasFile('foto')) {
-            // Hapus foto lama jika ada
             if ($pengumuman->foto && Storage::disk('public')->exists($pengumuman->foto)) { 
                 Storage::disk('public')->delete($pengumuman->foto); 
             }
@@ -109,7 +106,6 @@ class PengumumanController extends Controller
         }
 
         $pengumuman->update($data);
-        
         return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil diperbarui.');
     }
 
@@ -119,7 +115,6 @@ class PengumumanController extends Controller
             Storage::disk('public')->delete($pengumuman->foto); 
         }
         $pengumuman->delete();
-        
-        return redirect()->route('admin.pengumuman.index')->with('success', 'Data berhasil dihapus.');
+        return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil dihapus.');
     }
 }

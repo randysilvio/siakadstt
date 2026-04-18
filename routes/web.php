@@ -28,7 +28,6 @@ use App\Http\Controllers\VerumPresensiController;
 use App\Http\Controllers\PerpustakaanController;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\TendikController;
-// Controller untuk manajemen Admin
 use App\Http\Controllers\Admin\SlideshowController;
 use App\Http\Controllers\Admin\DokumenPublikController;
 use App\Http\Controllers\Admin\EvaluasiSesiController;
@@ -38,32 +37,21 @@ use App\Http\Controllers\Admin\KurikulumController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Admin\PengaturanAbsensiController;
-// Controller PMB Admin
 use App\Http\Controllers\Admin\PmbAdminController; 
 use App\Http\Controllers\Admin\PmbPeriodController;
-
-// Controller PMB User & Auth
 use App\Http\Controllers\Auth\PmbRegisterController;
 use App\Http\Controllers\PmbController;
-
-// Controller untuk halaman publik
 use App\Http\Controllers\Public\DosenProfileController;
-// Controller untuk Perpustakaan
 use App\Http\Controllers\Perpustakaan\PeminjamanController;
-// Middleware
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
 use App\Http\Middleware\KaprodiMiddleware;
 use App\Http\Controllers\ChatbotController;
-// Controller untuk peran institusional
 use App\Http\Controllers\PenjaminanMutuController;
 use App\Http\Controllers\MutuReportController; 
 use App\Http\Controllers\RektoratController;
-// Controller untuk Mahasiswa
 use App\Http\Controllers\EvaluasiController;
-// Controller untuk Dosen
 use App\Http\Controllers\DosenDashboardController;
-// Controller Auth Manual
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 
 /*
@@ -72,36 +60,38 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 |--------------------------------------------------------------------------
 */
 
-// --- RUTE PUBLIK ---
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
 
-// Rute Pendaftaran PMB (Publik)
 Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
 Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
 
-// --- RUTE LOGIN MANUAL ---
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
-
-// --- RUTE OTENTIKASI & DASHBOARD ---
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
-// --- GRUP RUTE YANG MEMBUTUHKAN LOGIN ---
 Route::middleware('auth')->group(function () {
+
+    Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    // RUTE KHUSUS CAMABA
+    // [TAMBAHAN] Rute Untuk Membaca Notifikasi
+    Route::post('/notifikasi/baca-semua', function() {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifikasi.baca-semua');
+
     Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function() {
         Route::get('/pembayaran', [PmbController::class, 'showPaymentForm'])->name('pembayaran.show');
         Route::post('/pembayaran', [PmbController::class, 'storePaymentProof'])->name('pembayaran.store');
@@ -109,11 +99,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/biodata', [PmbController::class, 'updateBiodata'])->name('biodata.update');
     });
 
-    // Rute umum
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
 
-    // Rute untuk Modul Verum (E-Learning)
     Route::prefix('verum')->name('verum.')->group(function() {
         Route::get('/', [VerumController::class, 'index'])->name('index');
         Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('role:dosen');
@@ -132,7 +120,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('role:mahasiswa');
     });
 
-    // BLOK UNTUK MODUL PERPUSTAKAAN
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
         Route::middleware('role:pustakawan')->group(function() {
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
@@ -144,7 +131,6 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // RUTE UNTUK MAHASISWA
     Route::middleware('role:mahasiswa')->group(function () {
         Route::middleware([CekStatusPembayaranMiddleware::class, CekPeriodeKrsMiddleware::class])->group(function () {
             Route::get('/krs', [KrsController::class, 'index'])->name('krs.index');
@@ -163,7 +149,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'store'])->name('evaluasi.store');
     });
 
-    // RUTE UNTUK DOSEN
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
          Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
@@ -176,25 +161,17 @@ Route::middleware('auth')->group(function () {
          Route::delete('/perwalian/krs/{mahasiswa}/{mk}', [PerwalianController::class, 'destroyKrs'])->name('perwalian.krs.destroy');
     });
 
-    // RUTE UNTUK KAPRODI
     Route::middleware(KaprodiMiddleware::class)->group(function () {
         Route::get('/kaprodi/dashboard', [KaprodiDashboardController::class, 'index'])->name('kaprodi.dashboard');
         Route::get('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'show'])->name('kaprodi.krs.show');
         Route::patch('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'update'])->name('kaprodi.krs.update');
     });
 
-    // RUTE UNTUK PENJAMINAN MUTU & REKTORAT
     Route::middleware('role:penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
-        // Dashboard
         Route::get('/dashboard', [PenjaminanMutuController::class, 'dashboard'])->name('dashboard');
-        
-        // --- [MODUL LAPORAN AKREDITASI - LENGKAP] ---
         Route::get('/laporan', [MutuReportController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
-        
-        // [TAMBAHAN BARU] Cetak Beban Kerja Dosen
         Route::get('/laporan/cetak-beban-dosen', [MutuReportController::class, 'cetakBebanDosen'])->name('laporan.cetak-beban-dosen');
-        
         Route::post('/laporan/cetak-rps', [MutuReportController::class, 'cetakRps'])->name('laporan.cetak-rps');
         Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
     });
@@ -203,11 +180,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
     });
 
-    // RUTE BERSAMA
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
 
-    // GRUP RUTE KEUANGAN
     Route::middleware(['role:keuangan'])->group(function() {
         Route::get('/pembayaran/generate', [PembayaranController::class, 'generate'])->name('pembayaran.generate');
         Route::post('/pembayaran/generate', [PembayaranController::class, 'storeGenerate'])->name('pembayaran.storeGenerate');
@@ -216,11 +191,13 @@ Route::middleware('auth')->group(function () {
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
     });
 
-    // GRUP RUTE ADMIN
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/user/{id}/impersonate', [UserController::class, 'impersonate'])
+             ->middleware(\App\Http\Middleware\PreventNestedImpersonation::class)
+             ->name('user.impersonate');
+
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
-        // Export/Import
         Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
         Route::get('/mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
         Route::post('/mahasiswa/import', [MahasiswaController::class, 'import'])->name('mahasiswa.import');
@@ -235,7 +212,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
         Route::resource('tendik', TendikController::class)->except(['show']);
 
-        // Manajemen Absensi
         Route::prefix('absensi')->name('absensi.')->group(function () {
             Route::get('/laporan', [AbsensiController::class, 'laporanIndex'])->name('laporan.index');
             Route::get('/laporan/cetak', [AbsensiController::class, 'laporanCetak'])->name('laporan.cetak');
@@ -249,7 +225,6 @@ Route::middleware('auth')->group(function () {
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
-        // Manajemen PMB
         Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
         Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
         Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
@@ -269,9 +244,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::resource('kalender', KalenderController::class)->except(['show']);
         
-        // Rute Slideshows (Dalam Group Admin)
         Route::resource('slideshows', SlideshowController::class);
-        
         Route::resource('dokumen-publik', DokumenPublikController::class);
         
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
@@ -288,10 +261,7 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// [RUTE PUBLIK CATCH-ALL] 
-// WAJIB diletakkan di PALING BAWAH file agar tidak mengganggu rute lain.
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
 Route::get('/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
-// Auth routes dari Breeze/UI
 require __DIR__.'/auth.php';
