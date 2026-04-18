@@ -73,4 +73,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 6. STATISTIK
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
+
+    // 7. FITUR NOTIFIKASI
+    Route::get('/notifikasi', function (Request $request) {
+        return response()->json($request->user()->notifications);
+    });
+
+    Route::post('/notifikasi/{id}/read', function (Request $request, $id) {
+        $notif = $request->user()->notifications()->where('id', $id)->first();
+        if($notif) { 
+            $notif->markAsRead(); 
+        }
+        return response()->json(['status' => 'success']);
+    });
 });
