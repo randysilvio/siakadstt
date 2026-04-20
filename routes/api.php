@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AbsensiController;
 use App\Http\Controllers\KalenderController;
 
+// [TAMBAHAN] Import KrsController
+use App\Http\Controllers\KrsController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -34,7 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         if ($user->hasRole('mahasiswa')) {
             $roleName = 'mahasiswa';
-            $user->load('mahasiswa.programStudi');
+            // Pastikan relasi mata_kuliahs dimuat agar bisa dipakai di KRS HP
+            $user->load(['mahasiswa.programStudi', 'mahasiswa.mataKuliahs']);
         } elseif ($user->hasRole('dosen')) {
             $roleName = 'dosen';
             $user->load('dosen');
@@ -71,10 +75,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // 5. FITUR NILAI / KHS (Mahasiswa)
     Route::get('/khs-mahasiswa', [AbsensiController::class, 'getKhsMahasiswa']);
 
-    // 6. STATISTIK
+    // ==========================================================
+    // 6. FITUR KRS & VALIDASI (BARU)
+    // ==========================================================
+    // Rute untuk Dosen/Kaprodi mengambil daftar KRS yang perlu divalidasi
+    Route::get('/krs/perlu-validasi', [KrsController::class, 'getPerluValidasiApi']);
+    
+    // Rute untuk memproses tombol Setujui/Tolak
+    Route::post('/krs/validasi/{id}', [KrsController::class, 'validasiKrsApi']);
+
+
+    // 7. STATISTIK
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
 
-    // 7. FITUR NOTIFIKASI
+    // 8. FITUR NOTIFIKASI
     Route::get('/notifikasi', function (Request $request) {
         return response()->json($request->user()->notifications()->latest()->get());
     });

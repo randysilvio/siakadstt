@@ -164,7 +164,7 @@ class KrsController extends Controller
     }
 
     /**
-     * [BARU] Menghapus satu mata kuliah dari KRS Mahasiswa.
+     * Menghapus satu mata kuliah dari KRS Mahasiswa.
      * Hanya bisa dilakukan jika status KRS belum 'Disetujui'.
      */
     public function destroy($id)
@@ -180,5 +180,59 @@ class KrsController extends Controller
         $mahasiswa->mataKuliahs()->detach($id);
 
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
+    }
+
+    // =========================================================================
+    // FUNGSI API UNTUK MOBILE (VALIDASI KAPRODI / DOSEN WALI)
+    // =========================================================================
+
+    /**
+     * [API MOBILE] Mengambil daftar mahasiswa yang menunggu validasi KRS
+     */
+    public function getPerluValidasiApi(Request $request)
+    {
+        // Mengambil data mahasiswa yang status KRS-nya sedang 'Menunggu Persetujuan'
+        $mahasiswa = \App\Models\Mahasiswa::where('status_krs', 'Menunggu Persetujuan')
+                        ->select('id', 'name', 'nim', 'status_krs')
+                        ->get();
+
+        // Kita format datanya agar mudah dibaca oleh React Native (Aplikasi HP)
+        $formattedData = $mahasiswa->map(function($mhs) {
+            return [
+                'id' => $mhs->id,
+                'mahasiswa' => [
+                    'name' => $mhs->name,
+                    'nim' => $mhs->nim
+                ]
+            ];
+        });
+
+        return response()->json($formattedData);
+    }
+
+    /**
+     * [API MOBILE] Memproses tombol Setujui / Tolak dari HP
+     */
+    public function validasiKrsApi(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:Setujui,Tolak'
+        ]);
+
+        $mahasiswa = \App\Models\Mahasiswa::findOrFail($id);
+        
+        // Sesuaikan status yang diminta dari HP menjadi status yang ada di database web
+        if ($request->status === 'Setujui') {
+            $mahasiswa->status_krs = 'Disetujui';
+        } else {
+            $mahasiswa->status_krs = 'Ditolak';
+        }
+        
+        $mahasiswa->save();
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs
+        ]);
     }
 }
