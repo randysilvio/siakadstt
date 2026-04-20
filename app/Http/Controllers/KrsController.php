@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 class KrsController extends Controller
 {
     /**
-     * Menampilkan halaman pengisian KRS.
+     * Menampilkan halaman pengisian KRS (Untuk Website).
      */
     public function index()
     {
@@ -21,12 +21,9 @@ class KrsController extends Controller
             abort(403, 'Data mahasiswa tidak ditemukan untuk pengguna ini.');
         }
 
-        // Cek status kunci (Lock)
         $isLocked = ($mahasiswa->status_krs === 'Disetujui');
-
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // Hitung IPK & Max SKS
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
         $total_sks_lulus = 0;
         $total_bobot_sks = 0;
@@ -52,7 +49,6 @@ class KrsController extends Controller
                                  ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
                                  ->pluck('mata_kuliahs.id')->toArray();
 
-        // Filter Semester (Ganjil/Genap)
         $allowedSemesters = ($periodeAktif->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
 
         $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])
@@ -72,26 +68,21 @@ class KrsController extends Controller
             'max_sks' => $max_sks,
             'mk_lulus_ids' => $mk_lulus_ids,
             'periodeAktif' => $periodeAktif,
-            'isLocked' => $isLocked // Variabel kunci dikirim ke view
+            'isLocked' => $isLocked 
         ]);
     }
 
-    /**
-     * Menyimpan data KRS (Bulk Update / Sync).
-     */
     public function store(Request $request)
     {
         $mahasiswa = Auth::user()->mahasiswa;
         
-        // PENGAMANAN: Pastikan tetap tidak bisa simpan jika sudah disetujui
         if ($mahasiswa->status_krs === 'Disetujui') {
-            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final dan disetujui Dosen Wali.');
+            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final.');
         }
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // --- Validasi SKS ---
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
         $total_sks_lulus = 0; $total_bobot_sks = 0;
         $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
@@ -113,7 +104,6 @@ class KrsController extends Controller
             throw ValidationException::withMessages(['mata_kuliahs' => "SKS berlebih ({$sks_diambil} dari {$max_sks})."]);
         }
 
-        // --- Validasi Prasyarat ---
         $mk_lulus_ids = $mahasiswa->mataKuliahs()->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])->pluck('mata_kuliahs.id')->toArray();
         $mk_dipilih = MataKuliah::with('prasyarats')->findMany($mata_kuliah_ids);
         $error_prasyarat = [];
@@ -130,7 +120,6 @@ class KrsController extends Controller
             throw ValidationException::withMessages(['mata_kuliahs' => $error_prasyarat]);
         }
 
-        // --- Validasi Jadwal Bentrok ---
         $jadwalTerpilih = [];
         $mk_dipilih_dengan_jadwal = MataKuliah::with('jadwals')->findMany($mata_kuliah_ids);
 
@@ -146,7 +135,6 @@ class KrsController extends Controller
             }
         }
         
-        // --- Simpan Data ---
         $syncData = [];
         foreach($mata_kuliah_ids as $mk_id){
             $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
@@ -154,7 +142,6 @@ class KrsController extends Controller
 
         $mahasiswa->mataKuliahs()->sync($syncData);
 
-        // Reset status jika sebelumnya ditolak, agar dosen bisa cek ulang
         if ($mahasiswa->status_krs !== 'Ditolak') {
             $mahasiswa->status_krs = 'Menunggu Persetujuan';
             $mahasiswa->save();
@@ -163,76 +150,122 @@ class KrsController extends Controller
         return redirect()->route('krs.index')->with('success', 'KRS berhasil disimpan.');
     }
 
-    /**
-     * Menghapus satu mata kuliah dari KRS Mahasiswa.
-     * Hanya bisa dilakukan jika status KRS belum 'Disetujui'.
-     */
     public function destroy($id)
     {
         $mahasiswa = Auth::user()->mahasiswa;
-
-        // 1. Cek Keamanan Status
         if ($mahasiswa->status_krs === 'Disetujui') {
             return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Wali.');
         }
-
-        // 2. Lakukan Penghapusan (Detach)
         $mahasiswa->mataKuliahs()->detach($id);
-
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
     }
 
     // =========================================================================
-    // FUNGSI API UNTUK MOBILE (VALIDASI KAPRODI / DOSEN WALI)
+    // FUNGSI API UNTUK MOBILE (DOSEN & MAHASISWA)
     // =========================================================================
 
-    /**
-     * [API MOBILE] Mengambil daftar mahasiswa yang menunggu validasi KRS
-     */
     public function getPerluValidasiApi(Request $request)
     {
-        // Mengambil data mahasiswa yang status KRS-nya sedang 'Menunggu Persetujuan'
         $mahasiswa = \App\Models\Mahasiswa::where('status_krs', 'Menunggu Persetujuan')
                         ->select('id', 'name', 'nim', 'status_krs')
                         ->get();
 
-        // Kita format datanya agar mudah dibaca oleh React Native (Aplikasi HP)
         $formattedData = $mahasiswa->map(function($mhs) {
             return [
                 'id' => $mhs->id,
-                'mahasiswa' => [
-                    'name' => $mhs->name,
-                    'nim' => $mhs->nim
-                ]
+                'mahasiswa' => ['name' => $mhs->name, 'nim' => $mhs->nim]
             ];
         });
 
         return response()->json($formattedData);
     }
 
-    /**
-     * [API MOBILE] Memproses tombol Setujui / Tolak dari HP
-     */
     public function validasiKrsApi(Request $request, $id)
     {
-        $request->validate([
-            'status' => 'required|in:Setujui,Tolak'
-        ]);
-
+        $request->validate(['status' => 'required|in:Setujui,Tolak']);
         $mahasiswa = \App\Models\Mahasiswa::findOrFail($id);
         
-        // Sesuaikan status yang diminta dari HP menjadi status yang ada di database web
         if ($request->status === 'Setujui') {
             $mahasiswa->status_krs = 'Disetujui';
         } else {
             $mahasiswa->status_krs = 'Ditolak';
         }
-        
         $mahasiswa->save();
 
+        return response()->json(['status' => 'success', 'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs]);
+    }
+
+    // --- TAMBAHAN BARU: API UNTUK MAHASISWA ISI KRS DI HP ---
+    
+    public function getFormKrsApi(Request $request)
+    {
+        $mahasiswa = $request->user()->mahasiswa;
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+
+        if (!$periodeAktif) return response()->json(['message' => 'Tidak ada periode aktif'], 400);
+
+        // Hitung IPK & Max SKS
+        $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
+        $total_sks_lulus = 0; $total_bobot_sks = 0;
+        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+
+        foreach ($krs_selesai as $mk) {
+            $nilai = $mk->pivot->nilai;
+            if (isset($bobot_nilai[$nilai])) {
+                $total_sks_lulus += $mk->sks;
+                $total_bobot_sks += ($bobot_nilai[$nilai] * $mk->sks);
+            }
+        }
+
+        $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
+        $max_sks = 15;
+        if ($ipk >= 3.00) { $max_sks = 24; }
+        elseif ($ipk >= 2.50) { $max_sks = 21; }
+        elseif ($ipk >= 2.00) { $max_sks = 18; }
+
+        $allowedSemesters = ($periodeAktif->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
+        
+        $mata_kuliahs = MataKuliah::with(['jadwals' => function($q) {
+            $q->select('mata_kuliah_id', 'hari', 'jam_mulai', 'jam_selesai');
+        }])->whereIn('semester', $allowedSemesters)->get();
+
+        $mk_diambil_ids = $mahasiswa->mataKuliahs()
+            ->wherePivot('tahun_akademik_id', $periodeAktif->id)
+            ->pluck('mata_kuliahs.id')
+            ->toArray();
+
         return response()->json([
-            'status' => 'success', 
-            'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs
+            'ipk' => $ipk,
+            'max_sks' => $max_sks,
+            'mk_diambil_ids' => $mk_diambil_ids,
+            'mata_kuliahs' => $mata_kuliahs,
+            'status_krs' => $mahasiswa->status_krs
         ]);
+    }
+
+    public function submitKrsApi(Request $request)
+    {
+        $mahasiswa = $request->user()->mahasiswa;
+        
+        if ($mahasiswa->status_krs === 'Disetujui') {
+            return response()->json(['message' => 'KRS sudah disetujui, tidak bisa diubah.'], 403);
+        }
+
+        $mata_kuliah_ids = $request->input('mata_kuliahs', []);
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+
+        $syncData = [];
+        foreach($mata_kuliah_ids as $mk_id){
+            $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
+        }
+
+        $mahasiswa->mataKuliahs()->sync($syncData);
+
+        if ($mahasiswa->status_krs !== 'Ditolak') {
+            $mahasiswa->status_krs = 'Menunggu Persetujuan';
+            $mahasiswa->save();
+        }
+
+        return response()->json(['message' => 'KRS Berhasil Disimpan']);
     }
 }
