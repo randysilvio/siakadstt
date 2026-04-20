@@ -6,8 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
 use App\Models\User; 
-use App\Models\JadwalKuliah; 
-use App\Models\TahunAkademik; // [TAMBAHAN BARU]
+// PERBAIKAN FATAL: Menggunakan model Jadwal, bukan JadwalKuliah
+use App\Models\Jadwal; 
+use App\Models\TahunAkademik; 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification; 
 use App\Notifications\GeneralNotification; 
@@ -144,7 +145,6 @@ class KalenderController extends Controller
 
     public function jadwalHariIni(Request $request): JsonResponse
     {
-        // ... (Kode ini sudah tidak dipakai di mobile, tapi biarkan saja untuk web/keperluan lain)
         return response()->json([]); 
     }
 
@@ -153,26 +153,54 @@ class KalenderController extends Controller
      */
     public function jadwalKuliahUser(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $jadwal = [];
+        try {
+            $user = $request->user();
+            $jadwal = [];
 
-        if ($user->hasRole('mahasiswa')) {
-            $mahasiswa = $user->mahasiswa;
-            if($mahasiswa) {
-                 // 1. CARI SEMESTER AKTIF
-                 $periodeAktif = TahunAkademik::where('is_active', true)->first();
-                 
-                 if ($periodeAktif) {
-                     // 2. Ambil Mata Kuliah yang direlasi di pivot table sesuai periode aktif
-                     $mkIds = $mahasiswa->mataKuliahs()
-                                 ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                                 ->pluck('mata_kuliahs.id')
-                                 ->toArray();
+            if ($user->hasRole('mahasiswa')) {
+                $mahasiswa = $user->mahasiswa;
+                
+                // Pastikan KRS Disetujui
+                if ($mahasiswa && $mahasiswa->status_krs === 'Disetujui') {
+                    $periodeAktif = TahunAkademik::where('is_active', true)->first();
+                    
+                    if ($periodeAktif) {
+                        // Ambil ID Mata Kuliah semester ini
+                        $mkIds = $mahasiswa->mataKuliahs()
+                            ->wherePivot('tahun_akademik_id', $periodeAktif->id)
+                            ->pluck('mata_kuliahs.id')
+                            ->toArray();
 
-                     // 3. Tarik Jadwal
-                     $jadwal = JadwalKuliah::query()
+                        // PERBAIKAN: Gunakan model Jadwal dan relasi yang sesuai dengan show_jadwal.blade.php
+                        $jadwal = Jadwal::query()
+                            ->whereIn('mata_kuliah_id', $mkIds)
+                            ->with(['mataKuliah.dosen']) // Dosen nempel di mata kuliah
+                            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+                            ->orderBy('jam_mulai')
+                            ->get()
+                            ->map(function($item) {
+                                return [
+                                    'id' => $item->id,
+                                    'hari' => $item->hari,
+                                    'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
+                                    'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
+                                    'jam_mulai' => $item->jam_mulai,
+                                    'jam_selesai' => $item->jam_selesai,
+                                    'ruang' => $item->ruang ?? 'TBA', 
+                                    'dosen' => $item->mataKuliah->dosen->nama_lengkap ?? '-'
+                                ];
+                            });
+                    }
+                }
+            } elseif ($user->hasRole('dosen')) {
+                $dosen = $user->dosen;
+                if($dosen) {
+                    // Cari MK yang diajar dosen ini
+                    $mkIds = \App\Models\MataKuliah::where('dosen_id', $dosen->id)->pluck('id')->toArray();
+                    
+                    $jadwal = Jadwal::query()
                         ->whereIn('mata_kuliah_id', $mkIds)
-                        ->with(['mataKuliah', 'ruangan', 'dosen'])
+                        ->with(['mataKuliah'])
                         ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
                         ->orderBy('jam_mulai')
                         ->get()
@@ -184,36 +212,19 @@ class KalenderController extends Controller
                                 'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
                                 'jam_mulai' => $item->jam_mulai,
                                 'jam_selesai' => $item->jam_selesai,
-                                'ruang' => $item->ruangan->nama_ruang ?? 'Online',
-                                'dosen' => $item->dosen->nama_lengkap ?? '-'
+                                'ruang' => $item->ruang ?? 'TBA',
+                                'dosen' => 'Anda Sendiri'
                             ];
                         });
-                 }
+                }
             }
-        } elseif ($user->hasRole('dosen')) {
-            $dosen = $user->dosen;
-            if($dosen) {
-                $jadwal = JadwalKuliah::query()
-                    ->where('dosen_id', $dosen->id)
-                    ->with(['mataKuliah', 'ruangan'])
-                    ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
-                    ->orderBy('jam_mulai')
-                    ->get()
-                    ->map(function($item) {
-                        return [
-                            'id' => $item->id,
-                            'hari' => $item->hari,
-                            'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
-                            'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
-                            'jam_mulai' => $item->jam_mulai,
-                            'jam_selesai' => $item->jam_selesai,
-                            'ruang' => $item->ruangan->nama_ruang ?? 'Online',
-                            'dosen' => 'Anda Sendiri'
-                        ];
-                    });
-            }
-        }
 
-        return response()->json($jadwal);
+            return response()->json($jadwal);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error Backend: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
