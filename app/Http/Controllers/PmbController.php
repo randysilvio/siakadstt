@@ -61,7 +61,7 @@ class PmbController extends Controller
     }
 
     /**
-     * Menampilkan Detail Pendaftar (Fungsi yang sudah Anda miliki)
+     * Menampilkan Detail Pendaftar
      */
     public function show($id)
     {
@@ -99,7 +99,10 @@ class PmbController extends Controller
             User::find($userId)->delete();
 
             DB::commit();
-            return redirect()->route('admin.pmb.index')->with('success', 'Data pendaftar (termasuk dokumen dan tagihan) berhasil dihapus bersih.');
+            
+            // PERBAIKAN: Menggunakan back() agar filter yang sedang aktif tidak hilang setelah menghapus data
+            return back()->with('success', 'Data pendaftar (termasuk dokumen dan tagihan) berhasil dihapus bersih.');
+            
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
