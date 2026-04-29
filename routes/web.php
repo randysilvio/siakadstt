@@ -225,11 +225,21 @@ Route::middleware('auth')->group(function () {
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
-        Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
+        // ========================================================================
+        // MODUL PMB TERUPDATE (Smart Filter, Cetak Laporan Excel/PDF, dan Hapus)
+        // ========================================================================
+        Route::get('/pmb', [PmbController::class, 'index'])->name('pmb.index');
+        Route::get('/pmb-export-excel', [PmbController::class, 'exportExcel'])->name('pmb.export.excel');
+        Route::get('/pmb-export-pdf', [PmbController::class, 'exportPdf'])->name('pmb.export.pdf');
+        Route::delete('/pmb/{id}/hapus', [PmbController::class, 'destroy'])->name('pmb.destroy');
+
+        // MODUL AKSI ADMIN PMB BAWAAN (Verifikasi, Terima, Tolak Pendaftar)
         Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
         Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
         Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
+        // ========================================================================
+
         Route::resource('pmb-periods', PmbPeriodController::class);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'set-active'])->name('pmb-periods.set-active');
 
