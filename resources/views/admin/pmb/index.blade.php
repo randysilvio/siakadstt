@@ -29,7 +29,7 @@
                     {{-- Filter Status (Pills) LENGKAP --}}
                     <div class="col-md-12 mb-2">
                         <div class="d-flex flex-wrap gap-2">
-                            <a href="{{ route('admin.pmb.index') }}" class="btn btn-outline-secondary btn-sm {{ !request('status') ? 'active' : '' }}">Semua Status</a>
+                            <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => null])) }}" class="btn btn-outline-secondary btn-sm {{ !request('status') ? 'active' : '' }}">Semua Status</a>
                             
                             {{-- Tambahan Status Draft --}}
                             <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'draft'])) }}" class="btn btn-secondary btn-sm {{ request('status') == 'draft' ? 'active fw-bold' : '' }}">Draft</a>
@@ -156,4 +156,24 @@
         @endif
     </div>
 </div>
+
+{{-- SCRIPT UNTUK MENAHAN POSISI SCROLL SAAT RELOAD --}}
+<script>
+    // 1. Simpan posisi scroll ke memori HP/Laptop saat tombol ditekan
+    window.addEventListener('beforeunload', function() {
+        sessionStorage.setItem('posisiScrollPMB', window.scrollY);
+    });
+
+    // 2. Kembalikan ke posisi semula setelah halaman selesai berkedip/reload
+    window.addEventListener('load', function() {
+        let posisiScroll = sessionStorage.getItem('posisiScrollPMB');
+        if (posisiScroll !== null) {
+            window.scrollTo({
+                top: parseInt(posisiScroll),
+                behavior: 'instant' 
+            });
+            sessionStorage.removeItem('posisiScrollPMB'); // Bersihkan memori
+        }
+    });
+</script>
 @endsection
