@@ -11,6 +11,24 @@
         @csrf
         @method('PUT')
 
+        {{-- NOTIFIKASI ERROR VALIDASI GLOBAL --}}
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Gagal Menyimpan!</strong> Silakan periksa kembali isian Anda:
+                        <ul class="mb-0 mt-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         {{-- Navigasi Tab --}}
         <ul class="nav nav-tabs mb-4" id="mahasiswaTabs" role="tablist">
             <li class="nav-item">
@@ -48,8 +66,8 @@
                         <div class="col-md-6">
                             <label class="form-label">Kewarganegaraan</label>
                             <select class="form-select" name="kewarganegaraan">
-                                <option value="WNI" {{ $mahasiswa->kewarganegaraan == 'WNI' ? 'selected' : '' }}>Indonesia (WNI)</option>
-                                <option value="WNA" {{ $mahasiswa->kewarganegaraan == 'WNA' ? 'selected' : '' }}>Asing (WNA)</option>
+                                <option value="WNI" {{ old('kewarganegaraan', $mahasiswa->kewarganegaraan) == 'WNI' ? 'selected' : '' }}>Indonesia (WNI)</option>
+                                <option value="WNA" {{ old('kewarganegaraan', $mahasiswa->kewarganegaraan) == 'WNA' ? 'selected' : '' }}>Asing (WNA)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -63,15 +81,16 @@
                         <div class="col-md-4">
                             <label class="form-label">Jenis Kelamin</label>
                             <select class="form-select" name="jenis_kelamin">
-                                <option value="L" {{ $mahasiswa->jenis_kelamin == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                                <option value="P" {{ $mahasiswa->jenis_kelamin == 'P' ? 'selected' : '' }}>Perempuan</option>
+                                <option value="L" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
+                                <option value="P" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Agama</label>
                             <select class="form-select" name="agama">
+                                <option value="">-- Pilih --</option>
                                 @foreach(['Kristen Protestan', 'Katolik', 'Islam', 'Hindu', 'Buddha', 'Konghucu'] as $agama)
-                                    <option value="{{ $agama }}" {{ $mahasiswa->agama == $agama ? 'selected' : '' }}>{{ $agama }}</option>
+                                    <option value="{{ $agama }}" {{ old('agama', $mahasiswa->agama) == $agama ? 'selected' : '' }}>{{ $agama }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -95,7 +114,7 @@
                             <label class="form-label">Program Studi</label>
                             <select class="form-select" name="program_studi_id">
                                 @foreach ($program_studis as $prodi)
-                                    <option value="{{ $prodi->id }}" {{ $mahasiswa->program_studi_id == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
+                                    <option value="{{ $prodi->id }}" {{ old('program_studi_id', $mahasiswa->program_studi_id) == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -103,7 +122,7 @@
                             <label class="form-label">Status Mahasiswa</label>
                             <select class="form-select" name="status_mahasiswa">
                                 @foreach(['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non-Aktif', 'Keluar'] as $status)
-                                    <option value="{{ $status }}" {{ $mahasiswa->status_mahasiswa == $status ? 'selected' : '' }}>{{ $status }}</option>
+                                    <option value="{{ $status }}" {{ old('status_mahasiswa', $mahasiswa->status_mahasiswa) == $status ? 'selected' : '' }}>{{ $status }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -112,7 +131,7 @@
                             <select class="form-select" name="dosen_wali_id">
                                 <option value="">-- Pilih --</option>
                                 @foreach ($dosens as $dosen)
-                                    <option value="{{ $dosen->id }}" {{ $mahasiswa->dosen_wali_id == $dosen->id ? 'selected' : '' }}>{{ $dosen->nama_lengkap }}</option>
+                                    <option value="{{ $dosen->id }}" {{ old('dosen_wali_id', $mahasiswa->dosen_wali_id) == $dosen->id ? 'selected' : '' }}>{{ $dosen->nama_lengkap }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -124,7 +143,7 @@
                             <label class="form-label">Jalur Daftar</label>
                             <select class="form-select" name="jalur_pendaftaran">
                                 @foreach(['Mandiri', 'Beasiswa', 'Prestasi', 'Kerjasama'] as $jalur)
-                                    <option value="{{ $jalur }}" {{ $mahasiswa->jalur_pendaftaran == $jalur ? 'selected' : '' }}>{{ $jalur }}</option>
+                                    <option value="{{ $jalur }}" {{ old('jalur_pendaftaran', $mahasiswa->jalur_pendaftaran) == $jalur ? 'selected' : '' }}>{{ $jalur }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -184,7 +203,7 @@
                             <select class="form-select" name="jenis_tinggal">
                                 <option value="">Pilih...</option>
                                 @foreach(['Bersama Orang Tua', 'Wali', 'Kos', 'Asrama', 'Panti Asuhan'] as $jt)
-                                    <option value="{{ $jt }}" {{ $mahasiswa->jenis_tinggal == $jt ? 'selected' : '' }}>{{ $jt }}</option>
+                                    <option value="{{ $jt }}" {{ old('jenis_tinggal', $mahasiswa->jenis_tinggal) == $jt ? 'selected' : '' }}>{{ $jt }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -193,7 +212,7 @@
                             <select class="form-select" name="alat_transportasi">
                                 <option value="">Pilih...</option>
                                 @foreach(['Jalan Kaki', 'Kendaraan Pribadi', 'Angkutan Umum'] as $at)
-                                    <option value="{{ $at }}" {{ $mahasiswa->alat_transportasi == $at ? 'selected' : '' }}>{{ $at }}</option>
+                                    <option value="{{ $at }}" {{ old('alat_transportasi', $mahasiswa->alat_transportasi) == $at ? 'selected' : '' }}>{{ $at }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -219,7 +238,7 @@
                             <select class="form-select" name="pendidikan_ibu">
                                 <option value="">Pilih...</option>
                                 @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
-                                    <option value="{{ $p }}" {{ $mahasiswa->pendidikan_ibu == $p ? 'selected' : '' }}>{{ $p }}</option>
+                                    <option value="{{ $p }}" {{ old('pendidikan_ibu', $mahasiswa->pendidikan_ibu) == $p ? 'selected' : '' }}>{{ $p }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -228,7 +247,7 @@
                             <select class="form-select" name="pekerjaan_ibu">
                                 <option value="">Pilih...</option>
                                 @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
-                                    <option value="{{ $pk }}" {{ $mahasiswa->pekerjaan_ibu == $pk ? 'selected' : '' }}>{{ $pk }}</option>
+                                    <option value="{{ $pk }}" {{ old('pekerjaan_ibu', $mahasiswa->pekerjaan_ibu) == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -237,7 +256,7 @@
                             <select class="form-select" name="penghasilan_ibu">
                                 <option value="">Pilih...</option>
                                 @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
-                                    <option value="{{ $ph }}" {{ $mahasiswa->penghasilan_ibu == $ph ? 'selected' : '' }}>{{ $ph }}</option>
+                                    <option value="{{ $ph }}" {{ old('penghasilan_ibu', $mahasiswa->penghasilan_ibu) == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -258,7 +277,7 @@
                             <select class="form-select" name="pendidikan_ayah">
                                 <option value="">Pilih...</option>
                                 @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
-                                    <option value="{{ $p }}" {{ $mahasiswa->pendidikan_ayah == $p ? 'selected' : '' }}>{{ $p }}</option>
+                                    <option value="{{ $p }}" {{ old('pendidikan_ayah', $mahasiswa->pendidikan_ayah) == $p ? 'selected' : '' }}>{{ $p }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -267,7 +286,7 @@
                             <select class="form-select" name="pekerjaan_ayah">
                                 <option value="">Pilih...</option>
                                 @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
-                                    <option value="{{ $pk }}" {{ $mahasiswa->pekerjaan_ayah == $pk ? 'selected' : '' }}>{{ $pk }}</option>
+                                    <option value="{{ $pk }}" {{ old('pekerjaan_ayah', $mahasiswa->pekerjaan_ayah) == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -276,7 +295,7 @@
                             <select class="form-select" name="penghasilan_ayah">
                                 <option value="">Pilih...</option>
                                 @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
-                                    <option value="{{ $ph }}" {{ $mahasiswa->penghasilan_ayah == $ph ? 'selected' : '' }}>{{ $ph }}</option>
+                                    <option value="{{ $ph }}" {{ old('penghasilan_ayah', $mahasiswa->penghasilan_ayah) == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                 @endforeach
                             </select>
                         </div>
