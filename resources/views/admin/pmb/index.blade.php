@@ -26,12 +26,20 @@
             <form action="{{ route('admin.pmb.index') }}" method="GET" id="pmbFilterForm">
                 <div class="row g-2 align-items-center">
                     
-                    {{-- Filter Status (Pills) --}}
+                    {{-- Filter Status (Pills) LENGKAP --}}
                     <div class="col-md-12 mb-2">
                         <div class="d-flex flex-wrap gap-2">
                             <a href="{{ route('admin.pmb.index') }}" class="btn btn-outline-secondary btn-sm {{ !request('status') ? 'active' : '' }}">Semua Status</a>
+                            
+                            {{-- Tambahan Status Draft --}}
+                            <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'draft'])) }}" class="btn btn-secondary btn-sm {{ request('status') == 'draft' ? 'active fw-bold' : '' }}">Draft</a>
+                            
                             <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'menunggu_verifikasi'])) }}" class="btn btn-warning btn-sm text-dark {{ request('status') == 'menunggu_verifikasi' ? 'active fw-bold' : '' }}">Perlu Verifikasi</a>
-                            <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'lulus'])) }}" class="btn btn-success btn-sm {{ request('status') == 'lulus' ? 'active fw-bold' : '' }}">Sudah Lulus</a>
+                            <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'lulus'])) }}" class="btn btn-success btn-sm {{ request('status') == 'lulus' ? 'active fw-bold' : '' }}">Diterima</a>
+                            
+                            {{-- Tambahan Status Ditolak --}}
+                            <a href="{{ route('admin.pmb.index', array_merge(request()->query(), ['status' => 'tidak_lulus'])) }}" class="btn btn-danger btn-sm {{ request('status') == 'tidak_lulus' ? 'active fw-bold' : '' }}">Ditolak</a>
+                            
                             <input type="hidden" name="status" value="{{ request('status') }}">
                         </div>
                     </div>
