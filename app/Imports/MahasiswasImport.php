@@ -19,7 +19,8 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 {
     public function headingRow(): int
     {
-        return 2; // Baris 1: Judul Template, Baris 2: Header Kolom
+        // PERBAIKAN: Ubah menjadi 1 agar cocok dengan standar file CSV hasil export/convert
+        return 1; 
     }
 
     public function model(array $row)
@@ -37,9 +38,8 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                     ->first();
         $roleId = $role ? $role->id : 3; 
 
-        // 3. Setup Prodi (PERBAIKAN KUNCI: 'program_studi')
+        // 3. Setup Prodi
         $prodiId = null;
-        // Cek 'program_studi' (sesuai CSV) ATAU 'program_studi_id' (jaga-jaga)
         $inputProdi = $row['program_studi'] ?? $row['program_studi_id'] ?? null;
 
         if (!empty($inputProdi)) {
@@ -51,13 +51,12 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             }
         }
 
-        // Default Prodi jika Kosong (Agar tidak error SQL Integrity)
-        // PERINGATAN: Pastikan ID 1 ada di database (misal: Teologi)
+        // Default Prodi jika Kosong
         if (empty($prodiId)) {
             $prodiId = 1; 
         }
 
-        // 4. Setup Dosen Wali (PERBAIKAN KUNCI: 'dosen_wali')
+        // 4. Setup Dosen Wali
         $dosenWaliId = null;
         $inputDosen = $row['dosen_wali'] ?? $row['dosen_wali_id'] ?? null;
 
@@ -105,12 +104,9 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             [
                 'user_id'           => $user->id,
                 'nama_lengkap'      => $row['nama_lengkap'],
-                'program_studi_id'  => $prodiId, // Pastikan tidak null
+                'program_studi_id'  => $prodiId, 
                 'dosen_wali_id'     => $dosenWaliId,
-                
-                // PERBAIKAN KUNCI: 'angkatan' (sesuai CSV)
                 'angkatan'          => $row['angkatan'] ?? $row['tahun_masuk'] ?? date('Y'),
-                
                 'status_mahasiswa'  => $row['status_mahasiswa'] ?? 'Aktif',
                 'nik'               => $row['nik'] ?? null,
                 'nisn'              => $row['nisn'] ?? null,
@@ -119,10 +115,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'tanggal_lahir'     => $tanggalLahir,
                 'jenis_kelamin'     => $row['jenis_kelamin'] ?? 'L',
                 'agama'             => $row['agama'] ?? 'Kristen Protestan',
-                
-                // PERBAIKAN KUNCI: 'no_hp' (sesuai CSV)
                 'nomor_telepon'     => $row['no_hp'] ?? $row['nomor_telepon'] ?? null,
-                
                 'alamat'            => $row['alamat'] ?? null,
                 'nama_ibu_kandung'  => $row['nama_ibu_kandung'] ?? null,
                 'nama_ayah'         => $row['nama_ayah'] ?? null,
