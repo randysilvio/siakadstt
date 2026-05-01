@@ -98,6 +98,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
         }
 
         // 7. Simpan Data Mahasiswa (Disesuaikan dengan field database yang asli)
+        // Menambahkan fungsi ltrim dan trim untuk membuang tanda petik pelindung excel
         return Mahasiswa::updateOrCreate(
             ['nim' => $nim],
             [
@@ -105,19 +106,25 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'nama_lengkap'      => $row['nama_lengkap'],
                 'program_studi_id'  => $prodiId, 
                 'dosen_wali_id'     => $dosenWaliId,
-                'tahun_masuk'       => !empty($row['angkatan']) ? $row['angkatan'] : (!empty($row['tahun_masuk']) ? $row['tahun_masuk'] : date('Y')),
-                'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? $row['status_mahasiswa'] : 'Aktif',
-                'nik'               => !empty($row['nik']) ? $row['nik'] : null,
-                'nisn'              => !empty($row['nisn']) ? $row['nisn'] : null,
-                'jalur_pendaftaran' => !empty($row['jalur_pendaftaran']) ? $row['jalur_pendaftaran'] : 'Mandiri',
-                'tempat_lahir'      => !empty($row['tempat_lahir']) ? $row['tempat_lahir'] : null,
+                'tahun_masuk'       => !empty($row['angkatan']) ? trim($row['angkatan']) : (!empty($row['tahun_masuk']) ? trim($row['tahun_masuk']) : date('Y')),
+                'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? trim($row['status_mahasiswa']) : 'Aktif',
+                
+                // MEMBERSIHKAN NIK DAN NISN DARI TANDA PETIK (') DAN SPASI
+                'nik'               => !empty($row['nik']) ? ltrim(trim((string)$row['nik']), "'") : null,
+                'nisn'              => !empty($row['nisn']) ? ltrim(trim((string)$row['nisn']), "'") : null,
+                
+                'jalur_pendaftaran' => !empty($row['jalur_pendaftaran']) ? trim($row['jalur_pendaftaran']) : 'Mandiri',
+                'tempat_lahir'      => !empty($row['tempat_lahir']) ? trim($row['tempat_lahir']) : null,
                 'tanggal_lahir'     => $tanggalLahir,
-                'jenis_kelamin'     => !empty($row['jenis_kelamin']) ? $row['jenis_kelamin'] : 'L',
-                'agama'             => !empty($row['agama']) ? $row['agama'] : 'Kristen Protestan',
-                'nomor_telepon'     => !empty($row['no_hp']) ? $row['no_hp'] : (!empty($row['nomor_telepon']) ? $row['nomor_telepon'] : null),
-                'alamat'            => !empty($row['alamat']) ? $row['alamat'] : null,
-                'nama_ibu_kandung'  => !empty($row['nama_ibu_kandung']) ? $row['nama_ibu_kandung'] : null,
-                'nama_ayah'         => !empty($row['nama_ayah']) ? $row['nama_ayah'] : null,
+                'jenis_kelamin'     => !empty($row['jenis_kelamin']) ? strtoupper(trim($row['jenis_kelamin'])) : 'L',
+                'agama'             => !empty($row['agama']) ? trim($row['agama']) : 'Kristen Protestan',
+                
+                // MEMBERSIHKAN NOMOR TELEPON
+                'nomor_telepon'     => !empty($row['no_hp']) ? ltrim(trim((string)$row['no_hp']), "'") : (!empty($row['nomor_telepon']) ? ltrim(trim((string)$row['nomor_telepon']), "'") : null),
+                
+                'alamat'            => !empty($row['alamat']) ? trim($row['alamat']) : null,
+                'nama_ibu_kandung'  => !empty($row['nama_ibu_kandung']) ? trim($row['nama_ibu_kandung']) : null,
+                'nama_ayah'         => !empty($row['nama_ayah']) ? trim($row['nama_ayah']) : null,
             ]
         );
     }
