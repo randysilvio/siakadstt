@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Edit Data Mahasiswa</h2>
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+        <h3 class="mb-0 fw-bold text-teal-700">Edit Data Mahasiswa</h3>
         <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
@@ -25,7 +25,7 @@
                         </ul>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
@@ -52,35 +52,36 @@
                 <div class="card shadow-sm border-0"><div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Nama Lengkap</label>
+                            <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="nama_lengkap" value="{{ old('nama_lengkap', $mahasiswa->nama_lengkap) }}" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">NIK (KTP)</label>
-                            <input type="text" class="form-control" name="nik" value="{{ old('nik', $mahasiswa->nik) }}" required maxlength="16">
+                            <label class="form-label">NIK (KTP) <span class="text-danger">*</span></label>
+                            {{-- PERBAIKAN: value memanggil $mahasiswa->nik --}}
+                            <input type="text" class="form-control" name="nik" value="{{ old('nik', $mahasiswa->nik) }}" required minlength="16" maxlength="16">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">NISN</label>
-                            <input type="text" class="form-control" name="nisn" value="{{ old('nisn', $mahasiswa->nisn) }}" maxlength="10">
+                            <input type="text" class="form-control" name="nisn" value="{{ old('nisn', $mahasiswa->nisn) }}" maxlength="12">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Kewarganegaraan</label>
-                            <select class="form-select" name="kewarganegaraan">
+                            <label class="form-label">Kewarganegaraan <span class="text-danger">*</span></label>
+                            <select class="form-select" name="kewarganegaraan" required>
                                 <option value="WNI" {{ old('kewarganegaraan', $mahasiswa->kewarganegaraan) == 'WNI' ? 'selected' : '' }}>Indonesia (WNI)</option>
                                 <option value="WNA" {{ old('kewarganegaraan', $mahasiswa->kewarganegaraan) == 'WNA' ? 'selected' : '' }}>Asing (WNA)</option>
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Tempat Lahir</label>
-                            <input type="text" class="form-control" name="tempat_lahir" value="{{ old('tempat_lahir', $mahasiswa->tempat_lahir) }}">
+                            <label class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="tempat_lahir" value="{{ old('tempat_lahir', $mahasiswa->tempat_lahir) }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Tanggal Lahir</label>
-                            <input type="date" class="form-control" name="tanggal_lahir" value="{{ old('tanggal_lahir', $mahasiswa->tanggal_lahir) }}">
+                            <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="tanggal_lahir" value="{{ old('tanggal_lahir', $mahasiswa->tanggal_lahir) }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Jenis Kelamin</label>
-                            <select class="form-select" name="jenis_kelamin">
+                            <label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label>
+                            <select class="form-select" name="jenis_kelamin" required>
                                 <option value="L" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
                                 <option value="P" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
                             </select>
@@ -95,7 +96,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Nomor Telepon</label>
+                            <label class="form-label">Nomor Telepon / WA</label>
                             <input type="text" class="form-control" name="nomor_telepon" value="{{ old('nomor_telepon', $mahasiswa->nomor_telepon) }}">
                         </div>
                     </div>
@@ -107,20 +108,20 @@
                 <div class="card shadow-sm border-0"><div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">NIM</label>
+                            <label class="form-label">NIM <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="nim" value="{{ old('nim', $mahasiswa->nim) }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Program Studi</label>
-                            <select class="form-select" name="program_studi_id">
+                            <label class="form-label">Program Studi <span class="text-danger">*</span></label>
+                            <select class="form-select" name="program_studi_id" required>
                                 @foreach ($program_studis as $prodi)
                                     <option value="{{ $prodi->id }}" {{ old('program_studi_id', $mahasiswa->program_studi_id) == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Status Mahasiswa</label>
-                            <select class="form-select" name="status_mahasiswa">
+                            <label class="form-label">Status Mahasiswa <span class="text-danger">*</span></label>
+                            <select class="form-select" name="status_mahasiswa" required>
                                 @foreach(['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non-Aktif', 'Keluar'] as $status)
                                     <option value="{{ $status }}" {{ old('status_mahasiswa', $mahasiswa->status_mahasiswa) == $status ? 'selected' : '' }}>{{ $status }}</option>
                                 @endforeach
@@ -129,15 +130,16 @@
                         <div class="col-md-6">
                             <label class="form-label">Dosen Wali</label>
                             <select class="form-select" name="dosen_wali_id">
-                                <option value="">-- Pilih --</option>
+                                <option value="">-- Pilih Dosen --</option>
                                 @foreach ($dosens as $dosen)
                                     <option value="{{ $dosen->id }}" {{ old('dosen_wali_id', $mahasiswa->dosen_wali_id) == $dosen->id ? 'selected' : '' }}>{{ $dosen->nama_lengkap }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Angkatan</label>
-                            <input type="number" class="form-control" name="tahun_masuk" value="{{ old('tahun_masuk', $mahasiswa->tahun_masuk) }}">
+                            <label class="form-label">Angkatan (Tahun Masuk) <span class="text-danger">*</span></label>
+                            {{-- PERBAIKAN: Input name tahun_masuk dan value memanggil $mahasiswa->tahun_masuk --}}
+                            <input type="number" class="form-control" name="tahun_masuk" value="{{ old('tahun_masuk', $mahasiswa->tahun_masuk) }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Jalur Daftar</label>
@@ -151,7 +153,7 @@
                     <hr>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Email Login</label>
+                            <label class="form-label">Email Login <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" name="email" value="{{ old('email', optional($mahasiswa->user)->email) }}" required>
                         </div>
                         <div class="col-md-6">
@@ -159,8 +161,8 @@
                             <input type="password" class="form-control" name="password" placeholder="Isi hanya jika ingin ganti password">
                         </div>
                         <div class="col-md-6 offset-md-6">
-                            <label class="form-label">Konfirmasi Password</label>
-                            <input type="password" class="form-control" name="password_confirmation">
+                            <label class="form-label">Konfirmasi Password Baru</label>
+                            <input type="password" class="form-control" name="password_confirmation" placeholder="Ulangi password baru">
                         </div>
                     </div>
                 </div></div>
@@ -226,7 +228,7 @@
                     <h5 class="text-primary">Data Ibu Kandung</h5>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Nama Ibu</label>
+                            <label class="form-label">Nama Ibu <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung', $mahasiswa->nama_ibu_kandung) }}" required>
                         </div>
                         <div class="col-md-6">
@@ -306,7 +308,7 @@
         </div>
 
         <div class="mt-4 mb-5 text-end">
-            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save"></i> Simpan Perubahan</button>
+            <button type="submit" class="btn btn-primary px-4 shadow-sm"><i class="bi bi-save"></i> Simpan Perubahan</button>
         </div>
     </form>
 </div>

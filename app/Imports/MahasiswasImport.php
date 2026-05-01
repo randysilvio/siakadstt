@@ -19,7 +19,6 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 {
     public function headingRow(): int
     {
-        // PERBAIKAN: Ubah menjadi 1 agar cocok dengan standar file CSV hasil export/convert
         return 1; 
     }
 
@@ -40,7 +39,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
         // 3. Setup Prodi
         $prodiId = null;
-        $inputProdi = $row['program_studi'] ?? $row['program_studi_id'] ?? null;
+        $inputProdi = !empty($row['program_studi']) ? $row['program_studi'] : (!empty($row['program_studi_id']) ? $row['program_studi_id'] : null);
 
         if (!empty($inputProdi)) {
             if (is_numeric($inputProdi)) {
@@ -58,7 +57,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
         // 4. Setup Dosen Wali
         $dosenWaliId = null;
-        $inputDosen = $row['dosen_wali'] ?? $row['dosen_wali_id'] ?? null;
+        $inputDosen = !empty($row['dosen_wali']) ? $row['dosen_wali'] : (!empty($row['dosen_wali_id']) ? $row['dosen_wali_id'] : null);
 
         if (!empty($inputDosen)) {
             if (is_numeric($inputDosen)) {
@@ -98,7 +97,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             $user->assignRole($role->name);
         }
 
-        // 7. Simpan Data Mahasiswa
+        // 7. Simpan Data Mahasiswa (Disesuaikan dengan field database yang asli)
         return Mahasiswa::updateOrCreate(
             ['nim' => $nim],
             [
@@ -106,19 +105,19 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'nama_lengkap'      => $row['nama_lengkap'],
                 'program_studi_id'  => $prodiId, 
                 'dosen_wali_id'     => $dosenWaliId,
-                'angkatan'          => $row['angkatan'] ?? $row['tahun_masuk'] ?? date('Y'),
-                'status_mahasiswa'  => $row['status_mahasiswa'] ?? 'Aktif',
-                'nik'               => $row['nik'] ?? null,
-                'nisn'              => $row['nisn'] ?? null,
-                'jalur_pendaftaran' => $row['jalur_pendaftaran'] ?? 'Mandiri',
-                'tempat_lahir'      => $row['tempat_lahir'] ?? null,
+                'tahun_masuk'       => !empty($row['angkatan']) ? $row['angkatan'] : (!empty($row['tahun_masuk']) ? $row['tahun_masuk'] : date('Y')),
+                'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? $row['status_mahasiswa'] : 'Aktif',
+                'nik'               => !empty($row['nik']) ? $row['nik'] : null,
+                'nisn'              => !empty($row['nisn']) ? $row['nisn'] : null,
+                'jalur_pendaftaran' => !empty($row['jalur_pendaftaran']) ? $row['jalur_pendaftaran'] : 'Mandiri',
+                'tempat_lahir'      => !empty($row['tempat_lahir']) ? $row['tempat_lahir'] : null,
                 'tanggal_lahir'     => $tanggalLahir,
-                'jenis_kelamin'     => $row['jenis_kelamin'] ?? 'L',
-                'agama'             => $row['agama'] ?? 'Kristen Protestan',
-                'nomor_telepon'     => $row['no_hp'] ?? $row['nomor_telepon'] ?? null,
-                'alamat'            => $row['alamat'] ?? null,
-                'nama_ibu_kandung'  => $row['nama_ibu_kandung'] ?? null,
-                'nama_ayah'         => $row['nama_ayah'] ?? null,
+                'jenis_kelamin'     => !empty($row['jenis_kelamin']) ? $row['jenis_kelamin'] : 'L',
+                'agama'             => !empty($row['agama']) ? $row['agama'] : 'Kristen Protestan',
+                'nomor_telepon'     => !empty($row['no_hp']) ? $row['no_hp'] : (!empty($row['nomor_telepon']) ? $row['nomor_telepon'] : null),
+                'alamat'            => !empty($row['alamat']) ? $row['alamat'] : null,
+                'nama_ibu_kandung'  => !empty($row['nama_ibu_kandung']) ? $row['nama_ibu_kandung'] : null,
+                'nama_ayah'         => !empty($row['nama_ayah']) ? $row['nama_ayah'] : null,
             ]
         );
     }

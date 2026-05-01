@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Tambah Mahasiswa Baru</h2>
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+        <h3 class="mb-0 fw-bold text-teal-700">Tambah Mahasiswa Baru</h3>
         <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
@@ -24,14 +24,14 @@
                         </ul>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
         {{-- Navigasi Tab --}}
         <ul class="nav nav-tabs mb-4" id="mahasiswaTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-bold" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi</button>
+                <button class="nav-link active fw-bold" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi (Wajib NIK)</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold" id="akademik-tab" data-bs-toggle="tab" data-bs-target="#akademik" type="button" role="tab">2. Akademik & Akun</button>
@@ -58,15 +58,16 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">NIK (KTP) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="nik" value="{{ old('nik') }}" maxlength="16" required placeholder="16 digit">
+                                {{-- PERBAIKAN: Input NIK wajib 16 digit sesuai feeder --}}
+                                <input type="text" class="form-control" name="nik" value="{{ old('nik') }}" minlength="16" maxlength="16" required placeholder="16 digit angka">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">NISN</label>
-                                <input type="text" class="form-control" name="nisn" value="{{ old('nisn') }}" maxlength="10">
+                                <input type="text" class="form-control" name="nisn" value="{{ old('nisn') }}" maxlength="12">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Kewarganegaraan</label>
-                                <select class="form-select" name="kewarganegaraan">
+                                <label class="form-label">Kewarganegaraan <span class="text-danger">*</span></label>
+                                <select class="form-select" name="kewarganegaraan" required>
                                     <option value="WNI" {{ old('kewarganegaraan', 'WNI') == 'WNI' ? 'selected' : '' }}>Indonesia (WNI)</option>
                                     <option value="WNA" {{ old('kewarganegaraan') == 'WNA' ? 'selected' : '' }}>Asing (WNA)</option>
                                 </select>
@@ -90,10 +91,12 @@
                             <div class="col-md-6">
                                 <label class="form-label">Agama</label>
                                 <select class="form-select" name="agama">
-                                    <option value="">-- Pilih --</option>
-                                    @foreach(['Kristen Protestan', 'Katolik', 'Islam', 'Hindu', 'Buddha', 'Konghucu'] as $agama)
-                                        <option value="{{ $agama }}" {{ old('agama') == $agama ? 'selected' : '' }}>{{ $agama }}</option>
-                                    @endforeach
+                                    <option value="Kristen Protestan" {{ old('agama', 'Kristen Protestan') == 'Kristen Protestan' ? 'selected' : '' }}>Kristen Protestan</option>
+                                    <option value="Katolik" {{ old('agama') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
+                                    <option value="Islam" {{ old('agama') == 'Islam' ? 'selected' : '' }}>Islam</option>
+                                    <option value="Hindu" {{ old('agama') == 'Hindu' ? 'selected' : '' }}>Hindu</option>
+                                    <option value="Buddha" {{ old('agama') == 'Buddha' ? 'selected' : '' }}>Buddha</option>
+                                    <option value="Konghucu" {{ old('agama') == 'Konghucu' ? 'selected' : '' }}>Konghucu</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -126,7 +129,8 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Angkatan (Tahun Masuk) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="tahun_masuk" value="{{ old('tahun_masuk', date('Y')) }}" required>
+                                {{-- PERBAIKAN: Input name adalah tahun_masuk agar tersimpan di DB --}}
+                                <input type="number" class="form-control" name="tahun_masuk" value="{{ old('tahun_masuk', date('Y')) }}" required min="1990" max="{{ date('Y')+1 }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Dosen Wali</label>
@@ -140,10 +144,10 @@
                             <div class="col-md-6">
                                 <label class="form-label">Jalur Pendaftaran</label>
                                 <select class="form-select" name="jalur_pendaftaran">
-                                    <option value="">-- Pilih --</option>
-                                    @foreach(['Mandiri', 'Beasiswa', 'Prestasi', 'Kerjasama'] as $jalur)
-                                        <option value="{{ $jalur }}" {{ old('jalur_pendaftaran') == $jalur ? 'selected' : '' }}>{{ $jalur }}</option>
-                                    @endforeach
+                                    <option value="Mandiri" {{ old('jalur_pendaftaran', 'Mandiri') == 'Mandiri' ? 'selected' : '' }}>Mandiri</option>
+                                    <option value="Beasiswa" {{ old('jalur_pendaftaran') == 'Beasiswa' ? 'selected' : '' }}>Beasiswa</option>
+                                    <option value="Prestasi" {{ old('jalur_pendaftaran') == 'Prestasi' ? 'selected' : '' }}>Prestasi</option>
+                                    <option value="Kerjasama" {{ old('jalur_pendaftaran') == 'Kerjasama' ? 'selected' : '' }}>Kerjasama</option>
                                 </select>
                             </div>
                         </div>

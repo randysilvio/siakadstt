@@ -12,11 +12,17 @@ class Mahasiswa extends Model
 {
     use HasFactory;
 
+    // PERBAIKAN: Semua kolom PDDikti sudah didaftarkan penuh
     protected $fillable = [
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',
         'nomor_telepon', 'nama_ibu_kandung', 'status_mahasiswa', 'tahun_masuk',
-        'status_krs', 'catatan_kaprodi', 'foto_profil'
+        'status_krs', 'catatan_kaprodi', 'foto_profil', 'jalur_pendaftaran',
+        'nik', 'nisn', 'kewarganegaraan', 'dusun', 'rt', 'rw', 'kelurahan', 
+        'kecamatan', 'kode_pos', 'jenis_tinggal', 'alat_transportasi', 
+        'nik_ibu', 'pendidikan_ibu', 'pekerjaan_ibu', 'penghasilan_ibu', 
+        'nama_ayah', 'nik_ayah', 'pendidikan_ayah', 'pekerjaan_ayah', 
+        'penghasilan_ayah', 'nama_wali', 'pekerjaan_wali'
     ];
     
     // Menambahkan atribut virtual
@@ -50,7 +56,7 @@ class Mahasiswa extends Model
     }
 
     /**
-     * [PERBAIKAN] Menggunakan asset lokal untuk privasi.
+     * Menggunakan asset lokal untuk privasi.
      * Tidak lagi mengirim nama mahasiswa ke server pihak ketiga (ui-avatars).
      */
     public function getFotoProfilUrlAttribute()
@@ -99,7 +105,7 @@ class Mahasiswa extends Model
     }
 
     /**
-     * [BARU] Menghitung IPS (Indeks Prestasi Semester)
+     * Menghitung IPS (Indeks Prestasi Semester)
      * Mengembalikan Array lengkap agar kompatibel dengan view KHS
      */
     public function hitungIps($tahun_akademik_id)
