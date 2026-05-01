@@ -13,9 +13,11 @@
                     <p class="lead mb-4 opacity-90" style="max-width: 600px;">
                         Berikut adalah laporan strategis (helicopter view) mengenai performa akademik dan keuangan institusi secara <em>real-time</em>.
                     </p>
-                    <button onclick="window.print()" class="btn btn-light text-primary fw-bold shadow-sm">
+                    
+                    {{-- PERUBAHAN: Tombol diarahkan ke rute cetak eksklusif, bukan window.print() di halaman ini --}}
+                    <a href="{{ route('rektorat.cetak') }}" target="_blank" class="btn btn-light text-primary fw-bold shadow-sm">
                         <i class="bi bi-printer-fill me-2"></i> Cetak Laporan Eksekutif
-                    </button>
+                    </a>
                 </div>
                 <div class="col-lg-4 text-end d-none d-lg-block">
                     <i class="bi bi-buildings-fill" style="font-size: 8rem; opacity: 0.2;"></i>
@@ -195,6 +197,7 @@
                                 </td>
                                 <td class="text-center fw-bold">{{ $prodi->jumlah_mahasiswa_aktif }}</td>
                                 <td class="text-center">
+                                    {{-- PERUBAHAN: Sekarang memanggil variabel 'jumlah_dosen' yang sudah dihubungkan ke relasi 'dosens' --}}
                                     <span class="badge bg-light text-dark border">{{ $prodi->jumlah_dosen }} Dosen</span>
                                 </td>
                             </tr>

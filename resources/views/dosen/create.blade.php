@@ -72,6 +72,20 @@
                                 <option value="Dosen Tamu">Dosen Tamu</option>
                             </select>
                         </div>
+                        
+                        {{-- DROPDOWN PROGRAM STUDI --}}
+                        <div class="col-md-6">
+                            <label class="form-label">Program Studi</label>
+                            <select class="form-select" name="program_studi_id">
+                                <option value="">- Pilih Program Studi (Jika Ada) -</option>
+                                @foreach($programStudis as $prodi)
+                                    <option value="{{ $prodi->id }}" {{ old('program_studi_id') == $prodi->id ? 'selected' : '' }}>
+                                        {{ $prodi->nama_prodi }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label">NUPTK</label>
                             <input type="text" class="form-control" name="nuptk" value="{{ old('nuptk') }}">

@@ -19,19 +19,34 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
 {
     public function collection()
     {
-        return Dosen::all();
+        // Load relasi user dan programStudi agar export lebih cepat (Eager Loading)
+        return Dosen::with(['user', 'programStudi'])->get();
     }
 
     public function map($dosen): array
     {
         return [
-            $dosen->nidn, $dosen->nama_lengkap, $dosen->user->email ?? '',
-            "'" . $dosen->nik, $dosen->jenis_kelamin, $dosen->agama,
-            $dosen->status_kepegawaian, $dosen->jabatan_akademik, $dosen->pangkat_golongan,
-            $dosen->bidang_keahlian, $dosen->email_institusi, $dosen->tempat_lahir,
-            $dosen->tanggal_lahir, $dosen->alamat, "'" . $dosen->nuptk,
-            "'" . $dosen->npwp, $dosen->no_sk_pengangkatan, $dosen->tmt_sk_pengangkatan,
-            $dosen->link_google_scholar, $dosen->link_sinta,
+            $dosen->nidn, 
+            $dosen->nama_lengkap, 
+            $dosen->user->email ?? '',
+            $dosen->programStudi->nama_prodi ?? 'Tanpa Prodi', // <-- Tambahkan Relasi Prodi
+            "'" . $dosen->nik, 
+            $dosen->jenis_kelamin, 
+            $dosen->agama,
+            $dosen->status_kepegawaian, 
+            $dosen->jabatan_akademik, 
+            $dosen->pangkat_golongan,
+            $dosen->bidang_keahlian, 
+            $dosen->email_institusi, 
+            $dosen->tempat_lahir,
+            $dosen->tanggal_lahir, 
+            $dosen->alamat, 
+            "'" . $dosen->nuptk,
+            "'" . $dosen->npwp, 
+            $dosen->no_sk_pengangkatan, 
+            $dosen->tmt_sk_pengangkatan,
+            $dosen->link_google_scholar, 
+            $dosen->link_sinta,
         ];
     }
 
@@ -43,7 +58,7 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
             ['LAPORAN DATA DOSEN'],
             [''],
             [
-                'NIDN', 'Nama Lengkap', 'Email Login', 'NIK', 'Jenis Kelamin', 'Agama',
+                'NIDN', 'Nama Lengkap', 'Email Login', 'Program Studi', 'NIK', 'Jenis Kelamin', 'Agama',
                 'Status Kepegawaian', 'Jabatan Akademik', 'Pangkat Golongan', 'Bidang Keahlian',
                 'Email Institusi', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat',
                 'NUPTK', 'NPWP', 'No SK Pengangkatan', 'TMT SK Pengangkatan',
@@ -68,7 +83,7 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
                 $highestRow = $sheet->getHighestRow();
-                $highestColumn = 'T'; 
+                $highestColumn = 'U'; // <-- Diganti ke 'U' karena nambah 1 kolom (Program Studi)
 
                 $sheet->mergeCells('A1:' . $highestColumn . '1'); 
                 $sheet->mergeCells('A2:' . $highestColumn . '2'); 

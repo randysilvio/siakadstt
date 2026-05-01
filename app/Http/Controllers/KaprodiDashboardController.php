@@ -5,30 +5,67 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ProgramStudi;
+use App\Models\Mahasiswa;
 use Illuminate\View\View;
 
 class KaprodiDashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Pastikan user memiliki relasi dosen
         if (!$user->dosen) {
             abort(403, 'Akses ditolak. Data dosen tidak ditemukan untuk pengguna ini.');
         }
 
         $dosen = $user->dosen;
+        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->firstOrFail(); 
 
-        // Cari program studi yang dipimpin oleh dosen yang login
-        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)
-            ->withCount('mahasiswas')
-            ->firstOrFail(); // Akan menghasilkan 404 jika tidak ditemukan
+        // --- MENGHITUNG DATA UNTUK SMART FILTER TABS ---
+        $countSemua = Mahasiswa::where('program_studi_id', $programStudi->id)->count();
+        
+        $countMenunggu = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where('status_krs', 'Menunggu Persetujuan')->count();
+                            
+        $countDisetujui = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where('status_krs', 'Disetujui')->count();
+                            
+        $countDitolak = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where('status_krs', 'Ditolak')->count();
+                            
+        $countBelum = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where(function($q) {
+                                $q->whereNull('status_krs')->orWhere('status_krs', '');
+                            })->count();
 
-        // Ambil daftar mahasiswa dari program studi tersebut
-        $mahasiswas = $programStudi->mahasiswas()->with('user')->paginate(10);
+        // --- QUERY UTAMA DAFTAR MAHASISWA ---
+        $query = $programStudi->mahasiswas()->with('user');
 
-        return view('kaprodi.dashboard', compact('programStudi', 'mahasiswas'));
+        // Filter berdasarkan tombol status yang diklik
+        $query->when($request->filled('status'), function ($q) use ($request) {
+            if ($request->status == 'Belum') {
+                $q->where(function($sub) {
+                    $sub->whereNull('status_krs')->orWhere('status_krs', '');
+                });
+            } else {
+                $q->where('status_krs', $request->status);
+            }
+        });
+
+        // Filter pencarian ketikan
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $search = $request->search;
+            $q->where(function ($subQuery) use ($search) {
+                $subQuery->where('nama_lengkap', 'like', "%{$search}%")
+                         ->orWhere('nim', 'like', "%{$search}%");
+            });
+        });
+
+        $mahasiswas = $query->paginate(10)->withQueryString();
+
+        return view('kaprodi.dashboard', compact(
+            'programStudi', 'mahasiswas', 
+            'countSemua', 'countMenunggu', 'countDisetujui', 'countDitolak', 'countBelum'
+        ));
     }
 }

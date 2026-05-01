@@ -13,10 +13,8 @@ use Illuminate\View\View;
 
 class RektoratController extends Controller
 {
-    /**
-     * Menampilkan halaman dashboard untuk Rektorat dengan data eksekutif lengkap.
-     */
-    public function dashboard(): View
+    // Fungsi pembantu untuk mengambil data analitik agar tidak copas dua kali
+    private function getLaporanData()
     {
         $tahunIni = Carbon::now()->year;
         $tahunAkademikAktif = TahunAkademik::where('is_active', 1)->first();
@@ -57,32 +55,38 @@ class RektoratController extends Controller
             ->orderBy('tahun_lulus', 'asc')
             ->pluck('total', 'tahun_lulus');
 
-        // --- PERBAIKAN: Mengganti nama variabel agar sesuai dengan view ---
         $grafikLabels = collect(range($limaTahunLalu, $tahunIni))->map(fn($year) => (string)$year);
-        
         $grafikKeuanganData = $grafikLabels->map(fn($year) => $trenKeuangan->get($year, 0));
         $grafikMahasiswaBaruData = $grafikLabels->map(fn($year) => $mahasiswaBaru->get((int)$year, 0));
         $grafikLulusanData = $grafikLabels->map(fn($year) => $lulusan->get((int)$year, 0));
 
+        // --- PERBAIKAN: Menggunakan relasi 'dosens' ---
         $kinerjaProdi = ProgramStudi::with('kaprodi.user')
             ->withCount([
                 'mahasiswas as jumlah_mahasiswa_aktif' => function ($query) {
                     $query->where('status_mahasiswa', 'Aktif');
                 },
-                'mahasiswas as jumlah_dosen' // Placeholder, asumsi relasi dosen ke prodi belum ada
+                'dosens as jumlah_dosen' 
             ])
             ->get();
 
-        return view('rektorat.dashboard', compact(
-            'totalMahasiswaAktif',
-            'pendaftarTahunIni',
-            'pendapatanSemesterIni',
-            'mahasiswaLulusTahunIni',
-            'grafikLabels', // Variabel sekarang sudah benar
-            'grafikKeuanganData',
-            'grafikMahasiswaBaruData',
-            'grafikLulusanData',
-            'kinerjaProdi'
-        ));
+        return compact(
+            'totalMahasiswaAktif', 'pendaftarTahunIni', 'pendapatanSemesterIni', 
+            'mahasiswaLulusTahunIni', 'grafikLabels', 'grafikKeuanganData', 
+            'grafikMahasiswaBaruData', 'grafikLulusanData', 'kinerjaProdi', 'tahunAkademikAktif'
+        );
+    }
+
+    public function dashboard(): View
+    {
+        $data = $this->getLaporanData();
+        return view('rektorat.dashboard', $data);
+    }
+
+    // Fungsi khusus untuk menampilkan halaman cetak eksklusif
+    public function cetakLaporan(): View
+    {
+        $data = $this->getLaporanData();
+        return view('rektorat.cetak_laporan', $data);
     }
 }

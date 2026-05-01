@@ -7,7 +7,6 @@
         <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-secondary">Kembali</a>
     </div>
 
-    {{-- [PERBAIKAN 1] Tampilkan Error Validasi Global --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Gagal Memperbarui Data!</strong> Silakan periksa inputan berikut:
@@ -24,7 +23,6 @@
         @csrf
         @method('PUT')
 
-        {{-- Navigasi Tab --}}
         <ul class="nav nav-tabs mb-4" id="dosenTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active fw-bold" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi</button>
@@ -45,7 +43,6 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nama Lengkap (Gelar)</label>
-                            {{-- [PERBAIKAN 2] Tambahkan class is-invalid jika error --}}
                             <input type="text" class="form-control @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
                             @error('nama_lengkap') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
@@ -59,7 +56,6 @@
                             <input type="text" class="form-control @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
                             @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
-                        {{-- ... (lanjutan input lainnya, tambahkan @error seperti di atas jika perlu) ... --}}
                         
                         <div class="col-md-6">
                             <label class="form-label">NPWP</label>
@@ -96,7 +92,7 @@
                 </div></div>
             </div>
 
-            {{-- TAB 2: KEPEGAWAIAN (Tidak ada perubahan signifikan, pastikan value old() benar) --}}
+            {{-- TAB 2: KEPEGAWAIAN --}}
             <div class="tab-pane fade" id="kepegawaian" role="tabpanel">
                 <div class="card shadow-sm border-0"><div class="card-body">
                     <div class="row g-3">
@@ -108,6 +104,21 @@
                                 @endforeach
                             </select>
                         </div>
+                        
+                        {{-- DROPDOWN PROGRAM STUDI --}}
+                        <div class="col-md-6">
+                            <label class="form-label">Program Studi</label>
+                            <select class="form-select @error('program_studi_id') is-invalid @enderror" name="program_studi_id">
+                                <option value="">- Pilih Program Studi (Jika Ada) -</option>
+                                @foreach($programStudis as $prodi)
+                                    <option value="{{ $prodi->id }}" {{ (old('program_studi_id', $dosen->program_studi_id) == $prodi->id) ? 'selected' : '' }}>
+                                        {{ $prodi->nama_prodi }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('program_studi_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label">NUPTK</label>
                             <input type="text" class="form-control" name="nuptk" value="{{ old('nuptk', $dosen->nuptk) }}">
@@ -155,7 +166,6 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Email Login</label>
-                            {{-- Email sangat rentan duplikat, wajib ada error handling --}}
                             <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
                             @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>

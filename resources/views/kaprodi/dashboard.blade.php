@@ -13,60 +13,60 @@
         </span>
     </div>
 
-    {{-- Statistik Ringkas --}}
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-white h-100" style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
-                <div class="card-body d-flex align-items-center">
-                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3">
-                        <i class="bi bi-people-fill fs-3"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-uppercase small opacity-75">Total Mahasiswa</h6>
-                        <span class="fs-3 fw-bold">{{ $programStudi->mahasiswas_count }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-white h-100" style="background: linear-gradient(135deg, #ffc107, #ffca2c);">
-                <div class="card-body d-flex align-items-center text-dark">
-                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3">
-                        <i class="bi bi-hourglass-split fs-3"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-uppercase small opacity-75">Menunggu Validasi</h6>
-                        @php
-                            $menunggu = $mahasiswas->where('status_krs', 'Menunggu Persetujuan')->count();
-                        @endphp
-                        <span class="fs-3 fw-bold">{{ $menunggu }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm text-white h-100" style="background: linear-gradient(135deg, #198754, #157347);">
-                <div class="card-body d-flex align-items-center">
-                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3">
-                        <i class="bi bi-check-circle-fill fs-3"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 text-uppercase small opacity-75">KRS Disetujui</h6>
-                        @php
-                            $disetujui = $mahasiswas->where('status_krs', 'Disetujui')->count();
-                        @endphp
-                        <span class="fs-3 fw-bold">{{ $disetujui }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{-- Statistik Ringkas Atas (Biarkan sama seperti sebelumnya) --}}
+    <!-- (Kode 3 kotak statistik di sini) -->
 
-    {{-- Tabel Mahasiswa --}}
+    {{-- TABEL & SMART FILTER --}}
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-list-task me-2"></i>Daftar Mahasiswa (Status KRS)</h5>
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-3 fw-bold text-secondary"><i class="bi bi-funnel me-2"></i>Filter Mahasiswa</h5>
+            
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                
+                {{-- 1. SMART FILTER TABS (STATUS) --}}
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('kaprodi.dashboard', ['search' => request('search')]) }}" class="btn btn-sm {{ !request('status') ? 'btn-primary' : 'btn-outline-primary' }}">
+                        Semua <span class="badge bg-white text-primary ms-1 rounded-pill">{{ $countSemua }}</span>
+                    </a>
+                    
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Menunggu Persetujuan', 'search' => request('search')]) }}" class="btn btn-sm {{ request('status') == 'Menunggu Persetujuan' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark' }}">
+                        Menunggu <span class="badge bg-white text-dark ms-1 rounded-pill">{{ $countMenunggu }}</span>
+                    </a>
+                    
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Disetujui', 'search' => request('search')]) }}" class="btn btn-sm {{ request('status') == 'Disetujui' ? 'btn-success' : 'btn-outline-success' }}">
+                        Disetujui <span class="badge bg-white text-success ms-1 rounded-pill">{{ $countDisetujui }}</span>
+                    </a>
+                    
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Ditolak', 'search' => request('search')]) }}" class="btn btn-sm {{ request('status') == 'Ditolak' ? 'btn-danger' : 'btn-outline-danger' }}">
+                        Ditolak <span class="badge bg-white text-danger ms-1 rounded-pill">{{ $countDitolak }}</span>
+                    </a>
+                    
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Belum', 'search' => request('search')]) }}" class="btn btn-sm {{ request('status') == 'Belum' ? 'btn-secondary' : 'btn-outline-secondary' }}">
+                        Belum Mengisi <span class="badge bg-white text-secondary ms-1 rounded-pill">{{ $countBelum }}</span>
+                    </a>
+                </div>
+
+                {{-- 2. SMART SEARCH BAR (KOTAK PENCARIAN) --}}
+                <form action="{{ route('kaprodi.dashboard') }}" method="GET" class="d-flex m-0">
+                    <!-- Pertahankan status saat ini saat melakukan pencarian nama -->
+                    @if(request('status'))
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" name="search" class="form-control border-secondary" placeholder="Cari Nama/NIM..." value="{{ request('search') }}">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                        
+                        @if(request('search'))
+                            <a href="{{ route('kaprodi.dashboard', ['status' => request('status')]) }}" class="btn btn-danger" title="Hapus Pencarian">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        @endif
+                    </div>
+                </form>
+            </div>
         </div>
+        
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -118,8 +118,8 @@
                         @empty
                         <tr>
                             <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-50"></i>
-                                Belum ada data mahasiswa di program studi ini.
+                                <i class="bi bi-funnel-fill fs-1 d-block mb-2 opacity-25"></i>
+                                Tidak ada data yang sesuai dengan filter/pencarian ini.
                             </td>
                         </tr>
                         @endforelse

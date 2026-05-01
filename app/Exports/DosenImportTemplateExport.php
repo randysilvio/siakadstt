@@ -11,6 +11,7 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use App\Models\ProgramStudi;
 
 class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents, WithColumnFormatting
 {
@@ -27,6 +28,7 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
                 'nama_lengkap' => 'Dr. Contoh Dosen, M.Th.',
                 'email' => 'dosen@contoh.com',
                 'password' => '123456',
+                'program_studi' => 'Teologi', // <-- Kolom baru di template
                 'nik' => '9102xxxxxxxxxxxx',
                 'jenis_kelamin' => 'L',
                 'agama' => 'Kristen Protestan',
@@ -51,15 +53,15 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
     public function headings(): array
     {
         return [
-            ['TEMPLATE IMPOR DATA DOSEN (JANGAN HAPUS BARIS INI)'], // Baris 1
+            ['TEMPLATE IMPOR DATA DOSEN (JANGAN HAPUS BARIS INI)'],
             [
-                'NIDN', 'Nama Lengkap', 'Email', 'Password', 'NIK', 'Jenis Kelamin', 'Agama',
+                'NIDN', 'Nama Lengkap', 'Email', 'Password', 'Program Studi', 'NIK', 'Jenis Kelamin', 'Agama',
                 'Status Kepegawaian', 'Jabatan Akademik', 'Pangkat Golongan', 'Bidang Keahlian',
                 'Email Institusi', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat',
                 'NUPTK', 'NPWP', 'No SK Pengangkatan', 'TMT SK Pengangkatan',
                 'Link Google Scholar', 'Link Sinta',
-                '', // Spasi
-                'REF: JABATAN', 'REF: PANGKAT' // Header Referensi
+                '',
+                'REF: PROGRAM STUDI', 'REF: JABATAN', 'REF: PANGKAT' 
             ]
         ];
     }
@@ -67,8 +69,8 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
     public function columnFormats(): array
     {
         return [
-            'A' => NumberFormat::FORMAT_TEXT, // NIDN
-            'E' => NumberFormat::FORMAT_TEXT, // NIK
+            'A' => NumberFormat::FORMAT_TEXT, 
+            'F' => NumberFormat::FORMAT_TEXT, // Geser dari E ke F karena ada kolom prodi
         ];
     }
 
@@ -78,25 +80,27 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet;
                 
-                // Style Header Utama
-                $sheet->mergeCells('A1:U1');
+                $sheet->mergeCells('A1:V1');
                 $sheet->getStyle('A1')->applyFromArray(['font' => ['bold' => true, 'size' => 14, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF0d9488']], 'alignment' => ['horizontal' => 'center']]);
-                $sheet->getStyle('A2:U2')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF64748B']]]);
+                $sheet->getStyle('A2:V2')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF64748B']]]);
 
-                // Style Referensi (Kanan)
-                $sheet->getStyle('W2:X2')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FFEF4444']]]);
+                $sheet->getStyle('X2:Z2')->applyFromArray(['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FFEF4444']]]);
 
-                // Isi Referensi Statis (Bantuan User)
+                // Menarik Referensi Prodi langsung dari DB agar otomatis update
+                $prodis = ProgramStudi::pluck('nama_prodi')->toArray();
                 $jabatan = ['Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'];
                 $pangkat = ['III/a', 'III/b', 'III/c', 'III/d', 'IV/a', 'IV/b'];
                 
                 $row = 3;
-                foreach($jabatan as $j) { $sheet->setCellValue('W'.$row, $j); $row++; }
+                foreach($prodis as $pd) { $sheet->setCellValue('X'.$row, $pd); $row++; }
+
+                $row = 3;
+                foreach($jabatan as $j) { $sheet->setCellValue('Y'.$row, $j); $row++; }
                 
                 $row = 3;
-                foreach($pangkat as $p) { $sheet->setCellValue('X'.$row, $p); $row++; }
+                foreach($pangkat as $p) { $sheet->setCellValue('Z'.$row, $p); $row++; }
 
-                foreach(range('A','X') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
+                foreach(range('A','Z') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
             },
         ];
     }

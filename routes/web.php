@@ -178,6 +178,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
+        Route::get('/cetak', [RektoratController::class, 'cetakLaporan'])->name('cetak'); // Rute baru untuk cetak laporan
     });
 
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');

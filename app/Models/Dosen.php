@@ -14,6 +14,7 @@ class Dosen extends Model
         'nidn',
         'nama_lengkap',
         'is_keuangan',
+        'program_studi_id', // --- TAMBAHKAN INI ---
         // --- Identitas Pribadi (Feeder) ---
         'nik', 
         'nuptk', 
@@ -38,7 +39,6 @@ class Dosen extends Model
         'foto_profil',
     ];
 
-    // Menambahkan atribut virtual ke output JSON
     protected $appends = ['foto_url'];
 
     public function getFotoUrlAttribute()
@@ -62,5 +62,11 @@ class Dosen extends Model
     public function mahasiswaWali()
     {
         return $this->hasMany(Mahasiswa::class, 'dosen_wali_id');
+    }
+
+    // --- TAMBAHKAN RELASI INI ---
+    public function programStudi()
+    {
+        return $this->belongsTo(ProgramStudi::class, 'program_studi_id');
     }
 }
