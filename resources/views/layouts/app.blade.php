@@ -31,6 +31,8 @@
         .dropdown-divider { border-color: #212529; margin: 0; }
         .user-avatar { width: 32px; height: 32px; background-color: #212529; color: #ffffff; border-radius: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 1rem; }
         .footer { background-color: #ffffff; border-top: 2px solid #212529; color: #212529; }
+        @keyframes pulse-dot { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        .online-dot { animation: pulse-dot 2s infinite ease-in-out; }
     </style>
 
     @if(request()->routeIs('berita.index') || request()->routeIs('dosen.public.*') || request()->routeIs('pengumuman.public.*'))
@@ -74,7 +76,7 @@
                             </a>
                         </li>
 
-                        {{-- STRUKTUR MENU ADMIN DITATA ULANG & KEUANGAN DIHAPUS --}}
+                        {{-- STRUKTUR MENU ADMIN --}}
                         @if(Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*', 'admin/mahasiswa*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -203,7 +205,6 @@
                             </li>
                         @endif
 
-                        {{-- AKSES KEUANGAN SEKARANG KHUSUS UNTUK ROLE KEUANGAN SAJA --}}
                         @if(Auth::user()->hasRole('keuangan'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('pembayaran*') ? 'active' : '' }}" href="{{ route('pembayaran.index') }}">
@@ -214,11 +215,21 @@
                     @endauth
                 </ul>
 
-                <ul class="navbar-nav ms-auto align-items-center">
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
                     @auth
                         
+                        {{-- INDIKATOR USER ONLINE REAL-TIME (SIKU & MONOSPACE KETAT) --}}
+                        <li class="nav-item me-1">
+                            <div class="bg-light border border-dark rounded-0 px-2 py-1 d-flex align-items-center shadow-none" title="Jumlah Pengguna Daring Saat Ini">
+                                <i class="bi bi-circle-fill text-success online-dot me-2" style="font-size: 0.55rem;"></i>
+                                <span class="small font-monospace uppercase fw-bold text-dark" style="font-size: 0.75rem;">
+                                    <strong class="text-success font-monospace">{{ $onlineUsersCount ?? 1 }}</strong> ONLINE
+                                </span>
+                            </div>
+                        </li>
+
                         {{-- LONCENG NOTIFIKASI --}}
-                        <li class="nav-item dropdown ms-2 me-1">
+                        <li class="nav-item dropdown ms-1 me-1">
                             <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell fs-5 text-secondary"></i>
                                 @if(Auth::user()->unreadNotifications->count() > 0)

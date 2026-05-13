@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Pagination\Paginator; // <-- 1. Tambahkan ini
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Cache;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Paginator::useBootstrapFive(); // <-- 2. Tambahkan baris ini
+        // Menggunakan Bootstrap 5 untuk Paginator standar sistem
+        Paginator::useBootstrapFive();
+
+        // Berbagi hitungan user online secara real-time ke semua file Blade
+        View::composer('*', function ($view) {
+            $onlineUsers = Cache::get('siakad-online-users-list', []);
+            $view->with('onlineUsersCount', count($onlineUsers));
+        });
     }
 }

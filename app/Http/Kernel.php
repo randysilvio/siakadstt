@@ -33,6 +33,9 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            
+            // Middleware untuk melacak stempel waktu aktif user online
+            \App\Http\Middleware\LogUserActivity::class,
         ],
 
         'api' => [
