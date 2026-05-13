@@ -2,9 +2,17 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
-        <h3 class="mb-0 fw-bold text-teal-700">Tambah Mahasiswa Baru</h3>
-        <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Kembali</a>
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Tambah Mahasiswa Baru</h3>
+            <span class="text-muted small uppercase">Pendaftaran & Entri Master Data Mahasiswa</span>
+        </div>
+        <div>
+            <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Kembali
+            </a>
+        </div>
     </div>
 
     <form action="{{ route('admin.mahasiswa.store') }}" method="POST">
@@ -12,35 +20,35 @@
 
         {{-- NOTIFIKASI ERROR VALIDASI GLOBAL --}}
         @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3" role="alert">
+                <div class="d-flex align-items-center small uppercase">
+                    <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
                     <div>
-                        <strong>Gagal Menyimpan!</strong> Silakan periksa kembali isian Anda:
-                        <ul class="mb-0 mt-1">
+                        <strong class="fw-bold">Gagal Menyimpan!</strong> Silakan periksa kembali isian Anda:
+                        <ul class="mb-0 mt-1 font-monospace ps-3 text-lowercase">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
                         </ul>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
-        {{-- Navigasi Tab --}}
-        <ul class="nav nav-tabs mb-4" id="mahasiswaTabs" role="tablist">
+        {{-- Navigasi Tab Flat --}}
+        <ul class="nav nav-tabs mb-4 rounded-0" id="mahasiswaTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-bold" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi (Wajib NIK)</button>
+                <button class="nav-link active rounded-0 fw-bold px-3 small uppercase text-dark" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="akademik-tab" data-bs-toggle="tab" data-bs-target="#akademik" type="button" role="tab">2. Akademik & Akun</button>
+                <button class="nav-link rounded-0 fw-bold px-3 small uppercase text-dark" id="akademik-tab" data-bs-toggle="tab" data-bs-target="#akademik" type="button" role="tab">2. Akademik & Akun</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="alamat-tab" data-bs-toggle="tab" data-bs-target="#alamat" type="button" role="tab">3. Alamat Detail</button>
+                <button class="nav-link rounded-0 fw-bold px-3 small uppercase text-dark" id="alamat-tab" data-bs-toggle="tab" data-bs-target="#alamat" type="button" role="tab">3. Alamat Detail</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold" id="ortu-tab" data-bs-toggle="tab" data-bs-target="#ortu" type="button" role="tab">4. Data Orang Tua</button>
+                <button class="nav-link rounded-0 fw-bold px-3 small uppercase text-dark" id="ortu-tab" data-bs-toggle="tab" data-bs-target="#ortu" type="button" role="tab">4. Data Orang Tua</button>
             </li>
         </ul>
 
@@ -49,48 +57,50 @@
             
             {{-- TAB 1: DATA PRIBADI --}}
             <div class="tab-pane fade show active" id="pribadi" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                        Formulir Identitas Pribadi
+                    </div>
+                    <div class="card-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="nama_lengkap" value="{{ old('nama_lengkap') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Nama Lengkap <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_lengkap" value="{{ old('nama_lengkap') }}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">NIK (KTP) <span class="text-danger">*</span></label>
-                                {{-- PERBAIKAN: Input NIK wajib 16 digit sesuai feeder --}}
-                                <input type="text" class="form-control" name="nik" value="{{ old('nik') }}" minlength="16" maxlength="16" required placeholder="16 digit angka">
+                                <label class="form-label uppercase fw-bold small text-dark">NIK (KTP) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik" value="{{ old('nik') }}" minlength="16" maxlength="16" required placeholder="16 DIGIT ANGKA">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">NISN</label>
-                                <input type="text" class="form-control" name="nisn" value="{{ old('nisn') }}" maxlength="12">
+                                <label class="form-label uppercase fw-bold small text-dark">NISN</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nisn" value="{{ old('nisn') }}" maxlength="12">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Kewarganegaraan <span class="text-danger">*</span></label>
-                                <select class="form-select" name="kewarganegaraan" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Kewarganegaraan <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-0 uppercase" name="kewarganegaraan" required>
                                     <option value="WNI" {{ old('kewarganegaraan', 'WNI') == 'WNI' ? 'selected' : '' }}>Indonesia (WNI)</option>
                                     <option value="WNA" {{ old('kewarganegaraan') == 'WNA' ? 'selected' : '' }}>Asing (WNA)</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="tempat_lahir" value="{{ old('tempat_lahir') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Tempat Lahir <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="tempat_lahir" value="{{ old('tempat_lahir') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Tanggal Lahir <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control rounded-0 font-monospace" name="tanggal_lahir" value="{{ old('tanggal_lahir') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label>
-                                <select class="form-select" name="jenis_kelamin" required>
-                                    <option value="">-- Pilih --</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Jenis Kelamin <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-0 uppercase" name="jenis_kelamin" required>
+                                    <option value="">-- PILIH --</option>
                                     <option value="L" {{ old('jenis_kelamin') == 'L' ? 'selected' : '' }}>Laki-laki</option>
                                     <option value="P" {{ old('jenis_kelamin') == 'P' ? 'selected' : '' }}>Perempuan</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Agama</label>
-                                <select class="form-select" name="agama">
+                                <label class="form-label uppercase fw-bold small text-dark">Agama</label>
+                                <select class="form-select rounded-0 uppercase" name="agama">
                                     <option value="Kristen Protestan" {{ old('agama', 'Kristen Protestan') == 'Kristen Protestan' ? 'selected' : '' }}>Kristen Protestan</option>
                                     <option value="Katolik" {{ old('agama') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
                                     <option value="Islam" {{ old('agama') == 'Islam' ? 'selected' : '' }}>Islam</option>
@@ -100,8 +110,8 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Nomor Telepon / WA</label>
-                                <input type="text" class="form-control" name="nomor_telepon" value="{{ old('nomor_telepon') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Nomor Telepon / WA</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nomor_telepon" value="{{ old('nomor_telepon') }}">
                             </div>
                         </div>
                     </div>
@@ -110,40 +120,42 @@
 
             {{-- TAB 2: AKADEMIK & AKUN --}}
             <div class="tab-pane fade" id="akademik" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h5 class="card-title text-primary mb-3">Informasi Akademik</h5>
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                        Parameter Akademik & Kredensial Akses
+                    </div>
+                    <div class="card-body p-4">
+                        <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2">Informasi Akademik</h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                <label class="form-label">NIM <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="nim" value="{{ old('nim') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">NIM <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-0 font-monospace uppercase" name="nim" value="{{ old('nim') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Program Studi <span class="text-danger">*</span></label>
-                                <select class="form-select" name="program_studi_id" required>
-                                    <option value="">-- Pilih Prodi --</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Program Studi <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-0 uppercase" name="program_studi_id" required>
+                                    <option value="">-- PILIH PRODI --</option>
                                     @foreach ($program_studis as $prodi)
                                         <option value="{{ $prodi->id }}" {{ old('program_studi_id') == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Angkatan (Tahun Masuk) <span class="text-danger">*</span></label>
-                                {{-- PERBAIKAN: Input name adalah tahun_masuk agar tersimpan di DB --}}
-                                <input type="number" class="form-control" name="tahun_masuk" value="{{ old('tahun_masuk', date('Y')) }}" required min="1990" max="{{ date('Y')+1 }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Angkatan (Tahun Masuk) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control rounded-0 font-monospace" name="tahun_masuk" value="{{ old('tahun_masuk', date('Y')) }}" required min="1990" max="{{ date('Y')+1 }}">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Dosen Wali</label>
-                                <select class="form-select" name="dosen_wali_id">
-                                    <option value="">-- Pilih Dosen --</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Dosen Wali</label>
+                                <select class="form-select rounded-0 uppercase" name="dosen_wali_id">
+                                    <option value="">-- PILIH DOSEN --</option>
                                     @foreach ($dosens as $dosen)
                                         <option value="{{ $dosen->id }}" {{ old('dosen_wali_id') == $dosen->id ? 'selected' : '' }}>{{ $dosen->nama_lengkap }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Jalur Pendaftaran</label>
-                                <select class="form-select" name="jalur_pendaftaran">
+                                <label class="form-label uppercase fw-bold small text-dark">Jalur Pendaftaran</label>
+                                <select class="form-select rounded-0 uppercase" name="jalur_pendaftaran">
                                     <option value="Mandiri" {{ old('jalur_pendaftaran', 'Mandiri') == 'Mandiri' ? 'selected' : '' }}>Mandiri</option>
                                     <option value="Beasiswa" {{ old('jalur_pendaftaran') == 'Beasiswa' ? 'selected' : '' }}>Beasiswa</option>
                                     <option value="Prestasi" {{ old('jalur_pendaftaran') == 'Prestasi' ? 'selected' : '' }}>Prestasi</option>
@@ -152,20 +164,19 @@
                             </div>
                         </div>
 
-                        <hr>
-                        <h5 class="card-title text-primary mb-3">Akun Login Sistem</h5>
+                        <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2 mt-4">Akun Login Sistem</h6>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Email <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control" name="email" value="{{ old('email') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control rounded-0" name="email" value="{{ old('email') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" name="password" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control rounded-0 font-monospace" name="password" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Konfirmasi Password <span class="text-danger">*</span></label>
-                                <input type="password" class="form-control" name="password_confirmation" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Konfirmasi Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control rounded-0 font-monospace" name="password_confirmation" required>
                             </div>
                         </div>
                     </div>
@@ -174,50 +185,53 @@
 
             {{-- TAB 3: ALAMAT LENGKAP --}}
             <div class="tab-pane fade" id="alamat" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                        Detail Domisili & Transportasi
+                    </div>
+                    <div class="card-body p-4">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">Jalan / Alamat Lengkap</label>
-                                <textarea class="form-control" name="alamat" rows="2">{{ old('alamat') }}</textarea>
+                                <label class="form-label uppercase fw-bold small text-dark">Jalan / Alamat Lengkap</label>
+                                <textarea class="form-control rounded-0 uppercase" name="alamat" rows="2">{{ old('alamat') }}</textarea>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Dusun / Lingkungan</label>
-                                <input type="text" class="form-control" name="dusun" value="{{ old('dusun') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Dusun / Lingkungan</label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="dusun" value="{{ old('dusun') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">RT / RW</label>
+                                <label class="form-label uppercase fw-bold small text-dark">RT / RW</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" name="rt" placeholder="RT" value="{{ old('rt') }}">
-                                    <span class="input-group-text">/</span>
-                                    <input type="text" class="form-control" name="rw" placeholder="RW" value="{{ old('rw') }}">
+                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rt" placeholder="RT" value="{{ old('rt') }}">
+                                    <span class="input-group-text rounded-0 bg-light">/</span>
+                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rw" placeholder="RW" value="{{ old('rw') }}">
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Kelurahan / Desa</label>
-                                <input type="text" class="form-control" name="kelurahan" value="{{ old('kelurahan') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Kelurahan / Desa</label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="kelurahan" value="{{ old('kelurahan') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Kecamatan</label>
-                                <input type="text" class="form-control" name="kecamatan" value="{{ old('kecamatan') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Kecamatan</label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="kecamatan" value="{{ old('kecamatan') }}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Kode Pos</label>
-                                <input type="text" class="form-control" name="kode_pos" value="{{ old('kode_pos') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Kode Pos</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="kode_pos" value="{{ old('kode_pos') }}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Jenis Tinggal</label>
-                                <select class="form-select" name="jenis_tinggal">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Jenis Tinggal</label>
+                                <select class="form-select rounded-0 uppercase" name="jenis_tinggal">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Bersama Orang Tua', 'Wali', 'Kos', 'Asrama', 'Panti Asuhan'] as $jt)
                                         <option value="{{ $jt }}" {{ old('jenis_tinggal') == $jt ? 'selected' : '' }}>{{ $jt }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Alat Transportasi</label>
-                                <select class="form-select" name="alat_transportasi">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Alat Transportasi</label>
+                                <select class="form-select rounded-0 uppercase" name="alat_transportasi">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Jalan Kaki', 'Kendaraan Pribadi', 'Angkutan Umum'] as $at)
                                         <option value="{{ $at }}" {{ old('alat_transportasi') == $at ? 'selected' : '' }}>{{ $at }}</option>
                                     @endforeach
@@ -230,42 +244,45 @@
 
             {{-- TAB 4: DATA ORANG TUA --}}
             <div class="tab-pane fade" id="ortu" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                        Data Latar Belakang Orang Tua
+                    </div>
+                    <div class="card-body p-4">
                         
                         {{-- Data Ibu --}}
-                        <h5 class="card-title text-primary"><i class="bi bi-gender-female"></i> Data Ibu Kandung</h5>
+                        <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2">Data Ibu Kandung</h6>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label">Nama Ibu Kandung <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung') }}" required>
+                                <label class="form-label uppercase fw-bold small text-dark">Nama Ibu Kandung <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung') }}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">NIK Ibu</label>
-                                <input type="text" class="form-control" name="nik_ibu" maxlength="16" value="{{ old('nik_ibu') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">NIK Ibu</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ibu" maxlength="16" value="{{ old('nik_ibu') }}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Pendidikan Ibu</label>
-                                <select class="form-select" name="pendidikan_ibu">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Pendidikan Ibu</label>
+                                <select class="form-select rounded-0 uppercase" name="pendidikan_ibu">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
                                         <option value="{{ $p }}" {{ old('pendidikan_ibu') == $p ? 'selected' : '' }}>{{ $p }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Pekerjaan Ibu</label>
-                                <select class="form-select" name="pekerjaan_ibu">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Pekerjaan Ibu</label>
+                                <select class="form-select rounded-0 uppercase" name="pekerjaan_ibu">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
                                         <option value="{{ $pk }}" {{ old('pekerjaan_ibu') == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Penghasilan Ibu</label>
-                                <select class="form-select" name="penghasilan_ibu">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Penghasilan Ibu</label>
+                                <select class="form-select rounded-0 uppercase" name="penghasilan_ibu">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
                                         <option value="{{ $ph }}" {{ old('penghasilan_ibu') == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                     @endforeach
@@ -273,41 +290,39 @@
                             </div>
                         </div>
 
-                        <hr>
-
                         {{-- Data Ayah --}}
-                        <h5 class="card-title text-primary mt-3"><i class="bi bi-gender-male"></i> Data Ayah</h5>
+                        <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2 mt-4">Data Ayah</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Nama Ayah</label>
-                                <input type="text" class="form-control" name="nama_ayah" value="{{ old('nama_ayah') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">Nama Ayah</label>
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ayah" value="{{ old('nama_ayah') }}">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">NIK Ayah</label>
-                                <input type="text" class="form-control" name="nik_ayah" maxlength="16" value="{{ old('nik_ayah') }}">
+                                <label class="form-label uppercase fw-bold small text-dark">NIK Ayah</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ayah" maxlength="16" value="{{ old('nik_ayah') }}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Pendidikan Ayah</label>
-                                <select class="form-select" name="pendidikan_ayah">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Pendidikan Ayah</label>
+                                <select class="form-select rounded-0 uppercase" name="pendidikan_ayah">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
                                         <option value="{{ $p }}" {{ old('pendidikan_ayah') == $p ? 'selected' : '' }}>{{ $p }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Pekerjaan Ayah</label>
-                                <select class="form-select" name="pekerjaan_ayah">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Pekerjaan Ayah</label>
+                                <select class="form-select rounded-0 uppercase" name="pekerjaan_ayah">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
                                         <option value="{{ $pk }}" {{ old('pekerjaan_ayah') == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Penghasilan Ayah</label>
-                                <select class="form-select" name="penghasilan_ayah">
-                                    <option value="">Pilih...</option>
+                                <label class="form-label uppercase fw-bold small text-dark">Penghasilan Ayah</label>
+                                <select class="form-select rounded-0 uppercase" name="penghasilan_ayah">
+                                    <option value="">-- PILIH --</option>
                                     @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
                                         <option value="{{ $ph }}" {{ old('penghasilan_ayah') == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                     @endforeach
@@ -321,9 +336,11 @@
 
         </div>
 
-        <div class="mt-4 mb-5 text-end">
-            <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-light border me-2">Batal</a>
-            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-1"></i> Simpan Data Mahasiswa</button>
+        <div class="d-flex justify-content-end mb-5">
+            <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
+            <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-save me-1"></i> Simpan Data
+            </button>
         </div>
     </form>
 </div>

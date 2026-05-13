@@ -1,92 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Laporan Ketersediaan RPS</title>
+    <meta charset="UTF-8">
+    <title>Laporan Ketersediaan RPS - Mutu</title>
     <style>
-        body { font-family: sans-serif; font-size: 12px; }
+        /* CSS STANDAR ENTERPRISE (CETAKAN FORMAL 0PX) */
+        body { font-family: Arial, sans-serif; font-size: 11px; background-color: #fff; color: #000; }
         
-        /* Style Header dengan Logo */
-        .header-table { width: 100%; border-bottom: 3px double #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .header-table { width: 100%; border-bottom: 4px solid #000; padding-bottom: 12px; margin-bottom: 15px; border-collapse: collapse; }
         .header-table td { border: none; vertical-align: middle; }
-        .logo { width: 75px; height: auto; }
-        .title { font-size: 16px; font-weight: bold; margin: 0; }
-        .subtitle { font-size: 14px; margin: 0; font-weight: bold; }
+        .logo { width: 80px; height: auto; }
+        .title-block { text-align: center; }
+        .title-block h2 { margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        .title-block h3 { margin: 3px 0; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        .title-block p { margin: 3px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; text-decoration: underline; }
         
-        /* Style Tabel Data */
+        .summary-box { border: 1px solid #000; padding: 10px; background-color: #f8fafc; font-size: 11px; text-transform: uppercase; line-height: 1.5; margin-bottom: 15px; }
+        
         table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table.data-table th, table.data-table td { border: 1px solid #000; padding: 6px; text-align: left; }
-        table.data-table th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 6px 8px; font-size: 11px; vertical-align: middle; }
+        table.data-table th { background-color: #212529; color: #ffffff; text-align: center; font-weight: bold; text-transform: uppercase; }
         
         .text-center { text-align: center; }
-        .badge-success { color: green; font-weight: bold; text-transform: uppercase; }
-        .badge-danger { color: red; font-weight: bold; text-transform: uppercase; }
+        .text-start { text-align: left; }
+        .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
         
-        .summary { margin-bottom: 15px; font-weight: bold; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; }
+        .status-ok { font-weight: bold; text-transform: uppercase; font-family: 'Courier New', Courier, monospace; }
+        .status-no { font-weight: bold; text-transform: uppercase; font-family: 'Courier New', Courier, monospace; }
         
-        .ttd { margin-top: 40px; width: 100%; border: none; }
-        .ttd td { border: none; text-align: center; }
+        .ttd { margin-top: 40px; width: 100%; border-collapse: collapse; font-size: 11px; text-transform: uppercase; }
+        .ttd td { border: none; text-align: center; vertical-align: top; }
     </style>
 </head>
-<body>
+<body onload="window.print()">
+
     {{-- KOP SURAT --}}
     <table class="header-table">
         <tr>
-            <td width="15%" align="center">
-                <img src="{{ public_path('images/logo.png') }}" class="logo">
+            <td style="width: 15%; text-align: center;">
+                <img src="{{ public_path('images/logo.png') }}" class="logo" alt="Logo">
             </td>
-            <td width="85%" align="center">
-                <h2 class="title">SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA</h2>
-                <h3 class="subtitle">SISTEM PENJAMINAN MUTU INTERNAL (SPMI)</h3>
-                <p style="margin:2px; font-size:11px;">Jl. Jenderal Sudirman, Fakfak, Papua Barat | Website: sttgpipapua.ac.id</p>
-                <p style="margin:5px 0 0 0; font-weight:bold; text-decoration: underline;">LAPORAN MONITORING KETERSEDIAAN RPS</p>
+            <td style="width: 85%;" class="title-block">
+                <h2>SEKOLAH TINGGI TEOLOGI GEREJA PROTESTAN INDONESIA PAPUA</h2>
+                <h2>(STT GPI PAPUA) FAKFAK</h2>
+                <h3>SISTEM PENJAMINAN MUTU INTERNAL (SPMI)</h3>
+                <p>LAPORAN MONITORING KETERSEDIAAN RPS MATA KULIAH</p>
             </td>
         </tr>
     </table>
 
-    <div style="font-size: 11px; margin-bottom: 10px;">
-        <strong>Lingkup Data:</strong> {{ $judulLingkup }} <br>
-        <strong>Tanggal Cetak:</strong> {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}
-    </div>
-
-    <div class="summary">
-        Total Mata Kuliah: {{ $totalMK }} <br>
-        Sudah Upload RPS: <span style="color: green">{{ $sudahUpload }} ({{ $persentase }}%)</span> <br>
-        Belum Upload: <span style="color: red">{{ $totalMK - $sudahUpload }}</span>
+    <div class="summary-box">
+        <div style="float: right; text-align: right;">
+            TANGGAL CETAK:<br><span class="font-monospace">{{ \Carbon\Carbon::now()->translatedFormat('d.m.Y') }}</span>
+        </div>
+        <strong>LINGKUP DATA:</strong> {{ $judulLingkup }}<br>
+        <strong>TOTAL MATA KULIAH:</strong> <span class="font-monospace">{{ $totalMK }}</span> | 
+        <strong>STATUS TERISI:</strong> <span class="font-monospace">{{ $sudahUpload }} ({{ $persentase }}%)</span> | 
+        <strong>KOSONG:</strong> <span class="font-monospace">{{ $totalMK - $sudahUpload }}</span>
     </div>
 
     <table class="data-table">
         <thead>
             <tr>
-                <th width="5%">No</th>
-                <th width="10%">Kode MK</th>
-                <th width="30%">Nama Mata Kuliah</th>
-                <th width="5%">SKS</th>
-                <th width="5%">Smt</th>
-                <th width="25%">Dosen Pengampu</th>
-                <th width="20%">Status RPS</th>
+                <th style="width: 5%;">NO</th>
+                <th style="width: 12%;">KODE MK</th>
+                <th class="text-start" style="width: 33%;">NAMA MATA KULIAH</th>
+                <th style="width: 6%;">SKS</th>
+                <th style="width: 6%;">SMT</th>
+                <th class="text-start" style="width: 23%;">DOSEN PENGAMPU</th>
+                <th style="width: 15%;">STATUS RPS</th>
             </tr>
         </thead>
         <tbody>
             @forelse($dataMataKuliah as $index => $mk)
             <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $mk->kode_mk }}</td>
-                <td>{{ $mk->nama_mk }}</td>
-                <td class="text-center">{{ $mk->sks }}</td>
-                <td class="text-center">{{ $mk->semester }}</td>
-                <td>{{ $mk->dosen->nama_lengkap ?? 'Belum diset' }}</td>
+                <td class="text-center font-monospace">{{ $index + 1 }}</td>
+                <td class="text-center font-monospace">{{ $mk->kode_mk }}</td>
+                <td class="uppercase fw-bold">{{ $mk->nama_mk }}</td>
+                <td class="text-center font-monospace">{{ $mk->sks }}</td>
+                <td class="text-center font-monospace">{{ $mk->semester }}</td>
+                <td class="uppercase">{{ $mk->dosen->nama_lengkap ?? 'BELUM DITENTUKAN' }}</td>
                 <td class="text-center">
                     @if($mk->file_rps)
-                        <span class="badge-success">Tersedia</span>
-                        <br><small style="color:#555; font-size:9px;">(Terupload)</small>
+                        <span class="status-ok">TERSEDIA</span>
                     @else
-                        <span class="badge-danger">Belum Ada</span>
+                        <span class="status-no">BELUM ADA</span>
                     @endif
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="7" class="text-center">Tidak ada data mata kuliah untuk ditampilkan.</td>
+                <td colspan="7" class="text-center uppercase fw-bold py-4">Data kurikulum mata kuliah tidak ditemukan.</td>
             </tr>
             @endforelse
         </tbody>
@@ -94,12 +99,12 @@
 
     <table class="ttd">
         <tr>
-            <td width="50%"></td>
-            <td width="50%">
-                Fakfak, {{ date('d F Y') }} <br>
-                Ketua Penjaminan Mutu (SPMI),
-                <br><br><br><br>
-                <b>( ........................................... )</b>
+            <td style="width: 50%;"></td>
+            <td style="width: 50%;">
+                <p class="mb-1">FAKFAK, <span class="font-monospace">{{ date('d F Y') }}</span></p>
+                <p class="mb-5">KETUA PENJAMINAN MUTU (SPMI),</p>
+                <br><br><br>
+                <p><b>( ........................................... )</b></p>
             </td>
         </tr>
     </table>

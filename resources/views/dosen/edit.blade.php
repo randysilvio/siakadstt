@@ -1,21 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Edit Data Dosen</h2>
-        <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-secondary">Kembali</a>
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <div>
+            <h3 class="mb-0 text-dark fw-bold uppercase">Modifikasi Data Dosen</h3>
+            <span class="text-muted small">ID Pengguna: {{ $dosen->user->id ?? '-' }} | Terakhir diperbarui: {{ $dosen->updated_at->format('d/m/Y H:i') }}</span>
+        </div>
+        <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-dark btn-sm rounded-0">KEMBALI</a>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>Gagal Memperbarui Data!</strong> Silakan periksa inputan berikut:
-            <ul class="mb-0 mt-2">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4 small" role="alert">
+            <span class="fw-bold">GAGAL MEMPERBARUI DATA:</span> Harap periksa kembali isian formulir Anda.
         </div>
     @endif
 
@@ -23,190 +20,151 @@
         @csrf
         @method('PUT')
 
-        <ul class="nav nav-tabs mb-4" id="dosenTabs" role="tablist">
+        <ul class="nav nav-tabs mb-4 border-bottom-2" id="dosenTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active fw-bold" id="pribadi-tab" data-bs-toggle="tab" data-bs-target="#pribadi" type="button" role="tab">1. Data Pribadi</button>
+                <button class="nav-link active fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#pribadi" type="button">Identitas Personal</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold" id="kepegawaian-tab" data-bs-toggle="tab" data-bs-target="#kepegawaian" type="button" role="tab">2. Kepegawaian & Akademik</button>
+                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#kepegawaian" type="button">Status & Jabatan</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold" id="akun-tab" data-bs-toggle="tab" data-bs-target="#akun" type="button" role="tab">3. Akun & Keuangan</button>
+                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#akun" type="button">Akses & Foto</button>
             </li>
         </ul>
 
         <div class="tab-content">
-            
             {{-- TAB 1: DATA PRIBADI --}}
-            <div class="tab-pane fade show active" id="pribadi" role="tabpanel">
-                <div class="card shadow-sm border-0"><div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Nama Lengkap (Gelar)</label>
-                            <input type="text" class="form-control @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
-                            @error('nama_lengkap') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">NIDN</label>
-                            <input type="text" class="form-control @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required>
-                            @error('nidn') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">NIK (KTP) <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
-                            @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label">NPWP</label>
-                            <input type="text" class="form-control" name="npwp" value="{{ old('npwp', $dosen->npwp) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Tempat Lahir</label>
-                            <input type="text" class="form-control" name="tempat_lahir" value="{{ old('tempat_lahir', $dosen->tempat_lahir) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Tanggal Lahir</label>
-                            <input type="date" class="form-control" name="tanggal_lahir" value="{{ old('tanggal_lahir', $dosen->tanggal_lahir) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Jenis Kelamin</label>
-                            <select class="form-select" name="jenis_kelamin" required>
-                                <option value="L" {{ (old('jenis_kelamin', $dosen->jenis_kelamin) == 'L') ? 'selected' : '' }}>Laki-laki</option>
-                                <option value="P" {{ (old('jenis_kelamin', $dosen->jenis_kelamin) == 'P') ? 'selected' : '' }}>Perempuan</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Nomor Telepon</label>
-                            <input type="text" class="form-control" name="nomor_telepon" value="{{ old('nomor_telepon', $dosen->nomor_telepon) }}">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Alamat Domisili</label>
-                            <textarea class="form-control" name="alamat" rows="2">{{ old('alamat', $dosen->alamat) }}</textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Deskripsi Diri (Singkat)</label>
-                            <textarea class="form-control" name="deskripsi_diri" rows="2">{{ old('deskripsi_diri', $dosen->deskripsi_diri) }}</textarea>
-                        </div>
-                    </div>
-                </div></div>
-            </div>
-
-            {{-- TAB 2: KEPEGAWAIAN --}}
-            <div class="tab-pane fade" id="kepegawaian" role="tabpanel">
-                <div class="card shadow-sm border-0"><div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Status Kepegawaian</label>
-                            <select class="form-select" name="status_kepegawaian" required>
-                                @foreach(['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'] as $st)
-                                    <option value="{{ $st }}" {{ (old('status_kepegawaian', $dosen->status_kepegawaian) == $st) ? 'selected' : '' }}>{{ $st }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        {{-- DROPDOWN PROGRAM STUDI --}}
-                        <div class="col-md-6">
-                            <label class="form-label">Program Studi</label>
-                            <select class="form-select @error('program_studi_id') is-invalid @enderror" name="program_studi_id">
-                                <option value="">- Pilih Program Studi (Jika Ada) -</option>
-                                @foreach($programStudis as $prodi)
-                                    <option value="{{ $prodi->id }}" {{ (old('program_studi_id', $dosen->program_studi_id) == $prodi->id) ? 'selected' : '' }}>
-                                        {{ $prodi->nama_prodi }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('program_studi_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">NUPTK</label>
-                            <input type="text" class="form-control" name="nuptk" value="{{ old('nuptk', $dosen->nuptk) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Jabatan Akademik</label>
-                            <select class="form-select" name="jabatan_akademik">
-                                <option value="">- Pilih -</option>
-                                @foreach(['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'] as $jb)
-                                    <option value="{{ $jb }}" {{ (old('jabatan_akademik', $dosen->jabatan_akademik) == $jb) ? 'selected' : '' }}>{{ $jb }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Pangkat / Golongan</label>
-                            <input type="text" class="form-control" name="pangkat_golongan" value="{{ old('pangkat_golongan', $dosen->pangkat_golongan) }}" placeholder="Contoh: III/b">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">No. SK Pengangkatan</label>
-                            <input type="text" class="form-control" name="no_sk_pengangkatan" value="{{ old('no_sk_pengangkatan', $dosen->no_sk_pengangkatan) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">TMT SK Pengangkatan</label>
-                            <input type="date" class="form-control" name="tmt_sk_pengangkatan" value="{{ old('tmt_sk_pengangkatan', $dosen->tmt_sk_pengangkatan) }}">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Bidang Keahlian</label>
-                            <input type="text" class="form-control" name="bidang_keahlian" value="{{ old('bidang_keahlian', $dosen->bidang_keahlian) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Link Google Scholar</label>
-                            <input type="url" class="form-control" name="link_google_scholar" value="{{ old('link_google_scholar', $dosen->link_google_scholar) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Link SINTA</label>
-                            <input type="url" class="form-control" name="link_sinta" value="{{ old('link_sinta', $dosen->link_sinta) }}">
-                        </div>
-                    </div>
-                </div></div>
-            </div>
-
-            {{-- TAB 3: AKUN --}}
-            <div class="tab-pane fade" id="akun" role="tabpanel">
-                <div class="card shadow-sm border-0"><div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Email Login</label>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
-                            @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email Institusi</label>
-                            <input type="email" class="form-control @error('email_institusi') is-invalid @enderror" name="email_institusi" value="{{ old('email_institusi', $dosen->email_institusi) }}">
-                            @error('email_institusi') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Password Baru (Opsional)</label>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" placeholder="Isi jika ingin ganti password">
-                            @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Konfirmasi Password</label>
-                            <input type="password" class="form-control" name="password_confirmation">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Foto Profil</label>
-                            @if($dosen->foto_profil)
-                                <div class="mb-2">
-                                    <img src="{{ asset('storage/' . $dosen->foto_profil) }}" alt="Foto" class="img-thumbnail" width="100">
-                                </div>
-                            @endif
-                            <input type="file" class="form-control @error('foto_profil') is-invalid @enderror" name="foto_profil">
-                            @error('foto_profil') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-12">
-                            <div class="form-check form-switch mt-3">
-                                <input class="form-check-input" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ old('is_keuangan', $dosen->is_keuangan) ? 'checked' : '' }}>
-                                <label class="form-check-label" for="is_keuangan">Berikan Akses Modul Keuangan?</label>
+            <div class="tab-pane fade show active" id="pribadi">
+                <div class="card border-0 shadow-sm rounded-0">
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Nama Lengkap & Gelar</label>
+                                <input type="text" class="form-control rounded-0 @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
+                                @error('nama_lengkap') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">NIDN / NIDK</label>
+                                <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required>
+                                @error('nidn') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">NIK (KTP)</label>
+                                <input type="text" class="form-control rounded-0 font-monospace @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
+                                @error('nik') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">NPWP</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="npwp" value="{{ old('npwp', $dosen->npwp) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold uppercase">Tempat Lahir</label>
+                                <input type="text" class="form-control rounded-0" name="tempat_lahir" value="{{ old('tempat_lahir', $dosen->tempat_lahir) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold uppercase">Tanggal Lahir</label>
+                                <input type="date" class="form-control rounded-0" name="tanggal_lahir" value="{{ old('tanggal_lahir', $dosen->tanggal_lahir) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold uppercase">Jenis Kelamin</label>
+                                <select class="form-select rounded-0" name="jenis_kelamin" required>
+                                    <option value="L" {{ old('jenis_kelamin', $dosen->jenis_kelamin) == 'L' ? 'selected' : '' }}>LAKI-LAKI</option>
+                                    <option value="P" {{ old('jenis_kelamin', $dosen->jenis_kelamin) == 'P' ? 'selected' : '' }}>PEREMPUAN</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold uppercase">Alamat Domisili</label>
+                                <textarea class="form-control rounded-0" name="alamat" rows="2">{{ old('alamat', $dosen->alamat) }}</textarea>
                             </div>
                         </div>
                     </div>
-                </div></div>
+                </div>
             </div>
 
+            {{-- TAB 2: KEPEGAWAIAN --}}
+            <div class="tab-pane fade" id="kepegawaian">
+                <div class="card border-0 shadow-sm rounded-0">
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Status Kepegawaian</label>
+                                <select class="form-select rounded-0" name="status_kepegawaian" required>
+                                    @foreach(['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'] as $st)
+                                        <option value="{{ $st }}" {{ old('status_kepegawaian', $dosen->status_kepegawaian) == $st ? 'selected' : '' }}>{{ strtoupper($st) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Program Studi (Homebase)</label>
+                                <select class="form-select rounded-0" name="program_studi_id">
+                                    <option value="">-- PILIH UNIT KERJA --</option>
+                                    @foreach($programStudis as $prodi)
+                                        <option value="{{ $prodi->id }}" {{ old('program_studi_id', $dosen->program_studi_id) == $prodi->id ? 'selected' : '' }}>
+                                            {{ strtoupper($prodi->nama_prodi) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Jabatan Fungsional</label>
+                                <select class="form-select rounded-0" name="jabatan_akademik">
+                                    <option value="">-- TANPA JAFUNG --</option>
+                                    @foreach(['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'] as $jb)
+                                        <option value="{{ $jb }}" {{ old('jabatan_akademik', $dosen->jabatan_akademik) == $jb ? 'selected' : '' }}>{{ strtoupper($jb) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Pangkat / Golongan</label>
+                                <input type="text" class="form-control rounded-0" name="pangkat_golongan" value="{{ old('pangkat_golongan', $dosen->pangkat_golongan) }}">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold uppercase">Bidang Keahlian Spesifik</label>
+                                <input type="text" class="form-control rounded-0" name="bidang_keahlian" value="{{ old('bidang_keahlian', $dosen->bidang_keahlian) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- TAB 3: AKUN & FOTO --}}
+            <div class="tab-pane fade" id="akun">
+                <div class="card border-0 shadow-sm rounded-0">
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Email Utama Sistem</label>
+                                <input type="email" class="form-control rounded-0 font-monospace @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
+                                @error('email') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Ubah Kata Sandi (Opsional)</label>
+                                <input type="password" class="form-control rounded-0" name="password" placeholder="Kosongkan jika tidak ingin diubah">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Pas Foto Profil</label>
+                                <input type="file" class="form-control rounded-0 mb-3" name="foto_profil" accept="image/*">
+                                @if($dosen->foto_profil)
+                                    <div class="bg-light p-2 border d-inline-block">
+                                        <img src="{{ asset('storage/' . $dosen->foto_profil) }}" alt="Foto Profil" height="100" class="border">
+                                        <p class="text-center mb-0 small text-muted font-monospace">AKTIF</p>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center">
+                                <div class="form-check form-switch bg-light p-3 border w-100">
+                                    <input class="form-check-input ms-0" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ old('is_keuangan', $dosen->is_keuangan) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold small uppercase ms-2" for="is_keuangan">Akses Modul Keuangan</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="mt-4 mb-5 text-end">
-            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save"></i> Simpan Perubahan</button>
+            <button type="submit" class="btn btn-primary px-5 rounded-0 fw-bold">PERBARUI DATA DOSEN</button>
         </div>
     </form>
 </div>

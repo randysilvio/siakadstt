@@ -1,63 +1,81 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h2 class="mb-0 fw-bold">Riwayat Peminjaman</h2>
-            <p class="text-muted mb-0">Arsip seluruh transaksi peminjaman yang telah selesai.</p>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Arsip Riwayat Sirkulasi</h3>
+            <span class="text-muted small uppercase">Rekapitulasi Histori Peminjaman Pustaka yang Telah Diselesaikan</span>
         </div>
-        <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-outline-secondary shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Aktif
-        </a>
+        <div>
+            <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Kembali ke Sirkulasi Aktif
+            </a>
+        </div>
     </div>
 
-    <div class="card shadow-sm border-0">
+    {{-- TABEL RIWAYAT ENTERPRISE --}}
+    <div class="card border-0 shadow-sm rounded-0 mb-5 border-top border-dark border-4">
+        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+            Daftar Arsip Peminjaman Selesai
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-secondary">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
                         <tr>
-                            <th class="ps-4 text-center" style="width: 50px;">No</th>
-                            <th>Judul Buku</th>
-                            <th>Peminjam</th>
-                            <th>Tanggal Pinjam</th>
-                            <th>Tanggal Kembali</th>
-                            <th class="text-center">Status</th>
+                            <th style="width: 6%;">NO</th>
+                            <th class="text-start" style="width: 34%;">SPESIFIKASI BUKU</th>
+                            <th class="text-start" style="width: 24%;">DATA PEMINJAM</th>
+                            <th style="width: 12%;">TGL PINJAM</th>
+                            <th style="width: 12%;">TGL KEMBALI</th>
+                            <th style="width: 12%;">STATUS AKHIR</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="small text-dark">
                         @forelse($peminjamans as $key => $peminjaman)
                             <tr>
-                                <td class="ps-4 text-center fw-bold text-secondary">{{ $peminjamans->firstItem() + $key }}</td>
-                                <td>
-                                    <div class="fw-bold text-dark">{{ $peminjaman->koleksi->judul ?? 'Buku Dihapus' }}</div>
+                                <td class="text-center font-monospace fw-bold text-muted">
+                                    {{ $peminjamans->firstItem() + $key }}
                                 </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-light rounded-circle p-2 me-2 text-secondary">
-                                            <i class="bi bi-person"></i>
-                                        </div>
-                                        <span class="text-dark">{{ $peminjaman->user->name ?? 'User Dihapus' }}</span>
+                                <td class="text-start ps-3">
+                                    <div class="uppercase fw-bold text-dark mb-0">
+                                        {{ $peminjaman->koleksi->judul ?? 'MASTER BUKU DIHAPUS' }}
                                     </div>
+                                    <span class="text-muted font-monospace" style="font-size: 11px;">
+                                        KODE BUKU: {{ str_pad($peminjaman->koleksi->id ?? 0, 4, '0', STR_PAD_LEFT) }}
+                                    </span>
                                 </td>
-                                <td>{{ \Carbon\Carbon::parse($peminjaman->tanggal_pinjam)->format('d M Y') }}</td>
-                                <td>
+                                <td class="text-start ps-3 uppercase">
+                                    <strong class="text-dark d-block mb-0">
+                                        {{ $peminjaman->user->name ?? 'USER DIHAPUS' }}
+                                    </strong>
+                                    <span class="text-muted font-monospace" style="font-size: 11px;">
+                                        {{ $peminjaman->user->email ?? '-' }}
+                                    </span>
+                                </td>
+                                <td class="text-center font-monospace text-muted">
+                                    {{ \Carbon\Carbon::parse($peminjaman->tanggal_pinjam)->translatedFormat('d M Y') }}
+                                </td>
+                                <td class="text-center font-monospace text-success fw-bold">
                                     @if($peminjaman->tanggal_kembali)
-                                        <span class="text-success fw-bold">{{ \Carbon\Carbon::parse($peminjaman->tanggal_kembali)->format('d M Y') }}</span>
+                                        {{ \Carbon\Carbon::parse($peminjaman->tanggal_kembali)->translatedFormat('d M Y') }}
                                     @else
-                                        -
+                                        <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3">Dikembalikan</span>
+                                    <span class="badge bg-success text-white rounded-0 uppercase fw-bold font-monospace px-2 py-1" style="font-size: 10px;">
+                                        DIKEMBALIKAN
+                                    </span>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-clock-history fs-1 d-block mb-2 opacity-50"></i>
-                                    Belum ada riwayat peminjaman.
+                                <td colspan="6" class="text-center py-5 uppercase fw-bold text-muted">
+                                    <i class="bi bi-clock-history fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                                    Belum ada catatan arsip riwayat peminjaman yang diselesaikan.
                                 </td>
                             </tr>
                         @endforelse
@@ -65,9 +83,13 @@
                 </table>
             </div>
         </div>
+        
+        {{-- Paginasi Flat --}}
         @if($peminjamans->hasPages())
-            <div class="card-footer bg-white border-top">
-                {{ $peminjamans->links() }}
+            <div class="card-footer bg-white border-top py-3 rounded-0">
+                <div class="d-flex justify-content-center">
+                    {{ $peminjamans->links() }}
+                </div>
             </div>
         @endif
     </div>

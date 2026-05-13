@@ -1,48 +1,45 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h1 class="h3 mb-0">Manajemen Pembayaran</h1>
-            <p class="text-muted small">Kelola data tagihan dan status pembayaran mahasiswa & camaba.</p>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Manajemen Pembayaran</h3>
+            <span class="text-muted small uppercase">Kelola Data Tagihan & Verifikasi Status Pembayaran Sistem</span>
         </div>
-        
-        {{-- Grup Tombol Aksi --}}
         <div>
-            {{-- Tombol Cetak PDF (Otomatis membawa parameter filter yang sedang aktif) --}}
-            <a href="{{ route('pembayaran.cetak', request()->query()) }}" target="_blank" class="btn btn-dark me-2">
+            <a href="{{ route('pembayaran.cetak', request()->query()) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 px-3 uppercase fw-bold small me-2">
                 <i class="bi bi-printer-fill me-1"></i> Cetak Laporan
             </a>
-
-            <a href="{{ route('pembayaran.generate') }}" class="btn btn-success me-2 text-white fw-bold">
+            <a href="{{ route('pembayaran.generate') }}" class="btn btn-sm btn-success rounded-0 px-3 uppercase fw-bold small text-white me-2 shadow-sm">
                 <i class="bi bi-lightning-charge-fill me-1"></i> Generate Massal
             </a>
-            <a href="{{ route('pembayaran.create') }}" class="btn btn-primary fw-bold">
-                <i class="bi bi-plus-circle me-1"></i> Tagihan Manual
+            <a href="{{ route('pembayaran.create') }}" class="btn btn-sm btn-primary rounded-0 px-3 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i> Tagihan Manual
             </a>
         </div>
     </div>
 
-    {{-- === SMART FILTER SECTION (UPDATED) === --}}
-    <div class="card shadow-sm mb-4 border-0">
-        <div class="card-body bg-light rounded">
-            <form action="{{ route('pembayaran.index') }}" method="GET">
-                <div class="row g-2">
+    {{-- === SMART FILTER SECTION FLAT === --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-light">
+        <div class="card-body p-4">
+            <form action="{{ route('pembayaran.index') }}" method="GET" id="filterForm">
+                <div class="row g-3">
                     {{-- 1. Cari Nama/NIM --}}
                     <div class="col-md-3">
-                        <label class="form-label fw-bold small text-muted">Cari Nama/NIM/No.Reg</label>
+                        <label class="form-label small fw-bold uppercase text-dark">Pencarian Teks</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Ketik kata kunci..." value="{{ request('q') }}">
+                            <span class="input-group-text bg-white rounded-0"><i class="bi bi-search text-dark"></i></span>
+                            <input type="text" name="q" class="form-control rounded-0 font-monospace uppercase" placeholder="NAMA / NIM / REG..." value="{{ request('q') }}">
                         </div>
                     </div>
 
-                    {{-- 2. Filter Tipe User (BARU - Memisahkan Mahasiswa & Camaba) --}}
+                    {{-- 2. Filter Tipe User --}}
                     <div class="col-md-2">
-                        <label class="form-label fw-bold small text-muted">Tipe User</label>
-                        <select name="tipe_user" class="form-select">
-                            <option value="">- Semua -</option>
+                        <label class="form-label small fw-bold uppercase text-dark">Tipe Entitas</label>
+                        <select name="tipe_user" class="form-select rounded-0 uppercase small fw-bold" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">-- SEMUA --</option>
                             <option value="mahasiswa" {{ request('tipe_user') == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa Aktif</option>
                             <option value="camaba" {{ request('tipe_user') == 'camaba' ? 'selected' : '' }}>Camaba (PMB)</option>
                         </select>
@@ -50,135 +47,114 @@
 
                     {{-- 3. Filter Semester --}}
                     <div class="col-md-3">
-                        <label class="form-label fw-bold small text-muted">Semester / Keterangan</label>
-                        <input type="text" name="semester" class="form-control" placeholder="Contoh: Gasal 2024 / PMB..." value="{{ request('semester') }}">
+                        <label class="form-label small fw-bold uppercase text-dark">Semester / Periode</label>
+                        <input type="text" name="semester" class="form-control rounded-0 font-monospace uppercase" placeholder="GASAL 2024 / PMB..." value="{{ request('semester') }}">
                     </div>
 
                     {{-- 4. Filter Status --}}
                     <div class="col-md-2">
-                        <label class="form-label fw-bold small text-muted">Status Bayar</label>
-                        <select name="status" class="form-select">
-                            <option value="">- Semua -</option>
+                        <label class="form-label small fw-bold uppercase text-dark">Status Bayar</label>
+                        <select name="status" class="form-select rounded-0 uppercase small fw-bold" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">-- SEMUA --</option>
                             <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
                             <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
-                            <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
+                            <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Bukti</option>
                         </select>
                     </div>
 
                     {{-- 5. Tombol Filter --}}
-                    <div class="col-md-2 d-flex align-items-end gap-1">
-                        <button type="submit" class="btn btn-primary w-100 fw-bold">
-                            <i class="bi bi-funnel-fill me-1"></i> Filter
-                        </button>
-                        @if(request()->hasAny(['q', 'semester', 'status', 'tipe_user']))
-                            <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-secondary w-50" title="Reset">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        @endif
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="d-flex w-100 gap-1">
+                            <button type="submit" class="btn btn-primary rounded-0 flex-grow-1 uppercase fw-bold small py-2 shadow-sm">
+                                Filter
+                            </button>
+                            @if(request()->hasAny(['q', 'semester', 'status', 'tipe_user']))
+                                <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-dark rounded-0 px-3 py-2" title="Reset Filter">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- === TABEL DATA === --}}
-    <div class="card shadow-sm border-0">
+    {{-- === TABEL DATA ENTERPRISE === --}}
+    <div class="card border-0 shadow-sm rounded-0 mb-5">
+        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+            Daftar Rekapitulasi Kewajiban Finansial
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
                         <tr>
-                            <th class="ps-4">Identitas Pembayar</th>
-                            <th>Keterangan / Semester</th>
-                            <th>Jumlah Tagihan</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4" style="width: 200px;">Aksi</th>
+                            <th class="text-start ps-3" style="width: 30%;">IDENTITAS PEMBAYAR</th>
+                            <th class="text-start" style="width: 25%;">KETERANGAN / SEMESTER</th>
+                            <th style="width: 15%;">JUMLAH TAGIHAN</th>
+                            <th style="width: 15%;">STATUS</th>
+                            <th style="width: 15%;">AKSI</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="small text-dark">
                     @forelse ($pembayarans as $pembayaran)
                         <tr>
-                            <td class="ps-4">
+                            <td class="text-start ps-3">
                                 @if($pembayaran->mahasiswa)
-                                    {{-- Data Mahasiswa --}}
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
-                                            <i class="bi bi-mortarboard-fill"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">{{ $pembayaran->mahasiswa->nama_lengkap }}</div>
-                                            <small class="text-muted">NIM: {{ $pembayaran->mahasiswa->nim }}</small>
-                                        </div>
-                                    </div>
+                                    <div class="uppercase fw-bold text-dark">{{ $pembayaran->mahasiswa->nama_lengkap }}</div>
+                                    <span class="text-muted font-monospace" style="font-size: 11px;">NIM: {{ $pembayaran->mahasiswa->nim }}</span>
                                 @elseif($pembayaran->user)
-                                    {{-- Data User Umum (Camaba) --}}
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
-                                            <i class="bi bi-person-fill"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">{{ $pembayaran->user->name }}</div>
-                                            <span class="badge bg-info text-dark border border-info border-opacity-25" style="font-size: 0.65rem;">CAMABA / PMB</span>
-                                        </div>
-                                    </div>
+                                    <div class="uppercase fw-bold text-dark">{{ $pembayaran->user->name }}</div>
+                                    <span class="badge bg-info text-dark rounded-0 font-monospace" style="font-size: 9px;">CAMABA / PMB</span>
                                 @else
-                                    <span class="text-muted fst-italic">User Terhapus</span>
+                                    <span class="text-muted font-monospace uppercase">USER TERHAPUS</span>
                                 @endif
                             </td>
-                            <td>
-                                <div class="small fw-bold text-dark">{{ $pembayaran->semester }}</div>
-                                <div class="small text-muted text-truncate" style="max-width: 200px;">
+                            <td class="text-start">
+                                <div class="font-monospace fw-bold text-dark uppercase">{{ $pembayaran->semester }}</div>
+                                <span class="text-muted uppercase" style="font-size: 11px;">
                                     {{ $pembayaran->keterangan ?? ucwords(str_replace('_', ' ', $pembayaran->jenis_pembayaran)) }}
-                                </div>
+                                </span>
                             </td>
-                            <td class="fw-bold text-primary">
+                            <td class="text-center font-monospace fw-bold text-primary">
                                 Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if($pembayaran->status == 'lunas')
-                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill border border-success border-opacity-25">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Lunas
-                                    </span>
+                                    <span class="badge bg-success text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">LUNAS</span>
                                 @elseif($pembayaran->status == 'menunggu_konfirmasi')
-                                    <span class="badge bg-warning bg-opacity-10 text-dark px-3 py-2 rounded-pill border border-warning border-opacity-25">
-                                        <i class="bi bi-hourglass-split me-1"></i> Cek Bukti
-                                    </span>
+                                    <span class="badge bg-warning text-dark rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">CEK BUKTI</span>
                                 @else
-                                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill border border-danger border-opacity-25">
-                                        <i class="bi bi-exclamation-circle-fill me-1"></i> Belum Lunas
-                                    </span>
+                                    <span class="badge bg-danger text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">BELUM LUNAS</span>
                                 @endif
                             </td>
-                            <td class="text-end pe-4">
-                                <div class="btn-group btn-group-sm">
-                                    {{-- Tombol Lihat Bukti --}}
+                            <td class="text-center">
+                                <div class="btn-group rounded-0" role="group">
                                     @if($pembayaran->bukti_bayar)
-                                        <a href="{{ Storage::url($pembayaran->bukti_bayar) }}" target="_blank" class="btn btn-info text-white" title="Lihat Bukti Transfer">
+                                        <a href="{{ Storage::url($pembayaran->bukti_bayar) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-0 py-1 px-2" title="Lihat Bukti Transfer">
                                             <i class="bi bi-image"></i>
                                         </a>
                                     @endif
 
-                                    {{-- Tombol Edit --}}
-                                    <a href="{{ route('pembayaran.edit', $pembayaran->id) }}" class="btn btn-outline-warning" title="Edit Tagihan">
+                                    <a href="{{ route('pembayaran.edit', $pembayaran->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2" title="Edit Tagihan">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
 
-                                    {{-- Tombol Lunas --}}
                                     @if($pembayaran->status != 'lunas')
-                                    <form action="{{ route('pembayaran.lunas', $pembayaran->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Verifikasi pembayaran ini? Status akan berubah menjadi LUNAS.');">
+                                    <form action="{{ route('pembayaran.lunas', $pembayaran->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Verifikasi pembayaran ini? Status akan berubah secara permanen menjadi LUNAS.');">
                                         @csrf
                                         @method('PATCH')
-                                        <button type="submit" class="btn btn-success" title="Verifikasi Lunas">
+                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-0 py-1 px-2" title="Verifikasi Lunas">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
                                     </form>
                                     @endif
 
-                                    {{-- Tombol Hapus --}}
                                     <form action="{{ route('pembayaran.destroy', $pembayaran->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Hapus tagihan ini?')" title="Hapus Tagihan">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2" onclick="return confirm('Yakin ingin menghapus tagihan ini secara permanen?')" title="Hapus Tagihan">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -187,8 +163,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <div class="mb-2"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
+                            <td colspan="5" class="text-center py-5 uppercase fw-bold text-muted">
+                                <i class="bi bi-receipt fs-2 d-block mb-2"></i>
                                 Data pembayaran tidak ditemukan untuk kriteria filter ini.
                             </td>
                         </tr>
@@ -197,11 +173,16 @@
                 </table>
             </div>
         </div>
+        
+        {{-- Paginasi Flat --}}
+        @if($pembayarans->hasPages())
+            <div class="card-footer bg-white border-top py-3 rounded-0">
+                <div class="d-flex justify-content-center">
+                    {{ $pembayarans->withQueryString()->links() }}
+                </div>
+            </div>
+        @endif
     </div>
 
-    {{-- Pagination --}}
-    <div class="d-flex justify-content-center mt-4">
-        {{ $pembayarans->withQueryString()->links() }}
-    </div>
 </div>
 @endsection

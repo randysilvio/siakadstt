@@ -1,63 +1,69 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h1 class="h3 mb-0">Riwayat Pembayaran</h1>
-            <p class="text-muted small">Pantau status dan riwayat pembayaran kuliah Anda.</p>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Riwayat Pembayaran</h3>
+            <span class="text-muted small uppercase">Pantau Mandiri Status & Riwayat Kewajiban Finansial Kuliah</span>
+        </div>
+        <div>
+            <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Kembali ke Dashboard
+            </a>
         </div>
     </div>
 
-    {{-- === TABEL DATA === --}}
-    <div class="card shadow-sm border-0">
+    {{-- === TABEL DATA ENTERPRISE === --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
+        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+            Daftar Pembayaran Tersimpan
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
                         <tr>
-                            <th class="ps-4">Semester</th>
-                            <th>Tanggal Bayar</th>
-                            <th>Jumlah Tagihan</th>
-                            <th>Status</th>
+                            <th style="width: 25%;">SEMESTER / PERIODE</th>
+                            <th style="width: 25%;">TANGGAL BAYAR</th>
+                            <th style="width: 25%;">JUMLAH TAGIHAN</th>
+                            <th style="width: 25%;">STATUS</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="small text-dark">
                         @forelse ($pembayarans as $pembayaran)
                             <tr>
-                                <td class="ps-4">
-                                    <span class="badge bg-light text-dark border">{{ $pembayaran->semester }}</span>
+                                <td class="text-center font-monospace fw-bold uppercase text-dark">
+                                    {{ $pembayaran->semester }}
                                 </td>
-                                <td>
+                                <td class="text-center font-monospace text-muted">
                                     @if($pembayaran->tanggal_bayar)
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-calendar-check me-2 text-muted"></i>
-                                            {{ \Carbon\Carbon::parse($pembayaran->tanggal_bayar)->isoFormat('D MMMM YYYY') }}
-                                        </div>
+                                        {{ \Carbon\Carbon::parse($pembayaran->tanggal_bayar)->isoFormat('D MMMM YYYY') }}
                                     @else
-                                        <span class="text-muted small fst-italic">-</span>
+                                        <span>-</span>
                                     @endif
                                 </td>
-                                <td class="fw-bold text-primary">
+                                <td class="text-center font-monospace fw-bold text-primary">
                                     Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     @if($pembayaran->status == 'lunas')
-                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Lunas
+                                        <span class="badge bg-success text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">
+                                            LUNAS
                                         </span>
                                     @else
-                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
-                                            <i class="bi bi-exclamation-circle-fill me-1"></i> Belum Lunas
+                                        <span class="badge bg-danger text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">
+                                            BELUM LUNAS
                                         </span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-5 text-muted">
-                                    <i class="bi bi-receipt fs-1 d-block mb-2"></i>
-                                    Anda belum memiliki riwayat pembayaran.
+                                <td colspan="4" class="text-center py-5 uppercase fw-bold text-muted">
+                                    <i class="bi bi-receipt fs-2 d-block mb-2"></i>
+                                    Anda belum memiliki riwayat pembayaran yang terdaftar di sistem.
                                 </td>
                             </tr>
                         @endforelse

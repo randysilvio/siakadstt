@@ -1,37 +1,45 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER PORTAL INTERNAL --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3 border-bottom pb-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Dasbor Utama Portal</h3>
+            <span class="text-muted small uppercase">Sistem Informasi Akademik & Kemahasiswaan Terintegrasi</span>
+        </div>
+        <div>
+            <span class="badge bg-dark text-white rounded-0 font-monospace uppercase fw-bold px-3 py-2 shadow-none" style="font-size: 11px;">
+                <i class="bi bi-person-fill me-1"></i> {{ strtoupper(Auth::user()->roles->first()->display_name ?? Auth::user()->roles->first()->name ?? 'PENGGUNA') }}
+            </span>
+        </div>
+    </div>
+
     {{-- ============================================================== --}}
     {{-- TAMPILAN DASHBOARD MAHASISWA --}}
     {{-- ============================================================== --}}
     @if(Auth::user()->hasRole('mahasiswa'))
         @if(isset($mahasiswa))
-            <h2 class="mb-4">Dasbor Mahasiswa</h2>
             
             {{-- ===== UPDATE BARU: Alert Notifikasi Evaluasi Dosen ===== --}}
-            {{-- Menggunakan logika langsung di View untuk memastikan alert muncul jika ada sesi aktif --}}
             @php
-                // Cek manual jika variabel controller belum tersedia
                 $cekSesiAktif = \App\Models\EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
                                 ->exists();
-                // Prioritaskan variabel dari controller jika ada ($periodeEvaluasiAktif), jika tidak pakai hasil cek manual
                 $tampilkanAlert = (isset($periodeEvaluasiAktif) && $periodeEvaluasiAktif) || $cekSesiAktif;
             @endphp
 
             @if($tampilkanAlert)
-                <div class="alert alert-primary d-flex align-items-center mb-4 shadow-sm" role="alert">
-                    <i class="fa-solid fa-bullhorn fs-3 me-3"></i>
+                <div class="alert alert-primary border border-primary border-2 rounded-0 d-flex align-items-center mb-4 shadow-sm p-4" role="alert">
+                    <i class="bi bi-megaphone-fill fs-2 me-4 text-primary"></i>
                     <div>
-                        <h5 class="alert-heading fw-bold mb-1">Periode Evaluasi Dosen Sedang Berlangsung!</h5>
-                        <p class="mb-0">
-                            Silakan isi kuesioner evaluasi untuk mata kuliah yang Anda ambil semester ini. 
-                            Masukan Anda sangat berharga.
+                        <h6 class="alert-heading fw-bold uppercase text-dark mb-1">Periode Evaluasi Dosen Sedang Berlangsung</h6>
+                        <p class="small text-muted uppercase mb-2">
+                            Silakan isi kuesioner evaluasi untuk mata kuliah yang Anda ambil semester ini guna meningkatkan mutu pengajaran.
                         </p>
-                        <a href="{{ route('evaluasi.index') }}" class="btn btn-sm btn-primary mt-2">
-                            <i class="fa-solid fa-pen-to-square"></i> Mulai Evaluasi Sekarang
+                        <a href="{{ route('evaluasi.index') }}" class="btn btn-sm btn-primary rounded-0 uppercase fw-bold small px-4 py-2">
+                            <i class="bi bi-pencil-square me-1"></i> Mulai Evaluasi Sekarang
                         </a>
                     </div>
                 </div>
@@ -40,69 +48,92 @@
             
             {{-- Notifikasi Tagihan --}}
             @if(isset($memiliki_tagihan) && $memiliki_tagihan)
-                <div class="alert alert-danger" role="alert">
-                    <strong>Perhatian!</strong> Anda memiliki tagihan pembayaran yang belum lunas.
-                    <a href="{{ route('pembayaran.riwayat') }}" class="alert-link">Lihat Riwayat Pembayaran</a> untuk melanjutkan proses akademik.
+                <div class="alert alert-danger border border-danger border-2 rounded-0 p-3 mb-4 shadow-sm small uppercase" role="alert">
+                    <strong class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>PERHATIAN:</strong> Anda memiliki tagihan kewajiban keuangan yang belum diselesaikan. 
+                    <a href="{{ route('pembayaran.riwayat') }}" class="alert-link text-underline fw-bold">Lihat Riwayat Pembayaran</a> untuk mengonfirmasi status.
                 </div>
             @endif
 
-            <div class="row">
+            <div class="row g-4 mb-5">
+                {{-- KANVAS KIRI: Identitas & Jadwal --}}
                 <div class="col-lg-8">
-                    {{-- Kartu Profil --}}
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Selamat Datang, {{ $mahasiswa->nama_lengkap }}!</h5>
-                            <hr>
-                            <div class="row">
+                    {{-- Kartu Profil Enterprise --}}
+                    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-white">
+                        <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                            Portofolio Akademik Mahasiswa
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-dark uppercase mb-3">{{ $mahasiswa->nama_lengkap }}</h5>
+                            <div class="row g-3 border-top pt-3">
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>NIM:</strong> {{ $mahasiswa->nim }}</p>
-                                    <p class="mb-1"><strong>Program Studi:</strong> {{ $mahasiswa->programStudi->nama_prodi }}</p>
+                                    <span class="small text-muted font-monospace uppercase d-block" style="font-size: 10px;">NOMOR INDUK MAHASISWA</span>
+                                    <strong class="text-primary font-monospace fs-6">{{ $mahasiswa->nim }}</strong>
+                                    
+                                    <span class="small text-muted font-monospace uppercase d-block mt-2" style="font-size: 10px;">PROGRAM STUDI</span>
+                                    <strong class="text-dark uppercase small">{{ optional($mahasiswa->programStudi)->nama_prodi ?? '-' }}</strong>
                                 </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Dosen Wali:</strong> {{ $mahasiswa->dosenWali->nama_lengkap ?? 'Belum ditentukan' }}</p>
-                                    <p class="mb-1"><strong>Status KRS:</strong> 
-                                        <span class="badge 
-                                            @if($mahasiswa->status_krs == 'Disetujui') bg-success
-                                            @elseif($mahasiswa->status_krs == 'Ditolak') bg-danger
-                                            @elseif($mahasiswa->status_krs == 'Menunggu Persetujuan') bg-warning text-dark
-                                            @else bg-secondary @endif">
-                                            {{ $mahasiswa->status_krs ?? 'Belum Mengisi' }}
+                                <div class="col-md-6 border-start ps-md-4">
+                                    <span class="small text-muted font-monospace uppercase d-block" style="font-size: 10px;">DOSEN PEMBIMBING WALI</span>
+                                    <strong class="text-dark uppercase small">{{ optional($mahasiswa->dosenWali)->nama_lengkap ?? 'BELUM DITENTUKAN' }}</strong>
+                                    
+                                    <span class="small text-muted font-monospace uppercase d-block mt-2" style="font-size: 10px;">STATUS PERSETUJUAN KRS</span>
+                                    <div class="mt-1">
+                                        @php
+                                            $krsClass = match($mahasiswa->status_krs) {
+                                                'Disetujui' => 'bg-success text-white',
+                                                'Ditolak' => 'bg-danger text-white',
+                                                'Menunggu Persetujuan' => 'bg-warning text-dark',
+                                                default => 'bg-secondary text-white'
+                                            };
+                                        @endphp
+                                        <span class="badge {{ $krsClass }} rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">
+                                            {{ $mahasiswa->status_krs ?? 'BELUM MENGISI' }}
                                         </span>
-                                    </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Tabel Jadwal Kuliah --}}
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Jadwal Kuliah Semester Ini</h5>
+                    {{-- Tabel Rincian Jadwal Kuliah --}}
+                    <div class="card border-0 shadow-sm rounded-0">
+                        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+                            Jadwal Perkuliahan Terdaftar Semester Ini
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
                                         <tr>
-                                            <th>Hari</th>
-                                            <th>Jam</th>
-                                            <th>Mata Kuliah</th>
-                                            <th>SKS</th>
-                                            <th>Dosen</th>
+                                            <th style="width: 15%;">HARI</th>
+                                            <th style="width: 20%;">JAM (WIT)</th>
+                                            <th class="text-start">MATA KULIAH</th>
+                                            <th style="width: 8%;">SKS</th>
+                                            <th class="text-start" style="width: 25%;">PENGAMPU</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody class="small text-dark">
                                         @forelse ($jadwalKuliah as $jadwal)
                                             <tr>
-                                                <td>{{ $jadwal->hari }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
-                                                <td>{{ $jadwal->mataKuliah->nama_mk }}</td>
-                                                <td>{{ $jadwal->mataKuliah->sks }}</td>
-                                                <td>{{ $jadwal->mataKuliah->dosen->nama_lengkap ?? 'N/A' }}</td>
+                                                <td class="text-center fw-bold uppercase">{{ $jadwal->hari }}</td>
+                                                <td class="text-center font-monospace text-muted">
+                                                    {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}
+                                                </td>
+                                                <td class="text-start uppercase fw-bold text-dark">
+                                                    {{ optional($jadwal->mataKuliah)->nama_mk ?? '-' }}
+                                                </td>
+                                                <td class="text-center font-monospace fw-bold text-primary">
+                                                    {{ optional($jadwal->mataKuliah)->sks ?? 0 }}
+                                                </td>
+                                                <td class="text-start uppercase text-muted" style="font-size: 11px;">
+                                                    {{ optional(optional($jadwal->mataKuliah)->dosen)->nama_lengkap ?? 'N/A' }}
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center py-3">Anda belum mengambil KRS untuk semester ini atau KRS belum disetujui.</td>
+                                                <td colspan="5" class="text-center py-4 uppercase fw-bold text-muted small">
+                                                    Anda belum mengambil KRS pada semester aktif atau KRS belum disahkan wali.
+                                                </td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -112,145 +143,173 @@
                     </div>
                 </div>
 
+                {{-- KANVAS KANAN: Pintasan, Metrik, & Warta --}}
                 <div class="col-lg-4">
-                    {{-- Kartu Aksi Cepat --}}
-                    <div class="card mb-4">
-                        <div class="card-header fw-bold">Aksi Cepat</div>
-                        <div class="list-group list-group-flush">
+                    {{-- Metrik Indeks Kumulatif (Monospace & Siku) --}}
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="bg-light border border-dark border-opacity-25 rounded-0 p-3 text-center">
+                                <span class="small text-muted font-monospace uppercase d-block" style="font-size: 10px;">IPK KUMULATIF</span>
+                                <span class="fs-3 fw-bold font-monospace text-dark">{{ number_format($ipk, 2) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light border border-dark border-opacity-25 rounded-0 p-3 text-center">
+                                <span class="small text-muted font-monospace uppercase d-block" style="font-size: 10px;">SKS DISAHKAN</span>
+                                <span class="fs-3 fw-bold font-monospace text-primary">{{ $total_sks }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Bilah Aksi Cepat --}}
+                    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
+                        <div class="card-header bg-light text-dark rounded-0 py-3 uppercase fw-bold small border-bottom">
+                            Pintasan Operasional
+                        </div>
+                        <div class="list-group list-group-flush rounded-0">
                             @if(isset($periodeKrsAktif) && $periodeKrsAktif && $mahasiswa->status_krs !== 'Disetujui')
-                                <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action list-group-item-primary">
-                                    <strong>Isi / Ubah Kartu Rencana Studi (KRS)</strong>
-                                    <small class="d-block text-muted">Periode KRS sedang berlangsung.</small>
+                                <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action rounded-0 p-3 border-start border-primary border-4 bg-light">
+                                    <strong class="uppercase small fw-bold text-primary d-block">Pengisian / Revisi KRS</strong>
+                                    <span class="font-monospace text-muted" style="font-size: 10px;">JALUR PERWALIAN TERBUKA</span>
                                 </a>
                             @endif
 
-                            {{-- Tombol Evaluasi (Redundan jika sudah ada alert, tapi tetap bagus disimpan) --}}
                             @if($tampilkanAlert)
-                                <a href="{{ route('evaluasi.index') }}" class="list-group-item list-group-item-action list-group-item-success">
-                                    <strong>Isi Kuesioner Evaluasi Dosen</strong>
-                                    <small class="d-block text-muted">Bantu tingkatkan kualitas pengajaran.</small>
+                                <a href="{{ route('evaluasi.index') }}" class="list-group-item list-group-item-action rounded-0 p-3 border-start border-success border-4 bg-light">
+                                    <strong class="uppercase small fw-bold text-success d-block">Kuesioner Mutu (EDOM)</strong>
+                                    <span class="font-monospace text-muted" style="font-size: 10px;">SURVEI WAJIB SEMESTER</span>
                                 </a>
                             @endif
                             
-                            <a href="{{ route('khs.index') }}" class="list-group-item list-group-item-action">Lihat Kartu Hasil Studi (KHS)</a>
-                            <a href="{{ route('transkrip.index') }}" class="list-group-item list-group-item-action">Lihat Transkrip Nilai</a>
+                            <a href="{{ route('khs.index') }}" class="list-group-item list-group-item-action rounded-0 px-3 py-2 small uppercase fw-bold text-dark">
+                                <i class="bi bi-chevron-right me-1 text-muted"></i> Kartu Hasil Studi (KHS)
+                            </a>
+                            <a href="{{ route('transkrip.index') }}" class="list-group-item list-group-item-action rounded-0 px-3 py-2 small uppercase fw-bold text-dark">
+                                <i class="bi bi-chevron-right me-1 text-muted"></i> Transkrip Akademik Sementara
+                            </a>
                         </div>
                     </div>
 
-                    {{-- Kartu IPK --}}
-                    <div class="card text-center bg-primary text-white mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">IPK Kumulatif</h5>
-                            <p class="card-text display-4 fw-bold">{{ number_format($ipk, 2) }}</p>
+                    {{-- Pengumuman Sistem --}}
+                     <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4">
+                        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+                            Warta Pengumuman Internal
                         </div>
-                    </div>
-                    {{-- Kartu SKS --}}
-                    <div class="card text-center bg-info text-white mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Total SKS Lulus</h5>
-                            <p class="card-text display-4 fw-bold">{{ $total_sks }}</p>
-                        </div>
-                    </div>
-                    {{-- Kartu Pengumuman --}}
-                     <div class="card">
-                        <div class="card-header">Pengumuman Terbaru</div>
-                        <div class="list-group list-group-flush">
+                        <div class="list-group list-group-flush rounded-0">
                             @forelse($pengumuman as $p)
-                                <a href="#" class="list-group-item list-group-item-action">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">{{ $p->judul }}</h6>
-                                    </div>
-                                    <small class="text-muted">{{ $p->created_at->isoFormat('D MMMM YYYY') }}</small>
-                                </a>
+                                <div class="list-group-item rounded-0 p-3">
+                                    <h6 class="uppercase fw-bold text-dark small mb-1">{{ $p->judul }}</h6>
+                                    <span class="font-monospace text-muted" style="font-size: 10px;">
+                                        DIPUBLIKASIKAN: {{ $p->created_at->format('d/m/Y') }}
+                                    </span>
+                                </div>
                             @empty
-                                <div class="list-group-item text-muted">Belum ada pengumuman.</div>
+                                <div class="list-group-item rounded-0 p-4 text-center text-muted small uppercase font-monospace">
+                                    TIDAK ADA PENGUMUMAN BARU.
+                                </div>
                             @endforelse
                         </div>
                     </div>
                 </div>
             </div>
             
-            {{-- Grafik Tren IP --}}
-            <div class="row mt-2">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Grafik Tren Indeks Prestasi (IP) per Semester</h5>
-                            <canvas id="grafikIPS"></canvas>
-                        </div>
-                    </div>
+            {{-- Grafik Analisis Tren Kinerja --}}
+            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
+                <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+                    Grafik Tren Indeks Prestasi Semester (IPS)
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="grafikIPS" height="250"></canvas>
                 </div>
             </div>
         @else
-             <div class="alert alert-warning">Data mahasiswa Anda tidak ditemukan. Silakan hubungi administrator.</div>
+             <div class="alert alert-warning border rounded-0 font-monospace small uppercase p-3">
+                 Data master portofolio mahasiswa Anda tidak ditemukan. Silakan hubungi bagian BAAK.
+             </div>
         @endif
-        <hr class="my-4">
     @endif
 
     {{-- ============================================================== --}}
     {{-- TAMPILAN DASHBOARD DOSEN --}}
     {{-- ============================================================== --}}
     @if(Auth::user()->hasRole('dosen'))
-        <h2 class="mb-4">Dasbor Dosen</h2>
-        <div class="alert alert-info">Selamat datang, Bapak/Ibu Dosen. Silakan gunakan menu di atas untuk mengelola perwalian atau perkuliahan.</div>
+        <div class="alert alert-light border border-dark border-opacity-25 rounded-0 p-4 mb-4 shadow-sm">
+            <h6 class="uppercase fw-bold small text-dark mb-2">Dasbor Tenaga Pendidik</h6>
+            <p class="small mb-0 text-muted uppercase font-monospace">
+                Selamat datang. Silakan gunakan menu navigasi utama untuk mengelola perwalian, ruang virtual (Verum), serta entri penilaian akademik.
+            </p>
+        </div>
     @endif
     
+    {{-- ============================================================== --}}
+    {{-- TAMPILAN DASHBOARD ADMIN --}}
+    {{-- ============================================================== --}}
     @if(Auth::user()->hasRole('admin'))
-        <h2 class="mb-4">Dasbor Administrator</h2>
-        <p>Selamat datang, Administrator. Gunakan menu navigasi di atas untuk mengelola sistem.</p>
+        <div class="alert alert-light border border-dark border-opacity-25 rounded-0 p-4 mb-4 shadow-sm">
+            <h6 class="uppercase fw-bold small text-dark mb-2">Dasbor Administrator Sistem</h6>
+            <p class="small mb-0 text-muted uppercase font-monospace">
+                Selamat bekerja. Ruang kendali master data, penjaminan mutu, konfigurasi institusi, dan sirkulasi keuangan terpusat aktif beroperasi.
+            </p>
+        </div>
     @endif
-
 </div>
 @endsection
 
 @push('scripts')
-    {{-- Script ini hanya akan di-load jika user yang login adalah mahasiswa --}}
     @if(Auth::user()->hasRole('mahasiswa') && isset($dataGrafik))
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            const dataGrafik = @json($dataGrafik);
-            const ctx = document.getElementById('grafikIPS').getContext('2d');
-            
-            if (dataGrafik.labels.length > 0) {
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: dataGrafik.labels,
-                        datasets: [{
-                            label: 'IP Semester',
-                            data: dataGrafik.data,
-                            borderColor: 'rgb(54, 162, 235)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            fill: true,
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 4.0,
-                                title: {
-                                    display: true,
-                                    text: 'Nilai IP'
-                                }
+            document.addEventListener('DOMContentLoaded', function () {
+                const dataGrafik = @json($dataGrafik);
+                const ctx = document.getElementById('grafikIPS').getContext('2d');
+                
+                // Set tipografi global grafik menggunakan monospace
+                Chart.defaults.font.family = "'font-monospace', monospace";
+                
+                if (dataGrafik.labels && dataGrafik.labels.length > 0) {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: dataGrafik.labels,
+                            datasets: [{
+                                label: 'CAPAIAN IPS',
+                                data: dataGrafik.data,
+                                borderColor: '#212529',
+                                backgroundColor: 'rgba(33, 37, 41, 0.05)',
+                                fill: true,
+                                borderWidth: 2,
+                                pointBackgroundColor: '#0d6efd',
+                                pointRadius: 4,
+                                tension: 0 // Garis patah presisi tanpa lengkungan
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
                             },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Semester'
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 4.0,
+                                    ticks: { font: { weight: 'bold' } },
+                                    grid: { color: '#dee2e6' }
+                                },
+                                x: {
+                                    ticks: { font: { weight: 'bold' } },
+                                    grid: { display: false }
                                 }
                             }
                         }
-                    }
-                });
-            } else {
-                ctx.font = "16px Arial";
-                ctx.fillStyle = "#888";
-                ctx.textAlign = "center";
-                ctx.fillText("Data IP Semester belum tersedia untuk ditampilkan.", ctx.canvas.width / 2, ctx.canvas.height / 2);
-            }
+                    });
+                } else {
+                    ctx.font = "bold 12px monospace";
+                    ctx.fillStyle = "#6c757d";
+                    ctx.textAlign = "center";
+                    ctx.fillText("DATA HISTORIS IPS BELUM TERSEDIA.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                }
+            });
         </script>
     @endif
 @endpush

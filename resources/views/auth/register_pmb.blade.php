@@ -52,6 +52,19 @@
                 </div>
 
                 <div>
+                    <x-input-label for="pilihan_prodi_1_id" :value="__('Minat Program Studi')" />
+                    <select id="pilihan_prodi_1_id" name="pilihan_prodi_1_id" class="block mt-1 w-full border-gray-300 focus:border-teal-500 focus:ring-teal-500 rounded-md shadow-sm" required>
+                        <option value="" disabled selected>-- Pilih Program Studi --</option>
+                        @foreach($prodis as $prodi)
+                            <option value="{{ $prodi->id }}" {{ old('pilihan_prodi_1_id') == $prodi->id ? 'selected' : '' }}>
+                                {{ $prodi->nama_prodi }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('pilihan_prodi_1_id')" class="mt-2" />
+                </div>
+
+                <div>
                     <x-input-label for="password" :value="__('Password')" />
                     <x-text-input id="password" class="block mt-1 w-full border-gray-300 focus:ring-teal-600" type="password" name="password" required autocomplete="new-password" />
                     <x-input-error :messages="$errors->get('password')" class="mt-2" />

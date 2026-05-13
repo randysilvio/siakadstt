@@ -1,70 +1,82 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-0 fw-bold">Catat Peminjaman Baru</h2>
-                    <p class="text-muted mb-0">Input data transaksi peminjaman buku.</p>
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Catat Peminjaman Buku</h3>
+            <span class="text-muted small uppercase">Input Data Transaksi Peminjaman Pustaka & Alokasi Peminjam</span>
+        </div>
+        <div>
+            <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Kembali
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 col-md-8 mx-auto mb-5">
+        <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+            Formulir Parameter Transaksi Sirkulasi
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" action="{{ route('perpustakaan.peminjaman.store') }}">
+                @csrf
+                
+                {{-- Data Peminjam --}}
+                <div class="mb-4">
+                    <label for="user_id" class="form-label small fw-bold uppercase text-dark">Data Peminjam <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-person-badge text-dark"></i></span>
+                        <select class="form-select select2 rounded-0 uppercase" id="user_id" name="user_id" required>
+                            <option value="" disabled selected>-- CARI NAMA PENGGUNA ATAU EMAIL... --</option>
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-                <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Kembali
-                </a>
-            </div>
 
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-                    <form method="POST" action="{{ route('perpustakaan.peminjaman.store') }}">
-                        @csrf
-                        
-                        <div class="mb-4">
-                            <label for="user_id" class="form-label fw-bold">Data Peminjam</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
-                                <select class="form-select select2" id="user_id" name="user_id" required>
-                                    <option value="" disabled selected>Cari nama mahasiswa atau dosen...</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="koleksi_id" class="form-label fw-bold">Buku yang Dipinjam</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-book"></i></span>
-                                <select class="form-select select2" id="koleksi_id" name="koleksi_id" required>
-                                    <option value="" disabled selected>Cari judul buku...</option>
-                                    @foreach($koleksi as $buku)
-                                        <option value="{{ $buku->id }}" {{ $buku->jumlah_tersedia <= 0 ? 'disabled' : '' }}>
-                                            {{ $buku->judul }} 
-                                            @if($buku->jumlah_tersedia <= 0) (Stok Habis) @else (Sisa: {{ $buku->jumlah_tersedia }}) @endif
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="jatuh_tempo" class="form-label fw-bold">Tanggal Jatuh Tempo</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-calendar-event"></i></span>
-                                <input type="date" class="form-control" id="jatuh_tempo" name="jatuh_tempo" value="{{ now()->addDays(7)->toDateString() }}" required>
-                            </div>
-                            <div class="form-text text-muted">Secara default diatur 7 hari dari sekarang.</div>
-                        </div>
-
-                        <div class="d-flex justify-content-end pt-3 border-top mt-2">
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
-                                <i class="bi bi-save me-1"></i> Simpan Transaksi
-                            </button>
-                        </div>
-                    </form>
+                {{-- Data Koleksi Buku --}}
+                <div class="mb-4">
+                    <label for="koleksi_id" class="form-label small fw-bold uppercase text-dark">Buku yang Dipinjam <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-book text-dark"></i></span>
+                        <select class="form-select select2 rounded-0 uppercase" id="koleksi_id" name="koleksi_id" required>
+                            <option value="" disabled selected>-- CARI JUDUL BUKU ATAU KODE... --</option>
+                            @foreach($koleksi as $buku)
+                                <option value="{{ $buku->id }}" {{ $buku->jumlah_tersedia <= 0 ? 'disabled' : '' }}>
+                                    {{ $buku->judul }} 
+                                    @if($buku->jumlah_tersedia <= 0) 
+                                        (STOK HABIS) 
+                                    @else 
+                                        (SISA STOK: {{ $buku->jumlah_tersedia }}) 
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
-            </div>
+
+                {{-- Tanggal Jatuh Tempo --}}
+                <div class="mb-4">
+                    <label for="jatuh_tempo" class="form-label small fw-bold uppercase text-dark">Tanggal Jatuh Tempo <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-calendar-event text-dark"></i></span>
+                        <input type="date" class="form-control rounded-0 font-monospace text-primary fw-bold text-center" id="jatuh_tempo" name="jatuh_tempo" value="{{ now()->addDays(7)->toDateString() }}" required>
+                    </div>
+                    <div class="form-text text-muted small uppercase mt-1">
+                        * Secara default sistem mengalokasikan durasi peminjaman selama 7 hari kalender.
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end pt-4 mt-4 border-top">
+                    <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
+                        Simpan Transaksi
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -82,8 +94,7 @@
         $(document).ready(function() {
             $('.select2').select2({
                 theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: $(this).data('placeholder'),
+                width: '100%'
             });
         });
     </script>

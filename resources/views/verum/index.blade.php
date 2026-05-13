@@ -1,102 +1,90 @@
 @extends('layouts.app')
 
-@push('styles')
-<style>
-    .class-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    .class-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
-    }
-    .card-title a {
-        text-decoration: none;
-        color: inherit;
-    }
-    .card-title a:hover {
-        color: #0d6efd; /* Bootstrap primary color */
-    }
-</style>
-@endpush
-
 @section('content')
-<div class="container">
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-5">
+<div class="container-fluid px-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h2 class="fw-bold mb-0 text-dark">Kelas Verum (E-Learning)</h2>
-            <p class="text-muted mb-0">Kelola pembelajaran daring Anda di sini.</p>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Kelas Verum (E-Learning)</h3>
+            <span class="text-muted small uppercase">Daftar Pengelolaan Ruang Kelas Virtual & Pertemuan Terpusat</span>
         </div>
         
         @if(Auth::user()->hasRole('dosen'))
-            <a href="{{ route('verum.create') }}" class="btn btn-primary shadow-sm px-4">
-                <i class="bi bi-plus-lg me-2"></i>Buat Kelas Baru
-            </a>
+            <div>
+                <a href="{{ route('verum.create') }}" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Buat Kelas Baru
+                </a>
+            </div>
         @endif
     </div>
 
     {{-- Pesan Notifikasi --}}
     @if(session('error'))
-        <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4">
-            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
-            <div>{{ session('error') }}</div>
+        <div class="alert alert-danger border rounded-0 p-3 mb-4 font-monospace small uppercase shadow-sm">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
         </div>
     @endif
     
     @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm d-flex align-items-center mb-4">
-            <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
-            <div>{{ session('success') }}</div>
+        <div class="alert alert-success border rounded-0 p-3 mb-4 font-monospace small uppercase shadow-sm">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
         </div>
     @endif
 
-    {{-- Konten Utama --}}
+    {{-- Konten Utama Grid Kelas --}}
     @if($semuaKelas->isEmpty() && !session('error'))
-        <div class="text-center py-5">
-            <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="120" class="mb-3 opacity-50" alt="Empty State">
-            <h5 class="text-muted fw-bold">Belum Ada Kelas</h5>
-            <p class="text-muted">Anda belum terdaftar di kelas Verum manapun pada tahun akademik ini.</p>
+        <div class="text-center py-5 bg-light border border-dark border-opacity-25 rounded-0 mb-5">
+            <i class="bi bi-journal-x fs-2 d-block mb-2 text-dark opacity-25"></i>
+            <h6 class="uppercase fw-bold text-dark mb-1">Belum Ada Kelas Terdaftar</h6>
+            <p class="text-muted small uppercase font-monospace mb-0">Anda belum dialokasikan pada kelas Verum manapun di siklus akademik berjalan.</p>
         </div>
     @else
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
             @foreach($semuaKelas as $kelas)
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm class-card overflow-hidden">
-                        {{-- Hiasan Header Kartu --}}
-                        <div class="card-header border-0 py-3 text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25">
+                    {{-- Kartu Kelas Standar Enterprise 0px --}}
+                    <div class="card h-100 border border-dark border-opacity-25 rounded-0 shadow-none border-top border-dark border-4 bg-white">
+                        {{-- Header Kartu Formal Gelap --}}
+                        <div class="card-header bg-dark text-white rounded-0 py-3 border-bottom-0">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-light text-dark rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">
                                     {{ optional($kelas->mataKuliah)->kode_mk ?? 'KODE' }}
                                 </span>
                                 @if($kelas->is_meeting_active)
-                                    <span class="badge bg-danger animate-pulse"><i class="bi bi-record-circle me-1"></i> LIVE</span>
+                                    <span class="badge bg-danger text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1 blink shadow-none" style="font-size: 10px;">
+                                        <i class="bi bi-record-circle me-1"></i> LIVE VICON
+                                    </span>
                                 @endif
                             </div>
-                            <h5 class="card-title fw-bold mt-2 mb-0 text-truncate">
-                                <a href="{{ route('verum.show', $kelas) }}" class="text-white stretched-link">
+                            <h6 class="fw-bold mb-0 text-white uppercase line-clamp-2" style="line-height: 1.35;">
+                                <a href="{{ route('verum.show', $kelas) }}" class="text-white text-decoration-none stretched-link">
                                     {{ $kelas->nama_kelas }}
                                 </a>
-                            </h5>
+                            </h6>
                         </div>
 
-                        <div class="card-body">
-                            <h6 class="text-primary fw-bold mb-2">{{ optional($kelas->mataKuliah)->nama_mk }}</h6>
-                            <p class="card-text text-muted small mb-0 line-clamp-2">
-                                {{ $kelas->deskripsi ? Str::limit($kelas->deskripsi, 80) : 'Tidak ada deskripsi kelas.' }}
+                        {{-- Uraian Mata Kuliah --}}
+                        <div class="card-body p-4 flex-grow-1 bg-white">
+                            <h6 class="text-primary fw-bold small uppercase mb-2 line-clamp-1">
+                                {{ optional($kelas->mataKuliah)->nama_mk }}
+                            </h6>
+                            <p class="text-dark small uppercase mb-0 line-clamp-2" style="line-height: 1.6; text-align: justify;">
+                                {{ $kelas->deskripsi ? $kelas->deskripsi : 'TIDAK ADA DESKRIPSI KELAS.' }}
                             </p>
                         </div>
                         
-                        <div class="card-footer bg-white border-top py-3 d-flex align-items-center">
-                            <div class="bg-light rounded-circle p-2 me-2 text-secondary">
+                        {{-- Identitas Pengampu / Akses --}}
+                        <div class="card-footer bg-light border-top border-dark border-opacity-25 rounded-0 p-3 d-flex align-items-center">
+                            <div class="bg-white border border-dark border-opacity-25 rounded-0 p-2 me-3 text-dark d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
                                 <i class="bi bi-person-fill"></i>
                             </div>
                             <div class="small text-truncate">
                                 @if(Auth::user()->hasRole('mahasiswa'))
-                                    <span class="text-muted d-block" style="font-size: 0.7rem;">PENGAJAR</span>
-                                    <span class="fw-bold text-dark">{{ optional(optional($kelas->dosen)->user)->name ?? 'Dosen Pengampu' }}</span>
+                                    <span class="text-muted font-monospace uppercase d-block" style="font-size: 10px;">PENGAJAR UTAMA</span>
+                                    <span class="fw-bold text-dark uppercase fs-6">{{ optional(optional($kelas->dosen)->user)->name ?? 'DOSEN PENGAMPU' }}</span>
                                 @else
-                                    <span class="text-muted d-block" style="font-size: 0.7rem;">KODE KELAS</span>
-                                    <span class="fw-bold text-dark">{{ $kelas->kode_kelas }}</span>
+                                    <span class="text-muted font-monospace uppercase d-block" style="font-size: 10px;">KODE AKSES KELAS</span>
+                                    <span class="fw-bold text-dark font-monospace fs-6">{{ $kelas->kode_kelas }}</span>
                                 @endif
                             </div>
                         </div>
@@ -106,4 +94,11 @@
         </div>
     @endif
 </div>
+
+<style>
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .blink { animation: blink 1.5s linear infinite; }
+</style>
 @endsection

@@ -1,35 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-0 fw-bold">Manajemen Sesi Evaluasi</h2>
-            <p class="text-muted mb-0">Atur periode evaluasi dosen yang aktif.</p>
+            <h3 class="mb-0 text-dark fw-bold">Manajemen Periode Evaluasi Dosen</h3>
+            <span class="text-muted small">Registrasi jadwal dan masa aktif pengisian kuesioner EDOM</span>
         </div>
-        <a href="{{ route('admin.evaluasi-sesi.create') }}" class="btn btn-primary shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Tambah Sesi Baru
+        <a href="{{ route('admin.evaluasi-sesi.create') }}" class="btn btn-primary">
+            <i class="bi bi-calendar-plus me-2"></i>Buka Sesi Baru
         </a>
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success border-0 bg-success text-white py-2 px-3 rounded-1 mb-4" role="alert">
+            {{ session('success') }}
         </div>
     @endif
 
-    <div class="card shadow-sm border-0">
+    <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-secondary">
+                    <thead class="table-light border-bottom">
                         <tr>
-                            <th class="ps-4">Nama Sesi</th>
-                            <th>Tahun Akademik</th>
-                            <th>Periode Aktif</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-end pe-4" style="width: 150px;">Aksi</th>
+                            <th class="text-muted small ps-4">IDENTITAS SESI (PERIODE EVALUASI)</th>
+                            <th class="text-muted small">TAHUN AKADEMIK TERKAIT</th>
+                            <th class="text-muted small">RENTANG WAKTU PELAKSANAAN</th>
+                            <th class="text-center text-muted small" style="width: 120px;">STATUS</th>
+                            <th class="text-end text-muted small pe-4" style="width: 150px;">TINDAKAN</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -37,49 +36,34 @@
                             <tr>
                                 <td class="ps-4 fw-bold text-dark">{{ $item->nama_sesi }}</td>
                                 <td>
-                                    <span class="badge bg-light text-dark border fw-normal">
-                                        {{ $item->tahunAkademik->tahun }}
-                                    </span>
-                                    <small class="text-muted ms-1">({{ $item->tahunAkademik->semester }})</small>
+                                    <span class="text-dark fw-semibold">TA {{ $item->tahunAkademik->tahun ?? '-' }}</span><br>
+                                    <span class="text-muted small">Semester {{ $item->tahunAkademik->semester ?? '-' }}</span>
                                 </td>
                                 <td>
-                                    <div class="d-flex flex-column small">
-                                        <span class="text-muted"><i class="bi bi-calendar-event me-1"></i> Mulai: {{ \Carbon\Carbon::parse($item->tanggal_mulai)->isoFormat('D MMM Y') }}</span>
-                                        <span class="text-muted"><i class="bi bi-calendar-check me-1"></i> Selesai: {{ \Carbon\Carbon::parse($item->tanggal_selesai)->isoFormat('D MMM Y') }}</span>
+                                    <div class="font-monospace text-muted small">
+                                        Mulai: {{ \Carbon\Carbon::parse($item->tanggal_mulai)->translatedFormat('d M Y') }}<br>
+                                        Akhir: {{ \Carbon\Carbon::parse($item->tanggal_selesai)->translatedFormat('d M Y') }}
                                     </div>
                                 </td>
                                 <td class="text-center">
                                     @if ($item->is_active)
-                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Aktif
-                                        </span>
+                                        <span class="badge bg-success rounded-1 px-2">AKTIF</span>
                                     @else
-                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">
-                                            <i class="bi bi-dash-circle me-1"></i> Non-Aktif
-                                        </span>
+                                        <span class="badge bg-secondary rounded-1 px-2">NON-AKTIF</span>
                                     @endif
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="btn-group">
-                                        <a href="{{ route('admin.evaluasi-sesi.edit', $item->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <form action="{{ route('admin.evaluasi-sesi.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus sesi evaluasi ini? Data jawaban mungkin ikut terhapus.');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    <a href="{{ route('admin.evaluasi-sesi.edit', $item->id) }}" class="btn btn-sm btn-light border text-dark me-1" title="Edit Jadwal">Edit</a>
+                                    <form action="{{ route('admin.evaluasi-sesi.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Peringatan: Menghapus sesi evaluasi ini akan menghapus seluruh data kuesioner yang telah diisi mahasiswa pada periode tersebut secara permanen. Lanjutkan?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus Permanen">Hapus</button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-50"></i>
-                                    Belum ada sesi evaluasi yang dibuat.
-                                </td>
+                                <td colspan="5" class="text-center py-5 text-muted">Belum terdapat catatan periode evaluasi dosen yang didaftarkan.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -87,7 +71,7 @@
             </div>
         </div>
         @if($sesi->hasPages())
-            <div class="card-footer bg-white border-top">
+            <div class="card-footer bg-white border-top py-3">
                 {{ $sesi->links() }}
             </div>
         @endif

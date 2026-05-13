@@ -8,12 +8,13 @@ use App\Models\Camaba;
 use App\Models\PmbPeriod;
 use App\Models\Pembayaran;
 use App\Models\Role;
+use App\Models\ProgramStudi; // [TAMBAHAN] Import Model Program Studi
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
-use App\Notifications\GeneralNotification; // [TAMBAHAN]
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\GeneralNotification;
 
 class PmbRegisterController extends Controller
 {
@@ -24,8 +25,10 @@ class PmbRegisterController extends Controller
     {
         // Cari Gelombang PMB yang sedang aktif
         $periodeAktif = PmbPeriod::where('is_active', true)->first();
+        // Ambil daftar prodi untuk dropdown
+        $prodis = ProgramStudi::all(); 
         
-        return view('auth.register_pmb', compact('periodeAktif'));
+        return view('auth.register_pmb', compact('periodeAktif', 'prodis'));
     }
 
     /**
@@ -39,6 +42,7 @@ class PmbRegisterController extends Controller
             'no_hp' => 'required|string|max:15',
             'password' => 'required|string|min:8|confirmed',
             'pmb_period_id' => 'required|exists:pmb_periods,id',
+            'pilihan_prodi_1_id' => 'required|exists:program_studis,id', // [TAMBAHAN] Validasi Prodi
         ]);
 
         DB::beginTransaction();
@@ -65,6 +69,7 @@ class PmbRegisterController extends Controller
                 'pmb_period_id' => $periode->id,
                 'no_pendaftaran' => $noPendaftaran,
                 'no_hp' => $request->no_hp,
+                'pilihan_prodi_1_id' => $request->pilihan_prodi_1_id, // [TAMBAHAN] Simpan pilihan Prodi
                 'status_pendaftaran' => 'draft', 
             ]);
 
@@ -81,7 +86,7 @@ class PmbRegisterController extends Controller
 
             DB::commit();
 
-            // [TAMBAHAN] Kirim Notifikasi ke semua Admin
+            // Kirim Notifikasi ke semua Admin
             $admins = User::whereHas('roles', function($q) { $q->where('name', 'admin'); })->get();
             Notification::send($admins, new GeneralNotification(
                 'Pendaftar PMB Baru!', 

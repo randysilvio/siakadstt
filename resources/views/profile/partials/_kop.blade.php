@@ -1,8 +1,9 @@
 <style>
-    /* Styling khusus untuk Kop Surat */
+    /* STYLING KAKU & FORMAL KOP SURAT (0PX PRESISI) */
     .kop-container {
         width: 100%;
         margin-bottom: 20px;
+        background-color: #ffffff;
     }
     .kop-table {
         width: 100%;
@@ -12,6 +13,7 @@
     .kop-table td {
         border: none;
         vertical-align: middle;
+        padding: 0;
     }
     .logo-cell {
         width: 15%;
@@ -20,36 +22,45 @@
     .text-cell {
         width: 85%;
         text-align: center;
-        line-height: 1.2; /* Mengatur jarak antar baris */
+        line-height: 1.25;
     }
     .kop-org {
         font-size: 14px;
         font-weight: bold;
         text-transform: uppercase;
         margin-bottom: 2px;
+        color: #000000;
     }
     .kop-inst {
-        font-size: 18px; /* Ukuran font nama kampus lebih besar */
+        font-size: 18px;
         font-weight: bold;
         text-transform: uppercase;
-        margin-bottom: 5px;
-        color: #000; /* Atau warna biru tua jika ingin berwarna */
+        margin-bottom: 4px;
+        color: #000000;
+        letter-spacing: 0.5px;
     }
     .kop-address {
         font-size: 11px;
         font-style: normal;
+        text-transform: uppercase;
+        color: #212529;
     }
     .kop-contact {
         font-size: 10px;
-        font-style: italic;
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-top: 3px;
+        color: #000000;
     }
-    /* Garis Ganda di bawah kop (Khas surat resmi Indonesia) */
+    /* Pembatas Bawah Standar Dokumen Enterprise Indonesia */
     .kop-line {
-        border-top: 3px solid black;
-        border-bottom: 1px solid black;
+        border-top: 3px solid #000000;
+        border-bottom: 1px solid #000000;
         height: 2px;
-        margin-top: 8px;
-        margin-bottom: 5px;
+        margin-top: 10px;
+        margin-bottom: 6px;
+        background-color: transparent;
     }
 </style>
 
@@ -57,23 +68,19 @@
     <table class="kop-table">
         <tr>
             <td class="logo-cell">
-                {{-- 
-                    PENTING UNTUK DOMPDF:
-                    Gunakan public_path() agar gambar terbaca saat generate PDF.
-                    Pastikan file ada di folder public/assets/images/logo-stt.png 
-                --}}
-                <img src="{{ public_path('assets/images/logo-stt.png') }}" alt="Logo STT" style="width: 80px; height: auto;">
+                {{-- Penarikan aset fisik gambar mutlak untuk rendering DOMPDF --}}
+                <img src="{{ public_path('assets/images/logo-stt.png') }}" alt="Logo Institusi" style="width: 80px; height: auto;">
             </td>
 
             <td class="text-cell">
                 <div class="kop-org">GEREJA PROTESTAN INDONESIA DI PAPUA</div>
                 <div class="kop-inst">SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA</div>
                 <div class="kop-address">
-                    Jl. Jend. A. Yani, Fakfak, Papua Barat<br>
-                    Terakreditasi BAN-PT
+                    JL. JEND. A. YANI, FAKFAK, PAPUA BARAT<br>
+                    TERAKREDITASI RESMI BAN-PT
                 </div>
                 <div class="kop-contact">
-                    Website: www.sttgpipapua.ac.id | Email: admin@sttgpipapua.ac.id
+                    WEBSITE: WWW.STTGPIPAPUA.AC.ID | EMAIL: ADMIN@STTGPIPAPUA.AC.ID
                 </div>
             </td>
         </tr>

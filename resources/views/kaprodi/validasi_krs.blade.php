@@ -1,89 +1,89 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
     {{-- Header & Navigasi --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h2 class="mb-0 fw-bold">Validasi KRS Mahasiswa</h2>
-            <p class="text-muted mb-0">Tinjau rencana studi mahasiswa semester ini.</p>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Validasi Rencana Studi</h3>
+            <span class="text-muted small uppercase">Tinjau Rencana Studi Mahasiswa Semester Berjalan</span>
         </div>
-        <a href="{{ route('kaprodi.dashboard') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard
+        <a href="{{ route('kaprodi.dashboard') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 fw-bold uppercase small shadow-sm">
+            Kembali ke Dashboard
         </a>
     </div>
 
-    <div class="row">
+    <div class="row g-4">
         {{-- Kartu Profil Mahasiswa --}}
-        <div class="col-md-4 mb-4">
-            <div class="card shadow-sm border-0 h-100">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-0 border-top border-dark border-4 h-100">
                 <div class="card-body text-center p-4">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-person-vcard fs-1"></i>
+                    <div class="bg-light border text-dark d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-person-vcard fs-2"></i>
                     </div>
-                    <h5 class="fw-bold mb-1">{{ $mahasiswa->nama_lengkap }}</h5>
-                    <p class="text-muted font-monospace mb-3">{{ $mahasiswa->nim }}</p>
+                    <h5 class="fw-bold text-dark uppercase mb-1">{{ $mahasiswa->nama_lengkap }}</h5>
+                    <p class="text-primary font-monospace fw-bold mb-3">{{ $mahasiswa->nim }}</p>
                     
-                    <hr>
+                    <hr class="my-3 text-muted">
                     
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted small">Status Saat Ini:</span>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted uppercase fw-bold" style="font-size: 11px;">Status Saat Ini:</span>
                         @if($mahasiswa->status_krs == 'Disetujui')
-                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Disetujui</span>
+                            <span class="badge bg-success rounded-0 uppercase fw-bold" style="font-size: 10px;">Disetujui</span>
                         @elseif($mahasiswa->status_krs == 'Menunggu Persetujuan')
-                            <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i> Menunggu</span>
+                            <span class="badge bg-warning text-dark rounded-0 uppercase fw-bold" style="font-size: 10px;">Menunggu</span>
                         @elseif($mahasiswa->status_krs == 'Ditolak')
-                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> Ditolak</span>
+                            <span class="badge bg-danger rounded-0 uppercase fw-bold" style="font-size: 10px;">Ditolak</span>
                         @else
-                            <span class="badge bg-secondary">Draft</span>
+                            <span class="badge bg-secondary rounded-0 uppercase fw-bold" style="font-size: 10px;">{{ $mahasiswa->status_krs ?? 'DRAFT' }}</span>
                         @endif
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted small">Semester:</span>
-                        <span class="fw-bold">{{ $mahasiswa->semester_berjalan ?? '-' }}</span>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted uppercase fw-bold" style="font-size: 11px;">Semester:</span>
+                        <span class="fw-bold uppercase text-dark font-monospace" style="font-size: 11px;">{{ $mahasiswa->semester_berjalan ?? '-' }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- Tabel Mata Kuliah --}}
-        <div class="col-md-8 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-journal-check me-2"></i>Mata Kuliah Diambil</h5>
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-0 h-100">
+                <div class="card-header bg-dark text-white rounded-0 py-3">
+                    <h6 class="mb-0 uppercase fw-bold small">Daftar Mata Kuliah Yang Diambil</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-secondary">
+                        <table class="table table-bordered mb-0 align-middle">
+                            <thead class="bg-light small uppercase fw-bold text-center text-dark">
                                 <tr>
-                                    <th class="ps-4">Kode</th>
-                                    <th>Mata Kuliah</th>
-                                    <th class="text-center">SKS</th>
-                                    <th>Jadwal & Dosen</th>
+                                    <th style="width: 15%;">KODE</th>
+                                    <th class="text-start">MATA KULIAH</th>
+                                    <th style="width: 10%;">SKS</th>
+                                    <th class="text-start" style="width: 35%;">JADWAL & DOSEN</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="small">
                                 @php $totalSks = 0; @endphp
                                 @forelse ($mahasiswa->mataKuliahs as $mk)
                                     <tr>
-                                        <td class="ps-4 font-monospace text-muted small">{{ $mk->kode_mk }}</td>
-                                        <td class="fw-bold text-dark">{{ $mk->nama_mk }}</td>
-                                        <td class="text-center fw-bold">{{ $mk->sks }}</td>
+                                        <td class="text-center font-monospace fw-bold text-muted">{{ $mk->kode_mk }}</td>
+                                        <td class="uppercase fw-bold text-dark">{{ $mk->nama_mk }}</td>
+                                        <td class="text-center font-monospace fw-bold">{{ $mk->sks }}</td>
                                         <td>
                                             <div class="small">
-                                                @if($mk->dosen)
-                                                    <div class="text-primary mb-1"><i class="bi bi-person-badge me-1"></i> {{ $mk->dosen->nama_lengkap }}</div>
+                                                @if(isset($mk->dosen) && $mk->dosen)
+                                                    <div class="text-primary fw-bold uppercase mb-1" style="font-size: 10px;"><i class="bi bi-person-badge me-1"></i> {{ $mk->dosen->nama_lengkap }}</div>
                                                 @endif
 
-                                                @if($mk->jadwals->isNotEmpty())
-                                                    <ul class="list-unstyled mb-0 text-muted" style="font-size: 0.85rem;">
+                                                @if(isset($mk->jadwals) && $mk->jadwals->isNotEmpty())
+                                                    <ul class="list-unstyled mb-0 text-muted font-monospace" style="font-size: 10px;">
                                                     @foreach($mk->jadwals as $jadwal)
-                                                        <li><i class="bi bi-calendar-event me-1"></i> {{ $jadwal->hari }}, {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</li>
+                                                        <li><i class="bi bi-calendar-event me-1"></i> {{ strtoupper($jadwal->hari) }}, {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</li>
                                                     @endforeach
                                                     </ul>
                                                 @else
-                                                    <span class="text-muted fst-italic">- Jadwal belum diatur -</span>
+                                                    <span class="text-muted uppercase" style="font-size: 10px;">- JADWAL BELUM DIATUR -</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -91,17 +91,16 @@
                                     @php $totalSks += $mk->sks; @endphp
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-5 text-muted">
-                                            <i class="bi bi-cart-x fs-1 d-block mb-2 opacity-50"></i>
+                                        <td colspan="4" class="text-center py-5 text-muted small uppercase fw-bold">
                                             Mahasiswa ini belum memilih mata kuliah.
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
-                            <tfoot class="bg-light">
+                            <tfoot class="bg-light fw-bold uppercase small text-dark">
                                 <tr>
-                                    <td colspan="2" class="text-end fw-bold pe-3">Total SKS:</td>
-                                    <td class="text-center fw-bold fs-5 text-primary">{{ $totalSks }}</td>
+                                    <td colspan="2" class="text-end py-2 pe-3">TOTAL BEBAN SKS</td>
+                                    <td class="text-center py-2 text-primary font-monospace fs-6">{{ $totalSks }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -113,10 +112,10 @@
     </div>
 
     {{-- Aksi Validasi --}}
-    <div class="card shadow-sm border-0">
-        <div class="card-body d-flex justify-content-between align-items-center">
+    <div class="card border-0 rounded-0 bg-light mt-4 shadow-sm">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4 gap-3">
             <div>
-                <h6 class="fw-bold mb-1">Tindakan Validasi</h6>
+                <h6 class="fw-bold mb-1 uppercase small text-dark">Tindakan Validasi Kaprodi</h6>
                 <p class="text-muted small mb-0">Pastikan mata kuliah yang diambil sudah sesuai dengan kurikulum.</p>
             </div>
             <div class="d-flex gap-2">
@@ -124,8 +123,8 @@
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="status_krs" value="Ditolak">
-                    <button type="submit" class="btn btn-danger px-4 shadow-sm" {{ $mahasiswa->status_krs == 'Ditolak' ? 'disabled' : '' }}>
-                        <i class="bi bi-x-circle me-2"></i> Tolak KRS
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-0 fw-bold uppercase px-4 shadow-sm" {{ $mahasiswa->status_krs == 'Ditolak' ? 'disabled' : '' }}>
+                        Tolak KRS
                     </button>
                 </form>
 
@@ -133,8 +132,8 @@
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="status_krs" value="Disetujui">
-                    <button type="submit" class="btn btn-success px-4 shadow-sm" {{ $mahasiswa->status_krs == 'Disetujui' ? 'disabled' : '' }}>
-                        <i class="bi bi-check-circle me-2"></i> Setujui KRS
+                    <button type="submit" class="btn btn-success btn-sm rounded-0 fw-bold uppercase px-4 shadow-sm" {{ $mahasiswa->status_krs == 'Disetujui' ? 'disabled' : '' }}>
+                        Setujui KRS
                     </button>
                 </form>
             </div>

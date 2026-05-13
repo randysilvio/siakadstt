@@ -19,7 +19,13 @@ class KaprodiDashboardController extends Controller
         }
 
         $dosen = $user->dosen;
-        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->firstOrFail(); 
+        
+        // [PERBAIKAN] Mengganti firstOrFail() menjadi first() agar tidak melempar 404 Not Found
+        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first(); 
+
+        if (!$programStudi) {
+            abort(403, 'Akses ditolak. Akun dosen Anda belum ditautkan sebagai Ketua Program Studi pada data Master Program Studi. Silakan hubungi Administrator.');
+        }
 
         // --- MENGHITUNG DATA UNTUK SMART FILTER TABS ---
         $countSemua = Mahasiswa::where('program_studi_id', $programStudi->id)->count();

@@ -1,35 +1,44 @@
-{{-- Chatbot Widget --}}
-<div id="chatbot-container" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1050;">
+{{-- Chatbot Widget (Enterprise Flat Design) --}}
+<div id="chatbot-container" style="position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
     
     {{-- Chat Window --}}
-    <div id="chatbot-window" class="card shadow-lg d-none" style="width: 22rem; height: 32rem; transition: all 0.3s; display: flex; flex-direction: column;">
+    <div id="chatbot-window" class="card border-0 rounded-0 shadow-sm border-top border-dark border-4 d-none" style="width: 24rem; height: 35rem; display: flex; flex-direction: column;">
+        
         {{-- Header --}}
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">ZoeChat</h5>
-            <button id="chatbot-close" type="button" class="btn-close btn-close-white" aria-label="Close"></button>
+        <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success rounded-0 font-monospace me-2" style="font-size: 10px;">ONLINE</span>
+                <h6 class="mb-0 uppercase fw-bold small text-white">Zoe Asisten Virtual</h6>
+            </div>
+            <button id="chatbot-close" type="button" class="btn-close btn-close-white rounded-0" aria-label="Close"></button>
         </div>
 
-        {{-- Messages --}}
-        <div id="chatbot-messages" class="card-body" style="overflow-y: auto; flex-grow: 1;">
-             {{-- Pesan Selamat Datang Awal --}}
+        {{-- Messages Area --}}
+        <div id="chatbot-messages" class="card-body bg-white p-4" style="overflow-y: auto; flex-grow: 1;">
+             
+            {{-- Pesan Selamat Datang Awal --}}
              <div class="d-flex mb-3 justify-content-start">
-                <div class="p-2 rounded" style="background-color: #e9ecef; color: #000; max-width: 80%;">
-                   Shalom! Ada yang bisa saya bantu?
+                <div class="p-3 rounded-0 border border-secondary border-opacity-25 bg-light text-dark small" style="max-width: 85%;">
+                   <strong class="uppercase fw-bold d-block mb-1 text-primary font-monospace">Zoe:</strong>
+                   Shalom! Ada yang bisa saya bantu terkait layanan sistem akademik hari ini?
                 </div>
             </div>
         </div>
 
         {{-- Input Area --}}
-        <div class="card-footer bg-light p-2">
-            <input type="text" id="chatbot-input" class="form-control" placeholder="Ketik pesanmu...">
+        <div class="card-footer bg-light p-3 border-top rounded-0">
+            <div class="input-group rounded-0">
+                <input type="text" id="chatbot-input" class="form-control rounded-0 font-monospace small" placeholder="KETIK PESAN...">
+                <button id="chatbot-send" class="btn btn-dark rounded-0 px-3 uppercase fw-bold small">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
         </div>
     </div>
 
-    {{-- Tombol untuk Membuka/Menutup Chat --}}
-    <button id="chatbot-toggle" class="btn btn-dark rounded-pill shadow-lg p-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; transition: transform 0.2s;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chat-dots-fill" viewBox="0 0 16 16">
-            <path d="M16 8c0 3.866-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.584.296-1.925.864-4.181 1.234-.2.032-.352-.176-.273-.362.354-.836.674-1.95.77-2.966C.744 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7zM5 8a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-        </svg>
+    {{-- Tombol Toggle Flat/Siku 0px --}}
+    <button id="chatbot-toggle" class="btn btn-dark rounded-0 shadow-sm p-0 d-flex align-items-center justify-content-center border border-white border-2" style="width: 55px; height: 55px;">
+        <i class="bi bi-chat-square-text-fill fs-4"></i>
     </button>
 </div>
 
@@ -39,44 +48,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatbotWindow = document.getElementById('chatbot-window');
     const chatbotClose = document.getElementById('chatbot-close');
     const chatbotInput = document.getElementById('chatbot-input');
+    const chatbotSend = document.getElementById('chatbot-send');
     const chatbotMessages = document.getElementById('chatbot-messages');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     const toggleWindow = () => {
         chatbotWindow.classList.toggle('d-none');
         chatbotToggle.classList.toggle('d-none');
+        if (!chatbotWindow.classList.contains('d-none')) {
+            chatbotInput.focus();
+        }
     };
 
     chatbotToggle.addEventListener('click', toggleWindow);
     chatbotClose.addEventListener('click', toggleWindow);
 
-    chatbotInput.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter' && chatbotInput.value.trim() !== '') {
+    const handleSend = () => {
+        if (chatbotInput.value.trim() !== '') {
             const userMessage = chatbotInput.value.trim();
             addMessage(userMessage, 'user');
             sendMessageToServer(userMessage);
             chatbotInput.value = '';
         }
+    };
+
+    chatbotInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSend();
+        }
     });
+    
+    chatbotSend.addEventListener('click', handleSend);
 
     function addMessage(message, sender) {
         const messageWrapper = document.createElement('div');
         messageWrapper.className = `d-flex mb-3 ${sender === 'user' ? 'justify-content-end' : 'justify-content-start'}`;
         
         const messageBubble = document.createElement('div');
-        messageBubble.className = `p-2 rounded ${sender === 'user' ? 'bg-primary text-white' : ''}`;
-        if (sender !== 'user') {
-            messageBubble.style.backgroundColor = '#e9ecef';
-            messageBubble.style.color = '#000';
+        messageBubble.className = 'p-3 rounded-0 small ';
+        messageBubble.style.maxWidth = '85%';
+        messageBubble.style.wordWrap = 'break-word'; 
+        
+        if (sender === 'user') {
+            messageBubble.className += 'bg-dark text-white';
+            messageBubble.innerHTML = `<strong class="uppercase fw-bold d-block mb-1 text-light font-monospace text-end">Anda:</strong> ${message}`;
+        } else {
+            messageBubble.className += 'bg-light text-dark border border-secondary border-opacity-25';
+            messageBubble.innerHTML = `<strong class="uppercase fw-bold d-block mb-1 text-primary font-monospace">Zoe:</strong> ${message}`;
         }
-        messageBubble.style.maxWidth = '80%';
-        messageBubble.style.wordWrap = 'break-word'; // Menambahkan ini agar teks panjang tidak merusak layout
-
-        // =====================================================================
-        // ===== PERUBAHAN DI SINI: dari .textContent menjadi .innerHTML =====
-        // Ini akan merender tag <br /> sebagai baris baru, bukan teks biasa
-        messageBubble.innerHTML = message;
-        // =====================================================================
         
         messageWrapper.appendChild(messageBubble);
         chatbotMessages.appendChild(messageWrapper);
@@ -87,7 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingIndicator = document.createElement('div');
         typingIndicator.id = 'typing-indicator';
         typingIndicator.className = 'd-flex mb-3 justify-content-start';
-        typingIndicator.innerHTML = `<div class="p-2 rounded" style="background-color: #e9ecef; color: #000; max-width: 80%;">...</div>`;
+        typingIndicator.innerHTML = `
+            <div class="p-3 rounded-0 bg-light text-muted font-monospace small border border-secondary border-opacity-25" style="max-width: 85%;">
+                MENCARI JAWABAN...
+            </div>`;
         chatbotMessages.appendChild(typingIndicator);
         chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
 
@@ -106,15 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            
-            document.getElementById('typing-indicator').remove();
-            
+            document.getElementById('typing-indicator')?.remove();
             addMessage(data.reply, 'bot');
 
         } catch (error) {
             console.error('Error:', error);
             document.getElementById('typing-indicator')?.remove();
-            addMessage('Maaf, terjadi kesalahan saat menghubungi server.', 'bot');
+            addMessage('MAAF, TERJADI KESALAHAN TEKNIS SAAT MENGHUBUNGI SERVER.', 'bot');
         }
     }
 });

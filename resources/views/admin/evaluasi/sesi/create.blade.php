@@ -1,83 +1,78 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 class="mb-0 fw-bold">Tambah Sesi Evaluasi</h2>
-                    <p class="text-muted mb-0">Buat jadwal baru untuk pengisian kuesioner dosen.</p>
+                    <h3 class="mb-0 text-dark fw-bold">Registrasi Sesi Evaluasi</h3>
+                    <span class="text-muted small">Pembukaan periode baru untuk kuesioner mahasiswa</span>
                 </div>
-                <a href="{{ route('admin.evaluasi-sesi.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Kembali
-                </a>
+                <a href="{{ route('admin.evaluasi-sesi.index') }}" class="btn btn-outline-dark btn-sm rounded-1">Batal</a>
             </div>
 
-            <div class="card shadow-sm border-0">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <form action="{{ route('admin.evaluasi-sesi.store') }}" method="POST">
                         @csrf
                         
                         <div class="mb-4">
-                            <label for="nama_sesi" class="form-label fw-bold">Nama Sesi</label>
-                            <input type="text" class="form-control @error('nama_sesi') is-invalid @enderror" id="nama_sesi" name="nama_sesi" value="{{ old('nama_sesi') }}" placeholder="Contoh: Evaluasi Dosen Semester Ganjil 2024/2025" required>
+                            <label for="nama_sesi" class="form-label text-dark fw-semibold">Identifikasi Sesi (Nama Sesi) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-1 @error('nama_sesi') is-invalid @enderror" id="nama_sesi" name="nama_sesi" value="{{ old('nama_sesi') }}" placeholder="Contoh: Evaluasi Kinerja Dosen Semester Ganjil 2026/2027" required autofocus>
                             @error('nama_sesi')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
                         <div class="mb-4">
-                            <label for="tahun_akademik_id" class="form-label fw-bold">Tahun Akademik</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-mortarboard"></i></span>
-                                <select class="form-select @error('tahun_akademik_id') is-invalid @enderror" id="tahun_akademik_id" name="tahun_akademik_id" required>
-                                    <option value="">-- Pilih Tahun Akademik --</option>
-                                    @foreach ($tahunAkademik as $ta)
-                                        <option value="{{ $ta->id }}" {{ old('tahun_akademik_id') == $ta->id ? 'selected' : '' }}>
-                                            {{ $ta->tahun }} (Semester {{ $ta->semester }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                            <label for="tahun_akademik_id" class="form-label text-dark fw-semibold">Tahun Akademik Rujukan <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-1 @error('tahun_akademik_id') is-invalid @enderror" id="tahun_akademik_id" name="tahun_akademik_id" required>
+                                <option value="">-- Pilih Tahun Akademik Terkait --</option>
+                                @foreach ($tahunAkademik as $ta)
+                                    <option value="{{ $ta->id }}" {{ old('tahun_akademik_id') == $ta->id ? 'selected' : '' }}>
+                                        Tahun Akademik: {{ $ta->tahun }} (Semester {{ $ta->semester }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text mt-2 text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> Data evaluasi yang masuk akan direkapitulasi secara otomatis ke dalam mata kuliah pada tahun akademik rujukan ini.
                             </div>
-                            <div class="form-text text-muted small">Evaluasi akan dikaitkan dengan mata kuliah pada tahun akademik ini.</div>
                             @error('tahun_akademik_id')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        <div class="row mb-4">
+                        <div class="row mb-4 g-4">
                             <div class="col-md-6">
-                                <label for="tanggal_mulai" class="form-label fw-bold">Tanggal Mulai</label>
-                                <input type="date" class="form-control @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai') }}" required>
+                                <label for="tanggal_mulai" class="form-label text-dark fw-semibold">Tanggal Mulai (Pembukaan) <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control rounded-1 @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai') }}" required>
                                 @error('tanggal_mulai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="tanggal_selesai" class="form-label fw-bold">Tanggal Selesai</label>
-                                <input type="date" class="form-control @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" required>
+                                <label for="tanggal_selesai" class="form-label text-dark fw-semibold">Tanggal Selesai (Penutupan) <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control rounded-1 @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" required>
                                 @error('tanggal_selesai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-4 bg-light p-3 border rounded-1">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
-                                <label class="form-check-label fw-bold" for="is_active">
-                                    Aktifkan Sesi Ini Sekarang?
+                                <label class="form-check-label text-dark fw-bold ms-2" for="is_active">
+                                    Aktifkan Publikasi Sesi
                                 </label>
                             </div>
-                            <div class="form-text">Jika aktif, mahasiswa dapat melihat dan mengisi evaluasi pada rentang tanggal di atas.</div>
+                            <div class="form-text mt-2">Apabila dicentang, portal pengisian kuesioner akan secara otomatis terbuka bagi mahasiswa pada rentang tanggal yang telah ditentukan di atas.</div>
                         </div>
 
-                        <div class="d-flex gap-2 justify-content-end mt-4">
-                            <a href="{{ route('admin.evaluasi-sesi.index') }}" class="btn btn-light border">Batal</a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-save me-1"></i> Simpan Sesi
-                            </button>
+                        <hr class="text-muted my-4">
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-5">Simpan Jadwal Sesi</button>
                         </div>
                     </form>
                 </div>

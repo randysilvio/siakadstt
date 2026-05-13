@@ -1,148 +1,106 @@
 @extends('layouts.app')
 
-@push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-@endpush
-
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h1 class="mb-0 fw-bold">Manajemen Kalender Akademik</h1>
-            <p class="text-muted mb-0">Atur jadwal dan kegiatan akademik kampus.</p>
+            <h3 class="mb-0 text-dark fw-bold uppercase">Manajemen Kalender Akademik</h3>
+            <span class="text-muted small uppercase">Pengaturan Agenda & Jadwal Kegiatan Institusi</span>
         </div>
-        <a href="{{ route('admin.kalender.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i> Tambah Kegiatan
+        <a href="{{ route('admin.kalender.create') }}" class="btn btn-primary rounded-0 px-3 fw-bold uppercase small">
+            Tambah Agenda
         </a>
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success border-0 bg-success text-white py-2 px-3 rounded-0 mb-4 small shadow-sm">
+            {{ session('success') }}
         </div>
     @endif
 
-    {{-- Statistik Ringkas & Filter --}}
-    <div class="row g-3 mb-4">
+    {{-- Statistik & Pencarian --}}
+    <div class="row g-4 mb-4">
         <div class="col-md-8">
-            <div class="card border-0 shadow-sm bg-primary text-white h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="me-3 display-4">
-                        <i class="bi bi-calendar-check"></i>
-                    </div>
+            <div class="card border-0 shadow-sm rounded-0 bg-dark text-white">
+                <div class="card-body p-4 d-flex align-items-center">
                     <div>
-                        <h5 class="card-title mb-1">Kegiatan Bulan Ini</h5>
-                        <p class="card-text mb-0 op-75">
-                            Total ada <strong>{{ $kegiatans->count() }}</strong> kegiatan yang terdaftar dalam daftar di bawah ini.
-                        </p>
+                        <h6 class="fw-bold mb-1 uppercase small opacity-75">Total Agenda Terdaftar</h6>
+                        <h3 class="fw-bold mb-0 font-monospace text-uppercase">{{ $kegiatans->total() }} Kegiatan</h3>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <label class="form-label text-muted small fw-bold text-uppercase">Cari Kegiatan</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control border-start-0 ps-0" placeholder="Ketik judul kegiatan...">
-                    </div>
+            <div class="card border-0 shadow-sm rounded-0 h-100 border">
+                <div class="card-body p-4 bg-light">
+                    <form action="{{ route('admin.kalender.index') }}" method="GET">
+                        <label class="form-label text-muted small fw-bold uppercase mb-2">Penyaringan Judul</label>
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control rounded-0 border-secondary-subtle" placeholder="Cari kegiatan..." value="{{ request('search') }}">
+                            <button class="btn btn-dark rounded-0 px-3 uppercase fw-bold small" type="submit">Cari</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Tabel Kegiatan --}}
-    <div class="card shadow-sm border-0">
+    <div class="card border-0 shadow-sm rounded-0 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="bg-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light border-bottom text-uppercase">
                         <tr>
-                            <th style="width: 5%" class="text-center py-3">#</th>
-                            <th style="width: 40%" class="py-3">Nama Kegiatan</th>
-                            <th style="width: 25%" class="py-3">Waktu Pelaksanaan</th>
-                            <th style="width: 20%" class="py-3">Target Peserta</th>
-                            <th class="text-end py-3 px-4" style="width: 10%">Aksi</th>
+                            <th class="ps-4 py-3 text-muted small" style="width: 50px;">NO</th>
+                            <th class="text-muted small">IDENTITAS KEGIATAN</th>
+                            <th class="text-muted small">WAKTU PELAKSANAAN</th>
+                            <th class="text-muted small">TARGET PESERTA</th>
+                            <th class="text-end text-muted small pe-4" style="width: 150px;">MANAJEMEN</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($kegiatans as $kegiatan)
                             <tr>
-                                <td class="text-center fw-bold text-secondary">{{ $loop->iteration + ($kegiatans->currentPage() - 1) * $kegiatans->perPage() }}</td>
+                                <td class="ps-4 font-monospace text-muted">{{ $loop->iteration + ($kegiatans->currentPage() - 1) * $kegiatans->perPage() }}</td>
                                 <td>
-                                    <div class="fw-bold text-dark">{{ $kegiatan->judul_kegiatan }}</div>
-                                    @if($kegiatan->deskripsi)
-                                        <div class="text-muted small text-truncate" style="max-width: 350px;">
-                                            {{ Str::limit($kegiatan->deskripsi, 60) }}
-                                        </div>
-                                    @endif
+                                    <div class="fw-bold text-dark uppercase small">{{ $kegiatan->judul_kegiatan }}</div>
+                                    <div class="text-muted small text-truncate" style="max-width: 300px;">{{ $kegiatan->deskripsi ?? '-' }}</div>
                                 </td>
                                 <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-light rounded p-2 me-2 text-center" style="min-width: 50px;">
-                                            <span class="d-block fw-bold text-primary" style="font-size: 1.1rem; line-height: 1;">{{ $kegiatan->tanggal_mulai->format('d') }}</span>
-                                            <span class="d-block text-uppercase small text-muted" style="font-size: 0.7rem;">{{ $kegiatan->tanggal_mulai->isoFormat('MMM') }}</span>
-                                        </div>
-                                        <div class="small text-secondary">
-                                            @if($kegiatan->tanggal_mulai->eq($kegiatan->tanggal_selesai))
-                                                <span class="d-block">Satu Hari</span>
-                                                <span class="text-muted">{{ $kegiatan->tanggal_mulai->format('Y') }}</span>
-                                            @else
-                                                <span class="d-block">s/d {{ $kegiatan->tanggal_selesai->isoFormat('D MMM') }}</span>
-                                                <span class="text-muted">{{ $kegiatan->tanggal_selesai->format('Y') }}</span>
-                                            @endif
-                                        </div>
+                                    <div class="font-monospace small text-dark fw-bold">
+                                        {{ $kegiatan->tanggal_mulai->translatedFormat('d/m/Y') }} 
+                                        @if(!$kegiatan->tanggal_mulai->eq($kegiatan->tanggal_selesai))
+                                            - {{ $kegiatan->tanggal_selesai->translatedFormat('d/m/Y') }}
+                                        @endif
                                     </div>
                                 </td>
                                 <td>
                                     @foreach($kegiatan->roles as $role)
-                                        @php
-                                            $badgeColor = match($role->name) {
-                                                'mahasiswa' => 'bg-warning text-dark',
-                                                'dosen' => 'bg-info text-dark',
-                                                default => 'bg-secondary text-white'
-                                            };
-                                        @endphp
-                                        <span class="badge {{ $badgeColor }} bg-opacity-75 me-1 mb-1">
-                                            {{ ucfirst($role->name) }}
-                                        </span>
+                                        <span class="badge bg-light text-dark border rounded-0 font-normal uppercase" style="font-size: 0.6rem;">{{ $role->name }}</span>
                                     @endforeach
                                 </td>
-                                <td class="text-end px-4">
-                                    {{-- [PERBAIKAN] Mengganti dropdown dengan tombol langsung --}}
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.kalender.edit', $kegiatan->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <form action="{{ route('admin.kalender.destroy', $kegiatan->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus kegiatan ini?')" title="Hapus">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <a href="{{ route('admin.kalender.edit', $kegiatan->id) }}" class="btn btn-sm btn-light border rounded-0 px-3 uppercase small fw-bold">Ubah</a>
+                                        <form action="{{ route('admin.kalender.destroy', $kegiatan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Konfirmasi hapus agenda?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger rounded-0 px-2 uppercase small fw-bold">Hapus</button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486754.png" alt="Empty" style="width: 64px; opacity: 0.5;" class="mb-3">
-                                    <p class="text-muted fw-bold">Belum ada kegiatan akademik.</p>
-                                    <a href="{{ route('admin.kalender.create') }}" class="btn btn-sm btn-outline-primary">Buat Kegiatan Sekarang</a>
-                                </td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center py-5 text-muted small uppercase">Belum terdapat data agenda pada basis data.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-
-    <div class="mt-4 d-flex justify-content-center">
-        {{ $kegiatans->links() }}
+        @if($kegiatans->hasPages())
+            <div class="card-footer bg-white border-top py-3">
+                {{ $kegiatans->links() }}
+            </div>
+        @endif
     </div>
 </div>
 @endsection

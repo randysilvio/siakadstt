@@ -1,188 +1,136 @@
 @extends('layouts.app')
 
-@push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-@endpush
-
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Manajemen Dosen</h1>
+<div class="container-fluid px-4">
+    {{-- HEADER HALAMAN --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            {{-- Tombol Tambah --}}
-            <a href="{{ route('admin.dosen.create') }}" class="btn btn-primary me-2"><i class="bi bi-plus-lg"></i> Tambah Baru</a>
-            
-            {{-- Tombol Dropdown Export/Import --}}
+            <h3 class="mb-0 text-dark fw-bold">Pangkalan Data Tenaga Pendidik</h3>
+            <span class="text-muted small uppercase">Sistem Repositori Data Dosen Terintegrasi</span>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.dosen.create') }}" class="btn btn-primary rounded-0 px-3">
+                <i class="bi bi-plus-lg me-1"></i> REGISTRASI DOSEN
+            </a>
             <div class="btn-group">
-                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-file-earmark-spreadsheet"></i> Ekspor/Impor
+                <button type="button" class="btn btn-success rounded-0 px-3 dropdown-toggle" data-bs-toggle="dropdown">
+                    INSTRUMEN DATA
                 </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('admin.dosen.export') }}">Ekspor Data Dosen</a></li>
+                <ul class="dropdown-menu dropdown-menu-end rounded-0 border-0 shadow-sm">
+                    <li><a class="dropdown-item small fw-bold" href="{{ route('admin.dosen.export') }}">EKSPOR DATA EXCEL</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importDosenModal">Impor dari Excel</a></li>
+                    <li><a class="dropdown-item small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importDosenModal">IMPOR DATA EXCEL</a></li>
                 </ul>
             </div>
         </div>
     </div>
 
-    {{-- Notifikasi --}}
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="alert alert-success border-0 bg-success text-white py-2 px-3 rounded-0 mb-4">{{ session('success') }}</div>
     @endif
 
-    {{-- Smart Filter Bar --}}
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body bg-light">
-            <form action="{{ route('admin.dosen.index') }}" method="GET" id="filterForm">
-                <div class="row g-2">
-                    {{-- Pencarian Teks --}}
-                    <div class="col-md-4">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" placeholder="Cari Nama / NIDN / Email..." name="search" value="{{ request('search') }}">
-                        </div>
-                    </div>
-
-                    {{-- Filter Jabatan Akademik --}}
-                    <div class="col-md-3">
-                        <select class="form-select" name="jabatan" onchange="document.getElementById('filterForm').submit()">
-                            <option value="" {{ request('jabatan') == '' ? 'selected' : '' }}>-- Jabatan Akademik --</option>
-                            @foreach($jabatans as $jabatan)
-                                <option value="{{ $jabatan }}" {{ request('jabatan') == $jabatan ? 'selected' : '' }}>
-                                    {{ $jabatan }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Filter Keahlian (Input Text) --}}
-                    <div class="col-md-3">
-                        <input type="text" class="form-control" placeholder="Filter Keahlian..." name="keahlian" value="{{ request('keahlian') }}">
-                    </div>
-
-                    {{-- Tombol Reset --}}
-                    <div class="col-md-2">
-                        <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-secondary w-100">Reset</a>
-                    </div>
+    {{-- FILTER DINAMIS FORMAL --}}
+    <div class="card border-0 shadow-sm mb-4 rounded-0">
+        <div class="card-body p-3 bg-light">
+            <form action="{{ route('admin.dosen.index') }}" method="GET" class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label text-muted small fw-bold mb-1 uppercase">Pencarian Identitas (Nama/NIDN)</label>
+                    <input type="text" name="search" class="form-control rounded-0 border-secondary-subtle" value="{{ request('search') }}" placeholder="Masukkan kata kunci pencarian...">
                 </div>
-                {{-- Submit button hidden --}}
-                <button type="submit" class="d-none"></button>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small fw-bold mb-1 uppercase">Filter Jabatan Akademik</label>
+                    <select name="jabatan" class="form-select rounded-0 border-secondary-subtle">
+                        <option value="">-- Semua Jabatan --</option>
+                        @foreach($jabatans as $jb)
+                            <option value="{{ $jb }}" {{ request('jabatan') == $jb ? 'selected' : '' }}>{{ strtoupper($jb) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-dark rounded-0 fw-bold">TERAPKAN PENYARINGAN</button>
+                </div>
             </form>
         </div>
     </div>
 
-    {{-- Tabel Dosen --}}
-    <div class="card shadow-sm">
+    {{-- TABEL DATA DOSEN --}}
+    <div class="card border-0 shadow-sm rounded-0 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light border-bottom">
                         <tr>
-                            <th>NIDN</th>
-                            <th>Nama Lengkap</th>
-                            <th>Jabatan & Keahlian</th>
-                            <th>Email Login</th>
-                            <th class="text-end">Aksi</th>
+                            <th class="ps-4 py-3 text-muted small" style="width: 150px;">NIDN</th>
+                            <th class="text-muted small">NAMA LENGKAP & GELAR</th>
+                            <th class="text-muted small">BIDANG KEAHLIAN</th>
+                            <th class="text-muted small">EMAIL INSTITUSI</th>
+                            <th class="text-end text-muted small pe-4" style="width: 150px;">TINDAKAN</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($dosens as $dosen)
                             <tr>
-                                <td class="fw-bold">{{ $dosen->nidn }}</td>
+                                <td class="ps-4 font-monospace fw-bold text-dark">{{ $dosen->nidn }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {{-- [PERBAIKAN] Menggunakan $dosen->foto_url agar path lengkap --}}
-                                        <img src="{{ $dosen->foto_url }}" class="rounded-circle me-2 border" width="40" height="40" alt="Foto" style="object-fit: cover;">
+                                        <img src="{{ $dosen->foto_url }}" class="rounded-0 border me-3" width="40" height="40" style="object-fit: cover;">
                                         <div>
-                                            <div class="fw-semibold">{{ $dosen->nama_lengkap }}</div>
+                                            <div class="fw-bold text-dark uppercase small">{{ $dosen->nama_lengkap }}</div>
                                             @if($dosen->is_keuangan)
-                                                <span class="badge bg-success" style="font-size: 0.7em;">Staff Keuangan</span>
+                                                <span class="badge bg-success rounded-0" style="font-size: 0.65rem;">STAFF KEUANGAN</span>
                                             @endif
                                         </div>
                                     </div>
                                 </td>
-                                <td>
-                                    @if($dosen->jabatan_akademik)
-                                        <div class="text-primary small fw-bold">{{ $dosen->jabatan_akademik }}</div>
-                                    @endif
-                                    <div class="text-muted small text-truncate" style="max-width: 200px;">
-                                        {{ $dosen->bidang_keahlian ?? '-' }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ $dosen->user->email ?? '-' }}</small>
-                                </td>
-                                <td class="text-end">
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.dosen.edit', $dosen->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <form action="{{ route('admin.dosen.destroy', $dosen->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Yakin ingin menghapus data dosen ini? Akun login terkait juga akan dihapus.');" title="Hapus">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                <td class="small text-dark">{{ $dosen->bidang_keahlian ?? '-' }}</td>
+                                <td class="font-monospace small text-muted">{{ $dosen->user->email ?? '-' }}</td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group">
+                                        <a href="{{ route('admin.dosen.edit', $dosen->id) }}" class="btn btn-sm btn-light border rounded-0" title="Ubah Data">UBAH</a>
+                                        <form action="{{ route('admin.dosen.destroy', $dosen->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Peringatan: Penghapusan data dosen berakibat pada penghapusan akun login terkait secara permanen. Lanjutkan?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger rounded-0">HAPUS</button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    <i class="bi bi-person-x fs-1 d-block mb-2"></i>
-                                    Data dosen tidak ditemukan.
-                                </td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center py-5 text-muted small uppercase">Data tenaga pendidik tidak ditemukan dalam basis data.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-
-    {{-- Paginasi --}}
-    @if($dosens->hasPages())
-    <div class="d-flex justify-content-center mt-4">
-        {{ $dosens->appends(request()->query())->links() }}
-    </div>
-    @endif
-
-    {{-- Modal Import --}}
-    <div class="modal fade" id="importDosenModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Import Data Dosen</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ route('admin.dosen.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="modal-body">
-                        <p class="mb-3">Gunakan template resmi untuk menghindari error impor.</p>
-                        <a href="{{ route('admin.dosen.import.template') }}" class="btn btn-outline-primary btn-sm mb-3 w-100"><i class="bi bi-download"></i> Unduh Template Excel</a>
-                        <div class="mb-3">
-                            <label for="file" class="form-label">Pilih file Excel (.xlsx, .xls)</label>
-                            <input class="form-control" type="file" id="file" name="file" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="submit" class="btn btn-primary">Mulai Import</button>
-                    </div>
-                </form>
+        @if($dosens->hasPages())
+            <div class="card-footer bg-white border-top py-3">
+                {{ $dosens->appends(request()->query())->links() }}
             </div>
+        @endif
+    </div>
+</div>
+
+{{-- MODAL IMPOR DATA --}}
+<div class="modal fade" id="importDosenModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-0 border-0">
+            <div class="modal-header border-bottom py-3">
+                <h6 class="modal-title fw-bold uppercase">Impor Data Tenaga Pendidik</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.dosen.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3 italic">Gunakan template resmi sistem untuk meminimalisir kesalahan sinkronisasi data.</p>
+                    <a href="{{ route('admin.dosen.import.template') }}" class="btn btn-outline-dark btn-sm w-100 rounded-0 mb-4 fw-bold">UNDUH TEMPLATE EXCEL</a>
+                    
+                    <label class="form-label small fw-bold">PILIH BERKAS EXCEL (.XLSX / .XLS)</label>
+                    <input class="form-control rounded-0" type="file" name="file" required>
+                </div>
+                <div class="modal-footer bg-light border-top py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-0" data-bs-dismiss="modal">BATAL</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4">PROSES IMPOR</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

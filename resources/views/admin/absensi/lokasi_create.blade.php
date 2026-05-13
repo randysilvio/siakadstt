@@ -3,71 +3,67 @@
 @push('styles')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
-        #map { height: 450px; width: 100%; border-radius: 8px; z-index: 1; }
+        #map { height: 400px; width: 100%; border: 1px solid #dee2e6; z-index: 1; }
     </style>
 @endpush
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
     <div class="row justify-content-center">
-        <div class="col-md-10">
+        <div class="col-lg-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 class="mb-0 fw-bold">Tambah Lokasi Baru</h2>
-                    <p class="text-muted mb-0">Tentukan titik koordinat lokasi kantor/kampus.</p>
+                    <h3 class="mb-0 text-dark fw-bold">Penambahan Lokasi Absensi</h3>
+                    <span class="text-muted small">Tentukan koordinat geografis presisi</span>
                 </div>
-                <a href="{{ route('admin.absensi.lokasi.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-                    <i class="bi bi-arrow-left me-1"></i> Kembali
-                </a>
+                <a href="{{ route('admin.absensi.lokasi.index') }}" class="btn btn-outline-dark btn-sm">Batal</a>
             </div>
 
-            <div class="card shadow-sm border-0">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <form method="POST" action="{{ route('admin.absensi.lokasi.store') }}">
                         @csrf
                         
                         <div class="mb-4">
-                            <label for="nama_lokasi" class="form-label fw-bold">Nama Lokasi</label>
-                            <input type="text" class="form-control @error('nama_lokasi') is-invalid @enderror" id="nama_lokasi" name="nama_lokasi" value="{{ old('nama_lokasi') }}" placeholder="Contoh: Kampus Pusat" required autofocus>
+                            <label for="nama_lokasi" class="form-label text-dark fw-semibold">Nama Gedung / Lokasi</label>
+                            <input type="text" class="form-control rounded-1 @error('nama_lokasi') is-invalid @enderror" id="nama_lokasi" name="nama_lokasi" value="{{ old('nama_lokasi') }}" placeholder="Contoh: Gedung Rektorat Utama" required autofocus>
                             @error('nama_lokasi') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="mb-3 position-relative">
-                            <label class="form-label fw-bold">Pilih Titik di Peta</label>
-                            <div id="map" class="shadow-sm border"></div>
-                            
-                            {{-- Tombol Floating untuk Lokasi Saat Ini --}}
-                            <button type="button" id="locate-btn" class="btn btn-light shadow-sm position-absolute" style="top: 40px; right: 10px; z-index: 1000;" title="Gunakan Lokasi Saya">
-                                <i class="bi bi-crosshair text-primary fs-5"></i>
-                            </button>
+                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                <label class="form-label text-dark fw-semibold mb-0">Pemetaan Titik Koordinat</label>
+                                <button type="button" id="locate-btn" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-geo-alt"></i> Gunakan Lokasi Saat Ini
+                                </button>
+                            </div>
+                            <div id="map"></div>
                         </div>
 
-                        <div class="row mb-4">
+                        <div class="row mb-4 g-3">
                             <div class="col-md-6">
-                                <label for="latitude" class="form-label fw-bold">Latitude</label>
-                                <input type="text" class="form-control bg-light" id="latitude" name="latitude" value="{{ old('latitude') }}" readonly required>
+                                <label for="latitude" class="form-label text-muted small fw-bold">LATITUDE</label>
+                                <input type="text" class="form-control rounded-1 bg-light text-muted font-monospace" id="latitude" name="latitude" value="{{ old('latitude') }}" readonly required>
                             </div>
                             <div class="col-md-6">
-                                <label for="longitude" class="form-label fw-bold">Longitude</label>
-                                <input type="text" class="form-control bg-light" id="longitude" name="longitude" value="{{ old('longitude') }}" readonly required>
+                                <label for="longitude" class="form-label text-muted small fw-bold">LONGITUDE</label>
+                                <input type="text" class="form-control rounded-1 bg-light text-muted font-monospace" id="longitude" name="longitude" value="{{ old('longitude') }}" readonly required>
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label for="radius_toleransi_meter" class="form-label fw-bold">Radius Toleransi (Meter)</label>
+                            <label for="radius_toleransi_meter" class="form-label text-dark fw-semibold">Radius Batas Toleransi Absensi</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-broadcast"></i></span>
-                                <input type="number" class="form-control @error('radius_toleransi_meter') is-invalid @enderror" id="radius_toleransi_meter" name="radius_toleransi_meter" value="{{ old('radius_toleransi_meter', 50) }}" required>
+                                <input type="number" class="form-control rounded-start-1 @error('radius_toleransi_meter') is-invalid @enderror" id="radius_toleransi_meter" name="radius_toleransi_meter" value="{{ old('radius_toleransi_meter', 50) }}" required>
+                                <span class="input-group-text rounded-end-1 bg-light">Meter</span>
                             </div>
-                            <div class="form-text text-muted">Jarak maksimal pegawai bisa melakukan absen dari titik pusat.</div>
+                            <div class="form-text">Jarak maksimal (dalam meter) perangkat pegawai diizinkan melakukan pencatatan kehadiran dari titik pusat koordinat.</div>
                             @error('radius_toleransi_meter') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
 
-                        <div class="d-flex gap-2 justify-content-end pt-3 border-top">
-                            <a href="{{ route('admin.absensi.lokasi.index') }}" class="btn btn-light border">Batal</a>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
-                                <i class="bi bi-save me-1"></i> Simpan Lokasi
-                            </button>
+                        <hr class="text-muted my-4">
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-5">Simpan Data Lokasi</button>
                         </div>
                     </form>
                 </div>
@@ -80,7 +76,7 @@
 @push('scripts')
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
-        const initialLatLng = [-2.9126, 132.3023]; // Default Fakfak
+        const initialLatLng = [-2.9126, 132.3023]; 
         const map = L.map('map').setView(initialLatLng, 13);
         const locateBtn = document.getElementById('locate-btn');
 
@@ -104,9 +100,9 @@
         
         locateBtn.addEventListener('click', function() {
             if (!navigator.geolocation) {
-                alert('Browser Anda tidak mendukung geolokasi.');
+                alert('Sistem peramban Anda tidak mendukung layanan lokasi.');
             } else {
-                locateBtn.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>';
+                locateBtn.innerHTML = 'Memproses...';
                 navigator.geolocation.getCurrentPosition(function(position) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
@@ -115,10 +111,10 @@
                     map.setView(latlng, 17);
                     marker.setLatLng(latlng);
                     updateInputs(latlng);
-                    locateBtn.innerHTML = '<i class="bi bi-crosshair text-primary fs-5"></i>';
+                    locateBtn.innerHTML = '<i class="bi bi-geo-alt"></i> Gunakan Lokasi Saat Ini';
                 }, function() {
-                    alert('Gagal mengambil lokasi.');
-                    locateBtn.innerHTML = '<i class="bi bi-crosshair text-primary fs-5"></i>';
+                    alert('Gagal mendeteksi lokasi saat ini.');
+                    locateBtn.innerHTML = '<i class="bi bi-geo-alt"></i> Gunakan Lokasi Saat Ini';
                 });
             }
         });
