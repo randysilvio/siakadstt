@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ChatbotKnowledgeSeeder extends Seeder
 {
     /**
-     * Jalankan proses seeding untuk mengisi basis pengetahuan Zoe secara menyeluruh (100% Alur SIAKAD).
+     * Jalankan proses seeding untuk mengisi basis pengetahuan Zoe secara terstruktur (Dipisah per Role).
      */
     public function run(): void
     {
@@ -18,140 +18,167 @@ class ChatbotKnowledgeSeeder extends Seeder
 
         $knowledges = [
             // =================================================================================
-            // 1. ALUR CAMABA & PENDAFTARAN (PMB)
+            // 1. ROLE: CAMABA (CALON MAHASISWA BARU)
             // =================================================================================
             [
-                'keywords' => 'alur pmb, cara daftar pmb, daftar kuliah, mahasiswa baru, pendaftaran stt, bayar formulir pmb',
-                'jawaban' => "Untuk mendaftar sebagai mahasiswa baru di STT GPI Papua, silakan ikuti alur berikut:\n" .
+                'keywords' => 'alur pmb, cara daftar pmb, daftar kuliah, mahasiswa baru, pendaftaran stt',
+                'jawaban' => "[ROLE: CAMABA] Untuk mendaftar sebagai mahasiswa baru di STT GPI Papua, silakan ikuti alur berikut:\n" .
                              "1. Buat akun pendaftaran melalui halaman **Register PMB**.\n" .
-                             "2. Login ke sistem dan buka menu **Pembayaran**. Lakukan transfer biaya pendaftaran formulir ke rekening resmi yang tertera, lalu unggah bukti bayarnya.\n" .
+                             "2. Login ke sistem dan buka menu **Pembayaran** untuk mentransfer biaya formulir.\n" .
                              "3. Tunggu hingga Admin Keuangan memverifikasi pembayaran Anda menjadi **LUNAS**.\n" .
-                             "4. Setelah lunas, menu **Biodata** akan otomatis terbuka. Lengkapi seluruh kolom isian dan unggah berkas kelengkapan (Ijazah, KK, Pas Foto).\n" .
-                             "5. Terakhir, pantau terus status pendaftaran Anda di dashboard hingga proses verifikasi berkas disetujui oleh panitia."
+                             "4. Menu **Biodata** akan otomatis terbuka. Lengkapi isian dan unggah berkas (Ijazah, KK, Pas Foto).\n" .
+                             "5. Pantau status pendaftaran di dashboard hingga berkas disetujui panitia."
+            ],
+            [
+                'keywords' => 'bayar formulir pmb, cara bayar pmb, bukti bayar pmb, tagihan pmb',
+                'jawaban' => "[ROLE: CAMABA] Panduan pembayaran formulir PMB:\n" .
+                             "1. Setelah registrasi akun, login dan masuk ke menu **Pembayaran**.\n" .
+                             "2. Transfer nominal biaya pendaftaran ke rekening resmi yang tertera di halaman tersebut.\n" .
+                             "3. Unggah foto/berkas bukti transfer pada kolom yang disediakan.\n" .
+                             "4. Status tagihan akan menjadi *Menunggu Konfirmasi*. Jika sudah diverifikasi Admin Keuangan, status berubah menjadi **LUNAS** dan akses pengisian biodata akan terbuka."
             ],
 
             // =================================================================================
-            // 2. ALUR MAHASISWA (KRS, KHS, TRANSKRIP, KEUANGAN, EVALUASI)
+            // 2. ROLE: MAHASISWA
             // =================================================================================
             [
                 'keywords' => 'cara isi krs, kartu rencana studi, alur krs, pilih matkul, rencana studi, batas sks',
-                'jawaban' => "Berikut adalah panduan pengisian KRS Online:\n" .
-                             "1. Pastikan Anda telah melunasi tagihan registrasi semester aktif (Sistem akan melakukan pengecekan otomatis).\n" .
+                'jawaban' => "[ROLE: MAHASISWA] Panduan pengisian Rencana Studi (KRS Online):\n" .
+                             "1. Pastikan tagihan registrasi semester aktif telah lunas.\n" .
                              "2. Buka menu **Akademik > Rencana Studi (KRS)**.\n" .
-                             "3. Pilih mata kuliah yang tersedia untuk semester Anda. Perhatikan batas maksimal SKS yang diizinkan berdasarkan IPK Anda sebelumnya (IPK >= 3.00 max 24 SKS, >= 2.50 max 21 SKS, dst.), serta pastikan Anda telah lulus mata kuliah prasyarat (jika ada).\n" .
-                             "4. Sistem akan menolak pilihan jika terdeteksi jadwal yang bentrok.\n" .
-                             "5. Setelah selesai memilih, simpan pengajuan agar statusnya berubah menjadi **Menunggu Persetujuan**. Silakan hubungi Dosen Wali Anda untuk proses validasi."
+                             "3. Pilih mata kuliah yang tersedia. Perhatikan batas maksimal SKS yang diizinkan berdasarkan IPK Anda sebelumnya (IPK >= 3.00 max 24 SKS, >= 2.50 max 21 SKS, dst.) dan pastikan lulus matkul prasyarat.\n" .
+                             "4. Sistem otomatis menolak jika ada jadwal perkuliahan yang bentrok.\n" .
+                             "5. Simpan pengajuan agar statusnya menjadi **Menunggu Persetujuan**, lalu hubungi Dosen Wali Anda."
             ],
             [
                 'keywords' => 'edom, kuesioner dosen, cara isi edom, evaluasi dosen, kuisioner, penilaian dosen',
-                'jawaban' => "Pengisian Kuesioner Evaluasi Dosen (EDOM) adalah tahapan **wajib** bagi seluruh mahasiswa pada setiap akhir semester. Caranya:\n" .
-                             "1. Buka menu **Akademik > Evaluasi Dosen (EDOM)**.\n" .
-                             "2. Sistem akan menampilkan daftar mata kuliah yang Anda ambil pada semester tersebut beserta nama dosen pengampunya.\n" .
-                             "3. Klik tombol **Isi Kuesioner** pada masing-masing mata kuliah.\n" .
-                             "4. Berikan penilaian secara objektif pada setiap butir pertanyaan dengan skala yang tersedia, lalu klik **Simpan**.\n" .
-                             "5. Setelah seluruh mata kuliah selesai dievaluasi, barulah sistem akan membuka kunci akses menuju halaman KHS dan Transkrip Nilai Anda."
+                'jawaban' => "[ROLE: MAHASISWA] Kewajiban pengisian Kuesioner Evaluasi Dosen (EDOM):\n" .
+                             "1. Akses menu **Akademik > Evaluasi Dosen (EDOM)** di akhir semester.\n" .
+                             "2. Pilih mata kuliah yang ingin dievaluasi dan klik **Isi Kuesioner**.\n" .
+                             "3. Jawab seluruh butir pertanyaan secara objektif menggunakan skala 1-4 yang tersedia, lalu klik **Simpan**.\n" .
+                             "4. EDOM wajib diisi untuk seluruh mata kuliah aktif Anda agar sistem membuka kunci akses ke KHS dan Transkrip Nilai."
             ],
             [
-                'keywords' => 'tidak bisa lihat khs, khs terkunci, transkrip diblokir, nilai error, buka khs, menu khs hilang',
-                'jawaban' => "Jika Anda tidak bisa mengakses halaman Kartu Hasil Studi (KHS) atau Transkrip Nilai dan dialihkan kembali ke halaman lain, hal tersebut dikarenakan **Anda belum menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM)** untuk semester aktif saat ini.\n\n" .
-                             "Silakan masuk ke menu **Akademik > Evaluasi Dosen** dan pastikan status kuesioner pada seluruh mata kuliah Anda di semester ini sudah berstatus *Selesai*. Setelah itu, KHS dan Transkrip Nilai akan langsung dapat diakses secara normal."
+                'keywords' => 'tidak bisa lihat khs, khs terkunci, transkrip diblokir, nilai error, menu khs hilang',
+                'jawaban' => "[ROLE: MAHASISWA] Solusi KHS atau Transkrip Nilai yang terkunci:\n" .
+                             "Sistem memblokir akses KHS/Transkrip jika Anda **belum menyelesaikan pengisian EDOM** pada semester aktif saat ini.\n" .
+                             "Silakan masuk ke menu **Akademik > Evaluasi Dosen** dan pastikan seluruh mata kuliah Anda di semester ini sudah berstatus *Selesai*. Kunci akses akan otomatis terbuka setelahnya."
             ],
             [
-                'keywords' => 'cara bayar kuliah, upload bukti bayar, tagihan spp, cara bayar spp, bukti transfer, konfirmasi bayar',
-                'jawaban' => "Alur pembayaran tagihan akademik di SIAKAD STT GPI Papua:\n" .
-                             "1. Masuk ke dashboard dan pilih menu **Keuangan > Riwayat Pembayaran**.\n" .
-                             "2. Anda akan melihat rincian tagihan semester aktif (SPP, formulir, dll.) yang berstatus *Belum Lunas*.\n" .
-                             "3. Lakukan transfer sesuai nominal tagihan ke rekening resmi institusi.\n" .
-                             "4. Klik tombol **Upload Bukti** pada tagihan yang bersangkutan, pilih file foto/screenshot bukti transfer, lalu kirim.\n" .
-                             "5. Status tagihan akan berubah menjadi *Menunggu Konfirmasi*. Bagian Keuangan akan memverifikasi dan mengubah statusnya menjadi **LUNAS**."
+                'keywords' => 'cara bayar kuliah, upload bukti bayar, tagihan spp, cara bayar spp, bukti transfer',
+                'jawaban' => "[ROLE: MAHASISWA] Alur pembayaran tagihan SPP/Akademik:\n" .
+                             "1. Buka menu **Keuangan > Riwayat Pembayaran**.\n" .
+                             "2. Pilih tagihan semester aktif yang berstatus *Belum Lunas*.\n" .
+                             "3. Transfer nominal tagihan ke rekening kampus, lalu klik tombol **Upload Bukti** pada tagihan tersebut.\n" .
+                             "4. Setelah bukti terkirim, status menjadi *Menunggu Konfirmasi*. Akses akademik akan normal kembali setelah Admin Keuangan memverifikasinya menjadi **LUNAS**."
             ],
             [
-                'keywords' => 'verum, cara masuk kelas online, e-learning, gabung meeting, materi kuliah, tugas online, absen e-learning',
-                'jawaban' => "Panduan mengakses kelas digital (Verum) bagi mahasiswa:\n" .
-                             "1. Pastikan mata kuliah yang bersangkutan telah resmi disetujui di dalam KRS Anda.\n" .
-                             "2. Buka menu **E-Learning (Verum)** di dashboard.\n" .
-                             "3. Pilih kelas mata kuliah yang ingin Anda ikuti. Di dalamnya Anda bisa mengunduh materi ajar, berdiskusi di forum, melakukan presensi, atau mengumpulkan tugas.\n" .
-                             "4. Jika dosen telah memulai sesi perkuliahan tatap muka online, tombol **Gabung Meeting / Kelas Online** akan menyala dan dapat Anda klik untuk langsung bergabung ke dalam ruang virtual."
+                'keywords' => 'verum mahasiswa, cara masuk kelas online, e-learning, gabung meeting, materi kuliah, tugas online',
+                'jawaban' => "[ROLE: MAHASISWA] Akses ruang perkuliahan digital (E-Learning Verum):\n" .
+                             "1. Pastikan KRS Anda sudah berstatus *Disetujui*.\n" .
+                             "2. Buka menu **E-Learning (Verum)** dan pilih kelas mata kuliah Anda.\n" .
+                             "3. Anda dapat mengunduh materi ajar, mengumpulkan tugas, atau mengisi daftar hadir (presensi).\n" .
+                             "4. Jika dosen telah membuka ruang virtual, tombol **Gabung Meeting / Kelas Online** akan aktif dan dapat diklik untuk tatap muka sinkron."
             ],
 
             // =================================================================================
-            // 3. ALUR DOSEN (PENGAMPU & WALI)
+            // 3. ROLE: DOSEN PENGAMPU
             // =================================================================================
             [
                 'keywords' => 'input nilai, cara isi nilai, nilai mahasiswa, tugas dosen pengampu, rubah nilai',
-                'jawaban' => "SOP Pengisian Nilai oleh Dosen Pengampu:\n" .
-                             "1. Akses menu **Akademik > Input Nilai** di dashboard Dosen.\n" .
-                             "2. Pilih mata kuliah yang Anda ampu pada semester aktif.\n" .
-                             "3. Sistem akan menampilkan daftar mahasiswa yang resmi mengambil mata kuliah tersebut.\n" .
-                             "4. Masukkan nilai huruf (A, B, C, D, atau E) pada kolom yang disediakan untuk masing-masing mahasiswa.\n" .
-                             "5. Klik tombol **Simpan**. Nilai yang diinput akan langsung terdistribusi ke KHS dan Transkrip mahasiswa yang bersangkutan."
-            ],
-            [
-                'keywords' => 'perwalian, cara validasi krs mahasiswa, acc krs dosen wali, bimbingan krs, tolak krs, hapus krs mahasiswa',
-                'jawaban' => "SOP Validasi Perwalian KRS oleh Dosen Wali:\n" .
-                             "1. Masuk ke menu **Perwalian** di dashboard Dosen.\n" .
-                             "2. Anda akan melihat daftar mahasiswa bimbingan Anda beserta status pengajuan KRS mereka.\n" .
-                             "3. Klik nama mahasiswa untuk meninjau detail sebaran mata kuliah dan total SKS yang diambil.\n" .
-                             "4. Jika sesuai, ubah status KRS menjadi **Disetujui**. Jika ada kesalahan, Anda dapat menghapus mata kuliah tertentu secara paksa (revisi) atau mengubah statusnya menjadi **Ditolak**.\n" .
-                             "5. Anda juga dapat mengklaim mahasiswa baru yang belum memiliki dosen wali melalui daftar ketersediaan mahasiswa."
+                'jawaban' => "[ROLE: DOSEN PENGAMPU] Panduan pengisian nilai akhir mahasiswa:\n" .
+                             "1. Masuk ke menu **Akademik > Input Nilai**.\n" .
+                             "2. Pilih mata kuliah yang Anda ampu pada semester aktif untuk melihat daftar mahasiswa terdaftar.\n" .
+                             "3. Masukkan nilai huruf (A, B, C, D, atau E) pada kolom yang tersedia.\n" .
+                             "4. Klik **Simpan**. Nilai akan langsung masuk secara real-time ke dalam KHS dan Transkrip mahasiswa bersangkutan."
             ],
             [
                 'keywords' => 'kelola verum, buat kelas verum, mulai meeting dosen, e-learning dosen, upload materi dosen',
-                'jawaban' => "SOP Pengelolaan Kelas E-Learning (Verum) bagi Dosen:\n" .
-                             "1. Buka menu **E-Learning (Verum)**. Anda dapat membuat kelas baru khusus untuk mata kuliah yang Anda ampu di semester aktif.\n" .
-                             "2. Di dalam panel kelas, Anda bisa mengunggah materi perkuliahan, membuat penugasan, memposting pengumuman di forum, dan membuka sesi absensi/presensi.\n" .
-                             "3. Untuk perkuliahan sinkron, klik tombol **Mulai Meeting** agar akses ruang kelas online terbuka bagi seluruh mahasiswa terdaftar, dan klik **Akhiri Meeting** setelah sesi tatap muka selesai."
+                'jawaban' => "[ROLE: DOSEN PENGAMPU] Manajemen modul E-Learning (Verum):\n" .
+                             "1. Buka menu **E-Learning (Verum)** dan buat kelas baru untuk mata kuliah yang Anda ampu.\n" .
+                             "2. Di dalam panel kelas, Anda dapat mengunggah modul materi, membuat penugasan, atau mengelola presensi.\n" .
+                             "3. Untuk memulai kuliah video conference, klik **Mulai Meeting** agar jalur akses mahasiswa terbuka, dan klik **Akhiri Meeting** untuk menutup sesi."
             ],
 
             // =================================================================================
-            // 4. ALUR KAPRODI
+            // 4. ROLE: DOSEN WALI (PEMBIMBING AKADEMIK)
+            // =================================================================================
+            [
+                'keywords' => 'perwalian, cara validasi krs mahasiswa, acc krs dosen wali, bimbingan krs, tolak krs',
+                'jawaban' => "[ROLE: DOSEN WALI] Prosedur perwalian dan validasi KRS:\n" .
+                             "1. Buka menu **Perwalian** untuk melihat daftar mahasiswa bimbingan Anda yang mengajukan KRS.\n" .
+                             "2. Klik nama mahasiswa untuk meninjau sebaran mata kuliah, jadwal bentrok, dan total SKS.\n" .
+                             "3. Jika pengajuan sudah tepat, ubah statusnya menjadi **Disetujui**.\n" .
+                             "4. Jika terdapat kekeliruan, Anda dapat menolak KRS atau melakukan revisi dengan menghapus mata kuliah tertentu secara langsung dari sistem."
+            ],
+            [
+                'keywords' => 'klaim mahasiswa perwalian, tambah anak wali, daftar perwalian baru',
+                'jawaban' => "[ROLE: DOSEN WALI] Penambahan mahasiswa bimbingan baru:\n" .
+                             "Jika ada mahasiswa baru atau mahasiswa aktif yang belum memiliki dosen wali, Anda dapat mengklaimnya melalui menu **Perwalian**. Pilih mahasiswa yang tersedia pada tabel ketersediaan, lalu tambahkan ke dalam daftar bimbingan Anda."
+            ],
+
+            // =================================================================================
+            // 5. ROLE: KAPRODI (KETUA PROGRAM STUDI)
             // =================================================================================
             [
                 'keywords' => 'kaprodi, cara validasi krs kaprodi, tugas kaprodi, acc krs akhir, persetujuan kaprodi',
-                'jawaban' => "SOP Validasi KRS Tingkat Akhir oleh Ketua Program Studi (Kaprodi):\n" .
-                             "1. Setelah mahasiswa mendapatkan persetujuan KRS dari Dosen Wali, pengajuan akan diteruskan ke antarmuka **Dashboard Kaprodi**.\n" .
-                             "2. Kaprodi meninjau kesesuaian sebaran mata kuliah khusus untuk mahasiswa di program studinya.\n" .
-                             "3. Kaprodi memberikan status final **Disetujui** atau **Ditolak** disertai catatan peninjauan jika diperlukan.\n" .
-                             "4. Validasi ini memicu pengiriman notifikasi otomatis kepada mahasiswa terkait hasil akhir persetujuan KRS mereka."
+                'jawaban' => "[ROLE: KAPRODI] Otorisasi persetujuan KRS tingkat akhir:\n" .
+                             "1. KRS mahasiswa yang telah disetujui Dosen Wali akan diteruskan ke **Dashboard Kaprodi**.\n" .
+                             "2. Kaprodi meninjau kesesuaian kurikulum khusus untuk mahasiswa di program studinya.\n" .
+                             "3. Berikan status final **Disetujui** atau **Ditolak** disertai catatan peninjauan jika diperlukan.\n" .
+                             "4. Aksi ini memicu pengiriman notifikasi otomatis kepada mahasiswa terkait status final KRS mereka."
             ],
 
             // =================================================================================
-            // 5. ALUR ADMIN KEUANGAN
+            // 6. ROLE: ADMIN KEUANGAN
             // =================================================================================
             [
-                'keywords' => 'admin keuangan, verifikasi pembayaran, buat tagihan massal, generate tagihan, laporan keuangan, validasi lunas',
-                'jawaban' => "SOP Pengelolaan Keuangan oleh Admin Keuangan:\n" .
-                             "1. **Verifikasi Bayar:** Memantau tagihan dengan status *Menunggu Konfirmasi*, memeriksa kesesuaian bukti transfer, lalu mengklik aksi **Tandai Lunas**.\n" .
-                             "2. **Generate Massal:** Membuat tagihan serentak (SPP, registrasi, dll.) berdasarkan kriteria Prodi dan Angkatan melalui menu **Generate Tagihan** untuk menghindari input manual satu per satu.\n" .
-                             "3. **Tagihan Manual:** Membuat tagihan spesifik untuk satu mahasiswa jika ada keperluan insidental.\n" .
-                             "4. **Laporan:** Memfilter riwayat transaksi dan mengekspor/mencetak Laporan Keuangan dalam format PDF resmi."
+                'keywords' => 'admin keuangan, verifikasi pembayaran, validasi lunas, cek bukti bayar',
+                'jawaban' => "[ROLE: ADMIN KEUANGAN] Verifikasi pembayaran tagihan mahasiswa:\n" .
+                             "1. Buka menu **Pembayaran / Tagihan** di antarmuka administrator.\n" .
+                             "2. Filter data berdasarkan status *Menunggu Konfirmasi*.\n" .
+                             "3. Periksa foto/dokumen bukti transfer yang diunggah mahasiswa. Jika dana valid, klik aksi **Tandai Lunas** agar sistem membuka blokir akses akademik mahasiswa."
+            ],
+            [
+                'keywords' => 'buat tagihan massal, generate tagihan, tagihan spp otomatis, tagihan semesteran',
+                'jawaban' => "[ROLE: ADMIN KEUANGAN] Prosedur pembuatan tagihan massal (Generate Tagihan):\n" .
+                             "Untuk efisiensi, hindari pembuatan tagihan manual satu per satu. Gunakan menu **Generate Tagihan**, pilih jenis pembayaran (misal: SPP), tentukan besaran biaya, lalu filter berdasarkan Program Studi dan Angkatan. Sistem akan otomatis membuatkan tagihan berstatus *Belum Lunas* ke seluruh mahasiswa aktif pada kriteria tersebut."
             ],
 
             // =================================================================================
-            // 6. ALUR PUSTAKAWAN
+            // 7. ROLE: PUSTAKAWAN
             // =================================================================================
             [
-                'keywords' => 'alur perpustakaan, pinjam buku, pustakawan, kembalikan buku, denda buku, kelola koleksi, sirkulasi perpustakaan',
-                'jawaban' => "SOP Layanan Sirkulasi & Pengelolaan Perpustakaan:\n" .
-                             "1. **Koleksi:** Pustakawan menginput data buku baru (Judul, Pengarang, ISBN, Stok). Jumlah ketersediaan buku akan otomatis disesuaikan dengan total stok.\n" .
-                             "2. **Peminjaman:** Pustakawan mencatat transaksi peminjaman di sistem saat mahasiswa meminjam buku, yang otomatis mengurangi stok ketersediaan di rak.\n" .
-                             "3. **Monitoring:** Pustakawan memantau peminjaman aktif serta daftar keterlambatan melalui Dashboard Perpustakaan.\n" .
-                             "4. **Pengembalian:** Memproses pengembalian buku di sistem agar stok kembali bertambah, serta mencatat sanksi/denda jika peminjaman melewati tanggal jatuh tempo."
+                'keywords' => 'alur perpustakaan, kelola koleksi, tambah buku, stok buku perpustakaan',
+                'jawaban' => "[ROLE: PUSTAKAWAN] Pengelolaan data koleksi buku:\n" .
+                             "Pustakawan bertugas memperbarui katalog pustaka melalui menu **Perpustakaan > Koleksi**. Input data buku baru meliputi Judul, Pengarang, Penerbit, ISBN, dan Jumlah Stok. Sistem akan mengatur kolom *jumlah tersedia* secara otomatis sesuai perputaran sirkulasi."
+            ],
+            [
+                'keywords' => 'pinjam buku, pustakawan sirkulasi, kembalikan buku, denda buku, sirkulasi perpustakaan',
+                'jawaban' => "[ROLE: PUSTAKAWAN] Layanan sirkulasi peminjaman dan pengembalian:\n" .
+                             "1. **Peminjaman:** Catat entri peminjaman di sistem saat mahasiswa meminjam buku. Stok *jumlah tersedia* akan berkurang otomatis.\n" .
+                             "2. **Monitoring:** Pantau peminjaman aktif dan daftar keterlambatan melalui Dashboard Pustakawan.\n" .
+                             "3. **Pengembalian:** Proses entri pengembalian agar stok buku kembali normal, serta catat nominal denda jika peminjam melewati tanggal jatuh tempo."
             ],
 
             // =================================================================================
-            // 7. ALUR TENDIK & ADMIN AKADEMIK
+            // 8. ROLE: TENDIK & ADMIN AKADEMIK
             // =================================================================================
             [
-                'keywords' => 'tugas tendik, admin absensi, rekap kehadiran, dokumen publik, kalender akademik, kelola pengumuman, broadcast notifikasi',
-                'jawaban' => "SOP Layanan Operasional Tenaga Kependidikan (Tendik) & Admin:\n" .
-                             "1. **Manajemen Absensi:** Tendik mengelola pengaturan titik lokasi presensi dan menarik laporan rekapitulasi kehadiran mahasiswa/dosen untuk keperluan evaluasi institusi.\n" .
-                             "2. **Distribusi Informasi:** Membuat dan mengelola **Pengumuman/Berita** serta mengunggah berkas di **Dokumen Publik**. Informasi penting dapat didistribusikan langsung ke seluruh pengguna atau spesifik per role melalui sistem *Broadcast Notification*.\n" .
-                             "3. **Agenda Kampus:** Memperbarui **Kalender Akademik** secara berkala agar seluruh civitas akademika mendapatkan notifikasi real-time terkait jadwal perkuliahan, masa ujian, dan hari libur."
+                'keywords' => 'tugas tendik, admin absensi, rekap kehadiran, kelola lokasi absen',
+                'jawaban' => "[ROLE: TENDIK] Pengelolaan modul presensi/absensi institusi:\n" .
+                             "Tenaga Kependidikan bertugas mengatur parameter absensi melalui menu **Absensi > Pengaturan** (termasuk penentuan titik koordinat lokasi/radius presensi) serta menarik laporan rekapitulasi kehadiran mahasiswa dan dosen sebagai bahan evaluasi kedisiplinan."
+            ],
+            [
+                'keywords' => 'dokumen publik, kalender akademik, kelola pengumuman, broadcast notifikasi, berita kampus',
+                'jawaban' => "[ROLE: TENDIK / ADMIN] Manajemen informasi dan pusat unduhan:\n" .
+                             "1. **Pengumuman:** Membuat edaran informasi/berita kampus yang dilengkapi fitur *Broadcast Notification* agar langsung masuk ke dasbor target user (Semua, Dosen, atau Mahasiswa).\n" .
+                             "2. **Dokumen Publik:** Mengunggah file pedoman akademik atau template surat agar mudah diunduh civitas akademika.\n" .
+                             "3. **Kalender:** Memperbarui agenda Kalender Akademik secara berkala untuk sinkronisasi jadwal kegiatan universitas."
             ]
         ];
 
-        // Masukkan seluruh array data SOP di atas ke dalam database
+        // Eksekusi penyimpanan ke database
         foreach ($knowledges as $data) {
             ChatbotKnowledge::create($data);
         }
