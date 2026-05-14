@@ -39,8 +39,8 @@ class ChatbotService
                         "2. Jika informasi yang ditanyakan sama sekali tidak ada dalam acuan di atas atau di luar konteks akademik, sampaikan permohonan maaf dengan sopan bahwa kamu belum memiliki informasi tersebut, lalu arahkan pengguna untuk menghubungi pihak Admin Akademik / BAAK secara langsung.\n" .
                         "3. Jangan pernah mengarang atau membuat asumsi sendiri (halusinasi) terkait nominal biaya, jadwal, atau aturan jika tidak tertera pada basis pengetahuan.";
 
-        // 4. Endpoint resmi Google Gemini 1.5 Flash
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+        // 4. Endpoint resmi Google Gemini 2.5 Flash
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
 
         try {
             // Panggil API Gemini secara eksplisit menggunakan header JSON dengan timeout 15 detik
