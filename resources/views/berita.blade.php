@@ -51,8 +51,9 @@
                 <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Program Studi</a>
                 <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Dokumen</a>
                 
-                <a href="{{ route('login') }}" class="relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-bold text-white rounded-full shadow-md group bg-brand-600 hover:bg-brand-700 transition">
-                    <span class="relative text-xs tracking-wider uppercase font-heading">Portal Login</span>
+                {{-- TOMBOL LOGIN KONTRAS TINGGI MUTLAK --}}
+                <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-6 py-2.5 font-bold text-white rounded-full shadow-md bg-slate-900 hover:bg-brand-600 border border-slate-800 transition duration-300">
+                    <span class="text-xs tracking-widest uppercase font-heading text-white">Portal Login</span>
                 </a>
             </div>
 
@@ -64,7 +65,7 @@
             <a href="{{ url('/#berita') }}" class="text-sm font-bold text-brand-600">Berita Terkini</a>
             <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-700">Program Studi</a>
             <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-700">Dokumen Publik</a>
-            <a href="{{ route('login') }}" class="bg-brand-600 text-white text-center py-2.5 rounded-lg text-xs font-bold uppercase">Masuk Portal</a>
+            <a href="{{ route('login') }}" class="bg-slate-900 text-white text-center py-3 rounded-xl tracking-widest text-xs font-bold uppercase block shadow-md hover:bg-brand-600">Masuk Portal</a>
         </div>
     </header>
 

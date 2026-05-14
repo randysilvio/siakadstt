@@ -45,9 +45,9 @@
 
     {{-- ================= NAVBAR HEADER (STICKY GLASSMORPHISM) ================= --}}
     <header class="sticky top-0 z-50 transition-all duration-300 glass-effect border-b border-gray-100 shadow-sm">
-        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center max-w-6xl">
             {{-- Identitas Brand Premium --}}
-            <a href="{{ route('welcome') }}" class="flex items-center space-x-3 group">
+            <a href="{{ url('/') }}" class="flex items-center space-x-3 group">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI Papua" class="h-11 w-11 transition-transform duration-500 group-hover:rotate-6">
                 <div>
                     <span class="font-heading font-extrabold text-xl text-slate-900 tracking-tight block leading-none">STT GPI PAPUA</span>
@@ -61,9 +61,9 @@
                  <a href="#prodi" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Program Studi</a>
                  <a href="#dokumen" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Dokumen</a>
                  
-                 <a href="{{ route('login') }}" class="relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-bold text-white rounded-full shadow-md group bg-brand-600 hover:bg-brand-700 transition duration-300">
-                    <span class="absolute inset-0 w-full h-full bg-white/10 group-hover:opacity-100 opacity-0 transition"></span>
-                    <span class="relative text-xs tracking-wider uppercase font-heading">Portal Login</span>
+                 {{-- TOMBOL LOGIN KONTRAS TINGGI MUTLAK (TERLIHAT JELAS) --}}
+                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-6 py-2.5 font-bold text-white rounded-full shadow-md bg-slate-900 hover:bg-brand-600 border border-slate-800 transition duration-300">
+                    <span class="text-xs tracking-widest uppercase font-heading text-white">Portal Login</span>
                 </a>
             </div>
 
@@ -79,7 +79,7 @@
                 <a href="#berita" class="mobile-link text-sm font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-gray-50">Berita Terkini</a>
                 <a href="#prodi" class="mobile-link text-sm font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-gray-50">Program Studi</a>
                 <a href="#dokumen" class="mobile-link text-sm font-bold text-slate-700 hover:text-brand-600 py-2 border-b border-gray-50">Dokumen Publik</a>
-                <a href="{{ route('login') }}" class="bg-brand-600 text-white text-center py-3 rounded-xl font-bold tracking-wider text-xs uppercase shadow hover:bg-brand-700 mt-2">
+                <a href="{{ route('login') }}" class="bg-slate-900 text-white text-center py-3 rounded-xl font-bold tracking-widest text-xs uppercase shadow-md hover:bg-brand-600 mt-2 block">
                     Masuk Portal SIAKAD
                 </a>
             </div>
