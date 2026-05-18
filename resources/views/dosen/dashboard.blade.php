@@ -147,21 +147,36 @@
                     </a>
                     
                     @if(Auth::user()->hasRole('kaprodi'))
-                        <a href="{{ route('kaprodi.dashboard') }}" class="list-group-item list-group-item-action py-3 border-start border-primary border-4 d-flex justify-content-between align-items-center bg-light">
+                        <a href="{{ route('kaprodi.dashboard') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="fw-bold small text-primary d-block">DASHBOARD KETUA PROGRAM STUDI</span>
+                                <span class="fw-bold small text-dark d-block">DASHBOARD KAPRODI</span>
                                 <small class="text-muted">Otoritas validasi akademik</small>
                             </div>
-                            <i class="bi bi-chevron-right"></i>
+                            <i class="bi bi-chevron-right text-muted"></i>
                         </a>
                     @endif
 
                     @if(Auth::user()->hasRole('rektorat'))
                         <a href="{{ route('rektorat.dashboard') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small text-dark uppercase">Monitoring Rektorat</span>
-                            <i class="bi bi-chevron-right"></i>
+                            <div>
+                                <span class="fw-bold small text-dark d-block uppercase">MONITORING REKTORAT</span>
+                                <small class="text-muted">Panel pimpinan kampus</small>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
                         </a>
                     @endif
+
+                    {{-- [TAMBAHAN] TOMBOL PENJAMINAN MUTU --}}
+                    @if(Auth::user()->hasRole('penjaminan_mutu'))
+                        <a href="{{ route('mutu.dashboard') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold small text-dark d-block uppercase">PANEL PENJAMINAN MUTU</span>
+                                <small class="text-muted">Akses laporan EDOM & IKU</small>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </a>
+                    @endif
+
                 </div>
             </div>
 
