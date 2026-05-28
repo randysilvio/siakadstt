@@ -104,7 +104,7 @@
                 <div id="jadwal-container">
                     @forelse ($mataKuliah->jadwals as $index => $jadwal)
                         <div class="row g-2 jadwal-item mb-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Hari</label>@endif
                                 <select name="jadwals[{{$index}}][hari]" class="form-select rounded-0 uppercase fw-bold">
                                     <option value="Senin" {{ $jadwal->hari == 'Senin' ? 'selected' : '' }}>Senin</option>
@@ -114,13 +114,17 @@
                                     <option value="Jumat" {{ $jadwal->hari == 'Jumat' ? 'selected' : '' }}>Jumat</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Jam Mulai</label>@endif
                                 <input type="time" name="jadwals[{{$index}}][jam_mulai]" class="form-control rounded-0 font-monospace text-center" value="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Jam Selesai</label>@endif
                                 <input type="time" name="jadwals[{{$index}}][jam_selesai]" class="form-control rounded-0 font-monospace text-center" value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}">
+                            </div>
+                            <div class="col-md-3">
+                                @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Ruang</label>@endif
+                                <input type="text" name="jadwals[{{$index}}][ruang]" class="form-control rounded-0 font-monospace text-center" value="{{ $jadwal->ruang }}" placeholder="R.101">
                             </div>
                             <div class="col-md-2">
                                 <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn">
@@ -130,7 +134,7 @@
                         </div>
                     @empty
                         <div class="row g-2 jadwal-item mb-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label small fw-bold uppercase text-dark">Hari</label>
                                 <select name="jadwals[0][hari]" class="form-select rounded-0 uppercase fw-bold">
                                     <option value="Senin">Senin</option>
@@ -140,13 +144,17 @@
                                     <option value="Jumat">Jumat</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold uppercase text-dark">Jam Mulai</label>
                                 <input type="time" name="jadwals[0][jam_mulai]" class="form-control rounded-0 font-monospace text-center">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold uppercase text-dark">Jam Selesai</label>
                                 <input type="time" name="jadwals[0][jam_selesai]" class="form-control rounded-0 font-monospace text-center">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Ruang</label>
+                                <input type="text" name="jadwals[0][ruang]" class="form-control rounded-0 font-monospace text-center" placeholder="R.101">
                             </div>
                             <div class="col-md-2">
                                 <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn" style="display: none;">
@@ -228,6 +236,7 @@
             newJadwal.find('select').attr('name', `jadwals[${jadwalIndex}][hari]`).val('Senin');
             newJadwal.find('input[type="time"]').eq(0).attr('name', `jadwals[${jadwalIndex}][jam_mulai]`).val('');
             newJadwal.find('input[type="time"]').eq(1).attr('name', `jadwals[${jadwalIndex}][jam_selesai]`).val('');
+            newJadwal.find('input[type="text"]').attr('name', `jadwals[${jadwalIndex}][ruang]`).val('');
             newJadwal.find('label').remove(); 
             
             const removeBtn = newJadwal.find('.remove-jadwal-btn').show();

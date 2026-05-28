@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\MataKuliah;
 use App\Models\Dosen;
 use App\Models\ProgramStudi;
+use App\Models\Jadwal;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -51,7 +52,7 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, Skip
         }
 
         // 4. Simpan / Update MK
-        return MataKuliah::updateOrCreate(
+        $mk = MataKuliah::updateOrCreate(
             ['kode_mk' => trim($row['kode_mk'])],
             [
                 'nama_mk'      => trim($row['nama_mata_kuliah']),
@@ -63,6 +64,23 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, Skip
                 'deskripsi'    => $row['deskripsi'] ?? null,
             ]
         );
+
+        // 5. LOGIKA JADWAL
+        if (!empty($row['hari']) && !empty($row['jam_mulai']) && !empty($row['jam_selesai'])) {
+            Jadwal::updateOrCreate(
+                [
+                    'mata_kuliah_id' => $mk->id,
+                    'hari'           => trim($row['hari'])
+                ],
+                [
+                    'jam_mulai'   => trim($row['jam_mulai']),
+                    'jam_selesai' => trim($row['jam_selesai']),
+                    'ruang'       => trim($row['ruang']) ?? null,
+                ]
+            );
+        }
+
+        return $mk;
     }
 
     public function rules(): array
