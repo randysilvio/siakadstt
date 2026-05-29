@@ -16,7 +16,7 @@
         </div>
     @endif
 
-    <form action="{{ route('admin.dosen.update', $dosen->id) }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.dosen.update', $dosen->id) }}" method="POST" enctype="multipart/form-data" autocomplete="off">
         @csrf
         @method('PUT')
 
@@ -40,26 +40,26 @@
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Nama Lengkap & Gelar</label>
-                                <input type="text" class="form-control rounded-0 @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required>
+                                <input type="text" class="form-control rounded-0 @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required autocomplete="off">
                                 @error('nama_lengkap') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">NIDN / NIDK</label>
-                                <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required>
+                                <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required autocomplete="off">
                                 @error('nidn') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">NIK (KTP)</label>
-                                <input type="text" class="form-control rounded-0 font-monospace @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required>
+                                <input type="text" class="form-control rounded-0 font-monospace @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required autocomplete="off">
                                 @error('nik') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">NPWP</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="npwp" value="{{ old('npwp', $dosen->npwp) }}">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="npwp" value="{{ old('npwp', $dosen->npwp) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold uppercase">Tempat Lahir</label>
-                                <input type="text" class="form-control rounded-0" name="tempat_lahir" value="{{ old('tempat_lahir', $dosen->tempat_lahir) }}">
+                                <input type="text" class="form-control rounded-0" name="tempat_lahir" value="{{ old('tempat_lahir', $dosen->tempat_lahir) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold uppercase">Tanggal Lahir</label>
@@ -74,7 +74,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-bold uppercase">Alamat Domisili</label>
-                                <textarea class="form-control rounded-0" name="alamat" rows="2">{{ old('alamat', $dosen->alamat) }}</textarea>
+                                <textarea class="form-control rounded-0" name="alamat" rows="2" autocomplete="off">{{ old('alamat', $dosen->alamat) }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -88,12 +88,21 @@
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Status Kepegawaian</label>
+                                @php
+                                    $standardStatus = ['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'];
+                                    $currentStatus = old('status_kepegawaian', $dosen->status_kepegawaian);
+                                    $isCustomStatus = $currentStatus && !in_array($currentStatus, $standardStatus);
+                                @endphp
                                 <select class="form-select rounded-0" name="status_kepegawaian" required>
-                                    @foreach(['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'] as $st)
-                                        <option value="{{ $st }}" {{ old('status_kepegawaian', $dosen->status_kepegawaian) == $st ? 'selected' : '' }}>{{ strtoupper($st) }}</option>
+                                    @if($isCustomStatus)
+                                        <option value="{{ $currentStatus }}" selected>{{ strtoupper($currentStatus) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($standardStatus as $st)
+                                        <option value="{{ $st }}" {{ $currentStatus == $st ? 'selected' : '' }}>{{ strtoupper($st) }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Program Studi (Homebase)</label>
                                 <select class="form-select rounded-0" name="program_studi_id">
@@ -105,22 +114,33 @@
                                     @endforeach
                                 </select>
                             </div>
+                            
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Jabatan Fungsional</label>
+                                <label class="form-label small fw-bold uppercase">Jabatan Fungsional / Akademik</label>
+                                @php
+                                    $standardJafung = ['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'];
+                                    $currentJafung = old('jabatan_akademik', $dosen->jabatan_akademik);
+                                    $isCustomJafung = $currentJafung && !in_array($currentJafung, $standardJafung);
+                                @endphp
                                 <select class="form-select rounded-0" name="jabatan_akademik">
                                     <option value="">-- TANPA JAFUNG --</option>
-                                    @foreach(['Tenaga Pengajar', 'Asisten Ahli', 'Lektor', 'Lektor Kepala', 'Guru Besar'] as $jb)
-                                        <option value="{{ $jb }}" {{ old('jabatan_akademik', $dosen->jabatan_akademik) == $jb ? 'selected' : '' }}>{{ strtoupper($jb) }}</option>
+                                    @if($isCustomJafung)
+                                        <option value="{{ $currentJafung }}" selected>{{ strtoupper($currentJafung) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($standardJafung as $jb)
+                                        <option value="{{ $jb }}" {{ $currentJafung == $jb ? 'selected' : '' }}>{{ strtoupper($jb) }}</option>
                                     @endforeach
                                 </select>
                             </div>
+                            
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Pangkat / Golongan</label>
-                                <input type="text" class="form-control rounded-0" name="pangkat_golongan" value="{{ old('pangkat_golongan', $dosen->pangkat_golongan) }}">
+                                <input type="text" class="form-control rounded-0" name="pangkat_golongan" value="{{ old('pangkat_golongan', $dosen->pangkat_golongan) }}" autocomplete="off">
                             </div>
+                            
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold uppercase">Bidang Keahlian Spesifik</label>
-                                <input type="text" class="form-control rounded-0" name="bidang_keahlian" value="{{ old('bidang_keahlian', $dosen->bidang_keahlian) }}">
+                                <input type="text" class="form-control rounded-0" name="bidang_keahlian" value="{{ old('bidang_keahlian', $dosen->bidang_keahlian) }}" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -134,12 +154,12 @@
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Email Utama Sistem</label>
-                                <input type="email" class="form-control rounded-0 font-monospace @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required>
+                                <input type="email" class="form-control rounded-0 font-monospace @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required autocomplete="off">
                                 @error('email') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Ubah Kata Sandi (Opsional)</label>
-                                <input type="password" class="form-control rounded-0" name="password" placeholder="Kosongkan jika tidak ingin diubah">
+                                <input type="password" class="form-control rounded-0" name="password" placeholder="Kosongkan jika tidak ingin diubah" autocomplete="new-password">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Pas Foto Profil</label>
@@ -153,7 +173,7 @@
                             </div>
                             <div class="col-md-6 d-flex align-items-center">
                                 <div class="form-check form-switch bg-light p-3 border w-100">
-                                    <input class="form-check-input ms-0" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ old('is_keuangan', $dosen->is_keuangan) ? 'checked' : '' }}>
+                                    <input class="form-check-input ms-0" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ (old('is_keuangan') ?? $dosen->is_keuangan) ? 'checked' : '' }}>
                                     <label class="form-check-label fw-bold small uppercase ms-2" for="is_keuangan">Akses Modul Keuangan</label>
                                 </div>
                             </div>

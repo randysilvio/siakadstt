@@ -6,7 +6,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Edit Data Mahasiswa</h3>
-            <span class="text-muted small uppercase">Pembaruan Master Data & Kredensial</span>
+            {{-- PERBAIKAN: Menambahkan info ID Pengguna dan Terakhir Diperbarui --}}
+            <span class="text-muted small">ID Pengguna: {{ $mahasiswa->user->id ?? '-' }} | Terakhir diperbarui: {{ $mahasiswa->updated_at->format('d/m/Y H:i') }}</span>
         </div>
         <div>
             <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
@@ -15,7 +16,7 @@
         </div>
     </div>
 
-    <form action="{{ route('admin.mahasiswa.update', $mahasiswa->id) }}" method="POST">
+    <form action="{{ route('admin.mahasiswa.update', $mahasiswa->id) }}" method="POST" autocomplete="off">
         @csrf
         @method('PUT')
 
@@ -65,15 +66,15 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Nama Lengkap <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="nama_lengkap" value="{{ old('nama_lengkap', $mahasiswa->nama_lengkap) }}" required>
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_lengkap" value="{{ old('nama_lengkap', $mahasiswa->nama_lengkap) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">NIK (KTP) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nik" value="{{ old('nik', $mahasiswa->nik) }}" required minlength="16" maxlength="16">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik" value="{{ old('nik', $mahasiswa->nik) }}" required minlength="16" maxlength="16" autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">NISN</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nisn" value="{{ old('nisn', $mahasiswa->nisn) }}" maxlength="12">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nisn" value="{{ old('nisn', $mahasiswa->nisn) }}" maxlength="12" autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Kewarganegaraan <span class="text-danger">*</span></label>
@@ -84,7 +85,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Tempat Lahir <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="tempat_lahir" value="{{ old('tempat_lahir', $mahasiswa->tempat_lahir) }}" required>
+                                <input type="text" class="form-control rounded-0 uppercase" name="tempat_lahir" value="{{ old('tempat_lahir', $mahasiswa->tempat_lahir) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Tanggal Lahir <span class="text-danger">*</span></label>
@@ -99,16 +100,24 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Agama</label>
+                                @php
+                                    $stdAgama = ['Kristen Protestan', 'Katolik', 'Islam', 'Hindu', 'Buddha', 'Konghucu'];
+                                    $curAgama = old('agama', $mahasiswa->agama);
+                                    $isCusAgama = $curAgama && !in_array($curAgama, $stdAgama);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="agama">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Kristen Protestan', 'Katolik', 'Islam', 'Hindu', 'Buddha', 'Konghucu'] as $agama)
-                                        <option value="{{ $agama }}" {{ old('agama', $mahasiswa->agama) == $agama ? 'selected' : '' }}>{{ $agama }}</option>
+                                    @if($isCusAgama)
+                                        <option value="{{ $curAgama }}" selected>{{ strtoupper($curAgama) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdAgama as $agama)
+                                        <option value="{{ $agama }}" {{ $curAgama == $agama ? 'selected' : '' }}>{{ $agama }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Nomor Telepon / WA</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nomor_telepon" value="{{ old('nomor_telepon', $mahasiswa->nomor_telepon) }}">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nomor_telepon" value="{{ old('nomor_telepon', $mahasiswa->nomor_telepon) }}" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -125,7 +134,7 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">NIM <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 font-monospace uppercase" name="nim" value="{{ old('nim', $mahasiswa->nim) }}" required>
+                                <input type="text" class="form-control rounded-0 font-monospace uppercase" name="nim" value="{{ old('nim', $mahasiswa->nim) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Program Studi <span class="text-danger">*</span></label>
@@ -137,9 +146,17 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Status Mahasiswa <span class="text-danger">*</span></label>
+                                @php
+                                    $stdStatus = ['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non-Aktif', 'Keluar'];
+                                    $curStatus = old('status_mahasiswa', $mahasiswa->status_mahasiswa);
+                                    $isCusStatus = $curStatus && !in_array($curStatus, $stdStatus);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="status_mahasiswa" required>
-                                    @foreach(['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non-Aktif', 'Keluar'] as $status)
-                                        <option value="{{ $status }}" {{ old('status_mahasiswa', $mahasiswa->status_mahasiswa) == $status ? 'selected' : '' }}>{{ $status }}</option>
+                                    @if($isCusStatus)
+                                        <option value="{{ $curStatus }}" selected>{{ strtoupper($curStatus) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdStatus as $status)
+                                        <option value="{{ $status }}" {{ $curStatus == $status ? 'selected' : '' }}>{{ $status }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -154,13 +171,21 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">Angkatan <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control rounded-0 font-monospace" name="tahun_masuk" value="{{ old('tahun_masuk', $mahasiswa->tahun_masuk) }}" required>
+                                <input type="number" class="form-control rounded-0 font-monospace" name="tahun_masuk" value="{{ old('tahun_masuk', $mahasiswa->tahun_masuk) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">Jalur Daftar</label>
+                                @php
+                                    $stdJalur = ['Mandiri', 'Beasiswa', 'Prestasi', 'Kerjasama'];
+                                    $curJalur = old('jalur_pendaftaran', $mahasiswa->jalur_pendaftaran);
+                                    $isCusJalur = $curJalur && !in_array($curJalur, $stdJalur);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="jalur_pendaftaran">
-                                    @foreach(['Mandiri', 'Beasiswa', 'Prestasi', 'Kerjasama'] as $jalur)
-                                        <option value="{{ $jalur }}" {{ old('jalur_pendaftaran', $mahasiswa->jalur_pendaftaran) == $jalur ? 'selected' : '' }}>{{ $jalur }}</option>
+                                    @if($isCusJalur)
+                                        <option value="{{ $curJalur }}" selected>{{ strtoupper($curJalur) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdJalur as $jalur)
+                                        <option value="{{ $jalur }}" {{ $curJalur == $jalur ? 'selected' : '' }}>{{ $jalur }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -170,15 +195,15 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Email Login <span class="text-danger">*</span></label>
-                                <input type="email" class="form-control rounded-0" name="email" value="{{ old('email', optional($mahasiswa->user)->email) }}" required>
+                                <input type="email" class="form-control rounded-0" name="email" value="{{ old('email', optional($mahasiswa->user)->email) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Password Baru (Opsional)</label>
-                                <input type="password" class="form-control rounded-0 font-monospace" name="password" placeholder="ISI JIKA INGIN GANTI PASSWORD">
+                                <input type="password" class="form-control rounded-0 font-monospace" name="password" placeholder="ISI JIKA INGIN GANTI PASSWORD" autocomplete="new-password">
                             </div>
                             <div class="col-md-6 offset-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Konfirmasi Password Baru</label>
-                                <input type="password" class="form-control rounded-0 font-monospace" name="password_confirmation" placeholder="ULANGI PASSWORD BARU">
+                                <input type="password" class="form-control rounded-0 font-monospace" name="password_confirmation" placeholder="ULANGI PASSWORD BARU" autocomplete="new-password">
                             </div>
                         </div>
                     </div>
@@ -195,47 +220,63 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label uppercase fw-bold small text-dark">Alamat Lengkap</label>
-                                <textarea class="form-control rounded-0 uppercase" name="alamat" rows="2">{{ old('alamat', $mahasiswa->alamat) }}</textarea>
+                                <textarea class="form-control rounded-0 uppercase" name="alamat" rows="2" autocomplete="off">{{ old('alamat', $mahasiswa->alamat) }}</textarea>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">Dusun</label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="dusun" value="{{ old('dusun', $mahasiswa->dusun) }}">
+                                <input type="text" class="form-control rounded-0 uppercase" name="dusun" value="{{ old('dusun', $mahasiswa->dusun) }}" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">RT / RW</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rt" value="{{ old('rt', $mahasiswa->rt) }}" placeholder="RT">
+                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rt" value="{{ old('rt', $mahasiswa->rt) }}" placeholder="RT" autocomplete="off">
                                     <span class="input-group-text rounded-0 bg-light">/</span>
-                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rw" value="{{ old('rw', $mahasiswa->rw) }}" placeholder="RW">
+                                    <input type="text" class="form-control rounded-0 font-monospace text-center" name="rw" value="{{ old('rw', $mahasiswa->rw) }}" placeholder="RW" autocomplete="off">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">Kelurahan</label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="kelurahan" value="{{ old('kelurahan', $mahasiswa->kelurahan) }}">
+                                <input type="text" class="form-control rounded-0 uppercase" name="kelurahan" value="{{ old('kelurahan', $mahasiswa->kelurahan) }}" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label uppercase fw-bold small text-dark">Kecamatan</label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="kecamatan" value="{{ old('kecamatan', $mahasiswa->kecamatan) }}">
+                                <input type="text" class="form-control rounded-0 uppercase" name="kecamatan" value="{{ old('kecamatan', $mahasiswa->kecamatan) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Kode Pos</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="kode_pos" value="{{ old('kode_pos', $mahasiswa->kode_pos) }}">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="kode_pos" value="{{ old('kode_pos', $mahasiswa->kode_pos) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Jenis Tinggal</label>
+                                @php
+                                    $stdTinggal = ['Bersama Orang Tua', 'Wali', 'Kos', 'Asrama', 'Panti Asuhan'];
+                                    $curTinggal = old('jenis_tinggal', $mahasiswa->jenis_tinggal);
+                                    $isCusTinggal = $curTinggal && !in_array($curTinggal, $stdTinggal);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="jenis_tinggal">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Bersama Orang Tua', 'Wali', 'Kos', 'Asrama', 'Panti Asuhan'] as $jt)
-                                        <option value="{{ $jt }}" {{ old('jenis_tinggal', $mahasiswa->jenis_tinggal) == $jt ? 'selected' : '' }}>{{ $jt }}</option>
+                                    @if($isCusTinggal)
+                                        <option value="{{ $curTinggal }}" selected>{{ strtoupper($curTinggal) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdTinggal as $jt)
+                                        <option value="{{ $jt }}" {{ $curTinggal == $jt ? 'selected' : '' }}>{{ $jt }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Alat Transportasi</label>
+                                @php
+                                    $stdTrans = ['Jalan Kaki', 'Kendaraan Pribadi', 'Angkutan Umum'];
+                                    $curTrans = old('alat_transportasi', $mahasiswa->alat_transportasi);
+                                    $isCusTrans = $curTrans && !in_array($curTrans, $stdTrans);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="alat_transportasi">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Jalan Kaki', 'Kendaraan Pribadi', 'Angkutan Umum'] as $at)
-                                        <option value="{{ $at }}" {{ old('alat_transportasi', $mahasiswa->alat_transportasi) == $at ? 'selected' : '' }}>{{ $at }}</option>
+                                    @if($isCusTrans)
+                                        <option value="{{ $curTrans }}" selected>{{ strtoupper($curTrans) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdTrans as $at)
+                                        <option value="{{ $at }}" {{ $curTrans == $at ? 'selected' : '' }}>{{ $at }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -255,36 +296,60 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Nama Ibu <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung', $mahasiswa->nama_ibu_kandung) }}" required>
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung', $mahasiswa->nama_ibu_kandung) }}" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">NIK Ibu</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ibu" maxlength="16" value="{{ old('nik_ibu', $mahasiswa->nik_ibu) }}">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ibu" maxlength="16" value="{{ old('nik_ibu', $mahasiswa->nik_ibu) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Pendidikan Ibu</label>
+                                @php
+                                    $stdPendIbu = ['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'];
+                                    $curPendIbu = old('pendidikan_ibu', $mahasiswa->pendidikan_ibu);
+                                    $isCusPendIbu = $curPendIbu && !in_array($curPendIbu, $stdPendIbu);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="pendidikan_ibu">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
-                                        <option value="{{ $p }}" {{ old('pendidikan_ibu', $mahasiswa->pendidikan_ibu) == $p ? 'selected' : '' }}>{{ $p }}</option>
+                                    @if($isCusPendIbu)
+                                        <option value="{{ $curPendIbu }}" selected>{{ strtoupper($curPendIbu) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPendIbu as $p)
+                                        <option value="{{ $p }}" {{ $curPendIbu == $p ? 'selected' : '' }}>{{ $p }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Pekerjaan Ibu</label>
+                                @php
+                                    $stdPekIbu = ['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'];
+                                    $curPekIbu = old('pekerjaan_ibu', $mahasiswa->pekerjaan_ibu);
+                                    $isCusPekIbu = $curPekIbu && !in_array($curPekIbu, $stdPekIbu);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="pekerjaan_ibu">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
-                                        <option value="{{ $pk }}" {{ old('pekerjaan_ibu', $mahasiswa->pekerjaan_ibu) == $pk ? 'selected' : '' }}>{{ $pk }}</option>
+                                    @if($isCusPekIbu)
+                                        <option value="{{ $curPekIbu }}" selected>{{ strtoupper($curPekIbu) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPekIbu as $pk)
+                                        <option value="{{ $pk }}" {{ $curPekIbu == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Penghasilan Ibu</label>
+                                @php
+                                    $stdPenghIbu = ['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'];
+                                    $curPenghIbu = old('penghasilan_ibu', $mahasiswa->penghasilan_ibu);
+                                    $isCusPenghIbu = $curPenghIbu && !in_array($curPenghIbu, $stdPenghIbu);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="penghasilan_ibu">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
-                                        <option value="{{ $ph }}" {{ old('penghasilan_ibu', $mahasiswa->penghasilan_ibu) == $ph ? 'selected' : '' }}>{{ $ph }}</option>
+                                    @if($isCusPenghIbu)
+                                        <option value="{{ $curPenghIbu }}" selected>{{ strtoupper($curPenghIbu) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPenghIbu as $ph)
+                                        <option value="{{ $ph }}" {{ $curPenghIbu == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -294,36 +359,60 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Nama Ayah</label>
-                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ayah" value="{{ old('nama_ayah', $mahasiswa->nama_ayah) }}">
+                                <input type="text" class="form-control rounded-0 uppercase" name="nama_ayah" value="{{ old('nama_ayah', $mahasiswa->nama_ayah) }}" autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">NIK Ayah</label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ayah" maxlength="16" value="{{ old('nik_ayah', $mahasiswa->nik_ayah) }}">
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nik_ayah" maxlength="16" value="{{ old('nik_ayah', $mahasiswa->nik_ayah) }}" autocomplete="off">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Pendidikan Ayah</label>
+                                @php
+                                    $stdPendAyah = ['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'];
+                                    $curPendAyah = old('pendidikan_ayah', $mahasiswa->pendidikan_ayah);
+                                    $isCusPendAyah = $curPendAyah && !in_array($curPendAyah, $stdPendAyah);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="pendidikan_ayah">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah'] as $p)
-                                        <option value="{{ $p }}" {{ old('pendidikan_ayah', $mahasiswa->pendidikan_ayah) == $p ? 'selected' : '' }}>{{ $p }}</option>
+                                    @if($isCusPendAyah)
+                                        <option value="{{ $curPendAyah }}" selected>{{ strtoupper($curPendAyah) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPendAyah as $p)
+                                        <option value="{{ $p }}" {{ $curPendAyah == $p ? 'selected' : '' }}>{{ $p }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Pekerjaan Ayah</label>
+                                @php
+                                    $stdPekAyah = ['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'];
+                                    $curPekAyah = old('pekerjaan_ayah', $mahasiswa->pekerjaan_ayah);
+                                    $isCusPekAyah = $curPekAyah && !in_array($curPekAyah, $stdPekAyah);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="pekerjaan_ayah">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Tidak Bekerja', 'PNS', 'Wiraswasta', 'Petani', 'Nelayan', 'Karyawan Swasta'] as $pk)
-                                        <option value="{{ $pk }}" {{ old('pekerjaan_ayah', $mahasiswa->pekerjaan_ayah) == $pk ? 'selected' : '' }}>{{ $pk }}</option>
+                                    @if($isCusPekAyah)
+                                        <option value="{{ $curPekAyah }}" selected>{{ strtoupper($curPekAyah) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPekAyah as $pk)
+                                        <option value="{{ $pk }}" {{ $curPekAyah == $pk ? 'selected' : '' }}>{{ $pk }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Penghasilan Ayah</label>
+                                @php
+                                    $stdPenghAyah = ['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'];
+                                    $curPenghAyah = old('penghasilan_ayah', $mahasiswa->penghasilan_ayah);
+                                    $isCusPenghAyah = $curPenghAyah && !in_array($curPenghAyah, $stdPenghAyah);
+                                @endphp
                                 <select class="form-select rounded-0 uppercase" name="penghasilan_ayah">
                                     <option value="">-- PILIH --</option>
-                                    @foreach(['Kurang dari 500rb', '500rb - 1 Juta', '1 Juta - 2 Juta', '2 Juta - 5 Juta', 'Lebih dari 5 Juta'] as $ph)
-                                        <option value="{{ $ph }}" {{ old('penghasilan_ayah', $mahasiswa->penghasilan_ayah) == $ph ? 'selected' : '' }}>{{ $ph }}</option>
+                                    @if($isCusPenghAyah)
+                                        <option value="{{ $curPenghAyah }}" selected>{{ strtoupper($curPenghAyah) }} (DATA CUSTOM)</option>
+                                    @endif
+                                    @foreach($stdPenghAyah as $ph)
+                                        <option value="{{ $ph }}" {{ $curPenghAyah == $ph ? 'selected' : '' }}>{{ $ph }}</option>
                                     @endforeach
                                 </select>
                             </div>

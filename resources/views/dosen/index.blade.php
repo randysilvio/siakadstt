@@ -19,7 +19,7 @@
                 <ul class="dropdown-menu dropdown-menu-end rounded-0 border-0 shadow-sm">
                     <li><a class="dropdown-item small fw-bold" href="{{ route('admin.dosen.export') }}">EKSPOR DATA EXCEL</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importDosenModal">IMPOR DATA EXCEL</a></li>
+                    <li><a class="dropdown-item small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importDosenModal">IMPOR DATA EXCEL / CSV</a></li>
                 </ul>
             </div>
         </div>
@@ -27,6 +27,22 @@
 
     @if (session('success'))
         <div class="alert alert-success border-0 bg-success text-white py-2 px-3 rounded-0 mb-4">{{ session('success') }}</div>
+    @endif
+    
+    @if (session('error'))
+        <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4">{{ session('error') }}</div>
+    @endif
+
+    {{-- PERBAIKAN: Penangkap Error Validasi --}}
+    @if ($errors->any())
+        <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4">
+            <span class="fw-bold uppercase small">PERHATIAN:</span>
+            <ul class="mb-0 mt-1 small">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
     @endif
 
     {{-- FILTER DINAMIS FORMAL --}}
@@ -123,8 +139,8 @@
                     <p class="small text-muted mb-3 italic">Gunakan template resmi sistem untuk meminimalisir kesalahan sinkronisasi data.</p>
                     <a href="{{ route('admin.dosen.import.template') }}" class="btn btn-outline-dark btn-sm w-100 rounded-0 mb-4 fw-bold">UNDUH TEMPLATE EXCEL</a>
                     
-                    <label class="form-label small fw-bold">PILIH BERKAS EXCEL (.XLSX / .XLS)</label>
-                    <input class="form-control rounded-0" type="file" name="file" required>
+                    <label class="form-label small fw-bold">PILIH BERKAS (.XLSX / .XLS / .CSV)</label>
+                    <input class="form-control rounded-0" type="file" name="file" accept=".xlsx,.xls,.csv" required>
                 </div>
                 <div class="modal-footer bg-light border-top py-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-0" data-bs-dismiss="modal">BATAL</button>
