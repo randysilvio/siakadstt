@@ -40,7 +40,7 @@ class KrsController extends Controller
 
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
         
-        $max_sks =21;
+        $max_sks =24;
         if ($ipk >= 3.00) { $max_sks = 24; }
         elseif ($ipk >= 2.50) { $max_sks = 21; }
         elseif ($ipk >= 2.00) { $max_sks = 18; }
@@ -94,7 +94,7 @@ class KrsController extends Controller
         }
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
         
-        $max_sks =21;
+        $max_sks =24;
         if ($ipk >= 3.00) $max_sks = 24;
         elseif ($ipk >= 2.50) $max_sks = 21;
         elseif ($ipk >= 2.00) $max_sks = 18;
@@ -218,7 +218,7 @@ class KrsController extends Controller
         }
 
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
-        $max_sks = 21;
+        $max_sks = 24;
         if ($ipk >= 3.00) { $max_sks = 24; }
         elseif ($ipk >= 2.50) { $max_sks = 21; }
         elseif ($ipk >= 2.00) { $max_sks = 18; }
