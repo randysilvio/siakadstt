@@ -18,7 +18,8 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
 {
     public function headingRow(): int
     {
-        return 2; 
+        // PERBAIKAN: Ubah menjadi 1 agar langsung membaca nama kolom pada baris pertama di CSV
+        return 1; 
     }
 
     public function model(array $row)
@@ -64,7 +65,7 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
             ['nidn' => $nidn],
             [
                 'user_id'             => $user->id,
-                'program_studi_id'    => $prodiId, // <-- Tambahkan Relasi Prodi
+                'program_studi_id'    => $prodiId, 
                 'nama_lengkap'        => $row['nama_lengkap'],
                 'nik'                 => $row['nik'] ?? null,
                 'nuptk'               => $row['nuptk'] ?? null,

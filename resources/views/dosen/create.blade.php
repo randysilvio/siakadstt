@@ -10,6 +10,24 @@
         <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-dark btn-sm rounded-0">KEMBALI</a>
     </div>
 
+    {{-- PENAMBAHAN: Blok Penangkap Error Validasi Global --}}
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3" role="alert">
+            <div class="d-flex align-items-center small uppercase">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+                <div>
+                    <strong class="fw-bold">Gagal Menyimpan!</strong> Silakan periksa kembali isian Anda:
+                    <ul class="mb-0 mt-1 font-monospace ps-3 text-capitalize">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <form action="{{ route('admin.dosen.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
@@ -58,8 +76,8 @@
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold uppercase">Jenis Kelamin <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-0" name="jenis_kelamin" required>
-                                    <option value="L">LAKI-LAKI</option>
-                                    <option value="P">PEREMPUAN</option>
+                                    <option value="L" {{ old('jenis_kelamin') == 'L' ? 'selected' : '' }}>LAKI-LAKI</option>
+                                    <option value="P" {{ old('jenis_kelamin') == 'P' ? 'selected' : '' }}>PEREMPUAN</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -79,9 +97,9 @@
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Status Ikatan Kerja <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-0" name="status_kepegawaian" required>
-                                    <option value="Dosen Tetap">DOSEN TETAP</option>
-                                    <option value="Dosen Tidak Tetap">DOSEN TIDAK TETAP</option>
-                                    <option value="Dosen Tamu">DOSEN TAMU</option>
+                                    <option value="Dosen Tetap" {{ old('status_kepegawaian') == 'Dosen Tetap' ? 'selected' : '' }}>DOSEN TETAP</option>
+                                    <option value="Dosen Tidak Tetap" {{ old('status_kepegawaian') == 'Dosen Tidak Tetap' ? 'selected' : '' }}>DOSEN TIDAK TETAP</option>
+                                    <option value="Dosen Tamu" {{ old('status_kepegawaian') == 'Dosen Tamu' ? 'selected' : '' }}>DOSEN TAMU</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -99,11 +117,11 @@
                                 <label class="form-label small fw-bold uppercase">Jabatan Akademik (JAFUNG)</label>
                                 <select class="form-select rounded-0" name="jabatan_akademik">
                                     <option value="">-- TANPA JAFUNG --</option>
-                                    <option value="Tenaga Pengajar">TENAGA PENGAJAR</option>
-                                    <option value="Asisten Ahli">ASISTEN AHLI</option>
-                                    <option value="Lektor">LEKTOR</option>
-                                    <option value="Lektor Kepala">LEKTOR KEPALA</option>
-                                    <option value="Guru Besar">GURU BESAR</option>
+                                    <option value="Tenaga Pengajar" {{ old('jabatan_akademik') == 'Tenaga Pengajar' ? 'selected' : '' }}>TENAGA PENGAJAR</option>
+                                    <option value="Asisten Ahli" {{ old('jabatan_akademik') == 'Asisten Ahli' ? 'selected' : '' }}>ASISTEN AHLI</option>
+                                    <option value="Lektor" {{ old('jabatan_akademik') == 'Lektor' ? 'selected' : '' }}>LEKTOR</option>
+                                    <option value="Lektor Kepala" {{ old('jabatan_akademik') == 'Lektor Kepala' ? 'selected' : '' }}>LEKTOR KEPALA</option>
+                                    <option value="Guru Besar" {{ old('jabatan_akademik') == 'Guru Besar' ? 'selected' : '' }}>GURU BESAR</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -154,7 +172,7 @@
                                     <div class="col-md-6 d-flex align-items-end">
                                         <div class="bg-light p-3 border w-100">
                                             <div class="form-check form-switch">
-                                                <input class="form-check-input ms-0" type="checkbox" id="is_keuangan" name="is_keuangan" value="1">
+                                                <input class="form-check-input ms-0" type="checkbox" id="is_keuangan" name="is_keuangan" value="1" {{ old('is_keuangan') ? 'checked' : '' }}>
                                                 <label class="form-check-label fw-bold small uppercase ms-2" for="is_keuangan">Otoritas Modul Keuangan</label>
                                             </div>
                                         </div>

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Dosen;
 use App\Models\User;
 use App\Models\Role;
-use App\Models\ProgramStudi; // <-- Tambahan Model Program Studi
+use App\Models\ProgramStudi; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -53,7 +53,7 @@ class DosenController extends Controller
 
     public function create(): View
     {
-        $programStudis = ProgramStudi::all(); // <-- Mengambil data prodi
+        $programStudis = ProgramStudi::all(); 
         return view('dosen.create', compact('programStudis'));
     }
 
@@ -64,7 +64,7 @@ class DosenController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             
             'nidn' => 'required|unique:dosens|max:20',
-            'nik' => 'required|digits:16|unique:dosens,nik',
+            'nik' => 'required|digits_between:15,16|unique:dosens,nik',
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:L,P',
             
@@ -74,7 +74,7 @@ class DosenController extends Controller
             'npwp' => 'nullable|string',
             
             'status_kepegawaian' => 'required|string',
-            'program_studi_id' => 'nullable|exists:program_studis,id', // <-- Validasi prodi
+            'program_studi_id' => 'nullable|exists:program_studis,id', 
             'jabatan_akademik' => 'nullable|string|max:255',
             'bidang_keahlian' => 'nullable|string|max:255',
             'email_institusi' => 'nullable|email|max:255|unique:dosens,email_institusi',
@@ -110,7 +110,7 @@ class DosenController extends Controller
 
     public function edit(Dosen $dosen): View
     {
-        $programStudis = ProgramStudi::all(); // <-- Mengambil data prodi
+        $programStudis = ProgramStudi::all(); 
         return view('dosen.edit', compact('dosen', 'programStudis'));
     }
 
@@ -118,13 +118,13 @@ class DosenController extends Controller
     {
         $request->validate([
             'nidn' => 'required|max:20|unique:dosens,nidn,' . $dosen->id,
-            'nik' => 'required|digits:16|unique:dosens,nik,' . $dosen->id,
+            'nik' => 'required|digits_between:15,16|unique:dosens,nik,' . $dosen->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $dosen->user_id],
             
             'jenis_kelamin' => 'required|in:L,P',
             'status_kepegawaian' => 'required|string',
-            'program_studi_id' => 'nullable|exists:program_studis,id', // <-- Validasi prodi
+            'program_studi_id' => 'nullable|exists:program_studis,id', 
             
             'email_institusi' => 'nullable|email|max:255|unique:dosens,email_institusi,' . $dosen->id,
             'link_google_scholar' => 'nullable|url',
@@ -185,7 +185,8 @@ class DosenController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
-        $request->validate(['file' => 'required|mimes:xlsx,xls']);
+        // PERBAIKAN: Izinkan format csv dan txt agar tidak ditolak sistem
+        $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
         
         try {
             Excel::import(new DosensImport, $request->file('file'));
