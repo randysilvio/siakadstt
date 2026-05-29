@@ -19,6 +19,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 {
     public function headingRow(): int
     {
+        // PERBAIKAN: Membaca judul kolom dari baris ke-2 (karena baris 1 adalah kalimat peringatan template)
         return 1; 
     }
 
@@ -97,8 +98,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             $user->assignRole($role->name);
         }
 
-        // 7. Simpan Data Mahasiswa (Disesuaikan dengan field database yang asli)
-        // Menambahkan fungsi ltrim dan trim untuk membuang tanda petik pelindung excel
+        // 7. Simpan Data Mahasiswa
         return Mahasiswa::updateOrCreate(
             ['nim' => $nim],
             [
@@ -109,7 +109,6 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'tahun_masuk'       => !empty($row['angkatan']) ? trim($row['angkatan']) : (!empty($row['tahun_masuk']) ? trim($row['tahun_masuk']) : date('Y')),
                 'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? trim($row['status_mahasiswa']) : 'Aktif',
                 
-                // MEMBERSIHKAN NIK DAN NISN DARI TANDA PETIK (') DAN SPASI
                 'nik'               => !empty($row['nik']) ? ltrim(trim((string)$row['nik']), "'") : null,
                 'nisn'              => !empty($row['nisn']) ? ltrim(trim((string)$row['nisn']), "'") : null,
                 
@@ -119,7 +118,6 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'jenis_kelamin'     => !empty($row['jenis_kelamin']) ? strtoupper(trim($row['jenis_kelamin'])) : 'L',
                 'agama'             => !empty($row['agama']) ? trim($row['agama']) : 'Kristen Protestan',
                 
-                // MEMBERSIHKAN NOMOR TELEPON
                 'nomor_telepon'     => !empty($row['no_hp']) ? ltrim(trim((string)$row['no_hp']), "'") : (!empty($row['nomor_telepon']) ? ltrim(trim((string)$row['nomor_telepon']), "'") : null),
                 
                 'alamat'            => !empty($row['alamat']) ? trim($row['alamat']) : null,

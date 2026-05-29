@@ -29,7 +29,7 @@ class MahasiswaController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
                   ->orWhere('nim', 'like', "%{$search}%")
-                  ->orWhere('nik', 'like', "%{$search}%") // Tambahan pencarian NIK
+                  ->orWhere('nik', 'like', "%{$search}%") 
                   ->orWhereHas('user', fn($userQuery) => $userQuery->where('email', 'like', "%{$search}%"));
             });
         }
@@ -62,20 +62,14 @@ class MahasiswaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Validasi Standar PDDikti Feeder
         $request->validate([
-            // Akun
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            
-            // Akademik
             'nim' => 'required|unique:mahasiswas|max:20',
             'program_studi_id' => 'required|exists:program_studis,id',
             'dosen_wali_id' => 'nullable|exists:dosens,id',
             'tahun_masuk' => 'required|digits:4|integer|min:1990',
             'jalur_pendaftaran' => 'nullable|string',
-
-            // Data Pribadi (NIK Wajib)
             'nama_lengkap' => 'required|string|max:255',
             'nik' => 'required|digits:16|unique:mahasiswas,nik',
             'nisn' => 'nullable|digits_between:10,12',
@@ -85,8 +79,6 @@ class MahasiswaController extends Controller
             'jenis_kelamin' => 'required|in:L,P',
             'agama' => 'nullable|string',
             'nomor_telepon' => 'nullable|string|max:15',
-
-            // Alamat Detail
             'alamat' => 'nullable|string',
             'dusun' => 'nullable|string',
             'rt' => 'nullable|numeric',
@@ -96,9 +88,7 @@ class MahasiswaController extends Controller
             'kode_pos' => 'nullable|numeric',
             'jenis_tinggal' => 'nullable|string',
             'alat_transportasi' => 'nullable|string',
-
-            // Data Orang Tua
-            'nama_ibu_kandung' => 'required|string|max:255', // Wajib Feeder
+            'nama_ibu_kandung' => 'required|string|max:255', 
             'nik_ibu' => 'nullable|digits:16',
             'nik_ayah' => 'nullable|digits:16',
             'nama_ayah' => 'nullable|string',
@@ -140,18 +130,14 @@ class MahasiswaController extends Controller
     public function update(Request $request, Mahasiswa $mahasiswa): RedirectResponse
     {
         $request->validate([
-            // Validasi Update (Ignore ID sendiri)
             'nim' => 'required|max:20|unique:mahasiswas,nim,' . $mahasiswa->id,
             'nik' => 'required|digits:16|unique:mahasiswas,nik,' . $mahasiswa->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $mahasiswa->user_id],
-            
             'program_studi_id' => 'required|exists:program_studis,id',
             'tahun_masuk' => 'required|digits:4',
-            'nama_ibu_kandung' => 'required|string', // Tetap wajib saat update
+            'nama_ibu_kandung' => 'required|string', 
             'status_mahasiswa' => 'required|string',
-            
-            // Validasi field opsional lainnya bisa dilonggarkan atau disamakan dengan store
             'nik_ayah' => 'nullable|digits:16',
             'nik_ibu' => 'nullable|digits:16',
         ]);
@@ -196,7 +182,8 @@ class MahasiswaController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
-        $request->validate(['file' => 'required|mimes:xlsx,xls,csv']);
+        // PERBAIKAN: Menambahkan 'txt' karena terkadang upload CSV dibaca sebagai txt
+        $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
 
         try {
             Excel::import(new MahasiswasImport, $request->file('file'));

@@ -23,7 +23,7 @@
                 <ul class="dropdown-menu rounded-0">
                     <li><a class="dropdown-item uppercase small fw-bold" href="{{ route('admin.mahasiswa.export', request()->query()) }}">Ekspor ke Excel</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item uppercase small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importModal">Impor dari Excel</a></li>
+                    <li><a class="dropdown-item uppercase small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importModal">Impor dari Excel / CSV</a></li>
                 </ul>
             </div>
         </div>
@@ -39,6 +39,19 @@
     @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm small fw-bold uppercase" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- PERBAIKAN: Penangkap Error Global --}}
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm small fw-bold uppercase" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> PERHATIAN:
+            <ul class="mb-0 mt-1">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
             <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -197,8 +210,8 @@
                             <i class="bi bi-download me-1"></i> Unduh Template Excel
                         </a>
                         <div class="mb-3">
-                            <label for="file" class="form-label uppercase fw-bold small text-dark">Upload File Excel</label>
-                            <input class="form-control rounded-0" type="file" name="file" id="file" required>
+                            <label for="file" class="form-label uppercase fw-bold small text-dark">Upload File Excel / CSV</label>
+                            <input class="form-control rounded-0" type="file" name="file" id="file" accept=".xlsx,.xls,.csv" required>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-0">
