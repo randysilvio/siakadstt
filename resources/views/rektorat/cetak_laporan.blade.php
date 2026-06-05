@@ -2,14 +2,37 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Eksekutif - Institusi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #fff; font-family: 'Arial', sans-serif; }
-        .print-header { border-bottom: 4px solid #000; padding-bottom: 15px; margin-bottom: 30px; }
-        .kpi-box { border: 2px solid #000; padding: 15px; border-radius: 0px; text-align: center; }
+        /* CSS STANDAR ENTERPRISE (CETAKAN FORMAL 0PX) */
+        body { font-family: Arial, sans-serif; font-size: 11px; background-color: #fff; color: #000; line-height: 1.4; margin: 0; padding: 0; }
+        
+        /* KOP SURAT */
+        .header-table { width: 100%; border-bottom: 4px solid #000; padding-bottom: 12px; margin-bottom: 15px; border-collapse: collapse; }
+        .header-table td { border: none; vertical-align: middle; }
+        .logo { width: 80px; height: auto; }
+        .title-block { text-align: center; }
+        .title-block h2 { margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        .title-block h3 { margin: 3px 0; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+        .title-block p { margin: 2px 0; font-size: 10px; text-transform: uppercase; }
+        
+        .print-meta { text-align: right; font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: bold; margin-bottom: 15px; }
+        
+        /* KOMPONEN TABEL & SEKSI */
+        .section-bar { font-size: 11px; font-weight: bold; text-transform: uppercase; background-color: #212529; color: #ffffff; padding: 5px 8px; margin-top: 15px; margin-bottom: 8px; border: none; }
+        
+        table.grid-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        table.grid-table th, table.grid-table td { border: 1px solid #000; padding: 6px 8px; font-size: 11px; text-align: center; vertical-align: middle; }
+        table.grid-table th { background-color: #f8fafc; font-weight: bold; text-transform: uppercase; color: #000; }
+        
+        .text-start { text-align: left !important; }
+        .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         .uppercase { text-transform: uppercase; }
+        .fs-6 { font-size: 14px; }
+        
+        /* TANDA TANGAN */
+        .ttd { margin-top: 40px; width: 100%; border-collapse: collapse; font-size: 11px; text-transform: uppercase; }
+        .ttd td { border: none; text-align: center; vertical-align: top; }
         
         @media print {
             .no-print { display: none !important; }
@@ -19,90 +42,97 @@
 </head>
 <body onload="window.print()">
 
-<div class="container my-4">
-    
-    <div class="text-end mb-4 no-print">
-        <button onclick="window.print()" class="btn btn-dark rounded-0 px-3 uppercase fw-bold small me-1">
-            <i class="bi bi-printer"></i> Print Ulang
+    <div class="text-end mb-4 no-print" style="margin-bottom: 20px; text-align: right;">
+        <button onclick="window.print()" style="padding: 5px 15px; background: #212529; color: #fff; font-weight: bold; border: none; cursor: pointer;">
+            Print Ulang
         </button>
-        <button onclick="window.close()" class="btn btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+        <button onclick="window.close()" style="padding: 5px 15px; background: #fff; color: #212529; font-weight: bold; border: 1px solid #212529; cursor: pointer; margin-left: 5px;">
             Tutup
         </button>
     </div>
 
-    <div class="print-header text-center">
-        <h2 class="fw-bold uppercase text-dark mb-1">LAPORAN KINERJA EKSEKUTIF</h2>
-        <h6 class="text-muted uppercase fw-bold small mb-2">
-            Periode Semester: <span class="font-monospace">{{ $tahunAkademikAktif ? $tahunAkademikAktif->tahun . ' ' . $tahunAkademikAktif->semester : 'BELUM DITENTUKAN' }}</span>
-        </h6>
-        <p class="mb-0 small text-muted uppercase fw-bold">
-            Dicetak pada: <span class="font-monospace">{{ \Carbon\Carbon::now()->format('d F Y H:i') }}</span>
-        </p>
+    {{-- KOP SURAT --}}
+    <table class="header-table">
+        <tr>
+            <td style="width: 15%; text-align: center;">
+                <img src="{{ public_path('images/logo.png') }}" class="logo" alt="Logo">
+            </td>
+            <td style="width: 85%;" class="title-block">
+                <h2>SEKOLAH TINGGI TEOLOGI GEREJA PROTESTAN INDONESIA PAPUA</h2>
+                <h2>(STT GPI PAPUA) FAKFAK</h2>
+                <h3>LAPORAN PIMPINAN</h3>
+                <p style="text-decoration: underline; font-weight: bold; margin-top: 4px;">LAPORAN RINGKASAN KINERJA AKADEMIK EKSEKUTIF</p>
+            </td>
+        </tr>
+    </table>
+
+    <div class="print-meta">
+        TANGGAL EKSTRAKSI DATA: {{ \Carbon\Carbon::now()->translatedFormat('d F Y H:i') }}
     </div>
 
-    <div class="row g-3 mb-5">
-        <div class="col-3">
-            <div class="kpi-box">
-                <div class="uppercase fw-bold small text-dark mb-2">Mahasiswa Aktif</div>
-                <div class="fs-4 fw-bold text-dark font-monospace">{{ $totalMahasiswaAktif }}</div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="kpi-box">
-                <div class="uppercase fw-bold small text-dark mb-2">Pendaftar Baru</div>
-                <div class="fs-4 fw-bold text-dark font-monospace">{{ $pendaftarTahunIni }}</div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="kpi-box">
-                <div class="uppercase fw-bold small text-dark mb-2">Pendapatan (Rp)</div>
-                <div class="fs-4 fw-bold text-dark font-monospace">{{ number_format($pendapatanSemesterIni, 0, ',', '.') }}</div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="kpi-box">
-                <div class="uppercase fw-bold small text-dark mb-2">Lulusan</div>
-                <div class="fs-4 fw-bold text-dark font-monospace">{{ $mahasiswaLulusTahunIni }}</div>
-            </div>
-        </div>
-    </div>
+    {{-- A. RINGKASAN METRIK --}}
+    <div class="section-bar">A. RINGKASAN METRIK KINERJA UTAMA</div>
+    <table class="grid-table">
+        <thead>
+            <tr>
+                <th>MAHASISWA AKTIF</th>
+                <th>PENDAFTAR BARU</th>
+                <th>LULUSAN TAHUN INI</th>
+                <th>PENDAPATAN SEMESTER INI</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="font-monospace fs-6">{{ $totalMahasiswaAktif }}</td>
+                <td class="font-monospace fs-6">{{ $pendaftarTahunIni }}</td>
+                <td class="font-monospace fs-6">{{ $mahasiswaLulusTahunIni }}</td>
+                <td class="font-monospace fs-6">Rp {{ number_format($pendapatanSemesterIni, 0, ',', '.') }}</td>
+            </tr>
+        </tbody>
+    </table>
 
-    <h6 class="fw-bold uppercase small text-dark mb-3">Performa Program Studi</h6>
-    <table class="table table-bordered align-middle border-dark mb-5">
-        <thead class="table-dark text-white small uppercase text-center fw-bold">
+    {{-- B. PERFORMA PROGRAM STUDI --}}
+    <div class="section-bar">B. DISTRIBUSI PERFORMA PROGRAM STUDI</div>
+    <table class="grid-table">
+        <thead>
             <tr>
                 <th style="width: 8%;">NO</th>
                 <th class="text-start">PROGRAM STUDI</th>
-                <th class="text-start">KEPALA PRODI</th>
+                <th class="text-start">KEPALA PROGRAM STUDI</th>
                 <th style="width: 20%;">MAHASISWA AKTIF</th>
-                <th style="width: 15%;">JML DOSEN</th>
+                <th style="width: 15%;">JUMLAH DOSEN</th>
             </tr>
         </thead>
-        <tbody class="small text-dark">
+        <tbody>
             @forelse ($kinerjaProdi as $index => $prodi)
                 <tr>
-                    <td class="text-center font-monospace fw-bold">{{ $index + 1 }}</td>
-                    <td class="fw-bold uppercase">{{ $prodi->nama_prodi }}</td>
-                    <td class="uppercase">{{ $prodi->kaprodi->nama_lengkap ?? 'BELUM DITENTUKAN' }}</td>
-                    <td class="text-center font-monospace">{{ $prodi->jumlah_mahasiswa_aktif }}</td>
-                    <td class="text-center font-monospace">{{ $prodi->jumlah_dosen }}</td>
+                    <td class="font-monospace">{{ $index + 1 }}</td>
+                    <td class="text-start uppercase fw-bold">{{ $prodi->nama_prodi }}</td>
+                    <td class="text-start uppercase">{{ $prodi->kaprodi->nama_lengkap ?? 'BELUM DITENTUKAN' }}</td>
+                    <td class="font-monospace">{{ $prodi->jumlah_mahasiswa_aktif }}</td>
+                    <td class="font-monospace">{{ $prodi->jumlah_dosen }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="text-center uppercase fw-bold py-3">Tidak ada data program studi.</td></tr>
+                <tr>
+                    <td colspan="5" class="uppercase fw-bold py-3 text-center">Data program studi tidak ditemukan.</td>
+                </tr>
             @endforelse
         </tbody>
     </table>
 
-    <div class="row mt-5 pt-5">
-        <div class="col-8"></div>
-        <div class="col-4 text-center small uppercase fw-bold text-dark">
-            <p class="mb-1">Jayapura, <span class="font-monospace">{{ \Carbon\Carbon::now()->format('d F Y') }}</span></p>
-            <p class="mb-5">Mengetahui,</p>
-            <br><br>
-            <p class="text-decoration-underline mb-0">PIMPINAN INSTITUSI</p>
-        </div>
-    </div>
-</div>
+    {{-- TANDA TANGAN --}}
+    <table class="ttd">
+        <tr>
+            <td style="width: 50%;">
+                {{-- Area kiri dikosongkan untuk perataan atau bisa diisi tanda tangan pihak lain jika perlu --}}
+            </td>
+            <td style="width: 50%;">
+                <p class="mb-5">FAKFAK, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>MENGETAHUI,<br>PIMPINAN INSTITUSI</p>
+                <br><br><br><br>
+                <p><b>( ........................................... )</b></p>
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

@@ -8,6 +8,7 @@ use App\Models\EvaluasiSesi;
 use App\Models\Mahasiswa;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class PenjaminanMutuController extends Controller
 {
@@ -22,8 +23,7 @@ class PenjaminanMutuController extends Controller
         
         $rasioDosenMahasiswa = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
 
-        // 2. [LOGIKA BARU] Hitung Rata-rata IPK Institusi (Real-time)
-        // Mengambil semua mahasiswa aktif, hitung IPK masing-masing, lalu dirata-ratakan.
+        // 2. Hitung Rata-rata IPK Institusi (Real-time untuk Mahasiswa Aktif)
         $mahasiswas = Mahasiswa::with('mataKuliahs')
                         ->where('status_mahasiswa', 'Aktif')
                         ->get();
@@ -32,32 +32,13 @@ class PenjaminanMutuController extends Controller
         $jumlahMhsTerhitung = 0;
 
         foreach ($mahasiswas as $mhs) {
-            $totalSks = 0;
-            $totalBobot = 0;
-            
-            foreach ($mhs->mataKuliahs as $mk) {
-                // Skip mata kuliah yang belum ada nilainya
-                if (!$mk->pivot->nilai) continue;
-
-                // Konversi Nilai Huruf ke Angka (Skala 4.0)
-                $bobotNilai = match ($mk->pivot->nilai) {
-                    'A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, default => 0
-                };
-
-                $sks = $mk->sks;
-                $totalSks += $sks;
-                $totalBobot += ($bobotNilai * $sks);
-            }
-
-            // Hanya hitung mahasiswa yang sudah memiliki SKS lulus
-            if ($totalSks > 0) {
-                $ipkMhs = $totalBobot / $totalSks;
+            $ipkMhs = $mhs->hitungIpk(); // Menggunakan fungsi bawaan dari Model Mahasiswa
+            if ($ipkMhs > 0) {
                 $totalIpkKumulatif += $ipkMhs;
                 $jumlahMhsTerhitung++;
             }
         }
 
-        // Jika belum ada nilai sama sekali, default 0.00
         $rataIPK = $jumlahMhsTerhitung > 0 ? round($totalIpkKumulatif / $jumlahMhsTerhitung, 2) : 0.00;
 
         // 3. Data Tren Mahasiswa (Grafik)
@@ -92,17 +73,50 @@ class PenjaminanMutuController extends Controller
                 ->get();
         }
 
+        // 6. [LOGIKA BARU] Profil Kelulusan (Standar Akreditasi BAN-PT)
+        $dataLulusan = Mahasiswa::with('mataKuliahs')
+            ->where('status_mahasiswa', 'Lulus')
+            ->get()
+            ->groupBy(function($item) {
+                // Fallback ke updated_at JIKA kolom tanggal lulus (baru) ada yang terlanjur kosong di masa lalu
+                return $item->tanggal_lulus ? Carbon::parse($item->tanggal_lulus)->format('Y') : $item->updated_at->format('Y'); 
+            })
+            ->map(function ($mahasiswas, $tahunLulus) {
+                $jumlahLulusan = $mahasiswas->count();
+                $totalIpk = 0;
+                $totalMasaStudi = 0;
+
+                foreach($mahasiswas as $mhs) {
+                    $totalIpk += $mhs->hitungIpk();
+                    
+                    // Masa studi = Tahun Lulus - Tahun Masuk
+                    $masaStudi = (int)$tahunLulus - (int)$mhs->tahun_masuk;
+                    // Minimal masa studi dianggap 1 tahun untuk menghindari angka 0
+                    $totalMasaStudi += max($masaStudi, 1); 
+                }
+
+                return (object) [
+                    'tahun_lulus' => $tahunLulus,
+                    'jumlah' => $jumlahLulusan,
+                    'rata_ipk' => round($totalIpk / $jumlahLulusan, 2),
+                    'rata_masa_studi' => round($totalMasaStudi / $jumlahLulusan, 1)
+                ];
+            })
+            ->sortByDesc('tahun_lulus') // Urutkan dari tahun terbaru
+            ->values();
+
         return view('penjaminan_mutu.dashboard', compact(
             'jumlahMahasiswaAktif',
             'jumlahDosen',
             'rasioDosenMahasiswa',
-            'rataIPK', // <--- Variabel Dinamis
+            'rataIPK',
             'trenMahasiswaLabels',
             'trenMahasiswaTotals',
             'distribusiStatusLabels',
             'distribusiStatusTotals',
             'sesiEdomAktif',
-            'hasilEdom'
+            'hasilEdom',
+            'dataLulusan' // <-- Variabel baru dikirim ke view
         ));
     }
 }

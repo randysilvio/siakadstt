@@ -12,11 +12,11 @@ class Mahasiswa extends Model
 {
     use HasFactory;
 
-    // PERBAIKAN: Semua kolom PDDikti sudah didaftarkan penuh
+    // PERBAIKAN: Semua kolom PDDikti sudah didaftarkan penuh + tanggal_lulus
     protected $fillable = [
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',
-        'nomor_telepon', 'nama_ibu_kandung', 'status_mahasiswa', 'tahun_masuk',
+        'nomor_telepon', 'nama_ibu_kandung', 'status_mahasiswa', 'tanggal_lulus', 'tahun_masuk',
         'status_krs', 'catatan_kaprodi', 'foto_profil', 'jalur_pendaftaran',
         'nik', 'nisn', 'kewarganegaraan', 'dusun', 'rt', 'rw', 'kelurahan', 
         'kecamatan', 'kode_pos', 'jenis_tinggal', 'alat_transportasi', 
@@ -27,6 +27,11 @@ class Mahasiswa extends Model
     
     // Menambahkan atribut virtual
     protected $appends = ['foto_profil_url'];
+
+    protected $casts = [
+        'tanggal_lahir' => 'date',
+        'tanggal_lulus' => 'date',
+    ];
 
     public function user(): BelongsTo
     {

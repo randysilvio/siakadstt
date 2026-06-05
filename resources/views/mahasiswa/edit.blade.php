@@ -89,7 +89,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Tanggal Lahir <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control rounded-0 font-monospace" name="tanggal_lahir" value="{{ old('tanggal_lahir', $mahasiswa->tanggal_lahir) }}" required>
+                                <input type="date" class="form-control rounded-0 font-monospace" name="tanggal_lahir" value="{{ old('tanggal_lahir', $mahasiswa->tanggal_lahir ? $mahasiswa->tanggal_lahir->format('Y-m-d') : '') }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label uppercase fw-bold small text-dark">Jenis Kelamin <span class="text-danger">*</span></label>
@@ -151,7 +151,7 @@
                                     $curStatus = old('status_mahasiswa', $mahasiswa->status_mahasiswa);
                                     $isCusStatus = $curStatus && !in_array($curStatus, $stdStatus);
                                 @endphp
-                                <select class="form-select rounded-0 uppercase" name="status_mahasiswa" required>
+                                <select class="form-select rounded-0 uppercase" name="status_mahasiswa" id="status_mahasiswa" required>
                                     @if($isCusStatus)
                                         <option value="{{ $curStatus }}" selected>{{ strtoupper($curStatus) }} (DATA CUSTOM)</option>
                                     @endif
@@ -160,6 +160,16 @@
                                     @endforeach
                                 </select>
                             </div>
+                            
+                            {{-- PERUBAHAN: KOLOM TANGGAL LULUS (Muncul jika status Lulus) --}}
+                            <div class="col-md-12" id="tgl_lulus_container" style="display: {{ old('status_mahasiswa', $mahasiswa->status_mahasiswa) == 'Lulus' ? 'block' : 'none' }};">
+                                <div class="bg-light p-3 border border-success border-2">
+                                    <label class="form-label small fw-bold uppercase text-success mb-1"><i class="bi bi-calendar-check me-1"></i>Tanggal Resmi Kelulusan <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control rounded-0 font-monospace" name="tanggal_lulus" value="{{ old('tanggal_lulus', $mahasiswa->tanggal_lulus ? $mahasiswa->tanggal_lulus->format('Y-m-d') : '') }}">
+                                    <small class="text-muted font-monospace" style="font-size: 10px;">Masukan tanggal ini agar lulusan terekam di tahun yang tepat untuk laporan Akreditasi.</small>
+                                </div>
+                            </div>
+                            
                             <div class="col-md-6">
                                 <label class="form-label uppercase fw-bold small text-dark">Dosen Wali</label>
                                 <select class="form-select rounded-0 uppercase" name="dosen_wali_id">
@@ -181,6 +191,7 @@
                                     $isCusJalur = $curJalur && !in_array($curJalur, $stdJalur);
                                 @endphp
                                 <select class="form-select rounded-0 uppercase" name="jalur_pendaftaran">
+                                    <option value="">-- PILIH --</option>
                                     @if($isCusJalur)
                                         <option value="{{ $curJalur }}" selected>{{ strtoupper($curJalur) }} (DATA CUSTOM)</option>
                                     @endif
@@ -432,3 +443,26 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // PERBAIKAN: JS Untuk memunculkan Kalender Tanggal Lulus saat Status dipilih "Lulus"
+    document.addEventListener('DOMContentLoaded', function() {
+        const statusSelect = document.getElementById('status_mahasiswa');
+        const tglLulusContainer = document.getElementById('tgl_lulus_container');
+        const tglLulusInput = document.querySelector('input[name="tanggal_lulus"]');
+        
+        if(statusSelect && tglLulusContainer) {
+            statusSelect.addEventListener('change', function() {
+                if(this.value === 'Lulus') {
+                    tglLulusContainer.style.display = 'block';
+                    tglLulusInput.setAttribute('required', 'required');
+                } else {
+                    tglLulusContainer.style.display = 'none';
+                    tglLulusInput.removeAttribute('required');
+                }
+            });
+        }
+    });
+</script>
+@endpush

@@ -104,68 +104,119 @@
         </div>
     </div>
 
-    {{-- 4. LAPORAN EVALUASI DOSEN (EDOM) STANDAR ENTERPRISE --}}
-    <div class="card border-0 shadow-sm rounded-0 mb-5">
-        <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
-            <span class="uppercase fw-bold small">
-                Kinerja Dosen Terbaik (EDOM)
-            </span>
-            @if($sesiEdomAktif)
-                <span class="badge bg-light text-dark rounded-0 uppercase font-monospace fw-bold" style="font-size: 10px;">
-                    Periode: {{ $sesiEdomAktif->nama_sesi }}
-                </span>
-            @endif
+    {{-- 4. LAPORAN EVALUASI DOSEN & DATA LULUSAN --}}
+    <div class="row g-4 mb-5">
+        {{-- Tabel EDOM --}}
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-0 h-100">
+                <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
+                    <span class="uppercase fw-bold small">
+                        Kinerja Dosen Terbaik (EDOM)
+                    </span>
+                    @if($sesiEdomAktif)
+                        <span class="badge bg-light text-dark rounded-0 uppercase font-monospace fw-bold" style="font-size: 10px;">
+                            Periode: {{ $sesiEdomAktif->nama_sesi }}
+                        </span>
+                    @endif
+                </div>
+                <div class="card-body p-0">
+                    @if($sesiEdomAktif && $hasilEdom->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle mb-0">
+                                <thead class="bg-light text-dark small uppercase text-center fw-bold">
+                                    <tr>
+                                        <th style="width: 8%;">RANK</th>
+                                        <th class="text-start" style="width: 37%;">NAMA DOSEN</th>
+                                        <th style="width: 20%;">SKOR RATA-RATA</th>
+                                        <th style="width: 20%;">KATEGORI</th>
+                                        <th style="width: 15%;">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="small text-dark">
+                                    @foreach($hasilEdom as $index => $hasil)
+                                        @php
+                                            $skor = $hasil->rata_rata_skor;
+                                            $kategori = $skor >= 3.5 ? 'SANGAT BAIK' : ($skor >= 2.5 ? 'BAIK' : 'PERLU EVALUASI');
+                                        @endphp
+                                        <tr>
+                                            <td class="text-center font-monospace fw-bold text-dark">
+                                                {{ $index + 1 }}
+                                            </td>
+                                            <td class="text-start uppercase fw-bold text-dark ps-3">
+                                                {{ $hasil->nama_lengkap }}
+                                            </td>
+                                            <td class="text-center font-monospace fw-bold text-dark">
+                                                {{ number_format($skor, 2) }} <span class="text-muted small font-monospace">/ 4.00</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-dark text-white rounded-0 uppercase fw-bold font-monospace px-2 py-1" style="font-size: 10px;">
+                                                    {{ $kategori }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{{ route('admin.evaluasi-hasil.show', ['sesi' => $sesiEdomAktif->id, 'dosen' => $hasil->dosen_id]) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-3 uppercase fw-bold small">
+                                                    Detail
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5 uppercase fw-bold text-muted">
+                            <i class="bi bi-trophy fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                            Data evaluasi belum tersedia untuk periode aktif ini.
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
-        <div class="card-body p-0">
-            @if($sesiEdomAktif && $hasilEdom->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle mb-0">
-                        <thead class="bg-light text-dark small uppercase text-center fw-bold">
+
+        {{-- Tabel Profil Lulusan --}}
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-0 h-100">
+                <div class="card-header bg-white py-3 border-bottom border-top border-dark border-4">
+                    <h6 class="fw-bold mb-0 text-dark uppercase small">Profil Kinerja Lulusan (Akreditasi)</h6>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted small uppercase text-center fw-bold">
                             <tr>
-                                <th style="width: 8%;">RANK</th>
-                                <th class="text-start" style="width: 37%;">NAMA DOSEN</th>
-                                <th style="width: 20%;">SKOR RATA-RATA</th>
-                                <th style="width: 20%;">KATEGORI</th>
-                                <th style="width: 15%;">AKSI</th>
+                                <th class="text-start ps-4" style="width: 25%;">TAHUN</th>
+                                <th style="width: 25%;">LULUSAN</th>
+                                <th style="width: 25%;">IPK RATA2</th>
+                                <th style="width: 25%;">MASA STUDI</th>
                             </tr>
                         </thead>
-                        <tbody class="small text-dark">
-                            @foreach($hasilEdom as $index => $hasil)
-                                @php
-                                    $skor = $hasil->rata_rata_skor;
-                                    $kategori = $skor >= 3.5 ? 'SANGAT BAIK' : ($skor >= 2.5 ? 'BAIK' : 'PERLU EVALUASI');
-                                @endphp
+                        <tbody>
+                            @forelse($dataLulusan as $lulusan)
                                 <tr>
-                                    <td class="text-center font-monospace fw-bold text-dark">
-                                        {{ $index + 1 }}
-                                    </td>
-                                    <td class="text-start uppercase fw-bold text-dark ps-3">
-                                        {{ $hasil->nama_lengkap }}
-                                    </td>
-                                    <td class="text-center font-monospace fw-bold text-dark">
-                                        {{ number_format($skor, 2) }} <span class="text-muted small font-monospace">/ 4.00</span>
+                                    <td class="ps-4">
+                                        <span class="fw-bold fs-6 font-monospace">{{ $lulusan->tahun_lulus }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge bg-dark text-white rounded-0 uppercase fw-bold font-monospace px-2 py-1" style="font-size: 10px;">
-                                            {{ $kategori }}
-                                        </span>
+                                        <span class="badge bg-dark rounded-0 px-3 py-2 font-monospace">{{ $lulusan->jumlah }} ORANG</span>
                                     </td>
-                                    <td class="text-center">
-                                        <a href="{{ route('admin.evaluasi-hasil.show', ['sesi' => $sesiEdomAktif->id, 'dosen' => $hasil->dosen_id]) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-3 uppercase fw-bold small">
-                                            Detail
-                                        </a>
+                                    <td class="text-center font-monospace fw-bold text-success">
+                                        {{ number_format($lulusan->rata_ipk, 2) }}
+                                    </td>
+                                    <td class="text-center font-monospace text-muted">
+                                        {{ $lulusan->rata_masa_studi }} TAHUN
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted small uppercase fw-bold">
+                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                        Belum Ada Data Lulusan Tercatat
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
-            @else
-                <div class="text-center py-5 uppercase fw-bold text-muted">
-                    <i class="bi bi-trophy fs-2 d-block mb-2 text-secondary opacity-50"></i>
-                    Data evaluasi belum tersedia untuk periode aktif ini.
-                </div>
-            @endif
+            </div>
         </div>
     </div>
 </div>

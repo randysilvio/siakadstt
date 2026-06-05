@@ -29,8 +29,9 @@ class RektoratController extends Controller
                                                 ->sum('jumlah');
         }
         
+        // PERBAIKAN: Menggunakan tanggal_lulus sebagai parameter kelulusan (Bukan updated_at)
         $mahasiswaLulusTahunIni = Mahasiswa::where('status_mahasiswa', 'Lulus')
-                                            ->whereYear('updated_at', $tahunIni)
+                                            ->whereYear('tanggal_lulus', $tahunIni)
                                             ->count();
 
         $limaTahunLalu = $tahunIni - 4;
@@ -48,9 +49,11 @@ class RektoratController extends Controller
             ->orderBy('tahun_masuk', 'asc')
             ->pluck('total', 'tahun_masuk');
             
-        $lulusan = Mahasiswa::where('status_mahasiswa', 'Lulus')
-            ->select(DB::raw('YEAR(updated_at) as tahun_lulus'), DB::raw('count(*) as total'))
-            ->whereYear('updated_at', '>=', $limaTahunLalu)
+        // PERBAIKAN: Menggunakan tanggal_lulus untuk grafik 5 tahun terakhir dengan pluck yang aman
+        $lulusan = Mahasiswa::select(DB::raw('YEAR(tanggal_lulus) as tahun_lulus'), DB::raw('count(*) as total'))
+            ->where('status_mahasiswa', 'Lulus')
+            ->whereNotNull('tanggal_lulus')
+            ->whereYear('tanggal_lulus', '>=', $limaTahunLalu)
             ->groupBy('tahun_lulus')
             ->orderBy('tahun_lulus', 'asc')
             ->pluck('total', 'tahun_lulus');

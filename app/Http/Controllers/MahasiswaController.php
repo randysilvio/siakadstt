@@ -138,12 +138,18 @@ class MahasiswaController extends Controller
             'tahun_masuk' => 'required|digits:4',
             'nama_ibu_kandung' => 'required|string', 
             'status_mahasiswa' => 'required|string',
+            'tanggal_lulus' => 'nullable|date|required_if:status_mahasiswa,Lulus',
             'nik_ayah' => 'nullable|digits:16',
             'nik_ibu' => 'nullable|digits:16',
         ]);
     
         DB::transaction(function () use ($request, $mahasiswa) {
-            $mahasiswa->update($request->except(['email', 'password', 'password_confirmation', '_token', '_method']));
+            $data = $request->except(['email', 'password', 'password_confirmation', '_token', '_method']);
+            if ($data['status_mahasiswa'] !== 'Lulus') {
+                $data['tanggal_lulus'] = null;
+            }
+
+            $mahasiswa->update($data);
     
             if ($mahasiswa->user) {
                 $userData = [

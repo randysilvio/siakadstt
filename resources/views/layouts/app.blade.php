@@ -149,7 +149,8 @@
                             </li>
                         @endif
 
-                        @if(Auth::user()->hasRole('dosen') || Auth::user()->hasRole('mahasiswa'))
+                        {{-- MENU E-LEARNING: Tampil untuk Dosen, dan Mahasiswa yang BELUM Lulus --}}
+                        @if(Auth::user()->hasRole('dosen') || (Auth::user()->hasRole('mahasiswa') && optional(Auth::user()->mahasiswa)->status_mahasiswa !== 'Lulus'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('verum.*') ? 'active' : '' }}" href="{{ route('verum.index') }}">
                                     <i class="bi bi-laptop"></i>E-Learning
@@ -174,22 +175,41 @@
                             </li>
                         @endif
 
+                        {{-- STRUKTUR MENU MAHASISWA & ALUMNI --}}
                         @if(Auth::user()->hasRole('mahasiswa'))
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-mortarboard"></i>Akademik
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><h6 class="dropdown-header">Studi</h6></li>
-                                    <li><a class="dropdown-item" href="{{ route('krs.index') }}">KRS (Kartu Rencana Studi)</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('khs.index') }}">KHS (Kartu Hasil Studi)</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header">Administrasi</h6></li>
-                                    <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('evaluasi.index') }}">Evaluasi Dosen</a></li>
-                                </ul>
-                            </li>
+                            @if(optional(Auth::user()->mahasiswa)->status_mahasiswa === 'Lulus')
+                                {{-- Menu Khusus Alumni --}}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('transkrip*', 'pembayaran*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                        <i class="bi bi-award-fill"></i>Layanan Alumni
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><h6 class="dropdown-header">Arsip Kelulusan</h6></li>
+                                        <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai Akhir</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><h6 class="dropdown-header">Pusat Karir</h6></li>
+                                        <li><a class="dropdown-item text-primary" href="#">Tracer Study</a></li>
+                                    </ul>
+                                </li>
+                            @else
+                                {{-- Menu Mahasiswa Aktif --}}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                        <i class="bi bi-mortarboard"></i>Akademik
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><h6 class="dropdown-header">Studi</h6></li>
+                                        <li><a class="dropdown-item" href="{{ route('krs.index') }}">KRS (Kartu Rencana Studi)</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('khs.index') }}">KHS (Kartu Hasil Studi)</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><h6 class="dropdown-header">Administrasi</h6></li>
+                                        <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('evaluasi.index') }}">Evaluasi Dosen</a></li>
+                                    </ul>
+                                </li>
+                            @endif
                         @endif
 
                         @if (Auth::user()->hasRole('pustakawan'))

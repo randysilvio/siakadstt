@@ -75,9 +75,40 @@ class MutuReportController extends Controller
                 ->get();
         }
 
+        // 5. [LOGIKA BARU] Profil Kelulusan (Standar Akreditasi BAN-PT)
+        $dataLulusan = Mahasiswa::with('mataKuliahs')
+            ->where('status_mahasiswa', 'Lulus')
+            ->get()
+            ->groupBy(function($item) {
+                return $item->tanggal_lulus ? Carbon::parse($item->tanggal_lulus)->format('Y') : $item->updated_at->format('Y'); 
+            })
+            ->map(function ($mahasiswas, $tahunLulus) {
+                $jumlahLulusan = $mahasiswas->count();
+                $totalIpk = 0;
+                $totalMasaStudi = 0;
+
+                foreach($mahasiswas as $mhs) {
+                    $totalIpk += $mhs->hitungIpk();
+                    
+                    // Masa studi = Tahun Lulus - Tahun Masuk
+                    $masaStudi = (int)$tahunLulus - (int)$mhs->tahun_masuk;
+                    // Minimal masa studi dianggap 1 tahun untuk menghindari angka 0
+                    $totalMasaStudi += max($masaStudi, 1); 
+                }
+
+                return (object) [
+                    'tahun_lulus' => $tahunLulus,
+                    'jumlah' => $jumlahLulusan,
+                    'rata_ipk' => round($totalIpk / $jumlahLulusan, 2),
+                    'rata_masa_studi' => round($totalMasaStudi / $jumlahLulusan, 1)
+                ];
+            })
+            ->sortByDesc('tahun_lulus') // Urutkan dari tahun terbaru
+            ->values();
+
         $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_ringkasan', compact(
             'jumlahMahasiswaAktif', 'jumlahDosen', 'rasio', 'rataIPK', 
-            'trenData', 'hasilEdom', 'sesiEdomAktif'
+            'trenData', 'hasilEdom', 'sesiEdomAktif', 'dataLulusan'
         ))->setPaper('a4', 'portrait');
 
         return $pdf->stream('Laporan_Ringkasan_Kinerja_Mutu.pdf');

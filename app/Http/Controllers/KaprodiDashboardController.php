@@ -27,25 +27,34 @@ class KaprodiDashboardController extends Controller
             abort(403, 'Akses ditolak. Akun dosen Anda belum ditautkan sebagai Ketua Program Studi pada data Master Program Studi. Silakan hubungi Administrator.');
         }
 
-        // --- MENGHITUNG DATA UNTUK SMART FILTER TABS ---
-        $countSemua = Mahasiswa::where('program_studi_id', $programStudi->id)->count();
+        // --- MENGHITUNG DATA UNTUK SMART FILTER TABS (HANYA MAHASISWA AKTIF) ---
+        $countSemua = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where('status_mahasiswa', 'Aktif')
+                            ->count();
         
         $countMenunggu = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_krs', 'Menunggu Persetujuan')->count();
+                            ->where('status_mahasiswa', 'Aktif')
+                            ->where('status_krs', 'Menunggu Persetujuan')
+                            ->count();
                             
         $countDisetujui = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_krs', 'Disetujui')->count();
+                            ->where('status_mahasiswa', 'Aktif')
+                            ->where('status_krs', 'Disetujui')
+                            ->count();
                             
         $countDitolak = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_krs', 'Ditolak')->count();
+                            ->where('status_mahasiswa', 'Aktif')
+                            ->where('status_krs', 'Ditolak')
+                            ->count();
                             
         $countBelum = Mahasiswa::where('program_studi_id', $programStudi->id)
+                            ->where('status_mahasiswa', 'Aktif')
                             ->where(function($q) {
                                 $q->whereNull('status_krs')->orWhere('status_krs', '');
                             })->count();
 
-        // --- QUERY UTAMA DAFTAR MAHASISWA ---
-        $query = $programStudi->mahasiswas()->with('user');
+        // --- QUERY UTAMA DAFTAR MAHASISWA (TAMPILKAN YANG AKTIF SAJA) ---
+        $query = $programStudi->mahasiswas()->with('user')->where('status_mahasiswa', 'Aktif');
 
         // Filter berdasarkan tombol status yang diklik
         $query->when($request->filled('status'), function ($q) use ($request) {

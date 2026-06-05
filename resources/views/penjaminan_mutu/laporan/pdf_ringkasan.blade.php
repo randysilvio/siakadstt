@@ -127,6 +127,33 @@
         </tbody>
     </table>
 
+    {{-- D. PROFIL LULUSAN --}}
+    <div class="section-bar">D. PROFIL KINERJA LULUSAN</div>
+    <table class="grid-table">
+        <thead>
+            <tr>
+                <th class="text-start" style="width: 20%;">TAHUN LULUS</th>
+                <th style="width: 25%;">JUMLAH LULUSAN</th>
+                <th style="width: 25%;">RATA-RATA IPK</th>
+                <th style="width: 30%;">RATA-RATA MASA STUDI</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($dataLulusan as $lulusan)
+            <tr>
+                <td class="text-start font-monospace">{{ $lulusan->tahun_lulus }}</td>
+                <td class="font-monospace">{{ $lulusan->jumlah }} ORANG</td>
+                <td class="font-monospace">{{ number_format($lulusan->rata_ipk, 2) }}</td>
+                <td class="font-monospace">{{ $lulusan->rata_masa_studi }} TAHUN</td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="4" class="uppercase fw-bold py-3 text-center">Belum ada data lulusan yang tercatat di dalam sistem.</td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+
     {{-- TANDA TANGAN --}}
     <table class="ttd">
         <tr>
@@ -136,7 +163,7 @@
                 <p><b>( ........................................... )</b></p>
             </td>
             <td style="width: 50%;">
-                <p class="mb-5">DISAHKAN OLEH,<br>KETUA PENJAMINAN MUTU (SPMI)</p>
+                <p class="mb-5">DISAHKAN OLEH,<br>KEPALA UNIT PENJAMINAN MUTU INTERNAL</p>
                 <br><br><br>
                 <p><b>( ........................................... )</b></p>
             </td>
