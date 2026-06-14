@@ -10,7 +10,7 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
 use App\Models\Jadwal; 
-use App\Models\Pengumuman; // [TAMBAHAN 1] Import Model Pengumuman
+use App\Models\Pengumuman;
 
 class DosenDashboardController extends Controller
 {
@@ -26,10 +26,14 @@ class DosenDashboardController extends Controller
             abort(403, 'Data dosen tidak ditemukan.');
         }
         
-        // [UPDATE UNTUK FITUR BARU]: Tambahkan with() untuk memuat relasi peserta kelas agar bisa dimunculkan di Modal
+        // [UPDATE FILTER KRS]: Hanya hitung dan tarik mahasiswa yang KRS-nya sudah Disetujui
         $mata_kuliahs = $dosen->mataKuliahs()
-            ->with(['mahasiswas', 'mahasiswas.programStudi'])
-            ->withCount('mahasiswas')
+            ->with(['mahasiswas' => function ($query) {
+                $query->where('mahasiswas.status_krs', 'Disetujui');
+            }, 'mahasiswas.programStudi'])
+            ->withCount(['mahasiswas' => function ($query) {
+                $query->where('mahasiswas.status_krs', 'Disetujui');
+            }])
             ->get();
         
         // Ambil Jadwal Mengajar
@@ -51,11 +55,8 @@ class DosenDashboardController extends Controller
         $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
         $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
 
-        // [TAMBAHAN 2] Ambil Data Pengumuman (Misal: 5 Terbaru)
-        // Pastikan Model Pengumuman sudah ada di App\Models\Pengumuman
         $pengumumans = Pengumuman::latest()->take(5)->get();
 
-        // [TAMBAHAN 3] Masukkan 'pengumumans' ke compact
         return view('dosen.dashboard', compact('dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'prodiYangDikepalai', 'pengumumans'));
     }
 

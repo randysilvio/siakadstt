@@ -47,9 +47,10 @@ class NilaiController extends Controller
             $mataKuliah->setRelation('mahasiswas', collect());
             session()->flash('error', 'Tidak ada Tahun Akademik yang aktif.');
         } else {
-            // Load mahasiswa di semester aktif saja
+            // Load mahasiswa di semester aktif saja DAN yang KRS-nya sudah DISETUJUI
             $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
                 $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
+                      ->where('mahasiswas.status_krs', 'Disetujui') // [UPDATE FILTER KRS]
                       ->orderBy('nama_lengkap', 'asc');
             }]);
         }
