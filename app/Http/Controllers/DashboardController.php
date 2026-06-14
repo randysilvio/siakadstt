@@ -95,6 +95,19 @@ class DashboardController extends Controller
                 }
             }
 
+            // [MINOR UPDATE] Logika Pencarian & Paginasi Arsip Surat Dosen (mengganti get menjadi paginate)
+            $querySurat = $dosen->suratKeputusans()->where('status', 'Selesai');
+            
+            if (request()->filled('search_surat')) {
+                $search = request('search_surat');
+                $querySurat->where(function($q) use ($search) {
+                    $q->where('judul', 'like', "%{$search}%")
+                      ->orWhere('nomor_surat', 'like', "%{$search}%");
+                });
+            }
+
+            $suratKeputusans = $querySurat->latest()->paginate(5)->withQueryString();
+
             return view('dosen.dashboard', [
                 'dosen' => $dosen,
                 'mata_kuliahs' => $dosen->mataKuliahs()->withCount('mahasiswas')->get(),
@@ -102,6 +115,7 @@ class DashboardController extends Controller
                 'dataKaprodi' => $dataKaprodi,
                 'pengumumans' => $pengumumans,
                 'jadwalKuliah' => $jadwalKuliahDosen,
+                'suratKeputusans' => $suratKeputusans,
             ]);
         }
         elseif ($user->hasRole('mahasiswa')) {

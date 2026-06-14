@@ -109,9 +109,9 @@ class UserController extends Controller
     {
         $userToImpersonate = User::findOrFail($id);
 
-        // Jangan biarkan admin menyamar jadi dirinya sendiri
-        if ($userToImpersonate->id === Auth::id()) {
-            return back()->with('error', 'Anda tidak dapat menyamar menjadi diri sendiri.');
+        // [MINOR UPDATE] Jangan biarkan admin menyamar jadi dirinya sendiri atau menyamar sebagai sesama Admin
+        if ($userToImpersonate->id === Auth::id() || $userToImpersonate->hasRole('admin')) {
+            return back()->with('error', 'Anda tidak dapat menyamar menjadi diri sendiri atau sesama Admin.');
         }
 
         // Simpan ID admin asli ke dalam session
@@ -132,6 +132,9 @@ class UserController extends Controller
             
             // Kembalikan login ke ID Admin
             Auth::loginUsingId($adminId);
+            
+            // [MINOR UPDATE] Membersihkan sisa sesi penyamaran dari memori server
+            session()->forget('impersonate_by');
             
             return redirect()->route('admin.user.index')->with('success', 'Penyamaran dihentikan. Anda telah kembali menjadi Admin.');
         }

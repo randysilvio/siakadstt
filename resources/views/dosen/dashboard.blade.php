@@ -50,7 +50,6 @@
                                         </td>
                                         <td class="text-center fw-bold small">{{ $mk->sks }}</td>
                                         <td class="text-center small">
-                                            {{-- [FITUR BARU]: Tombol lihat mahasiswa --}}
                                             <button type="button" class="btn btn-sm btn-outline-primary rounded-0 px-2" data-bs-toggle="modal" data-bs-target="#mhsModal-{{ $mk->id }}">
                                                 {{ $mk->mahasiswas_count }} Mhs
                                             </button>
@@ -76,9 +75,7 @@
                         </table>
                     </div>
 
-                    {{-- [PERBAIKAN]: SEMUA MODAL DIPINDAHKAN KE SINI (LUAR TABEL) AGAR LAYOUT TIDAK KACAU --}}
                     @foreach($mata_kuliahs as $mk)
-                        {{-- MODAL DAFTAR MAHASISWA --}}
                         <div class="modal fade" id="mhsModal-{{ $mk->id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content rounded-0 border-0">
@@ -112,14 +109,10 @@
                                             </table>
                                         </div>
                                     </div>
-                                    <div class="modal-footer bg-light border-top">
-                                        <button type="button" class="btn btn-sm btn-secondary rounded-0" data-bs-dismiss="modal">Tutup</button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- MODAL UPLOAD RPS (Bawaan Asli) --}}
                         <div class="modal fade" id="uploadRpsModal-{{ $mk->id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content rounded-0 border-0">
@@ -142,13 +135,11 @@
                             </div>
                         </div>
                     @endforeach
-                    {{-- END PERBAIKAN MODAL --}}
-
                 </div>
             </div>
 
             {{-- JADWAL KULIAH MINGGUAN --}}
-            <div class="card border-0 shadow-sm rounded-0">
+            <div class="card border-0 shadow-sm rounded-0 mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold mb-0 text-dark uppercase small">Agenda Perkuliahan Mingguan</h6>
                     <a href="{{ route('dosen.cetak_jadwal') }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-3 font-bold small">CETAK JADWAL</a>
@@ -170,12 +161,7 @@
                                     <td class="font-monospace small text-muted">
                                         {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}
                                     </td>
-                                    <td class="fw-bold small text-dark">
-                                        {{-- [FITUR BARU]: Link Modal di Jadwal --}}
-                                        <a href="#" data-bs-toggle="modal" data-bs-target="#mhsModal-{{ $jadwal->mata_kuliah_id }}" class="text-decoration-none">
-                                            {{ $jadwal->mataKuliah->nama_mk }}
-                                        </a>
-                                    </td>
+                                    <td class="fw-bold small text-dark">{{ $jadwal->mataKuliah->nama_mk }}</td>
                                     <td class="small text-muted font-monospace">{{ $jadwal->ruangan ?? '-' }}</td>
                                 </tr>
                             @empty
@@ -183,6 +169,54 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            {{-- PORTOFOLIO SURAT & SK --}}
+            <div class="card border-0 shadow-sm rounded-0 mb-4 border-start border-primary border-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark uppercase small"><i class="bi bi-envelope-paper-fill me-2 text-primary"></i>Arsip Surat & SK Terhubung</h6>
+                    <form action="{{ route('dashboard') }}" method="GET" class="d-flex">
+                        <input type="text" name="search_surat" class="form-control form-control-sm rounded-0 border-end-0" placeholder="Cari surat..." value="{{ request('search_surat') }}">
+                        <button class="btn btn-sm btn-dark rounded-0" type="submit"><i class="bi bi-search"></i></button>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3 small">NOMOR SURAT</th>
+                                    <th class="small">JUDUL / PERIHAL</th>
+                                    <th class="small text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($suratKeputusans as $surat)
+                                    <tr>
+                                        <td class="ps-3 font-monospace small">{{ $surat->nomor_surat ?? '-' }}</td>
+                                        <td>
+                                            <span class="d-block fw-bold small text-dark">{{ $surat->judul }}</span>
+                                            <span class="badge bg-light text-dark border rounded-0 mt-1 small">{{ $surat->jenis_surat }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            {{-- [UPDATE]: Rute download bypass symlink sesuai judul surat --}}
+                                            <a href="{{ route('surat-keputusan.download', $surat->id) }}" class="btn btn-sm btn-outline-danger rounded-0 shadow-sm">
+                                               <i class="bi bi-file-pdf"></i> PDF
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="3" class="text-center py-4 text-muted small uppercase">Tidak ada arsip surat.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($suratKeputusans->hasPages())
+                        <div class="p-3 border-top bg-light">
+                            {{ $suratKeputusans->appends(request()->query())->links('pagination::bootstrap-5') }}
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -231,7 +265,6 @@
                             <i class="bi bi-chevron-right text-muted"></i>
                         </a>
                     @endif
-
                 </div>
             </div>
 

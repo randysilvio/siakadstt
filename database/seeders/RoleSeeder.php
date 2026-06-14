@@ -22,6 +22,9 @@ class RoleSeeder extends Seeder
             ['name' => 'pustakawan', 'display_name' => 'Pustakawan'],
             ['name' => 'rektorat', 'display_name' => 'Pimpinan / Rektorat'],
             ['name' => 'penjaminan_mutu', 'display_name' => 'Penjaminan Mutu'],
+            
+            // [FITUR BARU] Role untuk Sarpras, SK, dan Administrasi
+            ['name' => 'administrasi_umum', 'display_name' => 'Administrasi Umum & Sarpras'],
         ];
 
         foreach ($roles as $role) {

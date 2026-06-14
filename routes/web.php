@@ -79,6 +79,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
 
     Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
+    
+    // ========================================================================
+    // [UPDATE] Rute Download Bypass Symlink (Bisa diakses Admin & Dosen)
+    // ========================================================================
+    Route::get('/surat-keputusan/{surat_keputusan}/download-pdf', [\App\Http\Controllers\SuratKeputusanController::class, 'download'])->name('surat-keputusan.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -86,7 +91,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    // [TAMBAHAN] Rute Untuk Membaca Notifikasi
     Route::post('/notifikasi/baca-semua', function() {
         auth()->user()->unreadNotifications->markAsRead();
         return back();
@@ -178,7 +182,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
-        Route::get('/cetak', [RektoratController::class, 'cetakLaporan'])->name('cetak'); // Rute baru untuk cetak laporan
+        Route::get('/cetak', [RektoratController::class, 'cetakLaporan'])->name('cetak');
     });
 
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
@@ -190,6 +194,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembayaran/cetak', [PembayaranController::class, 'cetakLaporan'])->name('pembayaran.cetak');
         Route::resource('pembayaran', PembayaranController::class)->except(['show']);
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
+    });
+
+    // ========================================================================
+    // MODUL ADMINISTRASI UMUM & SARPRAS
+    // ========================================================================
+    Route::middleware('role:admin,administrasi_umum')->prefix('administrasi')->name('administrasi.')->group(function () {
+        Route::resource('surat-keputusan', \App\Http\Controllers\SuratKeputusanController::class);
+        Route::post('/surat-keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])->name('surat-keputusan.duplicate');
+        Route::post('/surat-keputusan/{surat_keputusan}/upload-final', [\App\Http\Controllers\SuratKeputusanController::class, 'uploadFinal'])->name('surat-keputusan.upload-final');
+    });
+
+    Route::middleware('role:admin,penjaminan_mutu')->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
+        Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
+        Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
+        Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
+        Route::get('/evaluasi-hasil/{sesi}/{dosen}/cetak', [EvaluasiHasilController::class, 'cetak'])->name('evaluasi-hasil.cetak');
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
@@ -226,20 +247,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
-        // ========================================================================
-        // MODUL PMB TERUPDATE (Smart Filter, Cetak Laporan Excel/PDF, dan Hapus)
-        // ========================================================================
         Route::get('/pmb', [PmbController::class, 'index'])->name('pmb.index');
         Route::get('/pmb-export-excel', [PmbController::class, 'exportExcel'])->name('pmb.export.excel');
         Route::get('/pmb-export-pdf', [PmbController::class, 'exportPdf'])->name('pmb.export.pdf');
         Route::delete('/pmb/{id}/hapus', [PmbController::class, 'destroy'])->name('pmb.destroy');
 
-        // MODUL AKSI ADMIN PMB BAWAAN (Verifikasi, Terima, Tolak Pendaftar)
         Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
         Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
         Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
-        // ========================================================================
 
         Route::resource('pmb-periods', PmbPeriodController::class);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'set-active'])->name('pmb-periods.set-active');
@@ -257,12 +273,6 @@ Route::middleware('auth')->group(function () {
         
         Route::resource('slideshows', SlideshowController::class);
         Route::resource('dokumen-publik', DokumenPublikController::class);
-        
-        Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
-        Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
-        Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
-        Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
-        Route::get('/evaluasi-hasil/{sesi}/{dosen}/cetak', [EvaluasiHasilController::class, 'cetak'])->name('evaluasi-hasil.cetak');
         
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');

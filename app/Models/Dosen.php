@@ -14,7 +14,7 @@ class Dosen extends Model
         'nidn',
         'nama_lengkap',
         'is_keuangan',
-        'program_studi_id', // --- TAMBAHKAN INI ---
+        'program_studi_id', 
         // --- Identitas Pribadi (Feeder) ---
         'nik', 
         'nuptk', 
@@ -64,9 +64,16 @@ class Dosen extends Model
         return $this->hasMany(Mahasiswa::class, 'dosen_wali_id');
     }
 
-    // --- TAMBAHKAN RELASI INI ---
     public function programStudi()
     {
         return $this->belongsTo(ProgramStudi::class, 'program_studi_id');
+    }
+
+    // --- [TAMBAHAN BARU] Relasi Auto-Tagging Portofolio Surat & SK ---
+    public function suratKeputusans()
+    {
+        return $this->belongsToMany(SuratKeputusan::class, 'dosen_surat_keputusan')
+                    ->withPivot('jabatan_dalam_surat')
+                    ->withTimestamps();
     }
 }

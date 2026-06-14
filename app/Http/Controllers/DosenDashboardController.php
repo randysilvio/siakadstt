@@ -19,14 +19,13 @@ class DosenDashboardController extends Controller
         $this->middleware('role:dosen');
     }
     
-    public function index()
+    public function index(Request $request)
     {
         $dosen = Auth::user()->dosen;
         if (!$dosen) {
             abort(403, 'Data dosen tidak ditemukan.');
         }
         
-        // [UPDATE FILTER KRS]: Hanya hitung dan tarik mahasiswa yang KRS-nya sudah Disetujui
         $mata_kuliahs = $dosen->mataKuliahs()
             ->with(['mahasiswas' => function ($query) {
                 $query->where('mahasiswas.status_krs', 'Disetujui');
@@ -36,13 +35,11 @@ class DosenDashboardController extends Controller
             }])
             ->get();
         
-        // Ambil Jadwal Mengajar
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         $jadwalKuliah = collect();
 
         if ($tahunAkademik) {
             $mkIds = $mata_kuliahs->pluck('id');
-            
             $jadwalKuliah = Jadwal::with('mataKuliah')
                 ->whereIn('mata_kuliah_id', $mkIds)
                 ->get()
@@ -54,17 +51,31 @@ class DosenDashboardController extends Controller
 
         $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
         $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
-
         $pengumumans = Pengumuman::latest()->take(5)->get();
 
-        return view('dosen.dashboard', compact('dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'prodiYangDikepalai', 'pengumumans'));
+        // --- SMART FILTER & PAGINASI SURAT ---
+        $query = $dosen->suratKeputusans()->where('status', 'Selesai');
+
+        if ($request->filled('search_surat')) {
+            $search = $request->search_surat;
+            $query->where(function($q) use ($search) {
+                $q->where('judul', 'like', "%{$search}%")
+                  ->orWhere('nomor_surat', 'like', "%{$search}%");
+            });
+        }
+
+        $suratKeputusans = $query->latest()->paginate(10)->withQueryString();
+
+        return view('dosen.dashboard', compact(
+            'dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 
+            'prodiYangDikepalai', 'pengumumans', 'suratKeputusans'
+        ));
     }
 
     public function cetakJadwal()
     {
         $dosen = Auth::user()->dosen;
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
-
         $mkIds = $dosen->mataKuliahs()->pluck('id');
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
@@ -76,7 +87,6 @@ class DosenDashboardController extends Controller
             });
 
         $pdf = Pdf::loadView('dosen.cetak_jadwal', compact('dosen', 'jadwals', 'tahunAkademik'));
-        
         return $pdf->stream('Jadwal_Mengajar_' . $dosen->nama_lengkap . '.pdf');
     }
 
@@ -87,9 +97,7 @@ class DosenDashboardController extends Controller
             abort(403, 'Anda tidak berhak mengubah RPS mata kuliah ini.');
         }
 
-        $request->validate([
-            'file_rps' => 'required|mimes:pdf|max:5120',
-        ]);
+        $request->validate(['file_rps' => 'required|mimes:pdf|max:5120']);
 
         if ($request->hasFile('file_rps')) {
             if ($mataKuliah->file_rps && Storage::disk('public')->exists($mataKuliah->file_rps)) {
