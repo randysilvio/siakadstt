@@ -31,6 +31,7 @@
     </script>
     <style>
         .glass-effect { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="antialiased text-slate-800 flex flex-col min-h-screen bg-slate-50">
@@ -51,7 +52,6 @@
                 <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Program Studi</a>
                 <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Dokumen</a>
                 
-                {{-- TOMBOL LOGIN KONTRAS TINGGI MUTLAK --}}
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-6 py-2.5 font-bold text-white rounded-full shadow-md bg-slate-900 hover:bg-brand-600 border border-slate-800 transition duration-300">
                     <span class="text-xs tracking-widest uppercase font-heading text-white">Portal Login</span>
                 </a>
@@ -82,48 +82,73 @@
         {{-- ================= AREA PENCARIAN & KARTU ================= --}}
         <section class="py-12 container mx-auto px-6 max-w-6xl -mt-8 relative z-20">
             
-            {{-- Kotak Pencarian Mengambang --}}
-            <div class="max-w-2xl mx-auto mb-12">
-                <div class="bg-white p-1.5 rounded-full shadow-lg border border-gray-100 flex items-center">
-                    <form action="{{ route('dosen.public.index') }}" method="GET" class="w-full flex items-center">
-                        <span class="pl-5 text-gray-400"><i class="fa-solid fa-search text-sm"></i></span>
-                        <input type="text" name="search" class="w-full px-3 py-2.5 text-xs md:text-sm rounded-full outline-none text-slate-700 placeholder-gray-400 font-medium" placeholder="Pencarian nama dosen atau spesialisasi..." value="{{ request('search') }}">
-                        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition shadow-sm">
-                            Cari
-                        </button>
+            {{-- Kotak Pencarian Mengambang (Diperbarui dengan Filter Prodi) --}}
+            <div class="max-w-3xl mx-auto mb-12">
+                <div class="bg-white p-1.5 md:p-2 rounded-3xl md:rounded-full shadow-lg border border-gray-100">
+                    <form action="{{ route('dosen.public.index') }}" method="GET" class="flex flex-col md:flex-row items-center w-full">
+                        
+                        <div class="flex items-center w-full md:w-1/2 md:border-r border-gray-200 py-1">
+                            <span class="pl-4 md:pl-5 text-gray-400"><i class="fa-solid fa-search text-sm"></i></span>
+                            <input type="text" name="search" class="w-full px-3 py-2 text-xs md:text-sm outline-none text-slate-700 placeholder-gray-400 font-medium bg-transparent" placeholder="Pencarian nama atau spesialisasi..." value="{{ request('search') }}">
+                        </div>
+                        
+                        <div class="flex items-center w-full md:w-1/3 py-1 border-t md:border-t-0 border-gray-100">
+                            <span class="pl-4 text-gray-400"><i class="fa-solid fa-graduation-cap text-sm"></i></span>
+                            <select name="program_studi_id" class="w-full px-3 py-2 text-xs md:text-sm outline-none text-slate-700 font-medium bg-transparent cursor-pointer">
+                                <option value="">Semua Program Studi</option>
+                                @foreach($program_studis as $prodi)
+                                    <option value="{{ $prodi->id }}" {{ request('program_studi_id') == $prodi->id ? 'selected' : '' }}>{{ $prodi->nama_prodi }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="w-full md:w-auto md:ml-auto mt-2 md:mt-0 p-1 md:p-0">
+                            <button type="submit" class="w-full md:w-auto bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 md:py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition shadow-sm">
+                                Cari
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
 
             {{-- Hasil Daftar Dosen --}}
             @if($dosens->isEmpty())
-                <div class="text-center py-16 bg-white rounded-2xl border border-gray-100 max-w-md mx-auto">
-                    <i class="fa-solid fa-user-slash text-4xl text-slate-300 block mb-2"></i>
+                <div class="text-center py-16 bg-white rounded-2xl border border-gray-100 max-w-md mx-auto shadow-sm">
+                    <i class="fa-solid fa-user-slash text-4xl text-slate-300 block mb-3"></i>
                     <h4 class="text-sm font-bold text-slate-700">Dosen Tidak Ditemukan</h4>
                     <p class="text-xs text-slate-400 mt-1">Pencarian untuk kriteria yang dimasukkan tidak memiliki padanan master data.</p>
+                    <a href="{{ route('dosen.public.index') }}" class="inline-block mt-4 text-xs font-bold text-brand-600 hover:underline">Reset Pencarian</a>
                 </div>
             @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     @foreach ($dosens as $dosen)
                         <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 p-6 flex flex-col items-center text-center group relative overflow-hidden">
-                            {{-- Foto Avatar Denyut --}}
+                            
+                            {{-- Foto Avatar Denyut (Perbaikan Gambar/Inisial) --}}
                             <div class="relative w-28 h-28 mx-auto mb-4">
                                 <div class="absolute inset-0 bg-brand-100 rounded-full animate-pulse opacity-75 group-hover:hidden"></div>
-                                <img src="{{ $dosen->foto_profil }}" class="w-full h-full rounded-full object-cover border-4 border-white shadow-sm relative z-10 group-hover:scale-105 transition duration-500" alt="{{ $dosen->nama_lengkap }}">
+                                @if($dosen->foto_profil)
+                                    <img src="{{ asset('storage/' . $dosen->foto_profil) }}" class="w-full h-full rounded-full object-cover border-4 border-white shadow-sm relative z-10 group-hover:scale-105 transition duration-500" alt="{{ $dosen->nama_lengkap }}">
+                                @else
+                                    <div class="w-full h-full rounded-full border-4 border-white shadow-sm relative z-10 group-hover:scale-105 transition duration-500 bg-slate-200 flex items-center justify-center text-3xl font-extrabold text-slate-400">
+                                        {{ substr($dosen->nama_lengkap, 0, 1) }}
+                                    </div>
+                                @endif
                             </div>
 
                             {{-- Identitas Dosen --}}
                             <h3 class="text-base font-bold text-slate-900 mb-1 group-hover:text-brand-600 transition leading-snug truncate w-full" title="{{ $dosen->nama_lengkap }}">
                                 {{ $dosen->nama_lengkap }}
                             </h3>
-                            <span class="text-xs text-brand-600 font-semibold block mb-3">{{ $dosen->jabatan_akademik ?? 'Dosen Pengajar' }}</span>
+                            <span class="text-xs text-brand-600 font-semibold block mb-1">{{ $dosen->jabatan_akademik ?? 'Dosen Pengajar' }}</span>
+                            <span class="text-[10px] text-slate-400 font-medium block mb-3 uppercase tracking-wider">{{ $dosen->programStudi->nama_prodi ?? 'STT GPI Papua' }}</span>
                             
                             <div class="w-8 h-0.5 bg-gray-100 rounded-full mb-4 group-hover:bg-brand-300 transition"></div>
 
                             {{-- Tautan Aksi --}}
                             <div class="mt-auto w-full pt-2">
                                 <a href="{{ route('dosen.public.show', $dosen->nidn) }}" class="block w-full py-2 bg-slate-50 hover:bg-brand-600 text-slate-700 hover:text-white rounded-xl text-xs font-bold tracking-wide transition duration-200">
-                                    Lihat Profil
+                                    Lihat Profil Lengkap
                                 </a>
                             </div>
                         </div>
@@ -132,7 +157,7 @@
 
                 {{-- Penomoran Halaman --}}
                 <div class="mt-12 flex justify-center">
-                    {{ $dosens->appends(request()->query())->links() }} 
+                    {{ $dosens->links('pagination::tailwind') }} 
                 </div>
             @endif
         </section>

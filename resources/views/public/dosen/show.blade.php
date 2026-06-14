@@ -51,7 +51,6 @@
                 <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Program Studi</a>
                 <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Dokumen</a>
                 
-                {{-- TOMBOL LOGIN KONTRAS TINGGI MUTLAK --}}
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-6 py-2.5 font-bold text-white rounded-full shadow-md bg-slate-900 hover:bg-brand-600 border border-slate-800 transition duration-300">
                     <span class="text-xs tracking-widest uppercase font-heading text-white">Portal Login</span>
                 </a>
@@ -89,14 +88,21 @@
                 {{-- Panel Identitas Kiri --}}
                 <div class="w-full md:w-1/3 bg-slate-50 p-8 text-center border-b md:border-b-0 md:border-r border-gray-100 flex flex-col justify-between">
                     <div>
-                        {{-- Bingkai Foto Profil Utama --}}
+                        {{-- Bingkai Foto Profil Utama (Perbaikan Inisial Fallback) --}}
                         <div class="relative w-40 h-40 mx-auto mb-5">
-                            <img src="{{ $dosen->foto_profil }}" class="w-full h-full rounded-full object-cover border-4 border-white shadow-md" alt="{{ $dosen->nama_lengkap }}">
+                            @if($dosen->foto_profil)
+                                <img src="{{ asset('storage/' . $dosen->foto_profil) }}" class="w-full h-full rounded-full object-cover border-4 border-white shadow-md" alt="{{ $dosen->nama_lengkap }}">
+                            @else
+                                <div class="w-full h-full rounded-full border-4 border-white shadow-md bg-slate-200 flex items-center justify-center text-5xl font-extrabold text-slate-400">
+                                    {{ substr($dosen->nama_lengkap, 0, 1) }}
+                                </div>
+                            @endif
                             <span class="absolute bottom-2 right-2 bg-emerald-500 w-4 h-4 rounded-full border-2 border-white" title="Pengajar Aktif"></span>
                         </div>
 
                         <h1 class="text-lg font-bold text-slate-900 leading-tight mb-1">{{ $dosen->nama_lengkap }}</h1>
-                        <span class="text-xs text-brand-600 font-bold block mb-6">{{ $dosen->jabatan_akademik ?? 'Dosen Pengajar' }}</span>
+                        <span class="text-xs text-brand-600 font-bold block mb-1">{{ $dosen->jabatan_akademik ?? 'Dosen Pengajar' }}</span>
+                        <span class="text-[10px] text-slate-500 font-medium block mb-6 uppercase tracking-wider">{{ $dosen->programStudi->nama_prodi ?? 'STT GPI Papua' }}</span>
                         
                         {{-- Identitas Registrasi NIDN --}}
                         <div class="bg-white border border-gray-200 rounded-xl p-3 mb-6 text-center shadow-2xs">
@@ -133,9 +139,7 @@
                         {{-- Deskripsi Profil Singkat --}}
                         <div class="mb-8">
                             <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-2">Profil Pengajar</span>
-                            <p class="text-slate-600 text-xs md:text-sm leading-relaxed text-justify font-light">
-                                {{ $dosen->deskripsi_diri ?? 'Informasi portofolio akademik dan deskripsi spesialisasi riset tenaga pendidik ini sedang dalam proses penyusunan.' }}
-                            </p>
+                            <p class="text-slate-600 text-xs md:text-sm leading-relaxed text-justify font-light whitespace-pre-wrap">{{ $dosen->deskripsi_diri ?? 'Informasi portofolio akademik dan deskripsi spesialisasi riset tenaga pendidik ini sedang dalam proses penyusunan.' }}</p>
                         </div>
 
                         {{-- Klaster Spesialisasi Keahlian --}}
@@ -155,12 +159,12 @@
                         {{-- Beban Alokasi Mata Kuliah --}}
                         @if($dosen->mataKuliahs->isNotEmpty())
                             <div class="border-t border-gray-50 pt-6">
-                                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">Mata Kuliah Diampu</span>
+                                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">Mata Kuliah Pernah Diampu</span>
                                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                     @foreach($dosen->mataKuliahs->unique('nama_mk') as $matkul)
                                         <li class="flex items-center text-slate-700 bg-slate-50 px-3 py-2 rounded-xl border border-gray-100 text-xs font-medium">
                                             <i class="fa-solid fa-check text-brand-500 mr-2 text-[10px]"></i>
-                                            <span class="truncate">{{ $matkul->nama_mk }}</span>
+                                            <span class="truncate" title="{{ $matkul->nama_mk }}">{{ $matkul->nama_mk }}</span>
                                         </li>
                                     @endforeach
                                 </ul>

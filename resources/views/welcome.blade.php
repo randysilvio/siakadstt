@@ -364,7 +364,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
                 <div>
                     <div class="flex items-center space-x-3 mb-5">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-10 w-10 brightness-0 invert">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="h-10 w-10">
                         <span class="font-heading font-extrabold text-lg tracking-wider block">STT GPI PAPUA</span>
                     </div>
                     <p class="text-slate-400 text-xs leading-relaxed mb-5 font-light">

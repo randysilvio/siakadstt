@@ -14,22 +14,23 @@ class DosenProfileController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Dosen::query()->with('user');
+        // Memuat relasi user dan prodi agar performa query lebih cepat
+        $query = Dosen::query()->with(['user', 'programStudi']);
 
-        // Logika untuk pencarian
+        // Logika untuk pencarian teks (Nama)
         if ($request->filled('search')) {
             $query->where('nama_lengkap', 'like', '%' . $request->search . '%');
         }
 
-        // Logika untuk filter program studi
+        // Logika untuk filter berdasarkan Program Studi
         if ($request->filled('program_studi_id')) {
-            // Ini asumsi relasi antara Dosen dan Program Studi. 
-            // Jika Dosen tidak langsung terhubung ke Program Studi, logika ini perlu disesuaikan.
-            // Untuk sekarang, kita asumsikan setiap dosen terhubung ke prodi melalui mata kuliah.
+            $query->where('program_studi_id', $request->program_studi_id);
         }
 
-        $dosens = $query->latest()->paginate(12);
-        $program_studis = ProgramStudi::all();
+        // withQueryString() menjaga filter agar tidak hilang saat pindah halaman (pagination)
+        $dosens = $query->latest()->paginate(12)->withQueryString();
+        
+        $program_studis = ProgramStudi::orderBy('nama_prodi', 'asc')->get();
 
         return view('public.dosen.index', compact('dosens', 'program_studis'));
     }
@@ -39,8 +40,8 @@ class DosenProfileController extends Controller
      */
     public function show(Dosen $dosen)
     {
-        // Memuat relasi user untuk mengambil data email, dll.
-        $dosen->load('user', 'mataKuliahs');
+        // Memuat relasi lengkap untuk halaman detail
+        $dosen->load(['user', 'mataKuliahs', 'programStudi']);
         
         return view('public.dosen.show', compact('dosen'));
     }
