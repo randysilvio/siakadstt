@@ -49,7 +49,12 @@
                                             <span class="text-muted small font-monospace">{{ $mk->kode_mk }}</span>
                                         </td>
                                         <td class="text-center fw-bold small">{{ $mk->sks }}</td>
-                                        <td class="text-center small">{{ $mk->mahasiswas_count }} Mhs</td>
+                                        <td class="text-center small">
+                                            {{-- [FITUR BARU]: Tombol lihat mahasiswa --}}
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-0 px-2" data-bs-toggle="modal" data-bs-target="#mhsModal-{{ $mk->id }}">
+                                                {{ $mk->mahasiswas_count }} Mhs
+                                            </button>
+                                        </td>
                                         <td class="text-center">
                                             @if($mk->file_rps)
                                                 <a href="{{ asset('storage/' . $mk->file_rps) }}" target="_blank" class="badge bg-success rounded-0 text-decoration-none">TERSEDIA</a>
@@ -64,35 +69,81 @@
                                             </div>
                                         </td>
                                     </tr>
-
-                                    {{-- MODAL UPLOAD RPS --}}
-                                    <div class="modal fade" id="uploadRpsModal-{{ $mk->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content rounded-0 border-0">
-                                                <form action="{{ route('dosen.upload_rps', $mk->id) }}" method="POST" enctype="multipart/form-data">
-                                                    @csrf
-                                                    <div class="modal-header border-bottom">
-                                                        <h6 class="modal-title fw-bold uppercase">Update RPS: {{ $mk->nama_mk }}</h6>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body p-4">
-                                                        <label class="form-label small fw-bold">BERKAS RPS (FORMAT PDF, MAKS. 5MB)</label>
-                                                        <input type="file" name="file_rps" class="form-control rounded-0" accept=".pdf" required>
-                                                    </div>
-                                                    <div class="modal-footer bg-light border-top">
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-0" data-bs-dismiss="modal">BATAL</button>
-                                                        <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4">SIMPAN PERUBAHAN</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                 @empty
                                     <tr><td colspan="5" class="text-center py-5 text-muted small uppercase">Tidak terdapat penugasan pengajaran pada periode ini.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
+
+                    {{-- [PERBAIKAN]: SEMUA MODAL DIPINDAHKAN KE SINI (LUAR TABEL) AGAR LAYOUT TIDAK KACAU --}}
+                    @foreach($mata_kuliahs as $mk)
+                        {{-- MODAL DAFTAR MAHASISWA --}}
+                        <div class="modal fade" id="mhsModal-{{ $mk->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content rounded-0 border-0">
+                                    <div class="modal-header border-bottom">
+                                        <h6 class="modal-title fw-bold uppercase">Daftar Peserta: {{ $mk->nama_mk }}</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th class="text-center" style="width: 10%;">No</th>
+                                                        <th style="width: 25%;">NIM</th>
+                                                        <th>Nama Mahasiswa</th>
+                                                        <th>Program Studi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($mk->mahasiswas as $index => $mhs)
+                                                        <tr>
+                                                            <td class="text-center">{{ $index + 1 }}</td>
+                                                            <td class="fw-bold">{{ $mhs->nim }}</td>
+                                                            <td>{{ $mhs->nama_lengkap }}</td>
+                                                            <td>{{ optional($mhs->programStudi)->nama_prodi ?? '-' }}</td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr><td colspan="4" class="text-center py-4 text-muted">Belum ada mahasiswa yang mengambil mata kuliah ini.</td></tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light border-top">
+                                        <button type="button" class="btn btn-sm btn-secondary rounded-0" data-bs-dismiss="modal">Tutup</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- MODAL UPLOAD RPS (Bawaan Asli) --}}
+                        <div class="modal fade" id="uploadRpsModal-{{ $mk->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content rounded-0 border-0">
+                                    <form action="{{ route('dosen.upload_rps', $mk->id) }}" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        <div class="modal-header border-bottom">
+                                            <h6 class="modal-title fw-bold uppercase">Update RPS: {{ $mk->nama_mk }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <label class="form-label small fw-bold">BERKAS RPS (FORMAT PDF, MAKS. 5MB)</label>
+                                            <input type="file" name="file_rps" class="form-control rounded-0" accept=".pdf" required>
+                                        </div>
+                                        <div class="modal-footer bg-light border-top">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-0" data-bs-dismiss="modal">BATAL</button>
+                                            <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4">SIMPAN PERUBAHAN</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                    {{-- END PERBAIKAN MODAL --}}
+
                 </div>
             </div>
 
@@ -119,7 +170,12 @@
                                     <td class="font-monospace small text-muted">
                                         {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}
                                     </td>
-                                    <td class="fw-bold small text-dark">{{ $jadwal->mataKuliah->nama_mk }}</td>
+                                    <td class="fw-bold small text-dark">
+                                        {{-- [FITUR BARU]: Link Modal di Jadwal --}}
+                                        <a href="#" data-bs-toggle="modal" data-bs-target="#mhsModal-{{ $jadwal->mata_kuliah_id }}" class="text-decoration-none">
+                                            {{ $jadwal->mataKuliah->nama_mk }}
+                                        </a>
+                                    </td>
                                     <td class="small text-muted font-monospace">{{ $jadwal->ruangan ?? '-' }}</td>
                                 </tr>
                             @empty
@@ -166,7 +222,6 @@
                         </a>
                     @endif
 
-                    {{-- [TAMBAHAN] TOMBOL PENJAMINAN MUTU --}}
                     @if(Auth::user()->hasRole('penjaminan_mutu'))
                         <a href="{{ route('mutu.dashboard') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                             <div>

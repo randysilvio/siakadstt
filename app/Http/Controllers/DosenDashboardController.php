@@ -26,7 +26,11 @@ class DosenDashboardController extends Controller
             abort(403, 'Data dosen tidak ditemukan.');
         }
         
-        $mata_kuliahs = $dosen->mataKuliahs()->withCount('mahasiswas')->get();
+        // [UPDATE UNTUK FITUR BARU]: Tambahkan with() untuk memuat relasi peserta kelas agar bisa dimunculkan di Modal
+        $mata_kuliahs = $dosen->mataKuliahs()
+            ->with(['mahasiswas', 'mahasiswas.programStudi'])
+            ->withCount('mahasiswas')
+            ->get();
         
         // Ambil Jadwal Mengajar
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
