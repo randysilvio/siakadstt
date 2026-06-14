@@ -22,6 +22,10 @@
         .navbar-nav .nav-link { color: #495057; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 1rem; transition: all 0.2s; border-radius: 0 !important; }
         .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active, .navbar-nav .show > .nav-link { color: #ffffff; background-color: #212529; }
         .navbar-nav .nav-link i { margin-right: 6px; color: inherit; }
+        
+        /* PENGHILANGAN PANAH DROPDOWN */
+        .dropdown-toggle::after { display: none !important; }
+
         .dropdown-menu { border: 1px solid #212529; box-shadow: none; border-radius: 0; padding: 0; margin-top: 0; }
         .dropdown-item { font-size: 0.85rem; text-transform: uppercase; color: #212529; padding: 0.6rem 1rem; border-radius: 0; font-weight: 600; border-bottom: 1px solid #e9ecef; }
         .dropdown-item:last-child { border-bottom: none; }
