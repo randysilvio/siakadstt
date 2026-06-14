@@ -74,40 +74,58 @@
                             </a>
                         </li>
 
-                        {{-- [UPDATE] PEMAMPATAN STRUKTUR MENU ADMIN AGAR LEBIH RINGKAS --}}
+                        {{-- STRUKTUR MENU ADMIN --}}
                         @if(Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*', 'admin/mahasiswa*', 'admin/tahun-akademik*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-mortarboard-fill"></i>Portal Akademik
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*', 'admin/mahasiswa*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-people-fill"></i>Mahasiswa & PMB
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><h6 class="dropdown-header">Penerimaan & Mahasiswa</h6></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.pmb.index') }}">Data Pendaftar PMB</a></li>
+                                    <li><h6 class="dropdown-header">Penerimaan Baru (PMB)</h6></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.pmb.index') }}">Data Pendaftar</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.pmb-periods.index') }}">Setting Gelombang</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.mahasiswa.index') }}">Manajemen Mahasiswa</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header">Master Data Akademik</h6></li>
+                                    <li><h6 class="dropdown-header">Data Mahasiswa</h6></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.mahasiswa.index') }}">Manajemen Mahasiswa</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/tahun-akademik*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-mortarboard-fill"></i>Akademik
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Master Data</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.tahun-akademik.index') }}">Tahun Akademik</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.program-studi.index') }}">Program Studi & Kurikulum</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.mata-kuliah.index') }}">Mata Kuliah & Nilai</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.program-studi.index') }}">Program Studi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.kurikulum.index') }}">Kurikulum</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.mata-kuliah.index') }}">Mata Kuliah</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">Operasional</h6></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.nilai.index') }}">Input Nilai Manual</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Event Kalender</a></li>
                                 </ul>
                             </li>
-                            
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/dosen*', 'admin/user*', 'admin/absensi*', 'admin/pengumuman*', 'admin/slideshows*', 'admin/dokumen-publik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-hdd-network-fill"></i>Sistem Internal
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/dosen*', 'admin/user*', 'admin/absensi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-badge-fill"></i>SDM & User
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><h6 class="dropdown-header">Personalia & Otoritas</h6></li>
+                                    <li><h6 class="dropdown-header">Personalia</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.dosen.index') }}">Data Dosen</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.user.index') }}">Akun & Role Pengguna</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.user.index') }}">Akun User System</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Absensi Pegawai</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.absensi.laporan.index') }}">Laporan Kehadiran</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.lokasi.index') }}">Lokasi & Jam Kerja</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header">Manajemen Konten Web</h6></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.lokasi.index') }}">Lokasi Kantor</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.absensi.pengaturan.index') }}">Setting Jam Kerja</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'admin/slideshows*', 'admin/dokumen-publik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-globe"></i>Website
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">Manajemen Konten</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.pengumuman.index') }}">Pengumuman</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.slideshows.index') }}">Slideshow Depan</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.dokumen-publik.index') }}">Dokumen Publik</a></li>
@@ -149,7 +167,7 @@
                             </li>
                         @endif
 
-                        {{-- MENU ADMINISTRASI UMUM & SARPRAS --}}
+                        {{-- [MENU BARU] ADMINISTRASI UMUM & SARPRAS --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('administrasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
