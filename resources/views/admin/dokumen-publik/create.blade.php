@@ -25,6 +25,22 @@
                             @enderror
                         </div>
 
+                        {{-- [TAMBAHAN BARU] Pilihan Kategori --}}
+                        <div class="mb-4">
+                            <label for="kategori" class="form-label text-dark fw-semibold">Kategori Dokumen <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-1 @error('kategori') is-invalid @enderror" id="kategori" name="kategori" required>
+                                <option value="" disabled selected>-- Pilih Kategori --</option>
+                                <option value="Akademik" {{ old('kategori') == 'Akademik' ? 'selected' : '' }}>Akademik & Pedoman</option>
+                                <option value="Kemahasiswaan" {{ old('kategori') == 'Kemahasiswaan' ? 'selected' : '' }}>Kemahasiswaan</option>
+                                <option value="Keuangan" {{ old('kategori') == 'Keuangan' ? 'selected' : '' }}>Keuangan & Biaya</option>
+                                <option value="Formulir" {{ old('kategori') == 'Formulir' ? 'selected' : '' }}>Formulir & Template</option>
+                                <option value="Umum" {{ old('kategori') == 'Umum' ? 'selected' : '' }}>Umum / Lainnya</option>
+                            </select>
+                            @error('kategori')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="mb-4">
                             <label for="deskripsi" class="form-label text-dark fw-semibold">Deskripsi Singkat (Opsional)</label>
                             <textarea class="form-control rounded-1 @error('deskripsi') is-invalid @enderror" id="deskripsi" name="deskripsi" rows="3" placeholder="Jelaskan secara ringkas isi dari dokumen ini...">{{ old('deskripsi') }}</textarea>
@@ -37,7 +53,7 @@
                             <label for="file_dokumen" class="form-label text-dark fw-semibold">Pilih File <span class="text-danger">*</span></label>
                             <input class="form-control rounded-1 @error('file_dokumen') is-invalid @enderror" type="file" id="file_dokumen" name="file_dokumen" required>
                             <div class="form-text mt-2 text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Format yang diizinkan: <strong>PDF, DOC, DOCX, XLS, XLSX</strong>. Ukuran maksimal: <strong>5MB</strong>.
+                                <i class="bi bi-info-circle me-1"></i> Format yang diizinkan: <strong>PDF, DOC, DOCX, XLS, XLSX</strong>. Ukuran maksimal: <strong>10MB</strong>.
                             </div>
                             @error('file_dokumen')
                                 <div class="invalid-feedback">{{ $message }}</div>

@@ -55,7 +55,6 @@
                 Segmen 2: Dasar Hukum & Konsideran
             </div>
             <div class="card-body p-4 bg-white">
-                {{-- Menimbang --}}
                 <div class="mb-4">
                     <label class="form-label small fw-bold uppercase text-primary">MENIMBANG</label>
                     <div id="wrapper-menimbang">
@@ -68,7 +67,6 @@
                     <button type="button" class="btn btn-sm btn-outline-primary rounded-0 mt-1 uppercase fw-bold" style="font-size:11px;" onclick="addRow('wrapper-menimbang', 'menimbang[]', 'huruf')">+ Tambah Baris Menimbang</button>
                 </div>
 
-                {{-- Mengingat --}}
                 <div class="mb-4">
                     <label class="form-label small fw-bold uppercase text-primary">MENGINGAT</label>
                     <div id="wrapper-mengingat">
@@ -86,7 +84,6 @@
                     <button type="button" class="btn btn-sm btn-outline-primary rounded-0 mt-1 uppercase fw-bold" style="font-size:11px;" onclick="addRow('wrapper-mengingat', 'mengingat[]', 'angka')">+ Tambah Baris Mengingat</button>
                 </div>
 
-                {{-- Memperhatikan --}}
                 <div>
                     <label class="form-label small fw-bold uppercase text-primary">MEMPERHATIKAN</label>
                     <div id="wrapper-memperhatikan">
@@ -107,7 +104,6 @@
                 Segmen 3: Tubuh Surat Utama
             </div>
             <div class="card-body p-4 bg-white">
-                {{-- Diktum untuk SK --}}
                 <div id="blok-diktum">
                     <label class="form-label small fw-bold uppercase text-success d-block mb-3 border-bottom pb-2">MEMUTUSKAN / MENETAPKAN :</label>
                     <div id="wrapper-menetapkan">
@@ -120,7 +116,6 @@
                     <button type="button" class="btn btn-sm btn-outline-success rounded-0 mt-1 uppercase fw-bold" style="font-size:11px;" onclick="addDiktum()">+ Tambah Diktum Baru</button>
                 </div>
 
-                {{-- Isi Surat untuk Keterangan/Undangan --}}
                 <div id="blok-isi-surat" style="display: none;">
                     <label class="form-label small fw-bold uppercase text-dark">Isi Surat (Non-SK)</label>
                     <textarea name="isi_surat" class="form-control rounded-0" rows="6" placeholder="Ketik isi paragraf surat di sini..."></textarea>
@@ -131,17 +126,17 @@
         {{-- SEGMEN 4: AUTO-TAGGING & LAMPIRAN --}}
         <div class="card border-0 shadow-sm rounded-0 mb-4 border-start border-primary border-4">
             <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
-                <span class="uppercase fw-bold small">Segmen 4: Auto-Tagging Panitia & Portofolio Dosen</span>
-                <span class="badge bg-primary rounded-0">PENTING</span>
+                <span class="uppercase fw-bold small">Segmen 4: Susunan Panitia & Lampiran Otoritas</span>
             </div>
             <div class="card-body p-4 bg-white">
-                <p class="small text-muted mb-4">Dosen yang Anda masukkan ke dalam daftar ini akan secara otomatis terhubung ke sistem portofolio, dan draf surat akan masuk ke dasbor mereka.</p>
                 
-                <div class="table-responsive">
+                {{-- TABEL DOSEN (PORTFOLIO LINKED) --}}
+                <h6 class="uppercase fw-bold text-primary small mb-3"><i class="bi bi-person-check-fill me-1"></i> A. Entitas Dosen (Terhubung Portofolio)</h6>
+                <div class="table-responsive mb-4">
                     <table class="table table-bordered align-middle mb-2" id="tabel-panitia">
                         <thead class="bg-light text-dark small uppercase text-center fw-bold">
                             <tr>
-                                <th style="width: 45%;">NAMA DOSEN TUGAS</th>
+                                <th style="width: 45%;">NAMA DOSEN</th>
                                 <th style="width: 45%;">JABATAN DALAM SK / PANITIA</th>
                                 <th style="width: 10%;">HAPUS</th>
                             </tr>
@@ -157,7 +152,7 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text" name="jabatan_dalam_surat[]" class="form-control rounded-0 uppercase" placeholder="Contoh: Ketua Panitia / Dosen Pengampu">
+                                    <input type="text" name="jabatan_dalam_surat[]" class="form-control rounded-0 uppercase" placeholder="Contoh: Ketua Panitia">
                                 </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-danger rounded-0" onclick="removeRowTr(this)"><i class="bi bi-trash"></i></button>
@@ -166,9 +161,40 @@
                         </tbody>
                     </table>
                     <button type="button" class="btn btn-sm btn-primary rounded-0 uppercase fw-bold shadow-sm" style="font-size:11px;" onclick="addPanitia()">
-                        <i class="bi bi-person-plus-fill me-1"></i> Tambah Anggota
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Dosen
                     </button>
                 </div>
+
+                {{-- [TAMBAHAN BARU] TABEL ENTITAS NON-DOSEN (TEKS BEBAS) --}}
+                <h6 class="uppercase fw-bold text-info small mb-3 mt-5 border-top pt-4"><i class="bi bi-people-fill me-1"></i> B. Entitas Tendik / Mahasiswa / Eksternal (Teks Bebas)</h6>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-2" id="tabel-eksternal">
+                        <thead class="bg-light text-dark small uppercase text-center fw-bold">
+                            <tr>
+                                <th style="width: 45%;">NAMA LENGKAP & GELAR</th>
+                                <th style="width: 45%;">JABATAN DALAM SK / PANITIA</th>
+                                <th style="width: 10%;">HAPUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="text" name="panitia_lainnya_nama[]" class="form-control rounded-0 uppercase" placeholder="Ketik nama lengkap...">
+                                </td>
+                                <td>
+                                    <input type="text" name="panitia_lainnya_jabatan[]" class="form-control rounded-0 uppercase" placeholder="Contoh: Anggota (Perwakilan BEM)">
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-0" onclick="removeRowTrEksternal(this)"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-info text-white rounded-0 uppercase fw-bold shadow-sm" style="font-size:11px;" onclick="addEksternal()">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Lainnya
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -200,7 +226,6 @@
                         <div>
                             <label class="small text-muted font-monospace d-block mb-1">Nama Lengkap & NUPTK/NIDN</label>
                             <input type="text" name="penandatangan_nama" class="form-control rounded-0 fw-bold" value="Wensly Peniel Raprap, S.Th., M.Pd" required>
-                            <div class="form-text small font-monospace mt-1">Sesuaikan nama jika ada Plt. atau perwakilan.</div>
                         </div>
                     </div>
                 </div>
@@ -219,14 +244,12 @@
 
 {{-- SCRIPT INTERAKTIF FORM BUILDER --}}
 <script>
-    // Inisialisasi Select2 jika tersedia
     if(typeof jQuery !== 'undefined'){
         $(document).ready(function() {
             $('.select2-dosen').select2({ theme: 'bootstrap-5', placeholder: "-- Pilih Dosen --" });
         });
     }
 
-    // Tampilkan/Sembunyikan Segmen berdasarkan Jenis Surat
     function toggleSegments() {
         let jenis = document.getElementById('jenis_surat').value;
         if (jenis === 'Surat Keputusan (SK)') {
@@ -240,12 +263,10 @@
         }
     }
 
-    // Fungsi Tambah Baris (Menimbang, Mengingat, Memperhatikan, Tembusan)
     function addRow(wrapperId, inputName, type) {
         let wrapper = document.getElementById(wrapperId);
         let rowCount = wrapper.children.length;
         let label = '';
-        
         if (type === 'huruf') { label = String.fromCharCode(97 + rowCount) + '.'; }
         else if (type === 'angka') { label = (rowCount + 1) + '.'; }
         else { label = '<i class="bi bi-arrow-right-short"></i>'; }
@@ -260,13 +281,11 @@
         wrapper.insertAdjacentHTML('beforeend', html);
     }
 
-    // Fungsi Tambah Baris Diktum
     const diktumLabels = ['PERTAMA', 'KEDUA', 'KETIGA', 'KEEMPAT', 'KELIMA', 'KEENAM', 'KETUJUH', 'KEDELAPAN'];
     function addDiktum() {
         let wrapper = document.getElementById('wrapper-menetapkan');
         let rowCount = wrapper.children.length;
         let label = diktumLabels[rowCount] || 'KEDIKTUM ' + (rowCount+1);
-        
         let html = `
             <div class="input-group mb-2 align-items-start">
                 <span class="input-group-text rounded-0 bg-light uppercase fw-bold" style="width: 100px;">${label}</span>
@@ -277,42 +296,50 @@
         wrapper.insertAdjacentHTML('beforeend', html);
     }
 
-    // Fungsi Tambah Baris Panitia Auto-Tagging
     function addPanitia() {
         let tbody = document.querySelector('#tabel-panitia tbody');
-        // Kloning baris pertama agar dropdown dosen tidak perlu dilooping manual di JS
         let firstRow = tbody.querySelector('tr').cloneNode(true);
-        
-        // Hapus value yang terisi di baris hasil kloning
         let inputs = firstRow.querySelectorAll('input, select');
         inputs.forEach(input => input.value = '');
-        
-        // Re-inisialisasi class select2 (buang element DOM tambahan dari select2 lama)
         let selectSpan = firstRow.querySelector('.select2-container');
         if(selectSpan) selectSpan.remove();
         firstRow.querySelector('select').classList.remove('select2-hidden-accessible');
-        
         tbody.appendChild(firstRow);
-        
         if(typeof jQuery !== 'undefined'){
             $('.select2-dosen').select2({ theme: 'bootstrap-5', placeholder: "-- Pilih Dosen --" });
         }
     }
 
-    function removeRow(button) {
-        button.parentElement.remove();
+    // [TAMBAHAN BARU] Javascript untuk form teks bebas
+    function addEksternal() {
+        let tbody = document.querySelector('#tabel-eksternal tbody');
+        let html = `
+            <tr>
+                <td><input type="text" name="panitia_lainnya_nama[]" class="form-control rounded-0 uppercase" placeholder="Ketik nama lengkap..."></td>
+                <td><input type="text" name="panitia_lainnya_jabatan[]" class="form-control rounded-0 uppercase" placeholder="Contoh: Anggota (Perwakilan BEM)"></td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger rounded-0" onclick="removeRowTrEksternal(this)"><i class="bi bi-trash"></i></button></td>
+            </tr>
+        `;
+        tbody.insertAdjacentHTML('beforeend', html);
     }
+
+    function removeRow(button) { button.parentElement.remove(); }
     
     function removeRowTr(button) {
         let tbody = button.closest('tbody');
-        if(tbody.children.length > 1) {
-            button.closest('tr').remove();
-        } else {
-            alert('Harus ada minimal 1 baris panitia/dosen.');
+        if(tbody.children.length > 1) { button.closest('tr').remove(); } 
+        else { alert('Minimal harus ada 1 baris (bisa dibiarkan kosong).'); }
+    }
+
+    function removeRowTrEksternal(button) {
+        let tbody = button.closest('tbody');
+        if(tbody.children.length > 1) { button.closest('tr').remove(); } 
+        else {
+            // Kosongkan nilainya saja jika hanya sisa 1 baris
+            button.closest('tr').querySelectorAll('input').forEach(input => input.value = '');
         }
     }
 
-    // Jalankan sekali saat halaman dimuat
     toggleSegments();
 </script>
 @endsection

@@ -23,6 +23,7 @@ class DokumenPublik extends Model
      */
     protected $fillable = [
         'judul_dokumen',
+        'kategori', // [TAMBAHAN BARU]
         'deskripsi',
         'file_path',
     ];

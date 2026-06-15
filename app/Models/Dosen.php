@@ -13,6 +13,7 @@ class Dosen extends Model
         'user_id',
         'nidn',
         'nama_lengkap',
+        'jenis_pengajar',
         'is_keuangan',
         'program_studi_id', 
         // --- Identitas Pribadi (Feeder) ---

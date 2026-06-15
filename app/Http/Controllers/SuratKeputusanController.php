@@ -12,7 +12,6 @@ class SuratKeputusanController extends Controller
 {
     public function __construct()
     {
-        // [UPDATE] Pengecualian rute 'download' agar Dosen bisa mengunduh dari dasbor mereka
         $this->middleware('role:admin,administrasi_umum')->except('download');
     }
 
@@ -34,7 +33,15 @@ class SuratKeputusanController extends Controller
 
         $suratKeputusans = $query->paginate(20)->withQueryString();
 
-        return view('administrasi.surat.index', compact('suratKeputusans'));
+        // [TAMBAHAN BARU] Kalkulasi Metrik E-Office untuk Dashboard
+        $metrics = [
+            'total' => SuratKeputusan::count(),
+            'selesai' => SuratKeputusan::where('status', 'Selesai')->count(),
+            'menunggu' => SuratKeputusan::where('status', 'Menunggu Tanda Tangan')->count(),
+            'draf' => SuratKeputusan::where('status', 'Draf')->count(),
+        ];
+
+        return view('administrasi.surat.index', compact('suratKeputusans', 'metrics'));
     }
 
     public function create()
@@ -52,6 +59,19 @@ class SuratKeputusanController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
+            // [TAMBAHAN BARU] Menyusun array untuk Pihak Eksternal / Non-Dosen
+            $panitiaLainnya = [];
+            if ($request->has('panitia_lainnya_nama')) {
+                foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
+                    if (!empty($namaLain)) {
+                        $panitiaLainnya[] = [
+                            'nama' => $namaLain,
+                            'jabatan' => $request->panitia_lainnya_jabatan[$key] ?? 'Anggota'
+                        ];
+                    }
+                }
+            }
+
             $surat = SuratKeputusan::create([
                 'jenis_surat' => $request->jenis_surat,
                 'nomor_surat' => $request->nomor_surat,
@@ -65,6 +85,7 @@ class SuratKeputusanController extends Controller
                 'tembusan' => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
                 'penandatangan_nama' => $request->penandatangan_nama,
+                'panitia_lainnya' => $panitiaLainnya, // [DISIMPAN]
                 'status' => 'Menunggu Tanda Tangan'
             ]);
 
@@ -105,6 +126,19 @@ class SuratKeputusanController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $suratKeputusan) {
+            // [TAMBAHAN BARU] Menyusun array untuk Pihak Eksternal / Non-Dosen
+            $panitiaLainnya = [];
+            if ($request->has('panitia_lainnya_nama')) {
+                foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
+                    if (!empty($namaLain)) {
+                        $panitiaLainnya[] = [
+                            'nama' => $namaLain,
+                            'jabatan' => $request->panitia_lainnya_jabatan[$key] ?? 'Anggota'
+                        ];
+                    }
+                }
+            }
+
             $suratKeputusan->update([
                 'jenis_surat' => $request->jenis_surat,
                 'nomor_surat' => $request->nomor_surat,
@@ -118,6 +152,7 @@ class SuratKeputusanController extends Controller
                 'tembusan' => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
                 'penandatangan_nama' => $request->penandatangan_nama,
+                'panitia_lainnya' => $panitiaLainnya, // [DIPERBARUI]
             ]);
 
             if ($request->has('dosen_id')) {
@@ -169,18 +204,15 @@ class SuratKeputusanController extends Controller
         return back()->with('success', 'Dokumen final berhasil diunggah. Arsip kini tersedia di dasbor seluruh dosen yang bersangkutan.');
     }
     
-    // --- [FITUR BARU] UNDUH FILE BYPASS SYMLINK ---
     public function download(SuratKeputusan $suratKeputusan)
     {
         if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
-            // Memaksa penamaan file sesuai Judul Surat
             $safeName = \Illuminate\Support\Str::slug($suratKeputusan->judul ?? 'SURAT_SK', '_') . '.pdf';
             return Storage::disk('public')->download($suratKeputusan->file_path, $safeName);
         }
 
         return back()->with('error', 'File dokumen fisik tidak ditemukan di server.');
     }
-    // ----------------------------------------------
 
     public function destroy(SuratKeputusan $suratKeputusan)
     {

@@ -73,4 +73,18 @@ class PublicController extends Controller
         }
         return view('pengumuman.public_show', compact('pengumuman'));
     }
+
+    /**
+     * [TAMBAHAN BARU] Menampilkan Laci Arsip Digital Publik
+     */
+    public function dokumenPublik(): View
+    {
+        // Menarik semua dokumen dan langsung dikelompokkan (Group By) berdasarkan kategori
+        $dokumenPerKategori = DokumenPublik::latest()->get()->groupBy('kategori');
+        
+        // Mengambil daftar nama kategori yang tersedia untuk dijadikan Judul Tab
+        $kategoris = $dokumenPerKategori->keys();
+
+        return view('dokumen_publik', compact('dokumenPerKategori', 'kategoris'));
+    }
 }

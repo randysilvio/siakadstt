@@ -61,6 +61,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 */
 
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
+Route::get('/dokumen-publik', [App\Http\Controllers\PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
 
@@ -80,9 +81,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
     
-    // ========================================================================
-    // [UPDATE] Rute Download Bypass Symlink (Bisa diakses Admin & Dosen)
-    // ========================================================================
     Route::get('/surat-keputusan/{surat_keputusan}/download-pdf', [\App\Http\Controllers\SuratKeputusanController::class, 'download'])->name('surat-keputusan.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -205,6 +203,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/surat-keputusan/{surat_keputusan}/upload-final', [\App\Http\Controllers\SuratKeputusanController::class, 'uploadFinal'])->name('surat-keputusan.upload-final');
     });
 
+    // ========================================================================
+    // [UPDATE] MODUL WEBSITE KONTEN - DIAKSES OLEH ADMIN & ADMINISTRASI UMUM
+    // ========================================================================
+    Route::middleware('role:admin,administrasi_umum')->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('pengumuman', PengumumanController::class);
+        Route::resource('slideshows', SlideshowController::class);
+        Route::resource('dokumen-publik', DokumenPublikController::class);
+    });
+
     Route::middleware('role:admin,penjaminan_mutu')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('evaluasi-sesi', EvaluasiSesiController::class)->except(['show']);
         Route::resource('evaluasi-pertanyaan', EvaluasiPertanyaanController::class)->except(['show']);
@@ -267,12 +274,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('mata-kuliah', MataKuliahController::class);
         Route::resource('dosen', DosenController::class);
         
-        Route::resource('pengumuman', PengumumanController::class);
         Route::resource('tahun-akademik', TahunAkademikController::class);
         Route::resource('kalender', KalenderController::class)->except(['show']);
-        
-        Route::resource('slideshows', SlideshowController::class);
-        Route::resource('dokumen-publik', DokumenPublikController::class);
         
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');

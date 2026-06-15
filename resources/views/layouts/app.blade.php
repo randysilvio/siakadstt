@@ -124,6 +124,10 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.absensi.pengaturan.index') }}">Setting Jam Kerja</a></li>
                                 </ul>
                             </li>
+                        @endif
+
+                        {{-- [UPDATE]: MENU WEBSITE (Untuk Admin & Administrasi Umum) --}}
+                        @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'admin/slideshows*', 'admin/dokumen-publik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-globe"></i>Website
@@ -137,7 +141,7 @@
                             </li>
                         @endif
 
-                        {{-- MENU PENGATURAN (Tampil untuk Admin & Penjaminan Mutu) --}}
+                        {{-- MENU PENGATURAN --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -157,7 +161,7 @@
                             </li>
                         @endif
 
-                        {{-- MENU PENJAMINAN MUTU --}}
+                        {{-- [UPDATE]: MENU PENJAMINAN MUTU (Dibuang Dashboard Mutu-nya) --}}
                         @if(Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('penjaminan-mutu/dashboard') ? 'active' : '' }}" href="{{ route('mutu.dashboard') }}">
@@ -171,7 +175,7 @@
                             </li>
                         @endif
 
-                        {{-- [MENU BARU] ADMINISTRASI UMUM & SARPRAS --}}
+                        {{-- MENU ADMINISTRASI UMUM & SARPRAS --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('administrasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">

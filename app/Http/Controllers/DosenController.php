@@ -63,7 +63,9 @@ class DosenController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             
-            'nidn' => 'required|unique:dosens|max:20',
+            // [UPDATE] NIDN menjadi nullable, Jenis Pengajar ditambahkan
+            'nidn' => 'nullable|unique:dosens|max:20',
+            'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik',
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:L,P',
@@ -117,7 +119,9 @@ class DosenController extends Controller
     public function update(Request $request, Dosen $dosen): RedirectResponse
     {
         $request->validate([
-            'nidn' => 'required|max:20|unique:dosens,nidn,' . $dosen->id,
+            // [UPDATE] NIDN menjadi nullable, Jenis Pengajar ditambahkan
+            'nidn' => 'nullable|max:20|unique:dosens,nidn,' . $dosen->id,
+            'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik,' . $dosen->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $dosen->user_id],
@@ -185,7 +189,6 @@ class DosenController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
-        // PERBAIKAN: Izinkan format csv dan txt agar tidak ditolak sistem
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
         
         try {

@@ -44,7 +44,6 @@
         </div>
     @endif
     
-    {{-- PERBAIKAN: Menangkap Validasi Error Default Laravel --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm small fw-bold uppercase" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> PERHATIAN:
@@ -117,7 +116,7 @@
                             <th style="width: 8%;">SKS</th>
                             <th style="width: 12%;">SEMESTER</th>
                             <th class="text-start" style="width: 20%;">KURIKULUM</th>
-                            <th class="text-start" style="width: 20%;">DOSEN PENGAMPU</th>
+                            <th class="text-start" style="width: 25%;">DOSEN PENGAMPU</th>
                             <th style="width: 10%;">AKSI</th>
                         </tr>
                     </thead>
@@ -132,8 +131,17 @@
                                 <td class="text-center font-monospace">SEM {{ $matkul->semester }}</td>
                                 <td class="text-start uppercase text-muted">{{ $matkul->kurikulum->nama_kurikulum ?? '-' }}</td>
                                 <td class="text-start uppercase">
+                                    {{-- [UPDATE MINOR] Menampilkan Dosen Utama & Anggota Team Teaching --}}
                                     @if($matkul->dosen)
-                                        <span class="fw-bold text-dark">{{ $matkul->dosen->nama_lengkap }}</span>
+                                        <div class="fw-bold text-dark">{{ $matkul->dosen->nama_lengkap }} <span class="text-primary small">(Utama)</span></div>
+                                        @if($matkul->teamDosens->where('pivot.is_utama', false)->count() > 0)
+                                            <div class="mt-1 p-1 bg-light border-start border-2 border-secondary" style="font-size: 11px;">
+                                                <span class="text-muted d-block fw-bold" style="font-size: 9px;">TIM DOSEN / ASISTEN:</span>
+                                                @foreach($matkul->teamDosens->where('pivot.is_utama', false) as $teamDosen)
+                                                    <i class="bi bi-person-fill text-secondary"></i> {{ $teamDosen->nama_lengkap }}<br>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     @else
                                         <span class="text-danger small fw-bold font-monospace">BELUM DITENTUKAN</span>
                                     @endif
@@ -166,7 +174,6 @@
             </div>
         </div>
         
-        {{-- Paginasi Flat --}}
         @if($mata_kuliahs->hasPages())
             <div class="card-footer bg-white border-top py-3 rounded-0">
                 <div class="d-flex justify-content-center">

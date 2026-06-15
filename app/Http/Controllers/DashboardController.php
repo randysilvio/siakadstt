@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; 
 use App\Models\Pengumuman;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
@@ -14,6 +15,8 @@ use App\Models\Pembayaran;
 use App\Models\Jadwal;
 use App\Models\TahunAkademik;
 use App\Models\Peminjaman; 
+use App\Models\SuratKeputusan; // [WAJIB TAMBAH]
+use App\Models\DokumenPublik;  // [WAJIB TAMBAH]
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -26,13 +29,11 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // =========================================================
-        // [TAMBAHAN BARU] Dashboard Khusus CAMABA (Calon Mahasiswa)
+        // Dashboard Khusus CAMABA (Calon Mahasiswa)
         // =========================================================
         if ($user->hasRole('camaba')) {
-            // Ambil data camaba
             $camaba = $user->camaba; 
             
-            // Ambil tagihan formulir pmb (query manual agar aman dari error relasi)
             $tagihan = Pembayaran::where('user_id', $user->id)
                             ->where('jenis_pembayaran', 'formulir_pmb')
                             ->latest()
@@ -72,14 +73,26 @@ class DashboardController extends Controller
             if (!$dosen) {
                 abort(404, 'Data dosen tidak ditemukan untuk akun ini.');
             }
+            
+            $pivotMkIds = DB::table('dosen_mata_kuliah')
+                ->where('dosen_id', $dosen->id)
+                ->pluck('mata_kuliah_id')
+                ->toArray();
         
             $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-            $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->id);
+            
+            $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen, $pivotMkIds) {
+                $query->where('dosen_id', $dosen->id)
+                      ->orWhereIn('id', $pivotMkIds);
             })
             ->with('mataKuliah')
             ->get()
             ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+            
+            $mataKuliahDosen = MataKuliah::where('dosen_id', $dosen->id)
+                ->orWhereIn('id', $pivotMkIds)
+                ->withCount('mahasiswas')
+                ->get();
             
             $dataKaprodi = null;
             if ($user->isKaprodi()) {
@@ -95,7 +108,6 @@ class DashboardController extends Controller
                 }
             }
 
-            // [MINOR UPDATE] Logika Pencarian & Paginasi Arsip Surat Dosen (mengganti get menjadi paginate)
             $querySurat = $dosen->suratKeputusans()->where('status', 'Selesai');
             
             if (request()->filled('search_surat')) {
@@ -110,11 +122,11 @@ class DashboardController extends Controller
 
             return view('dosen.dashboard', [
                 'dosen' => $dosen,
-                'mata_kuliahs' => $dosen->mataKuliahs()->withCount('mahasiswas')->get(),
+                'mata_kuliahs' => $mataKuliahDosen, 
                 'jumlahMahasiswaWali' => $dosen->mahasiswaWali()->count(),
                 'dataKaprodi' => $dataKaprodi,
                 'pengumumans' => $pengumumans,
-                'jadwalKuliah' => $jadwalKuliahDosen,
+                'jadwalKuliah' => $jadwalKuliahDosen, 
                 'suratKeputusans' => $suratKeputusans,
             ]);
         }
@@ -179,7 +191,30 @@ class DashboardController extends Controller
                 'pengumumans' => $pengumumans
             ]);
         }
-         elseif ($user->hasRole('rektorat')) {
+        // =========================================================
+        // [TAMBAHAN BARU] Dashboard Khusus ADMINISTRASI UMUM
+        // =========================================================
+        elseif ($user->hasRole('administrasi_umum')) {
+            $suratSelesai = SuratKeputusan::where('status', 'Selesai')->count();
+            $suratMenunggu = SuratKeputusan::where('status', 'Menunggu Tanda Tangan')->count();
+            $suratDraf = SuratKeputusan::where('status', 'Draf')->count();
+            $totalDokumen = DokumenPublik::count();
+
+            $suratTerbaru = SuratKeputusan::latest()->take(5)->get();
+            $dokumenTerbaru = DokumenPublik::latest()->take(5)->get();
+
+            return view('administrasi.dashboard', [
+                'suratSelesai' => $suratSelesai,
+                'suratMenunggu' => $suratMenunggu,
+                'suratDraf' => $suratDraf,
+                'totalDokumen' => $totalDokumen,
+                'suratTerbaru' => $suratTerbaru,
+                'dokumenTerbaru' => $dokumenTerbaru,
+                'pengumumans' => $pengumumans
+            ]);
+        }
+        // =========================================================
+        elseif ($user->hasRole('rektorat')) {
             return redirect()->route('rektorat.dashboard');
         }
         elseif ($user->hasRole('penjaminan_mutu')) {

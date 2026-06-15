@@ -18,17 +18,21 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
 {
     public function headingRow(): int
     {
-        // PERBAIKAN: Ubah menjadi 1 agar langsung membaca nama kolom pada baris pertama di CSV
         return 1; 
     }
 
     public function model(array $row)
     {
-        if (empty($row['nidn']) || empty($row['nama_lengkap'])) {
+        // [MINOR UPDATE] Mengubah syarat wajib dari NIDN menjadi NIK agar Asisten Dosen bisa diimpor
+        if (empty($row['nik']) || empty($row['nama_lengkap'])) {
             return null;
         }
 
-        $nidn = trim((string) $row['nidn']);
+        // Tangkap NIDN jika ada, jadikan null jika kosong
+        $nidn = !empty($row['nidn']) ? trim((string) $row['nidn']) : null;
+        
+        // Tangkap NIK (Dipastikan ada karena lolos pengecekan di atas)
+        $nik = trim((string) $row['nik']);
 
         $role = Role::where('name', 'LIKE', 'dosen')->orWhere('name', 'LIKE', 'lecturer')->first();
         $roleId = $role ? $role->id : 2; 
@@ -45,8 +49,11 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
             }
         }
 
-        $email = !empty($row['email']) ? trim($row['email']) : $nidn . '@lecturer.sttgpipapua.ac.id';
-        $password = !empty($row['password']) ? Hash::make($row['password']) : Hash::make($nidn);
+        // [MINOR UPDATE] Logika Fallback Aman (Gunakan NIK jika NIDN Kosong)
+        $fallbackUsername = $nidn ?: $nik;
+
+        $email = !empty($row['email']) ? trim($row['email']) : $fallbackUsername . '@lecturer.sttgpipapua.ac.id';
+        $password = !empty($row['password']) ? Hash::make($row['password']) : Hash::make($fallbackUsername);
 
         $user = User::updateOrCreate(
             ['email' => $email],
@@ -61,13 +68,14 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
             $user->assignRole($role->name);
         }
 
+        // [MINOR UPDATE] Pivot pencarian updateOrCreate diganti dari NIDN menjadi NIK untuk mencegah Data Overwrite
         return Dosen::updateOrCreate(
-            ['nidn' => $nidn],
+            ['nik' => $nik],
             [
                 'user_id'             => $user->id,
+                'nidn'                => $nidn, // NIDN tetap disimpan jika ada nilainya
                 'program_studi_id'    => $prodiId, 
                 'nama_lengkap'        => $row['nama_lengkap'],
-                'nik'                 => $row['nik'] ?? null,
                 'nuptk'               => $row['nuptk'] ?? null,
                 'npwp'                => $row['npwp'] ?? null,
                 
@@ -76,6 +84,9 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
                 'jenis_kelamin'       => $row['jenis_kelamin'] ?? 'L',
                 'agama'               => $row['agama'] ?? 'Kristen Protestan',
                 'alamat'              => $row['alamat'] ?? null,
+                
+                // [MINOR UPDATE] Menambahkan kategori pengajar jika diisi di excel, default Dosen Tetap
+                'jenis_pengajar'      => $row['jenis_pengajar'] ?? 'Dosen Tetap', 
                 
                 'status_kepegawaian'  => $row['status_kepegawaian'] ?? 'Dosen Tetap',
                 'no_sk_pengangkatan'  => $row['no_sk_pengangkatan'] ?? null,
@@ -107,7 +118,8 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
     public function rules(): array
     {
         return [
-            'nidn' => 'required',
+            // [MINOR UPDATE] Validasi excel mengikuti pivot pencarian
+            'nik' => 'required',
             'nama_lengkap' => 'required',
         ];
     }

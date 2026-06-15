@@ -33,7 +33,6 @@
         <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4">{{ session('error') }}</div>
     @endif
 
-    {{-- PERBAIKAN: Penangkap Error Validasi --}}
     @if ($errors->any())
         <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4">
             <span class="fw-bold uppercase small">PERHATIAN:</span>
@@ -76,7 +75,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light border-bottom">
                         <tr>
-                            <th class="ps-4 py-3 text-muted small" style="width: 150px;">NIDN</th>
+                            <th class="ps-4 py-3 text-muted small" style="width: 150px;">NIDN/NIP</th>
                             <th class="text-muted small">NAMA LENGKAP & GELAR</th>
                             <th class="text-muted small">BIDANG KEAHLIAN</th>
                             <th class="text-muted small">EMAIL INSTITUSI</th>
@@ -86,15 +85,20 @@
                     <tbody>
                         @forelse ($dosens as $dosen)
                             <tr>
-                                <td class="ps-4 font-monospace fw-bold text-dark">{{ $dosen->nidn }}</td>
+                                {{-- [UPDATE] Menambahkan fallback teks jika NIDN null --}}
+                                <td class="ps-4 font-monospace fw-bold text-dark">{{ $dosen->nidn ?? '-' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <img src="{{ $dosen->foto_url }}" class="rounded-0 border me-3" width="40" height="40" style="object-fit: cover;">
                                         <div>
                                             <div class="fw-bold text-dark uppercase small">{{ $dosen->nama_lengkap }}</div>
-                                            @if($dosen->is_keuangan)
-                                                <span class="badge bg-success rounded-0" style="font-size: 0.65rem;">STAFF KEUANGAN</span>
-                                            @endif
+                                            {{-- [UPDATE] Label Jenis Pengajar --}}
+                                            <div class="d-flex gap-1 mt-1">
+                                                <span class="badge bg-primary rounded-0" style="font-size: 0.65rem;">{{ strtoupper($dosen->jenis_pengajar ?? 'DOSEN TETAP') }}</span>
+                                                @if($dosen->is_keuangan)
+                                                    <span class="badge bg-success rounded-0" style="font-size: 0.65rem;">STAFF KEUANGAN</span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </td>

@@ -68,4 +68,12 @@ class MataKuliah extends Model
                     ->withPivot('nilai', 'tahun_akademik_id')
                     ->withTimestamps();
     }
+
+    // --- [TAMBAHAN BARU MULTI-DOSEN / TEAM TEACHING] ---
+    public function teamDosens()
+    {
+        return $this->belongsToMany(Dosen::class, 'dosen_mata_kuliah', 'mata_kuliah_id', 'dosen_id')
+                    ->withPivot('is_utama')
+                    ->withTimestamps();
+    }
 }

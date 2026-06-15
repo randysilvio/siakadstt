@@ -19,6 +19,7 @@ class SuratKeputusan extends Model
         'memperhatikan' => 'array',
         'menetapkan' => 'array',
         'tembusan' => 'array',
+        'panitia_lainnya' => 'array', // [TAMBAHAN BARU]
     ];
 
     // Relasi ke Dosen (Otomatis menarik jabatan panitia dari tabel pivot)

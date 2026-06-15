@@ -8,7 +8,7 @@
         <div class="card-body p-4 d-flex justify-content-between align-items-center">
             <div>
                 <h3 class="fw-bold mb-1 uppercase">{{ strtoupper($dosen->nama_lengkap) }}</h3>
-                <p class="mb-0 text-white-50 font-monospace small">NIDN: {{ $dosen->nidn }} | STATUS: TENAGA PENDIDIK AKTIF</p>
+                <p class="mb-0 text-white-50 font-monospace small">NIDN: {{ $dosen->nidn ?? '-' }} | STATUS: TENAGA PENDIDIK AKTIF</p>
             </div>
             <div class="text-end d-none d-md-block">
                 <span class="badge bg-primary rounded-0 px-3 py-2 uppercase tracking-wider">Periode Akademik Aktif</span>
@@ -45,7 +45,15 @@
                                 @forelse($mata_kuliahs as $mk)
                                     <tr>
                                         <td class="ps-3">
-                                            <span class="fw-bold small text-dark d-block">{{ $mk->nama_mk }}</span>
+                                            <span class="fw-bold small text-dark d-block">
+                                                {{ $mk->nama_mk }}
+                                                {{-- [UPDATE MINOR] Penanda posisi dosen di kelas tersebut --}}
+                                                @if($mk->dosen_id === $dosen->id)
+                                                    <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">UTAMA</span>
+                                                @else
+                                                    <span class="badge bg-secondary ms-1" style="font-size: 0.6rem;">TIM / ASISTEN</span>
+                                                @endif
+                                            </span>
                                             <span class="text-muted small font-monospace">{{ $mk->kode_mk }}</span>
                                         </td>
                                         <td class="text-center fw-bold small">{{ $mk->sks }}</td>
@@ -200,7 +208,6 @@
                                             <span class="badge bg-light text-dark border rounded-0 mt-1 small">{{ $surat->jenis_surat }}</span>
                                         </td>
                                         <td class="text-center">
-                                            {{-- [UPDATE]: Rute download bypass symlink sesuai judul surat --}}
                                             <a href="{{ route('surat-keputusan.download', $surat->id) }}" class="btn btn-sm btn-outline-danger rounded-0 shadow-sm">
                                                <i class="bi bi-file-pdf"></i> PDF
                                             </a>

@@ -39,17 +39,18 @@
                     <div class="card-body p-4">
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Nama Lengkap & Gelar</label>
+                                <label class="form-label small fw-bold uppercase">Nama Lengkap & Gelar <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control rounded-0 @error('nama_lengkap') is-invalid @enderror" name="nama_lengkap" value="{{ old('nama_lengkap', $dosen->nama_lengkap) }}" required autocomplete="off">
                                 @error('nama_lengkap') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">NIDN / NIDK</label>
-                                <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" required autocomplete="off">
+                                {{-- [UPDATE] NIDN menjadi tidak wajib --}}
+                                <label class="form-label small fw-bold uppercase">NIDN / NIP / NIDK</label>
+                                <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" autocomplete="off" placeholder="Kosongkan jika tidak ada">
                                 @error('nidn') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">NIK (KTP)</label>
+                                <label class="form-label small fw-bold uppercase">NIK (KTP) <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control rounded-0 font-monospace @error('nik') is-invalid @enderror" name="nik" value="{{ old('nik', $dosen->nik) }}" maxlength="16" required autocomplete="off">
                                 @error('nik') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
@@ -66,7 +67,7 @@
                                 <input type="date" class="form-control rounded-0" name="tanggal_lahir" value="{{ old('tanggal_lahir', $dosen->tanggal_lahir) }}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small fw-bold uppercase">Jenis Kelamin</label>
+                                <label class="form-label small fw-bold uppercase">Jenis Kelamin <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-0" name="jenis_kelamin" required>
                                     <option value="L" {{ old('jenis_kelamin', $dosen->jenis_kelamin) == 'L' ? 'selected' : '' }}>LAKI-LAKI</option>
                                     <option value="P" {{ old('jenis_kelamin', $dosen->jenis_kelamin) == 'P' ? 'selected' : '' }}>PEREMPUAN</option>
@@ -86,8 +87,18 @@
                 <div class="card border-0 shadow-sm rounded-0">
                     <div class="card-body p-4">
                         <div class="row g-4">
+                            {{-- [UPDATE] Dropdown Kategori Pengajar ditambahkan --}}
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Status Kepegawaian</label>
+                                <label class="form-label small fw-bold uppercase">Kategori Pengajar <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-0" name="jenis_pengajar" required>
+                                    <option value="Dosen Tetap" {{ old('jenis_pengajar', $dosen->jenis_pengajar) == 'Dosen Tetap' ? 'selected' : '' }}>DOSEN UTAMA / TETAP</option>
+                                    <option value="Asisten Dosen" {{ old('jenis_pengajar', $dosen->jenis_pengajar) == 'Asisten Dosen' ? 'selected' : '' }}>ASISTEN DOSEN</option>
+                                    <option value="Dosen Praktisi" {{ old('jenis_pengajar', $dosen->jenis_pengajar) == 'Dosen Praktisi' ? 'selected' : '' }}>DOSEN PRAKTISI</option>
+                                    <option value="Dosen Tamu" {{ old('jenis_pengajar', $dosen->jenis_pengajar) == 'Dosen Tamu' ? 'selected' : '' }}>DOSEN TAMU</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Status Ikatan Kerja (HRD) <span class="text-danger">*</span></label>
                                 @php
                                     $standardStatus = ['Dosen Tetap', 'Dosen Tidak Tetap', 'Dosen Tamu'];
                                     $currentStatus = old('status_kepegawaian', $dosen->status_kepegawaian);
@@ -153,7 +164,7 @@
                     <div class="card-body p-4">
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Email Utama Sistem</label>
+                                <label class="form-label small fw-bold uppercase">Email Utama Sistem <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control rounded-0 font-monospace @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required autocomplete="off">
                                 @error('email') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>

@@ -67,25 +67,37 @@
                     </div>
                 </div>
 
-                {{-- Dosen Pengampu --}}
+                {{-- Dosen Pengampu Utama --}}
                 <div class="mb-3">
-                    <label for="dosen_id" class="form-label small fw-bold uppercase text-dark">Dosen Pengampu <span class="text-danger">*</span></label>
+                    <label for="dosen_id" class="form-label small fw-bold uppercase text-dark">Dosen Pengampu Utama (Penanggung Jawab) <span class="text-danger">*</span></label>
                     <select class="form-select rounded-0 uppercase @error('dosen_id') is-invalid @enderror" id="dosen_id" name="dosen_id" required>
-                        <option value="" selected disabled>-- PILIH DOSEN --</option>
+                        <option value="" selected disabled>-- PILIH DOSEN UTAMA --</option>
                         @foreach ($dosens as $dosen)
                             <option value="{{ $dosen->id }}" {{ old('dosen_id') == $dosen->id ? 'selected' : '' }}>
-                                {{ $dosen->nama_lengkap }}
+                                {{ $dosen->nama_lengkap }} ({{ $dosen->jenis_pengajar ?? 'Dosen Tetap' }})
                             </option>
                         @endforeach
                     </select>
                     @error('dosen_id')<div class="invalid-feedback font-monospace small">{{ $message }}</div>@enderror
                 </div>
 
+                {{-- [TAMBAHAN BARU] Multi-Select Dosen Anggota / Asisten --}}
+                <div class="mb-3">
+                    <label for="team_dosen_ids" class="form-label small fw-bold uppercase text-dark">Dosen Anggota / Asisten (Team Teaching)</label>
+                    <select class="form-control rounded-0 uppercase" id="team_dosen_ids" name="team_dosen_ids[]" multiple>
+                        @foreach ($dosens as $dosen)
+                            <option value="{{ $dosen->id }}" {{ in_array($dosen->id, old('team_dosen_ids', [])) ? 'selected' : '' }}>
+                                {{ $dosen->nama_lengkap }} ({{ $dosen->jenis_pengajar ?? 'Dosen Tetap' }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text text-muted small uppercase mt-1">* Kosongkan jika tidak ada tim dosen pendamping.</div>
+                </div>
+
                 {{-- Prasyarat --}}
                 <div class="mb-4">
                     <label for="prasyarat_id" class="form-label small fw-bold uppercase text-dark">Mata Kuliah Prasyarat</label>
                     <select multiple class="form-control rounded-0 uppercase" id="prasyarat_id" name="prasyarat_id[]">
-                        {{-- Opsi akan diisi oleh JavaScript --}}
                     </select>
                     <div class="form-text text-muted small uppercase mt-1">
                         * Opsi prasyarat akan otomatis terfilter setelah mengisi kolom semester.
@@ -147,6 +159,13 @@
         $('#prasyarat_id').select2({
             theme: "bootstrap-5",
             placeholder: '-- PILIH MATA KULIAH PRASYARAT --',
+            width: '100%'
+        });
+
+        // [TAMBAHAN BARU] Inisialisasi Select2 untuk Team Teaching
+        $('#team_dosen_ids').select2({
+            theme: "bootstrap-5",
+            placeholder: '-- PILIH TIM DOSEN / ASISTEN --',
             width: '100%'
         });
         

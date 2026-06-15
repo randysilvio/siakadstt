@@ -10,7 +10,6 @@
         <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-dark btn-sm rounded-0">KEMBALI</a>
     </div>
 
-    {{-- PENAMBAHAN: Blok Penangkap Error Validasi Global --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3" role="alert">
             <div class="d-flex align-items-center small uppercase">
@@ -54,8 +53,9 @@
                                 <input type="text" class="form-control rounded-0" name="nama_lengkap" value="{{ old('nama_lengkap') }}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">NIDN / NIDK <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-0 font-monospace" name="nidn" value="{{ old('nidn') }}" required>
+                                {{-- [UPDATE] NIDN tidak lagi wajib --}}
+                                <label class="form-label small fw-bold uppercase">NIDN / NIP / NIDK</label>
+                                <input type="text" class="form-control rounded-0 font-monospace" name="nidn" value="{{ old('nidn') }}" placeholder="Kosongkan jika tidak ada">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">NIK (KTP) <span class="text-danger">*</span></label>
@@ -94,8 +94,18 @@
                 <div class="card border-0 shadow-sm rounded-0">
                     <div class="card-body p-4">
                         <div class="row g-4">
+                            {{-- [UPDATE] Dropdown Kategori Pengajar ditambahkan --}}
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Status Ikatan Kerja <span class="text-danger">*</span></label>
+                                <label class="form-label small fw-bold uppercase">Kategori Pengajar <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-0" name="jenis_pengajar" required>
+                                    <option value="Dosen Tetap" {{ old('jenis_pengajar') == 'Dosen Tetap' ? 'selected' : '' }}>DOSEN UTAMA / TETAP</option>
+                                    <option value="Asisten Dosen" {{ old('jenis_pengajar') == 'Asisten Dosen' ? 'selected' : '' }}>ASISTEN DOSEN</option>
+                                    <option value="Dosen Praktisi" {{ old('jenis_pengajar') == 'Dosen Praktisi' ? 'selected' : '' }}>DOSEN PRAKTISI</option>
+                                    <option value="Dosen Tamu" {{ old('jenis_pengajar') == 'Dosen Tamu' ? 'selected' : '' }}>DOSEN TAMU</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Status Ikatan Kerja (HRD) <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-0" name="status_kepegawaian" required>
                                     <option value="Dosen Tetap" {{ old('status_kepegawaian') == 'Dosen Tetap' ? 'selected' : '' }}>DOSEN TETAP</option>
                                     <option value="Dosen Tidak Tetap" {{ old('status_kepegawaian') == 'Dosen Tidak Tetap' ? 'selected' : '' }}>DOSEN TIDAK TETAP</option>

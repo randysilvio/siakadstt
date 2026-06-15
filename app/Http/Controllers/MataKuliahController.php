@@ -21,7 +21,8 @@ class MataKuliahController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = MataKuliah::with(['dosen.user', 'kurikulum', 'prasyarats'])->latest();
+        // [UPDATE MINOR] Menambahkan eager loading teamDosens agar tidak N+1 Query
+        $query = MataKuliah::with(['dosen.user', 'kurikulum', 'prasyarats', 'teamDosens'])->latest();
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -64,6 +65,17 @@ class MataKuliahController extends Controller
                 $mataKuliah->prasyarats()->sync($request->prasyarat_id);
             }
 
+            // [TAMBAHAN BARU] Sinkronisasi Otomatis Team Teaching ke Tabel Pivot
+            $pivotData = [$mataKuliah->dosen_id => ['is_utama' => true]];
+            if ($request->filled('team_dosen_ids')) {
+                foreach ($request->input('team_dosen_ids') as $extraDosenId) {
+                    if ($extraDosenId != $mataKuliah->dosen_id) {
+                        $pivotData[$extraDosenId] = ['is_utama' => false];
+                    }
+                }
+            }
+            $mataKuliah->teamDosens()->sync($pivotData);
+
             if ($request->has('jadwals')) {
                 foreach ($request->jadwals as $jadwal) {
                     if (!empty($jadwal['hari']) && !empty($jadwal['jam_mulai']) && !empty($jadwal['jam_selesai'])) {
@@ -87,7 +99,7 @@ class MataKuliahController extends Controller
                                   ->orderBy('nama_mk')
                                   ->get();
                                   
-        $mataKuliah->load('jadwals', 'prasyarats');
+        $mataKuliah->load('jadwals', 'prasyarats', 'teamDosens');
         
         return view('mata-kuliah.edit', compact('mataKuliah', 'dosens', 'kurikulums', 'mata_kuliahs_options'));
     }
@@ -100,6 +112,17 @@ class MataKuliahController extends Controller
             
             $mataKuliah->prasyarats()->sync($request->input('prasyarat_id', []));
             
+            // [TAMBAHAN BARU] Sinkronisasi Otomatis Update Team Teaching ke Tabel Pivot
+            $pivotData = [$mataKuliah->dosen_id => ['is_utama' => true]];
+            if ($request->filled('team_dosen_ids')) {
+                foreach ($request->input('team_dosen_ids') as $extraDosenId) {
+                    if ($extraDosenId != $mataKuliah->dosen_id) {
+                        $pivotData[$extraDosenId] = ['is_utama' => false];
+                    }
+                }
+            }
+            $mataKuliah->teamDosens()->sync($pivotData);
+
             $mataKuliah->jadwals()->delete();
             if ($request->has('jadwals')) {
                 foreach ($request->jadwals as $jadwal) {
@@ -115,6 +138,7 @@ class MataKuliahController extends Controller
 
     public function destroy(MataKuliah $mataKuliah): RedirectResponse
     {
+        $mataKuliah->teamDosens()->detach(); // [TAMBAHAN BARU] Putus hubungan pivot saat dihapus
         $mataKuliah->prasyarats()->detach();
         $mataKuliah->jadwals()->delete();
         $mataKuliah->delete();
@@ -129,7 +153,6 @@ class MataKuliahController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
-        // PERBAIKAN: Tambahkan ekstensi csv, txt ke dalam validasi
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
         
         try {

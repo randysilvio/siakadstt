@@ -4,22 +4,33 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DokumenPublik;
-use App\Models\User; // [TAMBAHAN]
+use App\Models\User; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Notification; // [TAMBAHAN]
-use App\Notifications\GeneralNotification; // [TAMBAHAN]
+use Illuminate\Support\Facades\Notification; 
+use App\Notifications\GeneralNotification; 
 
 class DokumenPublikController extends Controller
 {
     public function index(Request $request)
     {
         $query = DokumenPublik::latest();
+        
         if ($request->filled('search')) {
             $query->where('judul_dokumen', 'like', '%' . $request->input('search') . '%');
         }
+
+        // [TAMBAHAN] Filter berdasarkan Kategori
+        if ($request->filled('kategori')) {
+            $query->where('kategori', $request->input('kategori'));
+        }
+
         $dokumens = $query->paginate(10)->withQueryString();
-        return view('admin.dokumen-publik.index', compact('dokumens'));
+        
+        // [TAMBAHAN] Mengambil daftar kategori unik untuk dropdown filter
+        $kategoris = DokumenPublik::select('kategori')->distinct()->pluck('kategori');
+
+        return view('admin.dokumen-publik.index', compact('dokumens', 'kategoris'));
     }
 
     public function create()
@@ -31,19 +42,20 @@ class DokumenPublikController extends Controller
     {
         $request->validate([
             'judul_dokumen' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'file_dokumen' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240', 
+            'kategori'      => 'required|string|max:100', // [TAMBAHAN]
+            'deskripsi'     => 'nullable|string',
+            'file_dokumen'  => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240', 
         ]);
 
         $filePath = $request->file('file_dokumen')->store('dokumen-publik', 'public');
 
         DokumenPublik::create([
             'judul_dokumen' => $request->judul_dokumen,
-            'deskripsi' => $request->deskripsi,
-            'file_path' => $filePath,
+            'kategori'      => $request->kategori, // [TAMBAHAN]
+            'deskripsi'     => $request->deskripsi,
+            'file_path'     => $filePath,
         ]);
 
-        // [TAMBAHAN] Kirim Notifikasi ke Semua User
         $semuaUser = User::all();
         Notification::send($semuaUser, new GeneralNotification(
             'Dokumen Publik Baru',
@@ -53,6 +65,11 @@ class DokumenPublikController extends Controller
         ));
 
         return redirect()->route('admin.dokumen-publik.index')->with('success', 'Dokumen publik berhasil diunggah.');
+    }
+
+    public function show(DokumenPublik $dokumen_publik)
+    {
+        return view('admin.dokumen-publik.show', compact('dokumen_publik'));
     }
 
     public function destroy(DokumenPublik $dokumen_publik)

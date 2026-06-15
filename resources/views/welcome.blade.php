@@ -142,7 +142,8 @@
                         <span class="text-xs font-bold text-slate-800 group-hover:text-brand-600">Direktori Dosen</span>
                     </a>
 
-                    <a href="#dokumen" class="group flex flex-col items-center text-center p-3 rounded-xl hover:bg-brand-50 transition duration-300">
+                    {{-- [UPDATE] Tombol akses cepat ke Laci Arsip Digital --}}
+                    <a href="{{ route('dokumen.publik') }}" class="group flex flex-col items-center text-center p-3 rounded-xl hover:bg-brand-50 transition duration-300">
                         <div class="h-12 w-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition duration-300 shadow-sm group-hover:bg-indigo-600 group-hover:text-white">
                             <i class="fa-solid fa-cloud-arrow-down text-xl"></i>
                         </div>
@@ -189,12 +190,12 @@
             </div>
         </section>
 
-        {{-- ================= BERITA & AGENDA (MODERN GRID) ================= --}}
+        {{-- ================= BERITA & AGENDA ================= --}}
         <section id="berita" class="py-20 bg-slate-50">
             <div class="container mx-auto px-6 max-w-6xl">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     
-                    {{-- Berita Terkini (Kiri 2 Kolom) --}}
+                    {{-- Berita Terkini --}}
                     <div class="lg:col-span-2">
                         <div class="flex justify-between items-end mb-8">
                             <div>
@@ -258,7 +259,7 @@
                         </div>
                     </div>
 
-                    {{-- Kolom Agenda (Kanan 1 Kolom) --}}
+                    {{-- Kolom Agenda --}}
                     <div class="lg:col-span-1">
                         <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition duration-300 border border-gray-100 overflow-hidden sticky top-24">
                             <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex justify-between items-center">
@@ -328,12 +329,12 @@
             </div>
         </section>
 
-        {{-- ================= UNDUH DOKUMEN ================= --}}
+        {{-- ================= UNDUH DOKUMEN (PREVIEW TERBARU) ================= --}}
         <section id="dokumen" class="py-16 bg-slate-50">
             <div class="container mx-auto px-6 max-w-5xl">
                 <div class="text-center md:text-left mb-10">
-                    <h2 class="text-2xl font-heading font-extrabold text-slate-900 tracking-tight">Pusat Unduhan Dokumen</h2>
-                    <p class="text-slate-500 text-sm mt-1">Akses cepat berkas pedoman akademik dan administrasi resmi.</p>
+                    <h2 class="text-2xl font-heading font-extrabold text-slate-900 tracking-tight">Dokumen Publik Terbaru</h2>
+                    <p class="text-slate-500 text-sm mt-1">Akses cepat berkas pedoman akademik dan administrasi resmi yang baru saja diunggah.</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -344,15 +345,23 @@
                         </div>
                         <div class="flex-grow min-w-0">
                             <h4 class="font-bold text-slate-900 text-sm mb-1 truncate group-hover:text-rose-600 transition" title="{{ $doc->judul_dokumen }}">{{ $doc->judul_dokumen }}</h4>
-                            <span class="text-[10px] text-slate-400 block mb-2 font-medium">{{ $doc->created_at->format('d M Y') }}</span>
-                            <a href="{{ asset('storage/' . $doc->file_path) }}" download class="text-xs font-bold text-rose-600 hover:text-rose-800 inline-flex items-center">
-                                Unduh Dokumen <i class="fa-solid fa-cloud-arrow-down ml-1 text-[10px]"></i>
+                            <span class="text-[10px] text-slate-400 block mb-2 font-medium">{{ $doc->created_at->format('d M Y') }} | {{ $doc->kategori ?? 'Umum' }}</span>
+                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="text-xs font-bold text-rose-600 hover:text-rose-800 inline-flex items-center">
+                                Buka Dokumen <i class="fa-regular fa-eye ml-1 text-[10px]"></i>
                             </a>
                         </div>
                     </div>
                     @empty
                     <div class="col-span-3 text-center py-6 text-slate-400 text-sm">Belum ada dokumen yang dibagikan secara publik.</div>
                     @endforelse
+                </div>
+
+                {{-- [TAMBAHAN BARU] Tombol ke Halaman Laci Arsip Digital --}}
+                <div class="mt-12 text-center">
+                    <a href="{{ route('dokumen.publik') }}" class="inline-flex items-center justify-center px-8 py-3.5 font-bold text-white rounded-full shadow-lg bg-slate-900 hover:bg-brand-600 border border-slate-800 hover:border-brand-600 transition duration-300 group">
+                        <span class="text-sm tracking-widest uppercase font-heading">Buka Laci Arsip Digital Lengkap</span>
+                        <i class="fa-solid fa-arrow-right ml-3 transform group-hover:translate-x-1 transition"></i>
+                    </a>
                 </div>
             </div>
         </section>
@@ -401,7 +410,7 @@
                         <li><a href="#prodi" class="hover:text-white transition">Program Studi</a></li>
                         <li><a href="{{ route('dosen.public.index') }}" class="hover:text-white transition">Direktori Dosen</a></li>
                         <li><a href="#berita" class="hover:text-white transition">Berita & Informasi</a></li>
-                        <li><a href="#dokumen" class="hover:text-white transition">Unduh Dokumen</a></li>
+                        <li><a href="{{ route('dokumen.publik') }}" class="hover:text-white transition">Unduh Dokumen</a></li>
                     </ul>
                 </div>
 
