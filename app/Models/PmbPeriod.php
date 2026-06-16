@@ -17,7 +17,7 @@ class PmbPeriod extends Model
         'tanggal_tutup',
         'biaya_pendaftaran',
         'is_active',
-        // [BARU] Tambahkan kolom ini agar bisa disimpan
+        // [TAMBAHAN BARU] Kolom Jadwal & Seleksi Ujian
         'tanggal_ujian',
         'jam_mulai_ujian',
         'jam_selesai_ujian',
@@ -26,13 +26,15 @@ class PmbPeriod extends Model
     ];
 
     protected $casts = [
-        'tanggal_buka' => 'date',
+        'tanggal_buka'  => 'date',
         'tanggal_tutup' => 'date',
-        'tanggal_ujian' => 'date', // Cast tanggal ujian juga
-        'is_active' => 'boolean',
+        'tanggal_ujian' => 'date', 
+        'is_active'     => 'boolean',
     ];
 
-    // Relasi: Satu periode punya banyak pendaftar
+    /**
+     * Relasi: Satu periode gelombang memiliki banyak pendaftar (Camaba)
+     */
     public function camabas()
     {
         return $this->hasMany(Camaba::class);

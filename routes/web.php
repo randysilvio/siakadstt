@@ -204,7 +204,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // ========================================================================
-    // [UPDATE] MODUL WEBSITE KONTEN - DIAKSES OLEH ADMIN & ADMINISTRASI UMUM
+    // MODUL WEBSITE KONTEN - DIAKSES OLEH ADMIN & ADMINISTRASI UMUM
     // ========================================================================
     Route::middleware('role:admin,administrasi_umum')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('pengumuman', PengumumanController::class);
@@ -265,7 +265,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
 
         Route::resource('pmb-periods', PmbPeriodController::class);
-        Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'set-active'])->name('pmb-periods.set-active');
+        Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
 
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('program-studi', ProgramStudiController::class);

@@ -26,10 +26,10 @@ class PmbPeriodController extends Controller
             'tanggal_buka' => 'required|date',
             'tanggal_tutup' => 'required|date|after_or_equal:tanggal_buka',
             'biaya_pendaftaran' => 'required|numeric|min:0',
-            // [BARU] Validasi Jadwal Ujian
-            'tanggal_ujian' => 'nullable|date|after_or_equal:tanggal_tutup',
+            // [PERBAIKAN] Validasi dilonggarkan agar terhindar dari bug "Time Format" Laravel
+            'tanggal_ujian' => 'nullable|date',
             'jam_mulai_ujian' => 'nullable',
-            'jam_selesai_ujian' => 'nullable|after:jam_mulai_ujian',
+            'jam_selesai_ujian' => 'nullable',
             'jenis_ujian' => 'required|in:online,offline',
             'lokasi_ujian' => 'nullable|string',
         ]);
@@ -44,7 +44,6 @@ class PmbPeriodController extends Controller
             'tanggal_tutup' => $request->tanggal_tutup,
             'biaya_pendaftaran' => $request->biaya_pendaftaran,
             'is_active' => $request->has('is_active'),
-            // [BARU] Simpan Jadwal
             'tanggal_ujian' => $request->tanggal_ujian,
             'jam_mulai_ujian' => $request->jam_mulai_ujian,
             'jam_selesai_ujian' => $request->jam_selesai_ujian,
@@ -67,7 +66,7 @@ class PmbPeriodController extends Controller
             'tanggal_buka' => 'required|date',
             'tanggal_tutup' => 'required|date|after_or_equal:tanggal_buka',
             'biaya_pendaftaran' => 'required|numeric|min:0',
-             // [BARU] Validasi Jadwal Ujian
+            // [PERBAIKAN] Validasi dilonggarkan
             'tanggal_ujian' => 'nullable|date',
             'jam_mulai_ujian' => 'nullable',
             'jam_selesai_ujian' => 'nullable',
@@ -85,7 +84,6 @@ class PmbPeriodController extends Controller
             'tanggal_tutup' => $request->tanggal_tutup,
             'biaya_pendaftaran' => $request->biaya_pendaftaran,
             'is_active' => $request->has('is_active'),
-            // [BARU] Update Jadwal
             'tanggal_ujian' => $request->tanggal_ujian,
             'jam_mulai_ujian' => $request->jam_mulai_ujian,
             'jam_selesai_ujian' => $request->jam_selesai_ujian,

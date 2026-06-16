@@ -14,6 +14,19 @@
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
+
+                    {{-- [TAMBAHAN] BLOK PENANGKAP ERROR --}}
+                    @if ($errors->any())
+                        <div class="alert alert-danger rounded-1 shadow-sm">
+                            <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i> Gagal Memperbarui Data!</h6>
+                            <ul class="mb-0 ps-3 small">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form action="{{ route('admin.pmb-periods.update', $pmbPeriod->id) }}" method="POST">
                         @csrf
                         @method('PUT')
@@ -25,22 +38,22 @@
                             <div class="row mb-3 g-3">
                                 <div class="col-md-7">
                                     <label class="form-label text-dark fw-semibold">Identifikasi Gelombang <span class="text-danger">*</span></label>
-                                    <input type="text" name="nama_gelombang" class="form-control rounded-1" value="{{ $pmbPeriod->nama_gelombang }}" required autofocus>
+                                    <input type="text" name="nama_gelombang" class="form-control rounded-1" value="{{ old('nama_gelombang', $pmbPeriod->nama_gelombang) }}" required autofocus>
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label text-dark fw-semibold">Biaya Formulir (Rp) <span class="text-danger">*</span></label>
-                                    <input type="number" name="biaya_pendaftaran" class="form-control rounded-1 font-monospace" value="{{ $pmbPeriod->biaya_pendaftaran }}" required>
+                                    <input type="number" name="biaya_pendaftaran" class="form-control rounded-1 font-monospace" value="{{ old('biaya_pendaftaran', $pmbPeriod->biaya_pendaftaran) }}" required>
                                 </div>
                             </div>
 
                             <div class="row mb-3 g-3">
                                 <div class="col-md-6">
                                     <label class="form-label text-dark fw-semibold">Waktu Pembukaan Portal <span class="text-danger">*</span></label>
-                                    <input type="date" name="tanggal_buka" class="form-control rounded-1" value="{{ $pmbPeriod->tanggal_buka->format('Y-m-d') }}" required>
+                                    <input type="date" name="tanggal_buka" class="form-control rounded-1" value="{{ old('tanggal_buka', $pmbPeriod->tanggal_buka->format('Y-m-d')) }}" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-dark fw-semibold">Waktu Penutupan Portal <span class="text-danger">*</span></label>
-                                    <input type="date" name="tanggal_tutup" class="form-control rounded-1" value="{{ $pmbPeriod->tanggal_tutup->format('Y-m-d') }}" required>
+                                    <input type="date" name="tanggal_tutup" class="form-control rounded-1" value="{{ old('tanggal_tutup', $pmbPeriod->tanggal_tutup->format('Y-m-d')) }}" required>
                                 </div>
                             </div>
                         </div>
@@ -52,15 +65,15 @@
                             <div class="row mb-3 g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-dark fw-semibold">Tanggal Pelaksanaan</label>
-                                    <input type="date" name="tanggal_ujian" class="form-control rounded-1" value="{{ $pmbPeriod->tanggal_ujian ? \Carbon\Carbon::parse($pmbPeriod->tanggal_ujian)->format('Y-m-d') : '' }}">
+                                    <input type="date" name="tanggal_ujian" class="form-control rounded-1" value="{{ old('tanggal_ujian', $pmbPeriod->tanggal_ujian ? \Carbon\Carbon::parse($pmbPeriod->tanggal_ujian)->format('Y-m-d') : '') }}">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-dark fw-semibold">Waktu Mulai (WIB/WIT)</label>
-                                    <input type="time" name="jam_mulai_ujian" class="form-control rounded-1" value="{{ $pmbPeriod->jam_mulai_ujian ? \Carbon\Carbon::parse($pmbPeriod->jam_mulai_ujian)->format('H:i') : '' }}">
+                                    <input type="time" name="jam_mulai_ujian" class="form-control rounded-1" value="{{ old('jam_mulai_ujian', $pmbPeriod->jam_mulai_ujian ? \Carbon\Carbon::parse($pmbPeriod->jam_mulai_ujian)->format('H:i') : '') }}">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-dark fw-semibold">Waktu Selesai (WIB/WIT)</label>
-                                    <input type="time" name="jam_selesai_ujian" class="form-control rounded-1" value="{{ $pmbPeriod->jam_selesai_ujian ? \Carbon\Carbon::parse($pmbPeriod->jam_selesai_ujian)->format('H:i') : '' }}">
+                                    <input type="time" name="jam_selesai_ujian" class="form-control rounded-1" value="{{ old('jam_selesai_ujian', $pmbPeriod->jam_selesai_ujian ? \Carbon\Carbon::parse($pmbPeriod->jam_selesai_ujian)->format('H:i') : '') }}">
                                 </div>
                             </div>
 
@@ -68,13 +81,13 @@
                                 <div class="col-md-4">
                                     <label class="form-label text-dark fw-semibold">Metode Evaluasi</label>
                                     <select name="jenis_ujian" class="form-select rounded-1">
-                                        <option value="offline" {{ $pmbPeriod->jenis_ujian == 'offline' ? 'selected' : '' }}>Luring (Tatap Muka di Kampus)</option>
-                                        <option value="online" {{ $pmbPeriod->jenis_ujian == 'online' ? 'selected' : '' }}>Daring (Virtual / Online)</option>
+                                        <option value="offline" {{ old('jenis_ujian', $pmbPeriod->jenis_ujian) == 'offline' ? 'selected' : '' }}>Luring (Tatap Muka di Kampus)</option>
+                                        <option value="online" {{ old('jenis_ujian', $pmbPeriod->jenis_ujian) == 'online' ? 'selected' : '' }}>Daring (Virtual / Online)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-8">
                                     <label class="form-label text-dark fw-semibold">Titik Lokasi / Tautan Daring</label>
-                                    <input type="text" name="lokasi_ujian" class="form-control rounded-1" value="{{ $pmbPeriod->lokasi_ujian }}">
+                                    <input type="text" name="lokasi_ujian" class="form-control rounded-1" value="{{ old('lokasi_ujian', $pmbPeriod->lokasi_ujian) }}">
                                 </div>
                             </div>
                         </div>
@@ -82,7 +95,7 @@
                         {{-- Bagian 3: Status Publikasi --}}
                         <div class="mb-4 bg-light p-3 border rounded-1">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="isActive" name="is_active" value="1" {{ $pmbPeriod->is_active ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" id="isActive" name="is_active" value="1" {{ old('is_active', $pmbPeriod->is_active) ? 'checked' : '' }}>
                                 <label class="form-check-label text-dark fw-bold ms-2" for="isActive">Aktifkan Gelombang Admisi</label>
                             </div>
                             <div class="form-text mt-2 text-danger">Perhatian: Mengubah status portal menjadi aktif akan secara otomatis mendisfungsikan gelombang penerimaan lain yang sedang berjalan.</div>
