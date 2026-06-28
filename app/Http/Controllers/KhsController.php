@@ -59,11 +59,11 @@ class KhsController extends Controller
         }
         // ------------------------------------------------
 
-        // 1. Ambil semua mata kuliah yang sudah dinilai
+        // 1. Ambil semua mata kuliah yang diambil (termasuk yang belum dinilai)
         // 2. Kelompokkan berdasarkan ID tahun akademik dari tabel pivot
         $krsPerTahunAkademik = $mahasiswa->mataKuliahs()
             ->withPivot('nilai', 'tahun_akademik_id')
-            ->wherePivotNotNull('nilai')
+            // ->wherePivotNotNull('nilai') // [DIHAPUS AGAR MATA KULIAH "PROSES" MUNCUL]
             ->get()
             ->groupBy('pivot.tahun_akademik_id');
 

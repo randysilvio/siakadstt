@@ -13,6 +13,15 @@ use App\Http\Controllers\KrsController;
 // =========================================================================
 Route::post('/login', [AuthController::class, 'login']);
 
+// [FITUR BARU]: Pengecekan Versi Aplikasi (Force Update)
+Route::get('/check-version', function () {
+    return response()->json([
+        'min_version' => 1, // Naikkan angka ini (misal ke 2) jika Bapak rilis APK baru dan mewajibkan update
+        'download_url' => 'https://sttgpipapua.ac.id/download/siakad-mobile-v2.apk' // Link unduh APK terbaru
+    ]);
+});
+
+
 // =========================================================================
 // RUTE TERPROTEKSI (Wajib Token / Login)
 // =========================================================================

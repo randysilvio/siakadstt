@@ -104,8 +104,9 @@
                             <td class="center" style="font-family: monospace;">{{ $mk->kode_mk }}</td>
                             <td style="text-transform: uppercase; font-weight: bold;">{{ $mk->nama_mk }}</td>
                             <td class="center" style="font-family: monospace;">{{ $mk->sks }}</td>
-                            <td class="center" style="font-weight: bold; font-family: monospace;">{{ $mk->pivot->nilai }}</td>
-                            <td class="center" style="font-family: monospace;">{{ number_format($ipsData['nilaiBobot'][$mk->id] ?? 0, 2) }}</td>
+                            {{-- [PERBAIKAN] Tampilkan '-' jika nilai kosong --}}
+                            <td class="center" style="font-weight: bold; font-family: monospace;">{{ $mk->pivot->nilai ?? '-' }}</td>
+                            <td class="center" style="font-family: monospace;">{{ $mk->pivot->nilai ? number_format($ipsData['nilaiBobot'][$mk->id] ?? 0, 2) : '-' }}</td>
                         </tr>
                     @endforeach
                     <tr style="font-weight: bold; background-color: #f9f9f9;">

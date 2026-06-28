@@ -200,6 +200,12 @@ class KrsController extends Controller
     public function getFormKrsApi(Request $request)
     {
         $mahasiswa = $request->user()->mahasiswa;
+
+        // [TAMBAHAN GATEKEEPER EVALUASI DOSEN]
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return response()->json(['message' => 'Silakan isi evaluasi dosen (EDOM) terlebih dahulu.'], 403);
+        }
+
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
         if (!$periodeAktif) return response()->json(['message' => 'Tidak ada periode aktif'], 400);
@@ -246,6 +252,11 @@ class KrsController extends Controller
     public function submitKrsApi(Request $request)
     {
         $mahasiswa = $request->user()->mahasiswa;
+
+        // [TAMBAHAN GATEKEEPER EVALUASI DOSEN]
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return response()->json(['message' => 'Silakan isi evaluasi dosen (EDOM) terlebih dahulu.'], 403);
+        }
         
         if ($mahasiswa->status_krs === 'Disetujui') {
             return response()->json(['message' => 'KRS sudah disetujui, tidak bisa diubah.'], 403);

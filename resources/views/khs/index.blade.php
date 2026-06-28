@@ -59,8 +59,9 @@
                                     <td class="text-center font-monospace fw-bold text-muted">{{ $mk->kode_mk }}</td>
                                     <td class="uppercase fw-bold text-dark">{{ $mk->nama_mk }}</td>
                                     <td class="text-center font-monospace fw-bold">{{ $mk->sks }}</td>
-                                    <td class="text-center font-monospace fw-bold text-primary">{{ $mk->pivot->nilai }}</td>
-                                    <td class="text-center font-monospace">{{ $ipsData['nilaiBobot'][$mk->id] ?? 0 }}</td>
+                                    {{-- [PERBAIKAN] Tampilkan '-' jika nilai kosong --}}
+                                    <td class="text-center font-monospace fw-bold text-primary">{{ $mk->pivot->nilai ?? '-' }}</td>
+                                    <td class="text-center font-monospace">{{ $mk->pivot->nilai ? ($ipsData['nilaiBobot'][$mk->id] ?? 0) : '-' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

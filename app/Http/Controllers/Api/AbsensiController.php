@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiPegawai;
 use App\Models\LokasiKerja;
-// [TAMBAHAN BARU] Import Model Pengaturan
 use App\Models\PengaturanAbsensi; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -37,23 +36,18 @@ class AbsensiController extends Controller
         }
 
         // =========================================================
-        // [TAMBAHAN BARU] LOGIKA CEK JAM MASUK & TOLERANSI
+        // LOGIKA CEK JAM MASUK & TOLERANSI
         // =========================================================
-        // 1. Ambil Pengaturan dari Database (default jika kosong)
         $setting = PengaturanAbsensi::first();
         $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
         $toleransi = $setting ? $setting->toleransi_terlambat_menit : 15;
 
-        // 2. Hitung Batas Waktu (Jam Masuk + Toleransi)
-        // Carbon createFromFormat menggunakan tanggal hari ini secara otomatis
         $batasWaktu = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi);
         $waktuSekarang = Carbon::now();
 
-        // 3. Tentukan Status
-        $statusKehadiran = 'Hadir'; // Default
+        $statusKehadiran = 'Hadir'; 
         $pesanResponse = 'Check-in berhasil.';
 
-        // Jika waktu sekarang LEBIH BESAR dari batas waktu -> ALPHA
         if ($waktuSekarang->format('H:i:s') > $batasWaktu->format('H:i:s')) {
             $statusKehadiran = 'Alpha';
             $pesanResponse = 'Absen diterima, namun status Anda ALPHA karena terlambat melebihi toleransi.';
@@ -91,7 +85,6 @@ class AbsensiController extends Controller
 
         $path = $request->file('foto_check_in')->store('foto-absensi', 'public');
 
-        // Simpan Data dengan Status yang sudah dihitung (Hadir/Alpha)
         $absensi = AbsensiPegawai::updateOrCreate(
             ['user_id' => $user->id, 'tanggal_absensi' => $today],
             [
@@ -100,7 +93,7 @@ class AbsensiController extends Controller
                 'latitude_check_in' => $latUser,
                 'longitude_check_in' => $longUser,
                 'foto_check_in' => $path,
-                'status_kehadiran' => $statusKehadiran, // <--- Menggunakan variabel dinamis
+                'status_kehadiran' => $statusKehadiran,
             ]
         );
 
@@ -109,7 +102,7 @@ class AbsensiController extends Controller
             'data' => [
                 'check_in' => $absensi->waktu_check_in,
                 'lokasi' => $lokasiValid->nama_lokasi,
-                'status' => $statusKehadiran, // Kirim balik status agar user tahu
+                'status' => $statusKehadiran, 
             ],
         ], 201);
     }
@@ -218,9 +211,15 @@ class AbsensiController extends Controller
         }
 
         $mahasiswa = $user->mahasiswa;
+
+        // [GATEKEEPER EVALUASI DOSEN]
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return response()->json(['message' => 'Evaluasi belum diisi'], 403);
+        }
         
+        // [PERBAIKAN KUNCI]: Memaksa Laravel memuat pivot table untuk mencegah nilai null hilang dari API
         $transkrip = $mahasiswa->mataKuliahs()
-            ->wherePivotNotNull('nilai')
+            ->withPivot('nilai', 'tahun_akademik_id') 
             ->orderBy('pivot_tahun_akademik_id', 'desc') 
             ->get()
             ->groupBy(function($item) {
@@ -236,7 +235,9 @@ class AbsensiController extends Controller
                     'kode' => $mk->kode_mk,
                     'nama' => $mk->nama_mk,
                     'sks' => $mk->sks,
-                    'nilai' => $mk->pivot->nilai,
+                    // [PERBAIKAN KUNCI]: Jika di DB nilainya null, kita paksa ubah jadi '-' di server 
+                    // agar API tidak membuang data ini saat dikirim ke HP.
+                    'nilai' => $mk->pivot->nilai === null ? '-' : $mk->pivot->nilai,
                 ];
             });
 
