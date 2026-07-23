@@ -17,7 +17,7 @@
             </div>
             <div class="flex-grow-1">
                 <h4 class="fw-bold text-dark mb-1 uppercase">{{ $mahasiswa->nama_lengkap }}</h4>
-                <p class="text-muted small mb-0 font-monospace">{{ $mahasiswa->nim }} | {{ $mahasiswa->programStudi->nama_prodi ?? '-' }}</p>
+                <p class="text-muted small mb-0 font-monospace">{{ $mahasiswa->nim }} | {{ optional($mahasiswa->programStudi)->nama_prodi ?? '-' }}</p>
                 <div class="mt-2">
                     {{-- INDIKATOR STATUS DINAMIS --}}
                     @if($mahasiswa->status_mahasiswa === 'Aktif')
@@ -108,7 +108,7 @@
                                         </td>
                                         <td>
                                             <span class="fw-bold small text-dark d-block">{{ $j->mataKuliah->nama_mk }}</span>
-                                            <span class="text-muted small">{{ $j->mataKuliah->dosen->nama_lengkap ?? '-' }}</span>
+                                            <span class="text-muted small">{{ optional($j->mataKuliah->dosen)->nama_lengkap ?? '-' }}</span>
                                         </td>
                                         <td class="text-center">
                                             @if($j->mataKuliah->file_rps)
@@ -147,10 +147,33 @@
                         </a>
                     @else
                         {{-- LAYANAN MAHASISWA AKTIF --}}
-                        <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small">KARTU RENCANA STUDI</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
+                        
+                        {{-- [PERBAIKAN LOGIKA KRS] --}}
+                        @php
+                            $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
+                            $krsSemesterIni = false;
+                            if($periodeAktif){
+                                $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+                            }
+                            // Kunci jika sudah disetujui DAN punya KRS semester ini
+                            $isKrsLocked = ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni);
+                        @endphp
+
+                        @if($isKrsLocked)
+                            <a href="#" onclick="alert('Akses Ditolak: Rencana Studi Anda untuk semester ini sudah divalidasi dan dikunci oleh Dosen Wali. Hubungi Dosen Wali jika ada perubahan.'); return false;" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center bg-light">
+                                <div>
+                                    <span class="fw-bold small d-block text-muted">KARTU RENCANA STUDI</span>
+                                    <span class="badge bg-success rounded-0 mt-1" style="font-size: 0.6rem;">DISETUJUI</span>
+                                </div>
+                                <i class="bi bi-lock-fill text-muted"></i>
+                            </a>
+                        @else
+                            <a href="{{ route('krs.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold small">KARTU RENCANA STUDI</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        @endif
+                        
                         <a href="{{ route('khs.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                             <span class="fw-bold small">HASIL STUDI SEMESTER</span>
                             <i class="bi bi-chevron-right"></i>
