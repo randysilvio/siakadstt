@@ -15,8 +15,8 @@ use App\Models\Pembayaran;
 use App\Models\Jadwal;
 use App\Models\TahunAkademik;
 use App\Models\Peminjaman; 
-use App\Models\SuratKeputusan; // [WAJIB TAMBAH]
-use App\Models\DokumenPublik;  // [WAJIB TAMBAH]
+use App\Models\SuratKeputusan;
+use App\Models\DokumenPublik;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -68,12 +68,26 @@ class DashboardController extends Controller
                 'dataGrafikProdi' => $dataGrafikProdi,
             ]);
         }
+        // =========================================================
+        // [PERBAIKAN LOGIKA] Dashboard Khusus DOSEN
+        // =========================================================
         elseif ($user->hasRole('dosen') || $user->isKaprodi()) {
             $dosen = $user->dosen;
             if (!$dosen) {
                 abort(404, 'Data dosen tidak ditemukan untuk akun ini.');
             }
             
+            // 1. FILTER ABSOLUT SEMESTER AKTIF
+            $mkAktifSaatIniIds = [];
+            if ($periodeAktif) {
+                $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
+                                       ->where('tahun_akademik_id', $periodeAktif->id)
+                                       ->distinct()
+                                       ->pluck('mata_kuliah_id')
+                                       ->toArray();
+            }
+
+            // 2. FILTER DOSEN PENGAMPU
             $pivotMkIds = DB::table('dosen_mata_kuliah')
                 ->where('dosen_id', $dosen->id)
                 ->pluck('mata_kuliah_id')
@@ -81,17 +95,29 @@ class DashboardController extends Controller
         
             $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
             
-            $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen, $pivotMkIds) {
-                $query->where('dosen_id', $dosen->id)
-                      ->orWhereIn('id', $pivotMkIds);
-            })
-            ->with('mataKuliah')
-            ->get()
-            ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+            // 3. TARIK JADWAL KULIAH (Gunakan Saringan Absolut)
+            $jadwalKuliahDosen = collect();
+            if (!empty($mkAktifSaatIniIds)) {
+                $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen, $pivotMkIds) {
+                    $query->where('dosen_id', $dosen->id)
+                          ->orWhereIn('id', $pivotMkIds);
+                })
+                ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds) // <- Saringan Mutlak!
+                ->with('mataKuliah')
+                ->get()
+                ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+            }
             
-            $mataKuliahDosen = MataKuliah::where('dosen_id', $dosen->id)
-                ->orWhereIn('id', $pivotMkIds)
-                ->withCount('mahasiswas')
+            // 4. TARIK MATA KULIAH (Gunakan Saringan Absolut)
+            $mataKuliahDosen = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
+                    $query->where('dosen_id', $dosen->id)
+                          ->orWhereIn('id', $pivotMkIds);
+                })
+                ->whereIn('id', $mkAktifSaatIniIds) // <- Saringan Mutlak!
+                ->withCount(['mahasiswas' => function ($query) use ($periodeAktif) {
+                    $query->where('mahasiswas.status_krs', 'Disetujui')
+                          ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id ?? null);
+                }])
                 ->get();
             
             $dataKaprodi = null;
@@ -192,7 +218,7 @@ class DashboardController extends Controller
             ]);
         }
         // =========================================================
-        // [TAMBAHAN BARU] Dashboard Khusus ADMINISTRASI UMUM
+        // Dashboard Khusus ADMINISTRASI UMUM
         // =========================================================
         elseif ($user->hasRole('administrasi_umum')) {
             $suratSelesai = SuratKeputusan::where('status', 'Selesai')->count();
