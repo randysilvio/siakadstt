@@ -7,12 +7,13 @@ use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class NilaiController extends Controller
 {
     /**
-     * Menampilkan daftar mata kuliah (HANYA UNTUK DOSEN PENGAMPU).
+     * Menampilkan daftar mata kuliah (HANYA UNTUK DOSEN PENGAMPU DI SEMESTER AKTIF).
      */
     public function index(): View
     {
@@ -22,9 +23,30 @@ class NilaiController extends Controller
         if (!$user->hasRole('dosen') || !$user->dosen) {
             abort(403, 'Akses ditolak. Halaman ini hanya untuk Dosen Pengampu.');
         }
+        
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
+        
+        // 2. Filter Ketat: Hanya tampilkan kelas yang terdaftar di semester aktif ini (baik dosen utama maupun tim)
+        $mkIdSemesterIni = [];
+        if ($tahunAkademikAktif) {
+            $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
+                                ->where('tahun_akademik_id', $tahunAkademikAktif->id)
+                                ->distinct()
+                                ->pluck('mata_kuliah_id')
+                                ->toArray();
+        }
+        
+        $pivotMkIds = DB::table('dosen_mata_kuliah')
+            ->where('dosen_id', $user->dosen->id)
+            ->pluck('mata_kuliah_id')
+            ->toArray();
 
-        // 2. Hanya ambil mata kuliah milik dosen tersebut
-        $mata_kuliahs = MataKuliah::where('dosen_id', $user->dosen->id)->get();
+        $mata_kuliahs = MataKuliah::where(function($query) use ($user, $pivotMkIds) {
+                $query->where('dosen_id', $user->dosen->id)
+                      ->orWhereIn('id', $pivotMkIds);
+            })
+            ->whereIn('id', $mkIdSemesterIni)
+            ->get();
         
         return view('nilai.index', compact('mata_kuliahs'));
     }
@@ -36,8 +58,13 @@ class NilaiController extends Controller
     {
         $user = Auth::user();
 
-        // 1. Validasi Kepemilikan Mata Kuliah
-        if (!$user->dosen || $user->dosen->id !== $mataKuliah->dosen_id) {
+        $isTeam = DB::table('dosen_mata_kuliah')
+            ->where('mata_kuliah_id', $mataKuliah->id)
+            ->where('dosen_id', $user->dosen->id)
+            ->exists();
+
+        // 1. Validasi Kepemilikan Mata Kuliah (Dosen Utama atau Tim)
+        if (!$user->dosen || ($user->dosen->id !== $mataKuliah->dosen_id && !$isTeam)) {
             abort(403, 'Anda tidak berhak menginput nilai untuk mata kuliah ini.');
         }
 
@@ -50,7 +77,7 @@ class NilaiController extends Controller
             // Load mahasiswa di semester aktif saja DAN yang KRS-nya sudah DISETUJUI
             $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
                 $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
-                      ->where('mahasiswas.status_krs', 'Disetujui') // [UPDATE FILTER KRS]
+                      ->where('mahasiswas.status_krs', 'Disetujui') 
                       ->orderBy('nama_lengkap', 'asc');
             }]);
         }
@@ -70,9 +97,14 @@ class NilaiController extends Controller
     
         $mataKuliah = MataKuliah::findOrFail($request->mata_kuliah_id);
         $user = Auth::user();
+        
+        $isTeam = DB::table('dosen_mata_kuliah')
+            ->where('mata_kuliah_id', $mataKuliah->id)
+            ->where('dosen_id', $user->dosen->id)
+            ->exists();
 
         // 1. Validasi Kepemilikan (Double Check sebelum save)
-        if (!$user->dosen || $user->dosen->id !== $mataKuliah->dosen_id) {
+        if (!$user->dosen || ($user->dosen->id !== $mataKuliah->dosen_id && !$isTeam)) {
             abort(403, 'Akses ditolak. Validasi dosen gagal.');
         }
 

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB; // [WAJIB DITAMBAHKAN] Untuk bypass query pivot
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf; 
 use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
@@ -26,29 +26,46 @@ class DosenDashboardController extends Controller
         if (!$dosen) {
             abort(403, 'Data dosen tidak ditemukan.');
         }
+
+        $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         
-        // [SOLUSI MUTLAK] Menembak langsung ID Mata Kuliah dari tabel pivot
+        // [PERBAIKAN KEAMANAN & LOGIKA]: Batasi jadwal dan mata kuliah HANYA pada Semester Aktif (Berdasarkan Kurikulum Aktif & Jadwal Aktif)
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
         
-        // Menarik kelas jika dia Dosen Utama ATAU ada di dalam daftar Pivot di atas
-        $mata_kuliahs = MataKuliah::where('dosen_id', $dosen->id)
-            ->orWhereIn('id', $pivotMkIds)
-            ->with(['mahasiswas' => function ($query) {
-                $query->where('mahasiswas.status_krs', 'Disetujui');
+        // Tarik Mata Kuliah yang diajarkan pada semester ini.
+        // Asumsi: Kita filter mata kuliah yang ada di tabel 'jadwals' untuk menghindari kelas hantu, ATAU yang mahasiswanya aktif semester ini.
+        $mkIdSemesterIni = [];
+        if ($tahunAkademik) {
+            $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
+                                ->where('tahun_akademik_id', $tahunAkademik->id)
+                                ->distinct()
+                                ->pluck('mata_kuliah_id')
+                                ->toArray();
+        }
+
+        $mata_kuliahs = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
+                $query->where('dosen_id', $dosen->id)
+                      ->orWhereIn('id', $pivotMkIds);
+            })
+            // Filter ketat: Hanya tampilkan kelas yang terdaftar di semester aktif ini
+            ->whereIn('id', $mkIdSemesterIni)
+            ->with(['mahasiswas' => function ($query) use ($tahunAkademik) {
+                $query->where('mahasiswas.status_krs', 'Disetujui')
+                      ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
             }, 'mahasiswas.programStudi'])
-            ->withCount(['mahasiswas' => function ($query) {
-                $query->where('mahasiswas.status_krs', 'Disetujui');
+            ->withCount(['mahasiswas' => function ($query) use ($tahunAkademik) {
+                $query->where('mahasiswas.status_krs', 'Disetujui')
+                      ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
             }])
             ->get();
         
-        $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         $jadwalKuliah = collect();
 
-        // Jika Mata Kuliah ditemukan, tarik jadwalnya
-        if ($tahunAkademik) {
+        // Jika Mata Kuliah ditemukan, tarik jadwalnya HANYA untuk kelas yang ditampilkan
+        if ($tahunAkademik && $mata_kuliahs->isNotEmpty()) {
             $mkIds = $mata_kuliahs->pluck('id');
             $jadwalKuliah = Jadwal::with('mataKuliah')
                 ->whereIn('mata_kuliah_id', $mkIds)
@@ -87,14 +104,23 @@ class DosenDashboardController extends Controller
         $dosen = Auth::user()->dosen;
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
         
-        // [SOLUSI MUTLAK] Logika cetak jadwal mengikuti logika bypass pivot
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
+            
+        // Filter matkul aktif semester ini untuk cetak
+        $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
+                                ->where('tahun_akademik_id', $tahunAkademik->id)
+                                ->distinct()
+                                ->pluck('mata_kuliah_id')
+                                ->toArray();
 
-        $mkIds = MataKuliah::where('dosen_id', $dosen->id)
-            ->orWhereIn('id', $pivotMkIds)
+        $mkIds = MataKuliah::where(function($q) use ($dosen, $pivotMkIds) {
+                $q->where('dosen_id', $dosen->id)
+                  ->orWhereIn('id', $pivotMkIds);
+            })
+            ->whereIn('id', $mkIdSemesterIni)
             ->pluck('id');
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
@@ -113,7 +139,6 @@ class DosenDashboardController extends Controller
     {
         $dosen = Auth::user()->dosen;
         
-        // Cek validasi hak akses asisten dosen menggunakan DB langsung
         $isTeam = DB::table('dosen_mata_kuliah')
             ->where('mata_kuliah_id', $mataKuliah->id)
             ->where('dosen_id', $dosen->id)
