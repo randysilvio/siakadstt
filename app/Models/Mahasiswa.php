@@ -12,7 +12,7 @@ class Mahasiswa extends Model
 {
     use HasFactory;
 
-    // PERBAIKAN: Semua kolom PDDikti sudah didaftarkan penuh + tanggal_lulus
+    // Semua kolom PDDikti sudah didaftarkan penuh + tanggal_lulus
     protected $fillable = [
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',
@@ -74,39 +74,74 @@ class Mahasiswa extends Model
     }
 
     /**
-     * Menghitung IPK (Indeks Prestasi Kumulatif) - Semua Semester
+     * Menghitung IPK (Indeks Prestasi Kumulatif) - Standar BAN-PT
+     * Mengambil 1 nilai terbaik dari mata kuliah yang sama dan menghitung pembagi dari semua SKS yang diambil.
      */
     public function hitungIpk(): float
     {
-        $krsLulus = $this->mataKuliahs()->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])->get();
-        if ($krsLulus->isEmpty()) {
+        $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
+
+        if ($krs_selesai->isEmpty()) {
             return 0.00;
         }
 
-        $total_bobot_sks = 0;
-        $total_sks = 0;
         $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        $matkulTerbaik = [];
 
-        foreach ($krsLulus as $mk) {
-            $sks = $mk->sks;
-            $nilai = $mk->pivot->nilai;
-            if (isset($bobot_nilai[$nilai])) {
-                $total_sks += $sks;
-                $total_bobot_sks += ($bobot_nilai[$nilai] * $sks);
+        foreach ($krs_selesai as $mk) {
+            $bobotSekarang = $bobot_nilai[$mk->pivot->nilai] ?? 0;
+            if (isset($matkulTerbaik[$mk->id])) {
+                $bobotTersimpan = $bobot_nilai[$matkulTerbaik[$mk->id]['nilai']] ?? 0;
+                if ($bobotSekarang > $bobotTersimpan) {
+                    $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
+                }
+            } else {
+                $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
             }
         }
 
-        return ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0.00;
+        $total_sks_diambil = 0;
+        $total_bobot_sks = 0;
+
+        foreach ($matkulTerbaik as $mk) {
+            $total_sks_diambil += $mk['sks'];
+            $bobot = $bobot_nilai[$mk['nilai']] ?? 0;
+            $total_bobot_sks += ($bobot * $mk['sks']);
+        }
+
+        return ($total_sks_diambil > 0) ? round($total_bobot_sks / $total_sks_diambil, 2) : 0.00;
     }
 
     /**
-     * Menghitung Total SKS yang sudah lulus
+     * Menghitung Total SKS yang sudah lulus (Nilai A, B, C, D)
+     * Mengabaikan SKS ganda jika mata kuliah diulang.
      */
     public function totalSksLulus(): int
     {
-        return $this->mataKuliahs()
-            ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
-            ->sum('sks');
+        $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
+        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        $matkulTerbaik = [];
+
+        foreach ($krs_selesai as $mk) {
+            $bobotSekarang = $bobot_nilai[$mk->pivot->nilai] ?? -1;
+            if (isset($matkulTerbaik[$mk->id])) {
+                $bobotTersimpan = $bobot_nilai[$matkulTerbaik[$mk->id]['nilai']] ?? -1;
+                if ($bobotSekarang > $bobotTersimpan) {
+                    $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
+                }
+            } else {
+                $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
+            }
+        }
+
+        $total_lulus = 0;
+        foreach ($matkulTerbaik as $mk) {
+            if (in_array($mk['nilai'], ['A', 'B', 'C', 'D'])) {
+                $total_lulus += $mk['sks'];
+            }
+        }
+        
+        return $total_lulus;
     }
 
     /**
@@ -115,40 +150,39 @@ class Mahasiswa extends Model
      */
     public function hitungIps($tahun_akademik_id)
     {
-        // 1. Ambil matkul di semester tertentu yang sudah dinilai
+        // Ambil matkul di semester tertentu yang sudah dinilai
         $krs = $this->mataKuliahs()
                     ->wherePivot('tahun_akademik_id', $tahun_akademik_id)
                     ->wherePivotNotNull('nilai')
                     ->get();
 
-        $total_sks = 0;
+        $total_sks_diambil = 0;
         $total_bobot_sks = 0;
         $nilaiBobot = []; // Menyimpan bobot per matkul (misal: 3 SKS * 4 = 12)
         
         $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
 
         foreach ($krs as $mk) {
-            $nilai = $mk->pivot->nilai;
             $sks = $mk->sks;
+            $nilai = $mk->pivot->nilai;
+            $bobot = $bobot_nilai[$nilai] ?? 0;
+            
+            $sub_total = $sks * $bobot;
 
-            if (isset($bobot_nilai[$nilai])) {
-                $bobot = $bobot_nilai[$nilai];
-                $sub_total = $sks * $bobot;
-
-                $total_sks += $sks;
-                $total_bobot_sks += $sub_total;
-                
-                // Simpan untuk ditampilkan di tabel
-                $nilaiBobot[$mk->id] = $sub_total;
-            }
+            // Semua SKS masuk ke pembagi
+            $total_sks_diambil += $sks;
+            $total_bobot_sks += $sub_total;
+            
+            // Simpan untuk ditampilkan di tabel
+            $nilaiBobot[$mk->id] = $sub_total;
         }
 
-        $ips = ($total_sks > 0) ? round($total_bobot_sks / $total_sks, 2) : 0;
+        $ips = ($total_sks_diambil > 0) ? round($total_bobot_sks / $total_sks_diambil, 2) : 0;
 
         // Mengembalikan array agar view index.blade.php tidak error
         return [
             'ips' => $ips,
-            'total_sks' => $total_sks,
+            'total_sks' => $total_sks_diambil,
             'nilaiBobot' => $nilaiBobot
         ];
     }

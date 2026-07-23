@@ -50,18 +50,44 @@ class TranskripController extends Controller
         }
         // ------------------------------------------------
 
-        // Ambil semua mata kuliah yang sudah dinilai
-        $krs = $mahasiswa->mataKuliahs()
+        // [PERBAIKAN LOGIKA TRANSKRIP]: 
+        // 1. Ambil semua mata kuliah yang SUDAH dinilai.
+        $semuaKrsSelesai = $mahasiswa->mataKuliahs()
                          ->wherePivotNotNull('nilai')
                          ->get();
 
-        // Kelompokkan mata kuliah berdasarkan semester dari tabel mata_kuliahs
-        $krs_per_semester = $krs->groupBy('semester');
+        // 2. Filter nilai TERBAIK untuk mata kuliah yang diulang.
+        $bobot = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        $matkulTerbaik = [];
 
-        // Gunakan method dari model untuk menghitung IPK
+        foreach ($semuaKrsSelesai as $mk) {
+            $nilaiSekarang = $mk->pivot->nilai;
+            $bobotSekarang = $bobot[$nilaiSekarang] ?? 0;
+
+            // Jika mata kuliah ini sudah ada di array $matkulTerbaik
+            if (isset($matkulTerbaik[$mk->id])) {
+                $nilaiTersimpan = $matkulTerbaik[$mk->id]->pivot->nilai;
+                $bobotTersimpan = $bobot[$nilaiTersimpan] ?? 0;
+
+                // Timpa hanya jika bobot nilai yang baru LEBIH BESAR dari yang lama
+                if ($bobotSekarang > $bobotTersimpan) {
+                    $matkulTerbaik[$mk->id] = $mk;
+                }
+            } else {
+                // Jika belum ada, masukkan
+                $matkulTerbaik[$mk->id] = $mk;
+            }
+        }
+
+        // 3. Ubah kembali array menjadi Collection dan kelompokkan berdasarkan semester aslinya
+        $krsSelesaiUnik = collect(array_values($matkulTerbaik));
+        $krs_per_semester = $krsSelesaiUnik->groupBy('semester');
+
+        // Gunakan method dari model untuk menghitung IPK (Pastikan model Mahasiswa Bapak juga menggunakan rumus nilai terbaik ini untuk `hitungIpk()`)
         $ipk = $mahasiswa->hitungIpk();
-        $total_sks = $mahasiswa->totalSksLulus();
-
+        
+        // Total SKS di Transkrip hanya menghitung SKS dari nilai yang Unik (Terbaik)
+        $total_sks = $krsSelesaiUnik->sum('sks');
 
         return view('transkrip.index', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));
     }

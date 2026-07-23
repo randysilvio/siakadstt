@@ -11,16 +11,11 @@ use App\Models\EvaluasiJawaban;
 
 class KhsController extends Controller
 {
-    /**
-     * Menampilkan Kartu Hasil Studi (KHS) mahasiswa yang sedang login.
-     * Data dikelompokkan per tahun akademik.
-     */
     public function index(): View | RedirectResponse
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Pastikan pengguna memiliki data mahasiswa terkait
         if (!$user->mahasiswa) {
             abort(403, 'Hanya mahasiswa yang dapat mengakses halaman ini.');
         }
@@ -33,24 +28,20 @@ class KhsController extends Controller
                                 ->first();
 
         if ($sesiAktif && $mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
-            // 1. Ambil semua mata kuliah yang diambil mahasiswa pada tahun akademik sesi aktif
             $mataKuliahWajibEdom = $mahasiswa->mataKuliahs()
                 ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
                 ->pluck('mata_kuliahs.id')
                 ->toArray();
 
             if (!empty($mataKuliahWajibEdom)) {
-                // 2. Ambil daftar ID mata kuliah yang sudah diselesaikan evaluasinya di sesi ini
                 $evaluasiSelesai = EvaluasiJawaban::where('mahasiswa_id', $mahasiswa->id)
                     ->where('evaluasi_sesi_id', $sesiAktif->id)
                     ->distinct()
                     ->pluck('mata_kuliah_id')
                     ->toArray();
 
-                // 3. Cari selisih mata kuliah yang belum dievaluasi
                 $belumDievaluasi = array_diff($mataKuliahWajibEdom, $evaluasiSelesai);
 
-                // 4. Jika masih ada yang belum dievaluasi, alihkan ke halaman pengisian EDOM
                 if (!empty($belumDievaluasi)) {
                     return redirect()->route('evaluasi.index')
                         ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) untuk seluruh mata kuliah semester ini sebelum dapat melihat Kartu Hasil Studi (KHS).');
@@ -59,19 +50,16 @@ class KhsController extends Controller
         }
         // ------------------------------------------------
 
-        // 1. Ambil semua mata kuliah yang diambil (termasuk yang belum dinilai)
-        // 2. Kelompokkan berdasarkan ID tahun akademik dari tabel pivot
+        // [PERBAIKAN LOGIKA 1]: Filter spesifik per Tahun Akademik (KHS)
+        // Ambil data KRS, dan pastikan kita mengelompokkannya secara spesifik per ID Tahun Akademik 
+        // yang ada di tabel pivot, sehingga nilai yang diulang tahun depan tidak masuk ke KHS tahun lalu.
         $krsPerTahunAkademik = $mahasiswa->mataKuliahs()
             ->withPivot('nilai', 'tahun_akademik_id')
-            // ->wherePivotNotNull('nilai') // [DIHAPUS AGAR MATA KULIAH "PROSES" MUNCUL]
             ->get()
             ->groupBy('pivot.tahun_akademik_id');
 
-        // 3. Ambil data model TahunAkademik berdasarkan ID yang ada di KHS
-        //    Ini digunakan untuk menampilkan nama tahun dan semester di view
         $tahunAkademiks = TahunAkademik::find($krsPerTahunAkademik->keys());
 
-        // 4. Kirim semua data yang dibutuhkan ke view
         return view('khs.index', compact(
             'mahasiswa',
             'krsPerTahunAkademik',
