@@ -17,12 +17,22 @@ class KrsController extends Controller
     public function index()
     {
         $mahasiswa = Auth::user()->mahasiswa;
-        if (!$mahasiswa) {
-            abort(403, 'Data mahasiswa tidak ditemukan untuk pengguna ini.');
+        if (!$mahasiswa) abort(403, 'Data mahasiswa tidak ditemukan.');
+
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+
+        // Cek apakah mahasiswa ini sedang memulai KRS baru di semester ini
+        $krsSemesterIni = $mahasiswa->mataKuliahs()
+                                    ->wherePivot('tahun_akademik_id', $periodeAktif->id)
+                                    ->exists();
+
+        // Jika tidak ada data KRS semester ini, tapi statusnya masih Disetujui (sisa semester lalu), kita reset.
+        if (!$krsSemesterIni && $mahasiswa->status_krs === 'Disetujui') {
+            $mahasiswa->status_krs = 'Belum Mengajukan';
+            $mahasiswa->save();
         }
 
         $isLocked = ($mahasiswa->status_krs === 'Disetujui');
-        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
         $total_sks_lulus = 0;
@@ -75,13 +85,15 @@ class KrsController extends Controller
     public function store(Request $request)
     {
         $mahasiswa = Auth::user()->mahasiswa;
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
         
-        if ($mahasiswa->status_krs === 'Disetujui') {
+        // Pastikan hanya memblokir jika yang disetujui adalah KRS semester ini
+        $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
             return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final.');
         }
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
-        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
         $total_sks_lulus = 0; $total_bobot_sks = 0;
@@ -141,11 +153,9 @@ class KrsController extends Controller
         }
 
         $mahasiswa->mataKuliahs()->sync($syncData);
-
-        if ($mahasiswa->status_krs !== 'Ditolak') {
-            $mahasiswa->status_krs = 'Menunggu Persetujuan';
-            $mahasiswa->save();
-        }
+        
+        $mahasiswa->status_krs = 'Menunggu Persetujuan';
+        $mahasiswa->save();
 
         return redirect()->route('krs.index')->with('success', 'KRS berhasil disimpan.');
     }
@@ -153,9 +163,13 @@ class KrsController extends Controller
     public function destroy($id)
     {
         $mahasiswa = Auth::user()->mahasiswa;
-        if ($mahasiswa->status_krs === 'Disetujui') {
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+        
+        $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
             return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Wali.');
         }
+        
         $mahasiswa->mataKuliahs()->detach($id);
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
     }
@@ -194,21 +208,24 @@ class KrsController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs]);
     }
-
-    // --- TAMBAHAN BARU: API UNTUK MAHASISWA ISI KRS DI HP ---
     
     public function getFormKrsApi(Request $request)
     {
         $mahasiswa = $request->user()->mahasiswa;
 
-        // [TAMBAHAN GATEKEEPER EVALUASI DOSEN]
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return response()->json(['message' => 'Silakan isi evaluasi dosen (EDOM) terlebih dahulu.'], 403);
         }
 
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
-
         if (!$periodeAktif) return response()->json(['message' => 'Tidak ada periode aktif'], 400);
+
+        // Reset Otomatis untuk API
+        $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        if (!$krsSemesterIni && $mahasiswa->status_krs === 'Disetujui') {
+            $mahasiswa->status_krs = 'Belum Mengajukan';
+            $mahasiswa->save();
+        }
 
         // Hitung IPK & Max SKS
         $krs_selesai = $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->get();
@@ -253,29 +270,28 @@ class KrsController extends Controller
     {
         $mahasiswa = $request->user()->mahasiswa;
 
-        // [TAMBAHAN GATEKEEPER EVALUASI DOSEN]
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return response()->json(['message' => 'Silakan isi evaluasi dosen (EDOM) terlebih dahulu.'], 403);
         }
         
-        if ($mahasiswa->status_krs === 'Disetujui') {
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+        $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        
+        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
             return response()->json(['message' => 'KRS sudah disetujui, tidak bisa diubah.'], 403);
         }
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
-        $periodeAktif = TahunAkademik::where('is_active', true)->first();
-
+        
         $syncData = [];
         foreach($mata_kuliah_ids as $mk_id){
             $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
         }
 
         $mahasiswa->mataKuliahs()->sync($syncData);
-
-        if ($mahasiswa->status_krs !== 'Ditolak') {
-            $mahasiswa->status_krs = 'Menunggu Persetujuan';
-            $mahasiswa->save();
-        }
+        
+        $mahasiswa->status_krs = 'Menunggu Persetujuan';
+        $mahasiswa->save();
 
         return response()->json(['message' => 'KRS Berhasil Disimpan']);
     }
