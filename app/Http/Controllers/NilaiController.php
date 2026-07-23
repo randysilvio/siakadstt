@@ -19,22 +19,14 @@ class NilaiController extends Controller
     {
         $user = Auth::user();
 
-        // 1. BLOKIR ADMIN & Peran Lain
         if (!$user->hasRole('dosen') || !$user->dosen) {
             abort(403, 'Akses ditolak. Halaman ini hanya untuk Dosen Pengampu.');
         }
         
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
         
-        // 2. Filter Ketat: Hanya tampilkan kelas yang terdaftar di semester aktif ini (baik dosen utama maupun tim)
-        $mkIdSemesterIni = [];
-        if ($tahunAkademikAktif) {
-            $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
-                                ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-                                ->distinct()
-                                ->pluck('mata_kuliah_id')
-                                ->toArray();
-        }
+        // [ATURAN EMAS]: Saring mata kuliah berdasarkan Ganjil / Genap
+        $allowedSemesters = ($tahunAkademikAktif && $tahunAkademikAktif->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
         
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $user->dosen->id)
@@ -45,7 +37,7 @@ class NilaiController extends Controller
                 $query->where('dosen_id', $user->dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkIdSemesterIni)
+            ->whereIn('semester', $allowedSemesters)
             ->get();
         
         return view('nilai.index', compact('mata_kuliahs'));
@@ -63,7 +55,6 @@ class NilaiController extends Controller
             ->where('dosen_id', $user->dosen->id)
             ->exists();
 
-        // 1. Validasi Kepemilikan Mata Kuliah (Dosen Utama atau Tim)
         if (!$user->dosen || ($user->dosen->id !== $mataKuliah->dosen_id && !$isTeam)) {
             abort(403, 'Anda tidak berhak menginput nilai untuk mata kuliah ini.');
         }
@@ -103,7 +94,6 @@ class NilaiController extends Controller
             ->where('dosen_id', $user->dosen->id)
             ->exists();
 
-        // 1. Validasi Kepemilikan (Double Check sebelum save)
         if (!$user->dosen || ($user->dosen->id !== $mataKuliah->dosen_id && !$isTeam)) {
             abort(403, 'Akses ditolak. Validasi dosen gagal.');
         }

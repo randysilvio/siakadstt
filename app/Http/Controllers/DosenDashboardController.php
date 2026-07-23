@@ -29,29 +29,23 @@ class DosenDashboardController extends Controller
 
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         
-        // [PERBAIKAN KEAMANAN & LOGIKA]: Batasi jadwal dan mata kuliah HANYA pada Semester Aktif (Berdasarkan Kurikulum Aktif & Jadwal Aktif)
+        // [ATURAN EMAS]: Filter berdasarkan Ganjil (1,3,5,7) atau Genap (2,4,6,8)
+        $allowedSemesters = [];
+        if ($tahunAkademik) {
+            $allowedSemesters = ($tahunAkademik->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
+        }
+
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
         
-        // Tarik Mata Kuliah yang diajarkan pada semester ini.
-        // Asumsi: Kita filter mata kuliah yang ada di tabel 'jadwals' untuk menghindari kelas hantu, ATAU yang mahasiswanya aktif semester ini.
-        $mkIdSemesterIni = [];
-        if ($tahunAkademik) {
-            $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
-                                ->where('tahun_akademik_id', $tahunAkademik->id)
-                                ->distinct()
-                                ->pluck('mata_kuliah_id')
-                                ->toArray();
-        }
-
         $mata_kuliahs = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
                 $query->where('dosen_id', $dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
             })
-            // Filter ketat: Hanya tampilkan kelas yang terdaftar di semester aktif ini
-            ->whereIn('id', $mkIdSemesterIni)
+            // FILTER KETAT: Hanya tampilkan MK yang sesuai dengan Semester Ganjil / Genap Tahun Akademik Aktif
+            ->whereIn('semester', $allowedSemesters)
             ->with(['mahasiswas' => function ($query) use ($tahunAkademik) {
                 $query->where('mahasiswas.status_krs', 'Disetujui')
                       ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
@@ -64,7 +58,6 @@ class DosenDashboardController extends Controller
         
         $jadwalKuliah = collect();
 
-        // Jika Mata Kuliah ditemukan, tarik jadwalnya HANYA untuk kelas yang ditampilkan
         if ($tahunAkademik && $mata_kuliahs->isNotEmpty()) {
             $mkIds = $mata_kuliahs->pluck('id');
             $jadwalKuliah = Jadwal::with('mataKuliah')
@@ -80,9 +73,7 @@ class DosenDashboardController extends Controller
         $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
         $pengumumans = Pengumuman::latest()->take(5)->get();
 
-        // --- SMART FILTER & PAGINASI SURAT ---
         $query = $dosen->suratKeputusans()->where('status', 'Selesai');
-
         if ($request->filled('search_surat')) {
             $search = $request->search_surat;
             $query->where(function($q) use ($search) {
@@ -90,7 +81,6 @@ class DosenDashboardController extends Controller
                   ->orWhere('nomor_surat', 'like', "%{$search}%");
             });
         }
-
         $suratKeputusans = $query->latest()->paginate(10)->withQueryString();
 
         return view('dosen.dashboard', compact(
@@ -104,23 +94,18 @@ class DosenDashboardController extends Controller
         $dosen = Auth::user()->dosen;
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
         
+        $allowedSemesters = ($tahunAkademik->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
+
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
             
-        // Filter matkul aktif semester ini untuk cetak
-        $mkIdSemesterIni = DB::table('mahasiswa_mata_kuliah')
-                                ->where('tahun_akademik_id', $tahunAkademik->id)
-                                ->distinct()
-                                ->pluck('mata_kuliah_id')
-                                ->toArray();
-
         $mkIds = MataKuliah::where(function($q) use ($dosen, $pivotMkIds) {
                 $q->where('dosen_id', $dosen->id)
                   ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkIdSemesterIni)
+            ->whereIn('semester', $allowedSemesters)
             ->pluck('id');
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
