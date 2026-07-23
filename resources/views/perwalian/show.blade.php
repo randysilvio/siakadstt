@@ -15,6 +15,12 @@
         </div>
     </div>
 
+    @php
+        // [PERBAIKAN LOGIKA] Deteksi apakah mahasiswa punya KRS di semester aktif ini
+        $hasKrsThisSemester = $krs->isNotEmpty();
+        $displayStatus = $hasKrsThisSemester ? $mahasiswa->status_krs : 'Belum Mengajukan';
+    @endphp
+
     {{-- DATA BIODATA & PANEL VALIDASI KAKU --}}
     <div class="row g-4 mb-4">
         {{-- Kolom Kiri: Informasi Mahasiswa --}}
@@ -40,12 +46,14 @@
                         <tr>
                             <td class="fw-bold align-middle">STATUS KRS SAAT INI</td>
                             <td class="align-middle">: 
-                                @if($mahasiswa->status_krs == 'Disetujui')
+                                @if($displayStatus == 'Disetujui')
                                     <span class="badge bg-success text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1 ms-1" style="font-size: 10px;">DISETUJUI</span>
-                                @elseif($mahasiswa->status_krs == 'Ditolak')
+                                @elseif($displayStatus == 'Ditolak')
                                     <span class="badge bg-danger text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1 ms-1" style="font-size: 10px;">DITOLAK / REVISI</span>
-                                @else
+                                @elseif($displayStatus == 'Menunggu Persetujuan')
                                     <span class="badge bg-warning text-dark rounded-0 font-monospace uppercase fw-bold px-2 py-1 ms-1" style="font-size: 10px;">MENUNGGU PERSETUJUAN</span>
+                                @else
+                                    <span class="badge bg-secondary text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1 ms-1" style="font-size: 10px;">DRAFT / BELUM MENGAJUKAN</span>
                                 @endif
                             </td>
                         </tr>
@@ -61,25 +69,33 @@
                     Eksekusi Status Validasi
                 </div>
                 <div class="card-body p-4 d-flex flex-column justify-content-center">
-                    <form action="{{ route('perwalian.updateStatus', $mahasiswa->id) }}" method="POST">
-                        @csrf @method('PATCH')
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" name="status_krs" value="Disetujui" class="btn btn-success rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $mahasiswa->status_krs == 'Disetujui' ? 'disabled' : '' }}>
-                                <i class="bi bi-check-lg me-1 align-middle"></i> Setujui Pengajuan KRS
-                            </button>
+                    @if($hasKrsThisSemester)
+                        <form action="{{ route('perwalian.updateStatus', $mahasiswa->id) }}" method="POST">
+                            @csrf @method('PATCH')
                             
-                            <button type="submit" name="status_krs" value="Ditolak" class="btn btn-danger rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $mahasiswa->status_krs == 'Ditolak' ? 'disabled' : '' }}>
-                                <i class="bi bi-x-lg me-1 align-middle"></i> Tolak Pengajuan KRS
-                            </button>
-
-                            @if($mahasiswa->status_krs != 'Menunggu Persetujuan')
-                                <button type="submit" name="status_krs" value="Menunggu Persetujuan" class="btn btn-outline-dark rounded-0 py-1 uppercase fw-bold mt-2" style="font-size: 10px;">
-                                    Reset Status ke Menunggu
+                            <div class="d-grid gap-2">
+                                <button type="submit" name="status_krs" value="Disetujui" class="btn btn-success rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $displayStatus == 'Disetujui' ? 'disabled' : '' }}>
+                                    <i class="bi bi-check-lg me-1 align-middle"></i> Setujui Pengajuan KRS
                                 </button>
-                            @endif
+                                
+                                <button type="submit" name="status_krs" value="Ditolak" class="btn btn-danger rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $displayStatus == 'Ditolak' ? 'disabled' : '' }}>
+                                    <i class="bi bi-x-lg me-1 align-middle"></i> Tolak Pengajuan KRS
+                                </button>
+
+                                @if($displayStatus != 'Menunggu Persetujuan')
+                                    <button type="submit" name="status_krs" value="Menunggu Persetujuan" class="btn btn-outline-dark rounded-0 py-1 uppercase fw-bold mt-2" style="font-size: 10px;">
+                                        Reset Status ke Menunggu
+                                    </button>
+                                @endif
+                            </div>
+                        </form>
+                    @else
+                        <div class="text-center">
+                            <i class="bi bi-shield-lock text-muted fs-1 mb-2 d-block"></i>
+                            <span class="small text-muted uppercase fw-bold">Aksi Dikunci</span>
+                            <p class="small text-muted mb-0 mt-1" style="font-size: 11px;">Mahasiswa belum mengisi rencana studi untuk periode ini.</p>
                         </div>
-                    </form>
+                    @endif
                 </div>
             </div>
         </div>
