@@ -12,9 +12,6 @@ use Illuminate\View\View;
 
 class NilaiController extends Controller
 {
-    /**
-     * Menampilkan daftar mata kuliah (HANYA UNTUK DOSEN PENGAMPU DI SEMESTER AKTIF).
-     */
     public function index(): View
     {
         $user = Auth::user();
@@ -25,8 +22,14 @@ class NilaiController extends Controller
         
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
         
-        // [ATURAN EMAS]: Saring mata kuliah berdasarkan Ganjil / Genap
-        $allowedSemesters = ($tahunAkademikAktif && $tahunAkademikAktif->semester == 'Ganjil') ? [1, 3, 5, 7] : [2, 4, 6, 8];
+        $mkAktifSaatIniIds = [];
+        if ($tahunAkademikAktif) {
+            $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
+                                   ->where('tahun_akademik_id', $tahunAkademikAktif->id)
+                                   ->distinct()
+                                   ->pluck('mata_kuliah_id')
+                                   ->toArray();
+        }
         
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $user->dosen->id)
@@ -37,15 +40,12 @@ class NilaiController extends Controller
                 $query->where('dosen_id', $user->dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('semester', $allowedSemesters)
+            ->whereIn('id', $mkAktifSaatIniIds) // <- Saringan Mutlak!
             ->get();
         
         return view('nilai.index', compact('mata_kuliahs'));
     }
 
-    /**
-     * Menampilkan form input nilai (HANYA DOSEN PENGAMPU).
-     */
     public function show(MataKuliah $mataKuliah): View
     {
         $user = Auth::user();
@@ -65,7 +65,6 @@ class NilaiController extends Controller
             $mataKuliah->setRelation('mahasiswas', collect());
             session()->flash('error', 'Tidak ada Tahun Akademik yang aktif.');
         } else {
-            // Load mahasiswa di semester aktif saja DAN yang KRS-nya sudah DISETUJUI
             $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
                 $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
                       ->where('mahasiswas.status_krs', 'Disetujui') 
@@ -76,9 +75,6 @@ class NilaiController extends Controller
         return view('nilai.show', compact('mataKuliah'));
     }
 
-    /**
-     * Menyimpan nilai (HANYA DOSEN PENGAMPU).
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
