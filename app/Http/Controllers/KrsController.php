@@ -19,19 +19,16 @@ class KrsController extends Controller
         $mahasiswa = Auth::user()->mahasiswa;
         if (!$mahasiswa) abort(403, 'Data mahasiswa tidak ditemukan.');
 
-        // [CELAH 1 DITUTUP]: Memastikan gembok EDOM berlaku juga di versi Website (Laptop)
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')->with('error', 'Akses Ditolak: Silakan selesaikan pengisian Evaluasi Dosen (EDOM) terlebih dahulu sebelum mengakses KRS.');
         }
 
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // Cek apakah mahasiswa ini sedang memulai KRS baru di semester ini
         $krsSemesterIni = $mahasiswa->mataKuliahs()
                                     ->wherePivot('tahun_akademik_id', $periodeAktif->id)
                                     ->exists();
 
-        // Jika tidak ada data KRS semester ini, tapi statusnya masih Disetujui (sisa semester lalu), kita reset.
         if (!$krsSemesterIni && $mahasiswa->status_krs === 'Disetujui') {
             $mahasiswa->status_krs = 'Belum Mengajukan';
             $mahasiswa->save();
@@ -91,7 +88,6 @@ class KrsController extends Controller
     {
         $mahasiswa = Auth::user()->mahasiswa;
 
-        // [CELAH 1 DITUTUP]: Proteksi berlapis saat proses simpan via Website
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')->with('error', 'Akses Ditolak: Anda tidak dapat menyimpan KRS sebelum Evaluasi Dosen (EDOM) diselesaikan.');
         }
@@ -157,13 +153,34 @@ class KrsController extends Controller
             }
         }
         
-        $syncData = [];
-        foreach($mata_kuliah_ids as $mk_id){
-            $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
+        // ===================================================================
+        // [PERBAIKAN KEAMANAN DATA]: Mekanisme Backup & Restore Nilai
+        // ===================================================================
+        
+        // 1. Ambil data KRS yang sudah ada di semester ini (untuk menyelamatkan nilainya)
+        $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
+        $gradesToKeep = [];
+        foreach ($existingKrs as $existingMk) {
+            if (!is_null($existingMk->pivot->nilai)) {
+                $gradesToKeep[$existingMk->id] = $existingMk->pivot->nilai;
+            }
         }
 
+        // 2. Cabut semua mata kuliah di semester ini
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
-        $mahasiswa->mataKuliahs()->attach($syncData);
+        
+        // 3. Susun data baru dan suntikkan kembali nilai yang berhasil diselamatkan
+        $attachData = [];
+        foreach($mata_kuliah_ids as $mk_id){
+            $attachData[$mk_id] = [
+                'tahun_akademik_id' => $periodeAktif->id,
+                'nilai' => $gradesToKeep[$mk_id] ?? null // Jika sebelumnya ada nilainya, kembalikan!
+            ];
+        }
+
+        // 4. Simpan ke database
+        $mahasiswa->mataKuliahs()->attach($attachData);
+        // ===================================================================
         
         $mahasiswa->status_krs = 'Menunggu Persetujuan';
         $mahasiswa->save();
@@ -293,13 +310,29 @@ class KrsController extends Controller
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
         
-        $syncData = [];
-        foreach($mata_kuliah_ids as $mk_id){
-            $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
+        // ===================================================================
+        // [PERBAIKAN KEAMANAN DATA]: Mekanisme Backup & Restore Nilai di API
+        // ===================================================================
+        $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
+        $gradesToKeep = [];
+        foreach ($existingKrs as $existingMk) {
+            if (!is_null($existingMk->pivot->nilai)) {
+                $gradesToKeep[$existingMk->id] = $existingMk->pivot->nilai;
+            }
         }
 
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
-        $mahasiswa->mataKuliahs()->attach($syncData);
+        
+        $attachData = [];
+        foreach($mata_kuliah_ids as $mk_id){
+            $attachData[$mk_id] = [
+                'tahun_akademik_id' => $periodeAktif->id,
+                'nilai' => $gradesToKeep[$mk_id] ?? null
+            ];
+        }
+
+        $mahasiswa->mataKuliahs()->attach($attachData);
+        // ===================================================================
         
         $mahasiswa->status_krs = 'Menunggu Persetujuan';
         $mahasiswa->save();
