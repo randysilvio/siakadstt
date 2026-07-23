@@ -19,6 +19,11 @@ class KrsController extends Controller
         $mahasiswa = Auth::user()->mahasiswa;
         if (!$mahasiswa) abort(403, 'Data mahasiswa tidak ditemukan.');
 
+        // [CELAH 1 DITUTUP]: Memastikan gembok EDOM berlaku juga di versi Website (Laptop)
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')->with('error', 'Akses Ditolak: Silakan selesaikan pengisian Evaluasi Dosen (EDOM) terlebih dahulu sebelum mengakses KRS.');
+        }
+
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         // Cek apakah mahasiswa ini sedang memulai KRS baru di semester ini
@@ -50,7 +55,7 @@ class KrsController extends Controller
 
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
         
-        $max_sks =24;
+        $max_sks = 24;
         if ($ipk >= 3.00) { $max_sks = 24; }
         elseif ($ipk >= 2.50) { $max_sks = 21; }
         elseif ($ipk >= 2.00) { $max_sks = 18; }
@@ -85,11 +90,17 @@ class KrsController extends Controller
     public function store(Request $request)
     {
         $mahasiswa = Auth::user()->mahasiswa;
+
+        // [CELAH 1 DITUTUP]: Proteksi berlapis saat proses simpan via Website
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')->with('error', 'Akses Ditolak: Anda tidak dapat menyimpan KRS sebelum Evaluasi Dosen (EDOM) diselesaikan.');
+        }
+
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
         
         $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
         if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
-            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final.');
+            return redirect()->route('krs.index')->with('error', 'Gagal menyimpan. KRS Anda sudah final dan disetujui.');
         }
 
         $mata_kuliah_ids = $request->input('mata_kuliahs', []);
@@ -105,7 +116,7 @@ class KrsController extends Controller
         }
         $ipk = ($total_sks_lulus > 0) ? round($total_bobot_sks / $total_sks_lulus, 2) : 0;
         
-        $max_sks =24;
+        $max_sks = 24;
         if ($ipk >= 3.00) $max_sks = 24;
         elseif ($ipk >= 2.50) $max_sks = 21;
         elseif ($ipk >= 2.00) $max_sks = 18;
@@ -151,10 +162,7 @@ class KrsController extends Controller
             $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
         }
 
-        // [PERBAIKAN FATAL LOGIKA]: Mencegah riwayat KRS/KHS lama terhapus!
-        // 1. Hapus HANYA pilihan KRS yang ada pada semester aktif ini.
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
-        // 2. Tambahkan pilihan KRS yang baru untuk semester ini saja.
         $mahasiswa->mataKuliahs()->attach($syncData);
         
         $mahasiswa->status_krs = 'Menunggu Persetujuan';
@@ -173,7 +181,6 @@ class KrsController extends Controller
             return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Wali.');
         }
         
-        // [PERBAIKAN FATAL LOGIKA]: Hapus dari pivot HANYA untuk semester aktif ini (mencegah data lama terhapus jika mahasiswa mengulang matkul)
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($id);
         
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
@@ -291,7 +298,6 @@ class KrsController extends Controller
             $syncData[$mk_id] = ['tahun_akademik_id' => $periodeAktif->id];
         }
 
-        // [PERBAIKAN FATAL LOGIKA]: Mencegah riwayat KRS/KHS lama terhapus dari API!
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
         $mahasiswa->mataKuliahs()->attach($syncData);
         
