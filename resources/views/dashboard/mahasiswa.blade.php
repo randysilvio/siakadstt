@@ -136,7 +136,6 @@
                 </div>
                 <div class="list-group list-group-flush">
                     @if($mahasiswa->status_mahasiswa === 'Lulus')
-                        {{-- LAYANAN KHUSUS ALUMNI --}}
                         <a href="{{ route('transkrip.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                             <span class="fw-bold small">TRANSKRIP NILAI AKHIR</span>
                             <i class="bi bi-download"></i>
@@ -146,24 +145,27 @@
                             <i class="bi bi-chevron-right text-primary"></i>
                         </a>
                     @else
-                        {{-- LAYANAN MAHASISWA AKTIF --}}
                         
-                        {{-- [PERBAIKAN LOGIKA KRS] --}}
+                        {{-- [PERBAIKAN LOGIKA DETEKSI KRS LAMA] --}}
                         @php
                             $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
                             $krsSemesterIni = false;
                             if($periodeAktif){
                                 $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
                             }
-                            // Kunci jika sudah disetujui DAN punya KRS semester ini
-                            $isKrsLocked = ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni);
+                            
+                            // Kunci KRS jika:
+                            // 1. Status resminya 'Disetujui' dan punya KRS semester ini
+                            // 2. ATAU, Punya KRS tapi statusnya 'Belum Mengajukan' (Skenario mundur tahun akademik)
+                            $isKrsLocked = ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) || 
+                                           ($krsSemesterIni && $mahasiswa->status_krs === 'Belum Mengajukan');
                         @endphp
 
                         @if($isKrsLocked)
-                            <a href="#" onclick="alert('Akses Ditolak: Rencana Studi Anda untuk semester ini sudah divalidasi dan dikunci oleh Dosen Wali. Hubungi Dosen Wali jika ada perubahan.'); return false;" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center bg-light">
+                            <a href="#" onclick="alert('Akses Ditolak: Rencana Studi Anda untuk periode ini sudah divalidasi dan dikunci. Ini adalah data arsip atau telah disetujui.'); return false;" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center bg-light">
                                 <div>
                                     <span class="fw-bold small d-block text-muted">KARTU RENCANA STUDI</span>
-                                    <span class="badge bg-success rounded-0 mt-1" style="font-size: 0.6rem;">DISETUJUI</span>
+                                    <span class="badge bg-success rounded-0 mt-1" style="font-size: 0.6rem;">DISETUJUI & DIKUNCI</span>
                                 </div>
                                 <i class="bi bi-lock-fill text-muted"></i>
                             </a>
