@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log; // [TAMBAHAN] Untuk mencatat log error
 use Illuminate\Validation\Rules;
 use App\Exports\DosensExport;
 use App\Imports\DosensImport;
@@ -63,7 +64,6 @@ class DosenController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             
-            // [UPDATE] NIDN menjadi nullable, Jenis Pengajar ditambahkan
             'nidn' => 'nullable|unique:dosens|max:20',
             'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik',
@@ -83,31 +83,38 @@ class DosenController extends Controller
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $user = User::create([
-                'name' => $request->nama_lengkap,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
-            
-            $dosenRole = Role::where('name', 'dosen')->first();
-            if ($dosenRole) {
-                $user->roles()->attach($dosenRole);
-            }
+        try {
+            DB::transaction(function () use ($request) {
+                $user = User::create([
+                    'name' => $request->nama_lengkap,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                ]);
+                
+                $dosenRole = Role::where('name', 'dosen')->first();
+                if ($dosenRole) {
+                    $user->roles()->attach($dosenRole);
+                }
 
-            $dosenData = $request->except(['email', 'password', 'password_confirmation', '_token', 'foto_profil']);
-            $dosenData['user_id'] = $user->id;
-            
-            $dosenData['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
+                $dosenData = $request->except(['email', 'password', 'password_confirmation', '_token', 'foto_profil']);
+                $dosenData['user_id'] = $user->id;
+                
+                $dosenData['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
-            if ($request->hasFile('foto_profil')) {
-                $dosenData['foto_profil'] = $request->file('foto_profil')->store('foto-profil-dosen', 'public');
-            }
-            
-            Dosen::create($dosenData);
-        });
+                if ($request->hasFile('foto_profil')) {
+                    $dosenData['foto_profil'] = $request->file('foto_profil')->store('foto-profil-dosen', 'public');
+                }
+                
+                Dosen::create($dosenData);
+            });
 
-        return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil ditambahkan.');
+            return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil ditambahkan.');
+
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
+            Log::error('Gagal menambah Dosen: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data dosen. Silakan coba lagi.');
+        }
     }
 
     public function edit(Dosen $dosen): View
@@ -119,7 +126,6 @@ class DosenController extends Controller
     public function update(Request $request, Dosen $dosen): RedirectResponse
     {
         $request->validate([
-            // [UPDATE] NIDN menjadi nullable, Jenis Pengajar ditambahkan
             'nidn' => 'nullable|max:20|unique:dosens,nidn,' . $dosen->id,
             'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik,' . $dosen->id,
@@ -136,50 +142,64 @@ class DosenController extends Controller
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        DB::transaction(function () use ($request, $dosen) {
-            $dataUpdate = $request->except(['email', 'password', 'password_confirmation', '_token', '_method', 'foto_profil']);
-            
-            $dataUpdate['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
-
-            if ($request->hasFile('foto_profil')) {
-                if ($dosen->foto_profil && Storage::disk('public')->exists($dosen->foto_profil)) {
-                    Storage::disk('public')->delete($dosen->foto_profil);
-                }
-                $dataUpdate['foto_profil'] = $request->file('foto_profil')->store('foto-profil-dosen', 'public');
-            }
-
-            $dosen->update($dataUpdate);
-
-            if ($dosen->user) {
-                $userData = ['name' => $request->nama_lengkap, 'email' => $request->email];
+        try {
+            DB::transaction(function () use ($request, $dosen) {
+                $dataUpdate = $request->except(['email', 'password', 'password_confirmation', '_token', '_method', 'foto_profil']);
                 
-                if ($request->filled('password')) {
-                    $request->validate(['password' => ['confirmed', Rules\Password::defaults()]]);
-                    $userData['password'] = Hash::make($request->password);
-                }
-                
-                $dosen->user->update($userData);
-            }
-        });
+                $dataUpdate['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
-        return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil diperbarui.');
+                if ($request->hasFile('foto_profil')) {
+                    if ($dosen->foto_profil && Storage::disk('public')->exists($dosen->foto_profil)) {
+                        Storage::disk('public')->delete($dosen->foto_profil);
+                    }
+                    $dataUpdate['foto_profil'] = $request->file('foto_profil')->store('foto-profil-dosen', 'public');
+                }
+
+                $dosen->update($dataUpdate);
+
+                if ($dosen->user) {
+                    $userData = ['name' => $request->nama_lengkap, 'email' => $request->email];
+                    
+                    if ($request->filled('password')) {
+                        $request->validate(['password' => ['confirmed', Rules\Password::defaults()]]);
+                        $userData['password'] = Hash::make($request->password);
+                    }
+                    
+                    $dosen->user->update($userData);
+                }
+            });
+
+            return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
+            Log::error('Gagal memperbarui Dosen: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data dosen. Silakan coba lagi.');
+        }
     }
 
     public function destroy(Dosen $dosen): RedirectResponse
     {
-        DB::transaction(function () use ($dosen) {
-            if ($dosen->foto_profil && Storage::disk('public')->exists($dosen->foto_profil)) {
-                Storage::disk('public')->delete($dosen->foto_profil);
-            }
+        try {
+            DB::transaction(function () use ($dosen) {
+                if ($dosen->foto_profil && Storage::disk('public')->exists($dosen->foto_profil)) {
+                    Storage::disk('public')->delete($dosen->foto_profil);
+                }
 
-            if ($dosen->user) {
-                $dosen->user->delete(); 
-            } else {
-                $dosen->delete();
-            }
-        });
+                if ($dosen->user) {
+                    $dosen->user->delete(); 
+                } else {
+                    $dosen->delete();
+                }
+            });
 
-        return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil dihapus.');
+            return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil dihapus.');
+
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani kegagalan penghapusan (misal karena Foreign Key Constraint)
+            Log::error('Gagal menghapus Dosen: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus data. Pastikan dosen tidak sedang terikat pada jadwal mata kuliah, nilai, atau perwalian.');
+        }
     }
 
     public function export() 

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log; // [TAMBAHAN] Untuk mencatat detail error
 use Illuminate\Validation\Rules;
 use App\Exports\MahasiswasExport;
 use App\Imports\MahasiswasImport;
@@ -96,23 +97,30 @@ class MahasiswaController extends Controller
             'penghasilan_ibu' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $user = User::create([
-                'name' => $request->nama_lengkap,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
+        try {
+            DB::transaction(function () use ($request) {
+                $user = User::create([
+                    'name' => $request->nama_lengkap,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                ]);
+                
+                $user->roles()->attach(\App\Models\Role::where('name', 'mahasiswa')->first());
+
+                $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
+                $mahasiswaData['user_id'] = $user->id;
+                $mahasiswaData['status_mahasiswa'] = 'Aktif';
+
+                Mahasiswa::create($mahasiswaData);
+            });
+
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa lengkap berhasil disimpan!');
             
-            $user->roles()->attach(\App\Models\Role::where('name', 'mahasiswa')->first());
-
-            $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
-            $mahasiswaData['user_id'] = $user->id;
-            $mahasiswaData['status_mahasiswa'] = 'Aktif';
-
-            Mahasiswa::create($mahasiswaData);
-        });
-
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa lengkap berhasil disimpan!');
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
+            Log::error('Gagal menambah Mahasiswa: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa. Silakan coba lagi.');
+        }
     }
 
     public function show(Mahasiswa $mahasiswa): RedirectResponse
@@ -143,40 +151,54 @@ class MahasiswaController extends Controller
             'nik_ibu' => 'nullable|digits:16',
         ]);
     
-        DB::transaction(function () use ($request, $mahasiswa) {
-            $data = $request->except(['email', 'password', 'password_confirmation', '_token', '_method']);
-            if ($data['status_mahasiswa'] !== 'Lulus') {
-                $data['tanggal_lulus'] = null;
-            }
-
-            $mahasiswa->update($data);
-    
-            if ($mahasiswa->user) {
-                $userData = [
-                    'name' => $request->nama_lengkap,
-                    'email' => $request->email,
-                ];
-                if ($request->filled('password')) {
-                    $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
-                    $userData['password'] = Hash::make($request->password);
+        try {
+            DB::transaction(function () use ($request, $mahasiswa) {
+                $data = $request->except(['email', 'password', 'password_confirmation', '_token', '_method']);
+                if ($data['status_mahasiswa'] !== 'Lulus') {
+                    $data['tanggal_lulus'] = null;
                 }
-                $mahasiswa->user->update($userData);
-            }
-        });
-    
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
+
+                $mahasiswa->update($data);
+        
+                if ($mahasiswa->user) {
+                    $userData = [
+                        'name' => $request->nama_lengkap,
+                        'email' => $request->email,
+                    ];
+                    if ($request->filled('password')) {
+                        $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
+                        $userData['password'] = Hash::make($request->password);
+                    }
+                    $mahasiswa->user->update($userData);
+                }
+            });
+        
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
+            
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
+            Log::error('Gagal memperbarui Mahasiswa: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa. Silakan coba lagi.');
+        }
     }
 
     public function destroy(Mahasiswa $mahasiswa): RedirectResponse
     {
-        DB::transaction(function () use ($mahasiswa) {
-            if ($mahasiswa->user) {
-                $mahasiswa->user->delete();
-            }
-            $mahasiswa->delete();
-        });
+        try {
+            DB::transaction(function () use ($mahasiswa) {
+                if ($mahasiswa->user) {
+                    $mahasiswa->user->delete();
+                }
+                $mahasiswa->delete();
+            });
 
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
+            
+        } catch (\Exception $e) {
+            // [PERBAIKAN] Menangani kegagalan penghapusan
+            Log::error('Gagal menghapus Mahasiswa: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus data. Pastikan mahasiswa tidak memiliki riwayat nilai, pembayaran, atau perwalian yang mengunci penghapusan.');
+        }
     }
 
     public function export(Request $request)
@@ -188,7 +210,6 @@ class MahasiswaController extends Controller
 
     public function import(Request $request): RedirectResponse
     {
-        // PERBAIKAN: Menambahkan 'txt' karena terkadang upload CSV dibaca sebagai txt
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
 
         try {
