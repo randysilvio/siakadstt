@@ -43,12 +43,14 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label for="tanggal_mulai_krs" class="form-label small fw-bold uppercase text-dark">Tanggal Mulai KRS</label>
-                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_mulai_krs') is-invalid @enderror" id="tanggal_mulai_krs" name="tanggal_mulai_krs" value="{{ old('tanggal_mulai_krs', $tahunAkademik->tanggal_mulai_krs) }}">
+                        {{-- [PERBAIKAN]: Memastikan format Y-m-d agar terbaca oleh input HTML5 Date --}}
+                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_mulai_krs') is-invalid @enderror" id="tanggal_mulai_krs" name="tanggal_mulai_krs" value="{{ old('tanggal_mulai_krs', $tahunAkademik->tanggal_mulai_krs ? \Carbon\Carbon::parse($tahunAkademik->tanggal_mulai_krs)->format('Y-m-d') : '') }}">
                         @error('tanggal_mulai_krs')<div class="invalid-feedback font-monospace small">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
                         <label for="tanggal_selesai_krs" class="form-label small fw-bold uppercase text-dark">Tanggal Selesai KRS</label>
-                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_selesai_krs') is-invalid @enderror" id="tanggal_selesai_krs" name="tanggal_selesai_krs" value="{{ old('tanggal_selesai_krs', $tahunAkademik->tanggal_selesai_krs) }}">
+                        {{-- [PERBAIKAN]: Memastikan format Y-m-d agar terbaca oleh input HTML5 Date --}}
+                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_selesai_krs') is-invalid @enderror" id="tanggal_selesai_krs" name="tanggal_selesai_krs" value="{{ old('tanggal_selesai_krs', $tahunAkademik->tanggal_selesai_krs ? \Carbon\Carbon::parse($tahunAkademik->tanggal_selesai_krs)->format('Y-m-d') : '') }}">
                         @error('tanggal_selesai_krs')<div class="invalid-feedback font-monospace small">{{ $message }}</div>@enderror
                     </div>
                 </div>

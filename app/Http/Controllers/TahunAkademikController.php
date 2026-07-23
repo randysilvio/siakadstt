@@ -14,7 +14,11 @@ class TahunAkademikController extends Controller
 {
     public function index(): View
     {
-        $tahun_akademiks = TahunAkademik::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        // [PERBAIKAN]: Mengganti get() menjadi paginate(10) agar fitur tombol halaman di view berfungsi
+        $tahun_akademiks = TahunAkademik::orderBy('tahun', 'desc')
+                            ->orderBy('semester', 'desc')
+                            ->paginate(10);
+                            
         return view('tahun-akademik.index', compact('tahun_akademiks'));
     }
 
