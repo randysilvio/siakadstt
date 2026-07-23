@@ -28,21 +28,20 @@ class PerwalianController extends Controller
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
         // --- DAFTAR MAHASISWA PERWALIAN SAAT INI ---
-        // [PERBAIKAN] Hanya tampilkan Mahasiswa Perwalian yang punya entri KRS di Semester Aktif ini
         $mahasiswa_wali = Mahasiswa::where('dosen_wali_id', $dosen->id)
                             ->with('programStudi')
-                            // Mengambil mahasiswa yang mengajukan KRS di tahun aktif, jika tidak, statusnya tidak "nyangkut"
                             ->orderBy('nama_lengkap')
                             ->get();
 
-        // [MODIFIKASI PENTING]: Pastikan tampilan status "Menunggu Persetujuan" hanya untuk semester aktif.
+        // [PERBAIKAN MUTLAK]: Filter tampilan status berdasarkan keberadaan KRS di semester aktif.
         foreach ($mahasiswa_wali as $mhs) {
             $hasKrsThisSemester = false;
             if ($periodeAktif) {
                 $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
             }
-            // Jika statusnya 'Menunggu Persetujuan' tapi dia belum isi KRS semester ini, anggap belum isi.
-            if ($mhs->status_krs === 'Menunggu Persetujuan' && !$hasKrsThisSemester) {
+            
+            // Apapun isi status di database, jika tidak ada KRS semester ini, anggap Belum Mengajukan.
+            if (!$hasKrsThisSemester) {
                 $mhs->status_krs_display = 'Belum Mengajukan';
             } else {
                 $mhs->status_krs_display = $mhs->status_krs;
@@ -94,7 +93,7 @@ class PerwalianController extends Controller
                         ->where('dosen_wali_id', $dosen->id)
                         ->firstOrFail();
 
-        // 2. [PERBAIKAN] Ambil KRS (Mata Kuliah yang diambil) HANYA untuk Semester Aktif
+        // 2. Ambil KRS (Mata Kuliah yang diambil) HANYA untuk Semester Aktif
         $krs = $mahasiswa->mataKuliahs()
                          ->wherePivot('tahun_akademik_id', $periodeAktif->id)
                          ->with('jadwals')
@@ -179,7 +178,7 @@ class PerwalianController extends Controller
                         ->where('dosen_wali_id', $dosen->id)
                         ->firstOrFail();
 
-        // [PERBAIKAN] Pastikan dosen wali hanya bisa menghapus KRS semester aktif
+        // Pastikan dosen wali hanya bisa menghapus KRS semester aktif
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($mk_id);
 
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus (Revisi).');
