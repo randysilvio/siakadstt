@@ -16,7 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // [FITUR BARU]: Pengecekan Versi Aplikasi (Force Update)
 Route::get('/check-version', function () {
     return response()->json([
-        'min_version' => 1, // Naikkan angka ini (misal ke 2) jika Bapak rilis APK baru dan mewajibkan update
+        'min_version' => 1, // Naikkan angka ini jika merilis APK baru dan mewajibkan update
         'download_url' => 'https://sttgpipapua.ac.id/download/siakad-mobile-v2.apk' // Link unduh APK terbaru
     ]);
 });
@@ -74,9 +74,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/krs/perlu-validasi', [KrsController::class, 'getPerluValidasiApi']);
     Route::post('/krs/validasi/{id}', [KrsController::class, 'validasiKrsApi']);
     
-    // Rute Baru Pengisian KRS di HP
-    Route::get('/krs/form', [KrsController::class, 'getFormKrsApi']);
-    Route::post('/krs/submit', [KrsController::class, 'submitKrsApi']);
+    // Rute Baru Pengisian KRS di HP (Dilindungi Middleware Keuangan & Periode Waktu)
+    Route::middleware([\App\Http\Middleware\CekStatusPembayaranMiddleware::class, \App\Http\Middleware\CekPeriodeKrsMiddleware::class])->group(function () {
+        Route::get('/krs/form', [KrsController::class, 'getFormKrsApi']);
+        Route::post('/krs/submit', [KrsController::class, 'submitKrsApi']);
+    });
 
     // 7. STATISTIK
     Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
