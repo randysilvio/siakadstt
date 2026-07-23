@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use App\Models\TahunAkademik;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -23,12 +24,30 @@ class PerwalianController extends Controller
             abort(403, 'Data dosen tidak ditemukan. Pastikan profil dosen Anda sudah lengkap.');
         }
         $dosen = $user->dosen;
+        
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
         // --- DAFTAR MAHASISWA PERWALIAN SAAT INI ---
+        // [PERBAIKAN] Hanya tampilkan Mahasiswa Perwalian yang punya entri KRS di Semester Aktif ini
         $mahasiswa_wali = Mahasiswa::where('dosen_wali_id', $dosen->id)
                             ->with('programStudi')
+                            // Mengambil mahasiswa yang mengajukan KRS di tahun aktif, jika tidak, statusnya tidak "nyangkut"
                             ->orderBy('nama_lengkap')
                             ->get();
+
+        // [MODIFIKASI PENTING]: Pastikan tampilan status "Menunggu Persetujuan" hanya untuk semester aktif.
+        foreach ($mahasiswa_wali as $mhs) {
+            $hasKrsThisSemester = false;
+            if ($periodeAktif) {
+                $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+            }
+            // Jika statusnya 'Menunggu Persetujuan' tapi dia belum isi KRS semester ini, anggap belum isi.
+            if ($mhs->status_krs === 'Menunggu Persetujuan' && !$hasKrsThisSemester) {
+                $mhs->status_krs_display = 'Belum Mengajukan';
+            } else {
+                $mhs->status_krs_display = $mhs->status_krs;
+            }
+        }
 
         // --- QUERY PENCARIAN MAHASISWA BARU ---
         $query = Mahasiswa::whereNull('dosen_wali_id')
@@ -60,28 +79,34 @@ class PerwalianController extends Controller
     }
 
     /**
-     * [BARU] Menampilkan Detail KRS Mahasiswa & Menu Validasi.
+     * Menampilkan Detail KRS Mahasiswa & Menu Validasi.
      */
     public function show($id): View
     {
         $user = Auth::user();
         if (!$user->dosen) abort(403);
         $dosen = $user->dosen;
+        
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         // 1. Pastikan mahasiswa ini benar-benar bimbingan dosen yg login
         $mahasiswa = Mahasiswa::where('id', $id)
                         ->where('dosen_wali_id', $dosen->id)
                         ->firstOrFail();
 
-        // 2. Ambil KRS (Mata Kuliah yang diambil)
-        $krs = $mahasiswa->mataKuliahs()->with('jadwals')->get();
+        // 2. [PERBAIKAN] Ambil KRS (Mata Kuliah yang diambil) HANYA untuk Semester Aktif
+        $krs = $mahasiswa->mataKuliahs()
+                         ->wherePivot('tahun_akademik_id', $periodeAktif->id)
+                         ->with('jadwals')
+                         ->get();
+                         
         $totalSks = $krs->sum('sks');
 
-        return view('perwalian.show', compact('mahasiswa', 'krs', 'totalSks'));
+        return view('perwalian.show', compact('mahasiswa', 'krs', 'totalSks', 'periodeAktif'));
     }
 
     /**
-     * [BARU] Mengubah Status KRS (Disetujui / Ditolak / Menunggu).
+     * Mengubah Status KRS (Disetujui / Ditolak / Menunggu).
      */
     public function updateStatus(Request $request, $id): RedirectResponse
     {
@@ -148,12 +173,14 @@ class PerwalianController extends Controller
     {
         $user = Auth::user();
         $dosen = $user->dosen;
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
         $mahasiswa = Mahasiswa::where('id', $mahasiswa_id)
                         ->where('dosen_wali_id', $dosen->id)
                         ->firstOrFail();
 
-        $mahasiswa->mataKuliahs()->detach($mk_id);
+        // [PERBAIKAN] Pastikan dosen wali hanya bisa menghapus KRS semester aktif
+        $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($mk_id);
 
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus (Revisi).');
     }

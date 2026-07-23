@@ -62,14 +62,15 @@
                                 </td>
                                 <td class="text-center font-monospace">{{ $mahasiswa->tahun_masuk }}</td>
                                 <td class="text-center">
-                                    @if($mahasiswa->status_krs == 'Disetujui')
+                                    {{-- [PERBAIKAN] Menggunakan $mahasiswa->status_krs_display dari controller untuk menyaring status "hantu" dari semester lalu --}}
+                                    @if(isset($mahasiswa->status_krs_display) && $mahasiswa->status_krs_display == 'Disetujui')
                                         <span class="badge bg-success text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">DISETUJUI</span>
-                                    @elseif($mahasiswa->status_krs == 'Menunggu Persetujuan')
+                                    @elseif(isset($mahasiswa->status_krs_display) && $mahasiswa->status_krs_display == 'Menunggu Persetujuan')
                                         <span class="badge bg-warning text-dark rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">MENUNGGU</span>
-                                    @elseif($mahasiswa->status_krs == 'Ditolak')
+                                    @elseif(isset($mahasiswa->status_krs_display) && $mahasiswa->status_krs_display == 'Ditolak')
                                         <span class="badge bg-danger text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">DITOLAK</span>
                                     @else
-                                        <span class="badge bg-secondary text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">DRAFT</span>
+                                        <span class="badge bg-secondary text-white rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">DRAFT / BELUM ISI</span>
                                     @endif
                                 </td>
                                 <td class="text-center">

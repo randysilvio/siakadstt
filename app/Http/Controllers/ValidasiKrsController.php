@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use App\Models\TahunAkademik;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-use App\Notifications\KrsValidated; // [TAMBAHAN] Import class notifikasi
+use App\Notifications\KrsValidated;
 
 class ValidasiKrsController extends Controller
 {
@@ -32,7 +33,14 @@ class ValidasiKrsController extends Controller
             abort(403, 'Anda hanya dapat memvalidasi mahasiswa dari program studi Anda.');
         }
 
-        $mahasiswa->load('mataKuliahs.jadwals');
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+        
+        // [PERBAIKAN] Hanya me-load KRS dari semester aktif
+        $mahasiswa->load(['mataKuliahs' => function($query) use ($periodeAktif) {
+            $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id)
+                  ->with('jadwals');
+        }]);
+        
         return view('kaprodi.validasi_krs', compact('mahasiswa'));
     }
 
@@ -60,7 +68,6 @@ class ValidasiKrsController extends Controller
             'catatan_kaprodi' => $request->catatan_kaprodi,
         ]);
 
-        // [TAMBAHAN] Kirim Notifikasi ke Mahasiswa terkait
         if ($mahasiswa->user) {
             $mahasiswa->user->notify(new KrsValidated($request->status_krs, $request->catatan_kaprodi));
         }
