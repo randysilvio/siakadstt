@@ -60,17 +60,20 @@
                             <td class="ps-4 font-monospace fw-bold text-primary">{{ $m->nim }}</td>
                             <td class="uppercase fw-bold text-dark">{{ $m->nama_lengkap }}</td>
                             <td class="text-center">
-                                @if($m->status_krs == 'Menunggu Persetujuan')
+                                {{-- [PERBAIKAN] Menggunakan $m->status_krs_display dari controller --}}
+                                @if(isset($m->status_krs_display) && $m->status_krs_display == 'Menunggu Persetujuan')
                                     <span class="badge bg-warning text-dark rounded-0 uppercase small fw-bold" style="font-size: 10px;">Perlu Validasi</span>
-                                @elseif($m->status_krs == 'Disetujui')
+                                @elseif(isset($m->status_krs_display) && $m->status_krs_display == 'Disetujui')
                                     <span class="badge bg-success rounded-0 uppercase small fw-bold" style="font-size: 10px;">Disetujui</span>
+                                @elseif(isset($m->status_krs_display) && $m->status_krs_display == 'Ditolak')
+                                    <span class="badge bg-danger rounded-0 uppercase small fw-bold" style="font-size: 10px;">Ditolak</span>
                                 @else
-                                    <span class="badge bg-light text-muted border rounded-0 uppercase small fw-bold" style="font-size: 10px;">{{ $m->status_krs ?? 'DRAFT' }}</span>
+                                    <span class="badge bg-light text-muted border rounded-0 uppercase small fw-bold" style="font-size: 10px;">BELUM MENGAJUKAN</span>
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                <a href="{{ route('kaprodi.krs.show', $m->id) }}" class="btn btn-sm rounded-0 uppercase small fw-bold {{ $m->status_krs == 'Menunggu Persetujuan' ? 'btn-primary' : 'btn-light border' }}">
-                                    {{ $m->status_krs == 'Menunggu Persetujuan' ? 'Validasi' : 'Detail' }}
+                                <a href="{{ route('kaprodi.krs.show', $m->id) }}" class="btn btn-sm rounded-0 uppercase small fw-bold {{ (isset($m->status_krs_display) && $m->status_krs_display == 'Menunggu Persetujuan') ? 'btn-primary' : 'btn-light border' }}">
+                                    {{ (isset($m->status_krs_display) && $m->status_krs_display == 'Menunggu Persetujuan') ? 'Validasi' : 'Detail' }}
                                 </a>
                             </td>
                         </tr>
