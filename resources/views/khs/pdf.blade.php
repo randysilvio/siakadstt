@@ -21,23 +21,26 @@
         .student-info td { padding: 2px 0; vertical-align: top; text-transform: uppercase; font-size: 9pt; }
         .student-info .label { font-weight: bold; width: 110px; }
         
+        /* [PERBAIKAN] Blok Semester untuk mencegah terpotong halaman */
+        .semester-block { page-break-inside: avoid; margin-bottom: 15px; }
+        
         /* Tabel Mata Kuliah */
-        table.course-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        table.course-table { width: 100%; border-collapse: collapse; }
         .course-table th, .course-table td { border: 1px solid #000; padding: 5px 8px; vertical-align: middle; }
         .course-table th { background-color: #f0f0f0; text-transform: uppercase; font-size: 8pt; text-align: center; font-weight: bold; }
         .course-table td { font-size: 9pt; }
         .course-table td.center { text-align: center; }
         
         /* Header Semester */
-        .semester-header { background-color: #e9e9e9; padding: 5px 8px; font-weight: bold; margin-top: 15px; border: 1px solid #000; border-bottom: none; font-size: 9pt; text-transform: uppercase; }
+        .semester-header { background-color: #e9e9e9; padding: 5px 8px; font-weight: bold; border: 1px solid #000; border-bottom: none; font-size: 9pt; text-transform: uppercase; }
         
         /* Tabel Ringkasan (IPK) */
-        .summary-box { border: 1px solid #000; padding: 10px; margin-top: 20px; background-color: #fafafa; }
+        .summary-box { border: 1px solid #000; padding: 10px; margin-top: 20px; background-color: #fafafa; page-break-inside: avoid; }
         .summary-table { width: 100%; border-collapse: collapse; text-transform: uppercase; font-size: 10pt; font-weight: bold; }
         .summary-table td { padding: 4px 0; }
         
         /* Catatan Kaki Rumus */
-        .calculation-note { margin-top: 30px; padding-top: 10px; border-top: 1px dashed #000; font-size: 8pt; line-height: 1.4; }
+        .calculation-note { margin-top: 30px; padding-top: 10px; border-top: 1px dashed #000; font-size: 8pt; line-height: 1.4; page-break-inside: avoid; }
         .calculation-note h5 { margin: 0 0 5px 0; font-size: 9pt; text-transform: uppercase; font-weight: bold; }
         .calculation-note ul { padding-left: 15px; margin: 0; }
         .calculation-note li { margin-bottom: 3px; }
@@ -48,7 +51,6 @@
     </style>
 </head>
 <body>
-    {{-- Kop Surat Langsung Rata Tengah --}}
     <div class="kop-container">
         <img src="{{ public_path('images/logo.png') }}" alt="Logo">
         <h2>Sekolah Tinggi Teologi (STT) GPI Papua</h2>
@@ -57,6 +59,13 @@
 
     <main>
         <div class="document-title">KARTU HASIL STUDI (KHS)</div>
+
+        @php
+            // [PERBAIKAN] Mengurutkan data dari semester terbaru (Descending) untuk mengambil Tahun Akademik terakhir
+            $sortedKrs = $krsPerTahunAkademik->sortKeysDesc();
+            $latestTahunAkademikId = $sortedKrs->keys()->first();
+            $latestTahun = $tahunAkademiks->find($latestTahunAkademikId);
+        @endphp
 
         <div class="student-info">
             <table>
@@ -70,7 +79,8 @@
                     <td class="label">NAMA LENGKAP</td>
                     <td>: {{ $mahasiswa->nama_lengkap }}</td>
                     <td class="label">TAHUN AKADEMIK</td>
-                    <td>: {{ $tahunAkademiks->first() ? $tahunAkademiks->first()->tahun : '-' }}</td>
+                    {{-- [PERBAIKAN] Menampilkan Tahun Akademik dari semester terbaru --}}
+                    <td>: {{ $latestTahun ? $latestTahun->tahun : '-' }} (TERKINI)</td>
                 </tr>
                 <tr>
                     <td class="label">PROGRAM STUDI</td>
@@ -80,48 +90,49 @@
             </table>
         </div>
 
-        @forelse ($krsPerTahunAkademik as $tahunAkademikId => $krs)
+        {{-- [PERBAIKAN] Melakukan perulangan pada data yang sudah diurutkan dari yang terbaru --}}
+        @forelse ($sortedKrs as $tahunAkademikId => $krs)
             @php
                 $tahun = $tahunAkademiks->find($tahunAkademikId);
                 $ipsData = $mahasiswa->hitungIps($tahunAkademikId);
             @endphp
-            <div class="semester-header">
-                SEMESTER {{ $tahun ? strtoupper($tahun->semester) : '' }} - T.A. {{ $tahun ? $tahun->tahun : 'TIDAK DIKETAHUI' }}
-            </div>
-            <table class="course-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%;">KODE MK</th>
-                        <th>NAMA MATA KULIAH</th>
-                        <th style="width: 10%;" class="center">SKS</th>
-                        <th style="width: 10%;" class="center">NILAI</th>
-                        <th style="width: 10%;" class="center">BOBOT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($krs as $mk)
+            <div class="semester-block">
+                <div class="semester-header">
+                    SEMESTER {{ $tahun ? strtoupper($tahun->semester) : '' }} - T.A. {{ $tahun ? $tahun->tahun : 'TIDAK DIKETAHUI' }}
+                </div>
+                <table class="course-table">
+                    <thead>
                         <tr>
-                            <td class="center" style="font-family: monospace;">{{ $mk->kode_mk }}</td>
-                            <td style="text-transform: uppercase; font-weight: bold;">{{ $mk->nama_mk }}</td>
-                            <td class="center" style="font-family: monospace;">{{ $mk->sks }}</td>
-                            {{-- [PERBAIKAN] Tampilkan '-' jika nilai kosong --}}
-                            <td class="center" style="font-weight: bold; font-family: monospace;">{{ $mk->pivot->nilai ?? '-' }}</td>
-                            <td class="center" style="font-family: monospace;">{{ $mk->pivot->nilai ? number_format($ipsData['nilaiBobot'][$mk->id] ?? 0, 2) : '-' }}</td>
+                            <th style="width: 15%;">KODE MK</th>
+                            <th>NAMA MATA KULIAH</th>
+                            <th style="width: 10%;" class="center">SKS</th>
+                            <th style="width: 10%;" class="center">NILAI</th>
+                            <th style="width: 10%;" class="center">BOBOT</th>
                         </tr>
-                    @endforeach
-                    <tr style="font-weight: bold; background-color: #f9f9f9;">
-                        <td colspan="2" style="text-align: right; padding-right: 10px;">TOTAL SEMESTER INI</td>
-                        <td class="center" style="font-family: monospace; font-size: 10pt;">{{ $ipsData['total_sks'] }}</td>
-                        <td style="text-align: right; padding-right: 10px;">IPS</td>
-                        <td class="center" style="font-family: monospace; font-size: 10pt;">{{ number_format($ipsData['ips'], 2) }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach ($krs as $mk)
+                            <tr>
+                                <td class="center" style="font-family: monospace;">{{ $mk->kode_mk }}</td>
+                                <td style="text-transform: uppercase; font-weight: bold;">{{ $mk->nama_mk }}</td>
+                                <td class="center" style="font-family: monospace;">{{ $mk->sks }}</td>
+                                <td class="center" style="font-weight: bold; font-family: monospace;">{{ $mk->pivot->nilai ?? '-' }}</td>
+                                <td class="center" style="font-family: monospace;">{{ $mk->pivot->nilai ? number_format($ipsData['nilaiBobot'][$mk->id] ?? 0, 2) : '-' }}</td>
+                            </tr>
+                        @endforeach
+                        <tr style="font-weight: bold; background-color: #f9f9f9;">
+                            <td colspan="2" style="text-align: right; padding-right: 10px;">TOTAL SEMESTER INI</td>
+                            <td class="center" style="font-family: monospace; font-size: 10pt;">{{ $ipsData['total_sks'] }}</td>
+                            <td style="text-align: right; padding-right: 10px;">IPS</td>
+                            <td class="center" style="font-family: monospace; font-size: 10pt;">{{ number_format($ipsData['ips'], 2) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         @empty
             <p style="text-align: center; padding: 20px; text-transform: uppercase;">Belum ada nilai yang diinput untuk semester manapun.</p>
         @endforelse
 
-        {{-- Kotak Rekapitulasi Akhir --}}
         <div class="summary-box">
             <table class="summary-table">
                 <tr>
@@ -135,26 +146,15 @@
             </table>
         </div>
 
-        {{-- Catatan Kaki Rumus Bawaan --}}
         <div class="calculation-note">
             <h5>KETERANGAN PERHITUNGAN:</h5>
             <ul>
-                <li>
-                    <strong>Bobot Nilai:</strong> 
-                    A = 4.00, B = 3.00, C = 2.00, D = 1.00, E = 0.00
-                </li>
-                <li>
-                    <strong>IPS (Indeks Prestasi Semester)</strong> = 
-                    (Jumlah SKS Mata Kuliah x Bobot Nilai) / Total SKS yang diambil pada semester tersebut.
-                </li>
-                <li>
-                    <strong>IPK (Indeks Prestasi Kumulatif)</strong> = 
-                    (Total Seluruh (SKS x Bobot Nilai)) / Total Seluruh SKS yang telah ditempuh.
-                </li>
+                <li><strong>Bobot Nilai:</strong> A = 4.00, B = 3.00, C = 2.00, D = 1.00, E = 0.00</li>
+                <li><strong>IPS (Indeks Prestasi Semester)</strong> = (Jumlah SKS Mata Kuliah x Bobot Nilai) / Total SKS yang diambil pada semester tersebut.</li>
+                <li><strong>IPK (Indeks Prestasi Kumulatif)</strong> = (Total Seluruh (SKS x Bobot Nilai)) / Total Seluruh SKS yang telah ditempuh.</li>
             </ul>
         </div>
 
-        {{-- Tanda Tangan Pengesahan --}}
         <table class="footer-sign">
             <tr>
                 <td></td>

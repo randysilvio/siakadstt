@@ -102,19 +102,26 @@ class PmbAdminController extends Controller
 
             $nimBaru = $tahunMasuk . $kodeProdi . str_pad($urutan, 3, '0', STR_PAD_LEFT);
 
+            // [PERBAIKAN MUTLAK]: Bypass Constraint Basis Data
+            // Karena form awal PMB belum mewajibkan NIK, kita buatkan NIK 16 digit sementara 
+            // format: TahunBulanHariJamMenitDetik + 2 digit ID agar pasti UNIQUE
+            $nikDummy = $camaba->nik ?? (date('YmdHis') . str_pad($camaba->id, 2, '0', STR_PAD_LEFT));
+
             // 2. Insert ke Tabel Mahasiswas
             Mahasiswa::create([
                 'user_id' => $camaba->user_id,
                 'nim' => $nimBaru,
                 'nama_lengkap' => $camaba->user->name,
                 'program_studi_id' => $camaba->pilihan_prodi_1_id,
-                'tempat_lahir' => $camaba->tempat_lahir,
-                'tanggal_lahir' => $camaba->tanggal_lahir,
-                'jenis_kelamin' => $camaba->jenis_kelamin,
-                'agama' => $camaba->agama,
-                'no_hp' => $camaba->no_hp,
-                'alamat' => $camaba->alamat,
-                'nik' => $camaba->nik ?? null, 
+                'tempat_lahir' => $camaba->tempat_lahir ?? 'Belum Diisi',
+                'tanggal_lahir' => $camaba->tanggal_lahir ?? now(),
+                'jenis_kelamin' => $camaba->jenis_kelamin ?? 'L',
+                'agama' => $camaba->agama ?? 'Belum Diisi',
+                'no_hp' => $camaba->no_hp ?? '-',
+                'alamat' => $camaba->alamat ?? 'Belum Diisi',
+                'nik' => $nikDummy, // Bebas dari error Duplicate Entry!
+                'kewarganegaraan' => 'WNI', // Default Wajib
+                'nama_ibu_kandung' => 'Belum Diisi', // Default Wajib
                 'tanggal_masuk' => now(),
                 'tahun_masuk' => $tahunMasuk, 
                 'status_mahasiswa' => 'Aktif',
@@ -145,7 +152,7 @@ class PmbAdminController extends Controller
             DB::rollBack();
             Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
             
-            return back()->with('error', 'Gagal memproses pendaftaran. Error sistem: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses kelulusan (Hubungi Teknisi): ' . $e->getMessage());
         }
     }
 

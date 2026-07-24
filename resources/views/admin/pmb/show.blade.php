@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex align-items-center mb-4">
+    <div class="d-flex align-items-center mb-4 mt-3">
         <a href="{{ route('admin.pmb.index') }}" class="btn btn-outline-dark btn-sm rounded-1 me-3">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
@@ -11,6 +11,22 @@
             <p class="text-muted small mb-0">Tinjauan dokumen akademik dan proses persetujuan admisi</p>
         </div>
     </div>
+
+    {{-- [PERBAIKAN] Penambahan Blok Notifikasi --}}
+    @if (session('error'))
+        <div class="alert alert-danger border-0 shadow-sm rounded-1 mb-4 d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+            <div>
+                <span class="fw-bold d-block uppercase small">Gagal Memproses Data</span>
+                <small>{{ session('error') }}</small>
+            </div>
+        </div>
+    @endif
+    @if (session('success'))
+        <div class="alert alert-success border-0 shadow-sm rounded-1 mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        </div>
+    @endif
 
     <div class="row g-4">
         {{-- PANEL KIRI: DATA LENGKAP --}}
