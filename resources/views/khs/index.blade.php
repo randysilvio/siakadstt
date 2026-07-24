@@ -24,7 +24,6 @@
             </select>
             
             @if($selectedTaId)
-                {{-- [PERBAIKAN] Tombol kini membuka Modal Pratinjau, bukan tab baru --}}
                 <button type="button" class="btn btn-sm btn-dark rounded-0 px-3 fw-bold uppercase shadow-sm d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#previewPdfModal">
                     <i class="bi bi-file-earmark-pdf me-2"></i>Lihat PDF
                 </button>
@@ -115,7 +114,7 @@
     </div>
 </div>
 
-{{-- [TAMBAHAN] Modal Layar Penuh untuk Pratinjau PDF --}}
+{{-- Modal Layar Penuh untuk Pratinjau PDF --}}
 @if($selectedTaId)
 <div class="modal fade" id="previewPdfModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -127,18 +126,32 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            {{-- Menggunakan Iframe untuk merender PDF bawaan browser --}}
-            <div class="modal-body p-0 bg-secondary" style="height: 75vh;">
-                <iframe src="{{ route('khs.cetak', ['tahun_akademik_id' => $selectedTaId]) }}" width="100%" height="100%" style="border: none;"></iframe>
+            <div class="modal-body p-0 bg-secondary position-relative" style="height: 75vh;">
+                <div id="pdfLoading" class="position-absolute top-50 start-50 translate-middle text-center text-white" style="z-index: 1;">
+                    <div class="spinner-border mb-2" role="status"></div>
+                    <p class="small fw-bold uppercase font-monospace">Memuat Dokumen PDF...</p>
+                </div>
+
+                <object data="{{ route('khs.cetak', ['tahun_akademik_id' => $selectedTaId]) }}#toolbar=1&navpanes=0" type="application/pdf" width="100%" height="100%" style="position: relative; z-index: 5;" onload="document.getElementById('pdfLoading').style.display='none';">
+                    <div class="position-absolute top-50 start-50 translate-middle text-center text-white w-100 px-4" style="z-index: 10;">
+                        <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-2 d-block"></i>
+                        <h6 class="fw-bold uppercase">Browser Anda Tidak Mendukung Pratinjau PDF di Layar Ini</h6>
+                        <p class="small">Silakan gunakan tombol "Buka di Tab Baru" atau langsung "Unduh Berkas".</p>
+                    </div>
+                </object>
             </div>
             
-            <div class="modal-footer bg-light rounded-0">
-                <button type="button" class="btn btn-outline-dark rounded-0 px-4 fw-bold uppercase small" data-bs-dismiss="modal">Tutup</button>
-                
-                {{-- Tombol untuk Unduh Paksa (menyertakan parameter download=1) --}}
-                <a href="{{ route('khs.cetak', ['tahun_akademik_id' => $selectedTaId, 'download' => 1]) }}" class="btn btn-primary rounded-0 px-4 fw-bold uppercase small shadow-sm d-flex align-items-center">
-                    <i class="bi bi-download me-2"></i>Unduh Berkas
+            <div class="modal-footer bg-light rounded-0 d-flex justify-content-between">
+                <a href="{{ route('khs.cetak', ['tahun_akademik_id' => $selectedTaId]) }}" target="_blank" class="btn btn-outline-dark rounded-0 px-3 fw-bold uppercase small shadow-sm">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Buka di Tab Baru
                 </a>
+                
+                <div>
+                    <button type="button" class="btn btn-outline-secondary rounded-0 px-4 fw-bold uppercase small me-2" data-bs-dismiss="modal">Tutup</button>
+                    <a href="{{ route('khs.cetak', ['tahun_akademik_id' => $selectedTaId, 'download' => 1]) }}" class="btn btn-primary rounded-0 px-4 fw-bold uppercase small shadow-sm d-flex align-items-center d-inline-flex">
+                        <i class="bi bi-download me-2"></i>Unduh Berkas
+                    </a>
+                </div>
             </div>
         </div>
     </div>

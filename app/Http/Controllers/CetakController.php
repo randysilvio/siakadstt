@@ -15,7 +15,7 @@ class CetakController extends Controller
     /**
      * Generate PDF untuk Kartu Hasil Studi (KHS).
      */
-    public function cetakKhs()
+    public function cetakKhs(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -24,16 +24,37 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        $krsPerTahunAkademik = $mahasiswa->mataKuliahs()
-            ->withPivot('nilai', 'tahun_akademik_id')
-            ->wherePivotNotNull('nilai')
-            ->get()
-            ->groupBy('pivot.tahun_akademik_id');
+        // 1. Tangkap parameter tahun akademik yang dilempar dari dropdown view
+        $selectedTaId = $request->input('tahun_akademik_id');
+        
+        if (!$selectedTaId) {
+            return redirect()->back()->with('error', 'Gagal mencetak. Silakan pilih Tahun Akademik terlebih dahulu.');
+        }
 
-        $tahunAkademiks = TahunAkademik::find($krsPerTahunAkademik->keys());
+        // 2. Tarik data Tahun Akademik yang dipilih
+        $tahunSelected = TahunAkademik::findOrFail($selectedTaId);
+        
+        // 3. Tarik KRS spesifik untuk 1 semester itu saja
+        $krsSelected = $mahasiswa->mataKuliahs()
+            ->wherePivot('tahun_akademik_id', $selectedTaId)
+            ->withPivot('nilai')
+            ->get();
+            
+        // 4. Hitung IPS untuk 1 semester tersebut
+        $ipsData = $mahasiswa->hitungIps($selectedTaId);
 
-        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsPerTahunAkademik', 'tahunAkademiks'));
-        return $pdf->download('KHS_' . $mahasiswa->nim . '.pdf');
+        // 5. Render ke PDF dengan variabel baru yang diminta view
+        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsSelected', 'tahunSelected', 'ipsData'));
+        
+        $namaFile = 'KHS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunSelected->tahun) . '_' . strtoupper($tahunSelected->semester) . '.pdf';
+        
+        // 6. Cek jika mode download ditekan
+        if ($request->has('download') && $request->input('download') == 1) {
+            return $pdf->download($namaFile);
+        }
+        
+        // Default: Tampilkan preview di Iframe (Modal)
+        return $pdf->stream($namaFile);
     }
 
     /**
