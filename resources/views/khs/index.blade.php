@@ -29,59 +29,68 @@
         </div>
     </div>
 
-    {{-- Daftar KHS Per Semester --}}
-    @forelse ($krsPerTahunAkademik as $tahunAkademikId => $krs)
-        @php
-            $tahun = $tahunAkademiks->find($tahunAkademikId);
-            $ipsData = $mahasiswa->hitungIps($tahunAkademikId);
-        @endphp
-        <div class="card mb-4 border-0 shadow-sm rounded-0">
-            <div class="card-header bg-light border-bottom rounded-0 py-3">
-                <h6 class="mb-0 fw-bold uppercase small text-dark">
-                    SEMESTER {{ $tahun ? strtoupper($tahun->semester) : '' }} - TAHUN AKADEMIK {{ $tahun ? $tahun->tahun : 'TIDAK DIKETAHUI' }}
-                </h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle mb-0">
-                        <thead class="table-dark small uppercase text-center">
-                            <tr>
-                                <th style="width: 15%;">KODE MK</th>
-                                <th class="text-start">NAMA MATA KULIAH</th>
-                                <th style="width: 10%;">SKS</th>
-                                <th style="width: 10%;">NILAI</th>
-                                <th style="width: 10%;">BOBOT</th>
-                            </tr>
-                        </thead>
-                        <tbody class="small">
-                            @foreach ($krs as $mk)
-                                <tr>
-                                    <td class="text-center font-monospace fw-bold text-muted">{{ $mk->kode_mk }}</td>
-                                    <td class="uppercase fw-bold text-dark">{{ $mk->nama_mk }}</td>
-                                    <td class="text-center font-monospace fw-bold">{{ $mk->sks }}</td>
-                                    {{-- [PERBAIKAN] Tampilkan '-' jika nilai kosong --}}
-                                    <td class="text-center font-monospace fw-bold text-primary">{{ $mk->pivot->nilai ?? '-' }}</td>
-                                    <td class="text-center font-monospace">{{ $mk->pivot->nilai ? ($ipsData['nilaiBobot'][$mk->id] ?? 0) : '-' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot class="bg-light fw-bold uppercase small text-dark">
-                            <tr>
-                                <td colspan="2" class="text-end py-2 pe-3">TOTAL SKS</td>
-                                <td class="text-center py-2 font-monospace fs-6 text-primary">{{ $ipsData['total_sks'] }}</td>
-                                <td class="text-end py-2 pe-3">IPS</td>
-                                <td class="text-center py-2 font-monospace fs-6 text-primary">{{ number_format($ipsData['ips'], 2) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-    @empty
+    {{-- Daftar KHS Per Semester (Diubah Menjadi Accordion) --}}
+    @if($krsPerTahunAkademik->isEmpty())
         <div class="alert alert-light border rounded-0 text-center py-5 uppercase small fw-bold text-muted shadow-sm">
             Belum ada nilai yang diinput untuk semester manapun.
         </div>
-    @endforelse
+    @else
+        <div class="accordion mb-4 shadow-sm" id="accordionKHS">
+            @php $iteration = 0; @endphp
+            @foreach ($krsPerTahunAkademik->sortKeysDesc() as $tahunAkademikId => $krs)
+                @php
+                    $tahun = $tahunAkademiks->find($tahunAkademikId);
+                    $ipsData = $mahasiswa->hitungIps($tahunAkademikId);
+                    $isFirst = ($iteration === 0); // Buka panel pertama saja secara otomatis
+                @endphp
+                <div class="accordion-item border-0 rounded-0 mb-2">
+                    <h2 class="accordion-header" id="heading-{{ $tahunAkademikId }}">
+                        <button class="accordion-button {{ $isFirst ? '' : 'collapsed' }} rounded-0 bg-light text-dark fw-bold uppercase border" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $tahunAkademikId }}" aria-expanded="{{ $isFirst ? 'true' : 'false' }}" aria-controls="collapse-{{ $tahunAkademikId }}">
+                            SEMESTER {{ $tahun ? strtoupper($tahun->semester) : '' }} - TAHUN AKADEMIK {{ $tahun ? $tahun->tahun : 'TIDAK DIKETAHUI' }}
+                            <span class="badge bg-dark ms-3 font-monospace">IPS: {{ number_format($ipsData['ips'], 2) }}</span>
+                        </button>
+                    </h2>
+                    <div id="collapse-{{ $tahunAkademikId }}" class="accordion-collapse collapse {{ $isFirst ? 'show' : '' }}" aria-labelledby="heading-{{ $tahunAkademikId }}" data-bs-parent="#accordionKHS">
+                        <div class="accordion-body p-0 border border-top-0">
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0 border-0">
+                                    <thead class="table-dark small uppercase text-center">
+                                        <tr>
+                                            <th style="width: 15%; border-top:0;">KODE MK</th>
+                                            <th class="text-start" style="border-top:0;">NAMA MATA KULIAH</th>
+                                            <th style="width: 10%; border-top:0;">SKS</th>
+                                            <th style="width: 10%; border-top:0;">NILAI</th>
+                                            <th style="width: 10%; border-top:0;">BOBOT</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="small">
+                                        @foreach ($krs as $mk)
+                                            <tr>
+                                                <td class="text-center font-monospace fw-bold text-muted">{{ $mk->kode_mk }}</td>
+                                                <td class="uppercase fw-bold text-dark">{{ $mk->nama_mk }}</td>
+                                                <td class="text-center font-monospace fw-bold">{{ $mk->sks }}</td>
+                                                <td class="text-center font-monospace fw-bold text-primary">{{ $mk->pivot->nilai ?? '-' }}</td>
+                                                <td class="text-center font-monospace">{{ $mk->pivot->nilai ? ($ipsData['nilaiBobot'][$mk->id] ?? 0) : '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot class="bg-light fw-bold uppercase small text-dark">
+                                        <tr>
+                                            <td colspan="2" class="text-end py-2 pe-3">TOTAL SKS</td>
+                                            <td class="text-center py-2 font-monospace fs-6 text-primary">{{ $ipsData['total_sks'] }}</td>
+                                            <td class="text-end py-2 pe-3">IPS</td>
+                                            <td class="text-center py-2 font-monospace fs-6 text-primary">{{ number_format($ipsData['ips'], 2) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @php $iteration++; @endphp
+            @endforeach
+        </div>
+    @endif
 
     {{-- Ringkasan IPK Akhir --}}
     <div class="card border-0 rounded-0 bg-dark text-white mt-4 mb-5 shadow-sm">
