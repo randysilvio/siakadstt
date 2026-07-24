@@ -80,7 +80,7 @@
                     <td>: {{ $mahasiswa->nama_lengkap }}</td>
                     <td class="label">TAHUN AKADEMIK</td>
                     {{-- [PERBAIKAN] Menampilkan Tahun Akademik dari semester terbaru --}}
-                    <td>: {{ $latestTahun ? $latestTahun->tahun : '-' }} (TERKINI)</td>
+                    <td>: {{ $latestTahun ? $latestTahun->tahun : '-' }} </td>
                 </tr>
                 <tr>
                     <td class="label">PROGRAM STUDI</td>
