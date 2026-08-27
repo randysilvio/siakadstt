@@ -259,8 +259,8 @@ class MahasiswaController extends Controller
         return $pdf->stream('Mahasiswa_Aktif_' . str_replace('/', '-', $periodeAktif->tahun) . '_' . $angkatan . '.pdf');
     }
 
-    // [TAMBAHAN] Fungsi Cetak Surat Keterangan Aktif Kuliah
-    public function cetakSuratAktif(Mahasiswa $mahasiswa)
+    // [PEMBARUAN] Menangkap Request untuk parameter nomor surat dan keperluan
+    public function cetakSuratAktif(Request $request, Mahasiswa $mahasiswa)
     {
         $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
 
@@ -268,12 +268,15 @@ class MahasiswaController extends Controller
             return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif saat ini.');
         }
 
-        // Keamanan: Pastikan status mahasiswa benar-benar Aktif
         if ($mahasiswa->status_mahasiswa !== 'Aktif') {
             return redirect()->back()->with('error', 'Mahasiswa tersebut tidak berstatus aktif, surat tidak dapat dicetak.');
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_surat_aktif', compact('mahasiswa', 'periodeAktif'))
+        // Tangkap inputan dari modal form (berikan default fallback jika kosong)
+        $nomorSurat = $request->input('nomor_surat', '........');
+        $keperluan = $request->input('keperluan', '........................................................................................................');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_surat_aktif', compact('mahasiswa', 'periodeAktif', 'nomorSurat', 'keperluan'))
                ->setPaper('a4', 'portrait');
         
         return $pdf->stream('Surat_Keterangan_Aktif_' . $mahasiswa->nim . '.pdf');

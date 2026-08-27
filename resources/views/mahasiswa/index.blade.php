@@ -108,7 +108,6 @@
                         <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-dark rounded-0 w-100 uppercase fw-bold small py-2">Reset Filter</a>
                     </div>
                 </div>
-                
                 <button type="submit" class="d-none"></button>
             </form>
         </div>
@@ -156,11 +155,11 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group rounded-0" role="group">
-                                        {{-- [TAMBAHAN] Tombol Surat Aktif --}}
+                                        {{-- [PEMBARUAN] Tombol memanggil Modal Input Data Surat --}}
                                         @if($mahasiswa->status_mahasiswa === 'Aktif')
-                                            <a href="{{ route('admin.mahasiswa.cetak-surat-aktif', $mahasiswa->id) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-0 py-1 px-2" title="Cetak Surat Aktif Kuliah">
+                                            <button type="button" class="btn btn-sm btn-outline-success rounded-0 py-1 px-2" title="Cetak Surat Aktif Kuliah" data-bs-toggle="modal" data-bs-target="#cetakSuratModal-{{ $mahasiswa->id }}">
                                                 <i class="bi bi-printer"></i>
-                                            </a>
+                                            </button>
                                         @endif
 
                                         <a href="{{ route('admin.mahasiswa.edit', $mahasiswa->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2" title="Edit">
@@ -195,6 +194,7 @@
         </div>
     </div>
 
+    {{-- Modal Import Siku --}}
     <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog rounded-0">
             <div class="modal-content rounded-0 border-dark border-2">
@@ -222,5 +222,43 @@
             </div>
         </div>
     </div>
+
+    {{-- [TAMBAHAN] Loop Modal Cetak Surat Aktif per Mahasiswa --}}
+    @foreach ($mahasiswas as $mahasiswa)
+        @if($mahasiswa->status_mahasiswa === 'Aktif')
+            <div class="modal fade" id="cetakSuratModal-{{ $mahasiswa->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog rounded-0">
+                    <div class="modal-content rounded-0 border-dark border-2">
+                        <div class="modal-header bg-dark text-white rounded-0">
+                            <h6 class="modal-title uppercase fw-bold small">Keterangan Surat - {{ $mahasiswa->nama_lengkap }}</h6>
+                            <button type="button" class="btn-close btn-close-white rounded-0" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('admin.mahasiswa.cetak-surat-aktif', $mahasiswa->id) }}" method="GET" target="_blank">
+                            <div class="modal-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label uppercase fw-bold small text-dark">Nomor Indeks Surat</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control rounded-0 font-monospace" name="nomor_surat" placeholder="Cth: 015" required>
+                                        <span class="input-group-text rounded-0 bg-light small fw-bold font-monospace">/STT-GPI/AK/{{ \Carbon\Carbon::now()->format('Y') }}</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label uppercase fw-bold small text-dark">Tujuan / Keperluan Surat</label>
+                                    <textarea class="form-control rounded-0" name="keperluan" rows="3" placeholder="Contoh: Persyaratan administrasi pencairan beasiswa pemerintah daerah..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light rounded-0">
+                                <button type="button" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-sm btn-success rounded-0 px-4 uppercase fw-bold small shadow-sm">
+                                    <i class="bi bi-printer me-1"></i> Cetak Dokumen
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
 </div>
 @endsection
