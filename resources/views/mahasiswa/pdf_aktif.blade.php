@@ -52,9 +52,10 @@
             <tr>
                 <th style="width: 5%;">NO</th>
                 <th style="width: 15%;">NIM</th>
-                <th style="width: 40%;">NAMA LENGKAP</th>
-                <th style="width: 25%;">PROGRAM STUDI</th>
-                <th style="width: 15%;">STATUS KRS</th>
+                <th style="width: 35%;">NAMA LENGKAP</th>
+                <th style="width: 10%;">L/P</th>
+                <th style="width: 20%;">PROGRAM STUDI</th>
+                <th style="width: 15%;">KETERANGAN</th>
             </tr>
         </thead>
         <tbody>
@@ -63,12 +64,13 @@
                     <td style="text-align: center;">{{ $index + 1 }}</td>
                     <td style="text-align: center; font-family: monospace;">{{ $mhs->nim }}</td>
                     <td style="font-weight: bold;">{{ $mhs->nama_lengkap }}</td>
+                    <td style="text-align: center;">{{ $mhs->jenis_kelamin ?? '-' }}</td>
                     <td style="text-align: center;">{{ optional($mhs->programStudi)->nama_prodi ?? '-' }}</td>
-                    <td style="text-align: center;">{{ $mhs->status_krs }}</td>
+                    <td style="text-align: center; font-weight: bold;">AKTIF</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" style="text-align: center; padding: 15px;">TIDAK ADA DATA MAHASISWA AKTIF UNTUK KRITERIA INI</td>
+                    <td colspan="6" style="text-align: center; padding: 15px;">TIDAK ADA DATA MAHASISWA AKTIF UNTUK KRITERIA INI</td>
                 </tr>
             @endforelse
         </tbody>
@@ -78,7 +80,7 @@
         <tr>
             <td></td>
             <td>
-                Fakfak, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                Fakfak, {{ \Carbon\Carbon::now()->locale('id')->isoFormat('D MMMM YYYY') }}<br>
                 Biro Administrasi Akademik (BAAK)<br><br><br><br><br>
                 <strong>( ........................................ )</strong>
             </td>
