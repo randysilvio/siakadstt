@@ -54,12 +54,6 @@ use App\Http\Controllers\EvaluasiController;
 use App\Http\Controllers\DosenDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/dokumen-publik', [App\Http\Controllers\PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
@@ -80,7 +74,6 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
 
     Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
-    
     Route::get('/surat-keputusan/{surat_keputusan}/download-pdf', [\App\Http\Controllers\SuratKeputusanController::class, 'download'])->name('surat-keputusan.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -109,10 +102,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('role:dosen');
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
-        
         Route::patch('/kelas/{verum_kela}/start-meeting', [VerumController::class, 'startMeeting'])->name('meeting.start')->middleware('role:dosen');
         Route::patch('/kelas/{verum_kela}/stop-meeting', [VerumController::class, 'stopMeeting'])->name('meeting.stop')->middleware('role:dosen');
-
         Route::post('/kelas/{verum_kela}/forum', [VerumController::class, 'storePost'])->name('forum.store');
         Route::post('/kelas/{verum_kela}/materi', [VerumMateriController::class, 'store'])->name('materi.store')->middleware('role:dosen');
         Route::delete('/materi/{verum_materi}', [VerumMateriController::class, 'destroy'])->name('materi.destroy')->middleware('role:dosen');
@@ -154,6 +145,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
          Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
+         
+         // [TAMBAHAN] Rute Cetak Absensi Kelas
+         Route::get('/dosen/mata-kuliah/{mataKuliah}/cetak-absensi', [DosenDashboardController::class, 'cetakAbsensi'])->name('dosen.cetak_absensi');
+         
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
@@ -194,18 +189,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
     });
 
-    // ========================================================================
-    // MODUL ADMINISTRASI UMUM & SARPRAS
-    // ========================================================================
     Route::middleware('role:admin,administrasi_umum')->prefix('administrasi')->name('administrasi.')->group(function () {
         Route::resource('surat-keputusan', \App\Http\Controllers\SuratKeputusanController::class);
         Route::post('/surat-keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])->name('surat-keputusan.duplicate');
         Route::post('/surat-keputusan/{surat_keputusan}/upload-final', [\App\Http\Controllers\SuratKeputusanController::class, 'uploadFinal'])->name('surat-keputusan.upload-final');
     });
 
-    // ========================================================================
-    // MODUL WEBSITE KONTEN - DIAKSES OLEH ADMIN & ADMINISTRASI UMUM
-    // ========================================================================
     Route::middleware('role:admin,administrasi_umum')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('pengumuman', PengumumanController::class);
         Route::resource('slideshows', SlideshowController::class);
@@ -226,6 +215,9 @@ Route::middleware('auth')->group(function () {
              ->name('user.impersonate');
 
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
+
+        // [TAMBAHAN] Rute Cetak Mahasiswa Aktif
+        Route::get('/mahasiswa/cetak-aktif', [MahasiswaController::class, 'cetakAktif'])->name('mahasiswa.cetak-aktif');
 
         Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
         Route::get('/mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');

@@ -47,7 +47,6 @@
                                         <td class="ps-3">
                                             <span class="fw-bold small text-dark d-block">
                                                 {{ $mk->nama_mk }}
-                                                {{-- [UPDATE MINOR] Penanda posisi dosen di kelas tersebut --}}
                                                 @if($mk->dosen_id === $dosen->id)
                                                     <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">UTAMA</span>
                                                 @else
@@ -70,9 +69,13 @@
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
+                                            {{-- [TAMBAHAN] Tombol Cetak Absensi Baru --}}
                                             <div class="btn-group">
-                                                <button type="button" class="btn btn-sm btn-light border rounded-0" data-bs-toggle="modal" data-bs-target="#uploadRpsModal-{{ $mk->id }}">UNGGAH RPS</button>
-                                                <a href="{{ route('nilai.show', $mk->id) }}" class="btn btn-sm btn-dark rounded-0 px-3">INPUT NILAI</a>
+                                                <a href="{{ route('dosen.cetak_absensi', $mk->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-2" title="Cetak Absensi">
+                                                    <i class="bi bi-printer"></i> ABSENSI
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-light border rounded-0" data-bs-toggle="modal" data-bs-target="#uploadRpsModal-{{ $mk->id }}">RPS</button>
+                                                <a href="{{ route('nilai.show', $mk->id) }}" class="btn btn-sm btn-dark rounded-0 px-3">NILAI</a>
                                             </div>
                                         </td>
                                     </tr>

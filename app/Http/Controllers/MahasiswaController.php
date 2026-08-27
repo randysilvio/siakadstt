@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log; // [TAMBAHAN] Untuk mencatat detail error
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use App\Exports\MahasiswasExport;
 use App\Imports\MahasiswasImport;
@@ -117,7 +117,6 @@ class MahasiswaController extends Controller
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa lengkap berhasil disimpan!');
             
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
             Log::error('Gagal menambah Mahasiswa: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa. Silakan coba lagi.');
         }
@@ -176,7 +175,6 @@ class MahasiswaController extends Controller
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui!');
             
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
             Log::error('Gagal memperbarui Mahasiswa: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa. Silakan coba lagi.');
         }
@@ -195,7 +193,6 @@ class MahasiswaController extends Controller
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');
             
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani kegagalan penghapusan
             Log::error('Gagal menghapus Mahasiswa: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menghapus data. Pastikan mahasiswa tidak memiliki riwayat nilai, pembayaran, atau perwalian yang mengunci penghapusan.');
         }
@@ -205,7 +202,7 @@ class MahasiswaController extends Controller
     {
         $search = $request->input('search');
         $program_studi_id = $request->input('program_studi_id');
-        return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 
     public function import(Request $request): RedirectResponse
@@ -213,7 +210,7 @@ class MahasiswaController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
 
         try {
-            Excel::import(new MahasiswasImport, $request->file('file'));
+            \Maatwebsite\Excel\Facades\Excel::import(new MahasiswasImport, $request->file('file'));
         } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];
@@ -230,6 +227,37 @@ class MahasiswaController extends Controller
 
     public function downloadImportTemplate()
     {
-        return Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
+    }
+
+    // [TAMBAHAN] Fungsi Cetak Mahasiswa Aktif Per Angkatan
+    public function cetakAktif(Request $request)
+    {
+        $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
+
+        if (!$periodeAktif) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif saat ini.');
+        }
+
+        // Filter mahasiswa yang mengisi KRS (ada di pivot) pada semester ini
+        $query = Mahasiswa::with('programStudi')
+            ->whereHas('mataKuliahs', function($q) use ($periodeAktif) {
+                $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
+            });
+
+        if ($request->filled('angkatan')) {
+            $query->where('tahun_masuk', $request->input('angkatan'));
+        }
+        if ($request->filled('program_studi_id')) {
+            $query->where('program_studi_id', $request->input('program_studi_id'));
+        }
+
+        $mahasiswas = $query->orderBy('nim', 'asc')->get();
+        $angkatan = $request->input('angkatan') ?? 'Semua Angkatan';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_aktif', compact('mahasiswas', 'periodeAktif', 'angkatan'))
+               ->setPaper('a4', 'portrait');
+        
+        return $pdf->stream('Mahasiswa_Aktif_' . str_replace('/', '-', $periodeAktif->tahun) . '_' . $angkatan . '.pdf');
     }
 }

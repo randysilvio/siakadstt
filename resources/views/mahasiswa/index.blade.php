@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    {{-- BAGIAN HEADER UTAMA --}}
+    
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Daftar Mahasiswa</h3>
@@ -21,15 +21,20 @@
                     <i class="bi bi-file-earmark-spreadsheet me-1"></i> Ekspor/Impor
                 </button>
                 <ul class="dropdown-menu rounded-0">
-                    <li><a class="dropdown-item uppercase small fw-bold" href="{{ route('admin.mahasiswa.export', request()->query()) }}">Ekspor ke Excel</a></li>
+                    {{-- [TAMBAHAN] Tombol Cetak PDF Mahasiswa Aktif --}}
+                    <li>
+                        <a class="dropdown-item uppercase small fw-bold" href="{{ route('admin.mahasiswa.cetak-aktif', request()->query()) }}" target="_blank">
+                            <i class="bi bi-printer text-dark me-2"></i> Cetak PDF Mahasiswa Aktif
+                        </a>
+                    </li>
+                    <li><a class="dropdown-item uppercase small fw-bold" href="{{ route('admin.mahasiswa.export', request()->query()) }}"><i class="bi bi-file-excel text-success me-2"></i> Ekspor Semua ke Excel</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item uppercase small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importModal">Impor dari Excel / CSV</a></li>
+                    <li><a class="dropdown-item uppercase small fw-bold" href="#" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload text-primary me-2"></i> Impor dari Excel / CSV</a></li>
                 </ul>
             </div>
         </div>
     </div>
 
-    {{-- Notifikasi --}}
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show border rounded-0 shadow-sm small fw-bold uppercase" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
@@ -42,8 +47,6 @@
             <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-
-    {{-- PERBAIKAN: Penangkap Error Global --}}
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm small fw-bold uppercase" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> PERHATIAN:
@@ -56,12 +59,10 @@
         </div>
     @endif
 
-    {{-- Smart Filter Bar Flat --}}
     <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-light">
         <div class="card-body p-4">
             <form action="{{ route('admin.mahasiswa.index') }}" method="GET" id="filterForm">
                 <div class="row g-3">
-                    {{-- Pencarian Teks --}}
                     <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text bg-white rounded-0"><i class="bi bi-search text-dark"></i></span>
@@ -69,7 +70,6 @@
                         </div>
                     </div>
 
-                    {{-- Filter Program Studi --}}
                     <div class="col-md-3">
                         <select class="form-select rounded-0 uppercase small fw-bold" name="program_studi_id" onchange="document.getElementById('filterForm').submit()">
                             <option value="" {{ request('program_studi_id') == '' ? 'selected' : '' }}>-- SEMUA PRODI --</option>
@@ -81,7 +81,6 @@
                         </select>
                     </div>
 
-                    {{-- Filter Angkatan --}}
                     <div class="col-md-2">
                         <select class="form-select rounded-0 font-monospace" name="angkatan" onchange="document.getElementById('filterForm').submit()">
                             <option value="" {{ request('angkatan') == '' ? 'selected' : '' }}>-- ANGKATAN --</option>
@@ -95,7 +94,6 @@
                         </select>
                     </div>
 
-                    {{-- Filter Status --}}
                     <div class="col-md-2">
                         <select class="form-select rounded-0 uppercase small fw-bold" name="status" onchange="document.getElementById('filterForm').submit()">
                             <option value="" {{ request('status') == '' ? 'selected' : '' }}>-- STATUS --</option>
@@ -107,7 +105,6 @@
                         </select>
                     </div>
 
-                    {{-- Tombol Reset --}}
                     <div class="col-md-2">
                         <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-dark rounded-0 w-100 uppercase fw-bold small py-2">Reset Filter</a>
                     </div>
@@ -118,7 +115,6 @@
         </div>
     </div>
 
-    {{-- Tabel Mahasiswa Standar Enterprise --}}
     <div class="card border-0 shadow-sm rounded-0 mb-5">
         <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
             Daftar Rekapitulasi Sistem
@@ -186,7 +182,6 @@
                 </table>
             </div>
         </div>
-        {{-- Footer Paginasi Flat --}}
         <div class="card-footer bg-white border-top py-3 rounded-0">
             <div class="d-flex justify-content-center">
                 {{ $mahasiswas->appends(request()->query())->links() }}
@@ -194,7 +189,6 @@
         </div>
     </div>
 
-    {{-- Modal Import Siku --}}
     <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog rounded-0">
             <div class="modal-content rounded-0 border-dark border-2">

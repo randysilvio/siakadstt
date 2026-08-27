@@ -27,8 +27,6 @@ class DosenDashboardController extends Controller
 
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         
-        // --- 1. FILTER ABSOLUT SEMESTER AKTIF ---
-        // Kita hanya mengambil ID mata kuliah yang "Benar-benar sedang diambil mahasiswa pada TAHUN AKADEMIK AKTIF INI"
         $mkAktifSaatIniIds = [];
         if ($tahunAkademik) {
             $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
@@ -38,32 +36,27 @@ class DosenDashboardController extends Controller
                                    ->toArray();
         }
 
-        // --- 2. FILTER DOSEN PENGAMPU ---
-        // Cari mata kuliah dimana dosen tersebut terdaftar (sebagai dosen utama di tabel mata_kuliah atau tim di tabel pivot)
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
         
-        // --- 3. EKSEKUSI QUERY GABUNGAN ---
-        // Tarik mata kuliah yang: (Milik Dosen INI) DAN (Aktif di Semester INI)
         $mata_kuliahs = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
                 $query->where('dosen_id', $dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkAktifSaatIniIds) // <- INILAH KUNCI UTAMANYA!
+            ->whereIn('id', $mkAktifSaatIniIds)
             ->with(['mahasiswas' => function ($query) use ($tahunAkademik) {
-                // Hanya load mahasiswa yang KRS-nya Disetujui PADA SEMESTER INI
-                $query->where('mahasiswas.status_krs', 'Disetujui')
-                      ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
+                // [PERBAIKAN] Menghapus filter 'Disetujui', sehingga asalkan sudah isi KRS masuk ke absensi
+                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null)
+                      ->orderBy('nim', 'asc');
             }, 'mahasiswas.programStudi'])
             ->withCount(['mahasiswas' => function ($query) use ($tahunAkademik) {
-                $query->where('mahasiswas.status_krs', 'Disetujui')
-                      ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
+                // [PERBAIKAN] Sama, hapus filter 'Disetujui' untuk count
+                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
             }])
             ->get();
         
-        // --- 4. PENARIKAN JADWAL MINGGUAN ---
         $jadwalKuliah = collect();
         if ($tahunAkademik && $mata_kuliahs->isNotEmpty()) {
             $mkIds = $mata_kuliahs->pluck('id');
@@ -116,7 +109,7 @@ class DosenDashboardController extends Controller
                 $q->where('dosen_id', $dosen->id)
                   ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkAktifSaatIniIds) // <- HARUS SAMA DENGAN DASHBOARD
+            ->whereIn('id', $mkAktifSaatIniIds)
             ->pluck('id');
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
@@ -129,6 +122,34 @@ class DosenDashboardController extends Controller
 
         $pdf = Pdf::loadView('dosen.cetak_jadwal', compact('dosen', 'jadwals', 'tahunAkademik'));
         return $pdf->stream('Jadwal_Mengajar_' . $dosen->nama_lengkap . '.pdf');
+    }
+
+    // [TAMBAHAN] Fungsi Cetak Absensi Kelas
+    public function cetakAbsensi(MataKuliah $mataKuliah)
+    {
+        $dosen = Auth::user()->dosen;
+        $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
+
+        // Keamanan: Cek apakah dosen mengajar matkul ini
+        $isTeam = DB::table('dosen_mata_kuliah')
+            ->where('mata_kuliah_id', $mataKuliah->id)
+            ->where('dosen_id', $dosen->id)
+            ->exists();
+
+        if ($mataKuliah->dosen_id !== $dosen->id && !$isTeam) {
+            abort(403, 'Akses ditolak. Anda bukan pengajar kelas ini.');
+        }
+
+        // Ambil mahasiswa yang mengisi KRS semester aktif ini
+        $mahasiswas = $mataKuliah->mahasiswas()
+            ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
+            ->orderBy('nim', 'asc')
+            ->get();
+
+        $pdf = Pdf::loadView('dosen.pdf_absensi', compact('dosen', 'mataKuliah', 'tahunAkademik', 'mahasiswas'))
+               ->setPaper('a4', 'landscape'); // Format landscape karena banyak kolom
+               
+        return $pdf->stream('Daftar_Hadir_' . str_replace(' ', '_', $mataKuliah->kode_mk) . '.pdf');
     }
 
     public function uploadRps(Request $request, MataKuliah $mataKuliah)
