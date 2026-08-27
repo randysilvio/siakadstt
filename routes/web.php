@@ -146,7 +146,6 @@ Route::middleware('auth')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
          Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
          
-         // [TAMBAHAN] Rute Cetak Absensi Kelas
          Route::get('/dosen/mata-kuliah/{mataKuliah}/cetak-absensi', [DosenDashboardController::class, 'cetakAbsensi'])->name('dosen.cetak_absensi');
          
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
@@ -216,8 +215,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
-        // [TAMBAHAN] Rute Cetak Mahasiswa Aktif
+        // [TAMBAHAN] Rute Cetak Mahasiswa Aktif dan Surat Keterangan Aktif
         Route::get('/mahasiswa/cetak-aktif', [MahasiswaController::class, 'cetakAktif'])->name('mahasiswa.cetak-aktif');
+        Route::get('/mahasiswa/{mahasiswa}/cetak-surat-aktif', [MahasiswaController::class, 'cetakSuratAktif'])->name('mahasiswa.cetak-surat-aktif');
 
         Route::get('/mahasiswa/import/template', [MahasiswaController::class, 'downloadImportTemplate'])->name('mahasiswa.import.template');
         Route::get('/mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');

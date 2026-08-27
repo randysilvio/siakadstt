@@ -21,7 +21,6 @@
                     <i class="bi bi-file-earmark-spreadsheet me-1"></i> Ekspor/Impor
                 </button>
                 <ul class="dropdown-menu rounded-0">
-                    {{-- [TAMBAHAN] Tombol Cetak PDF Mahasiswa Aktif --}}
                     <li>
                         <a class="dropdown-item uppercase small fw-bold" href="{{ route('admin.mahasiswa.cetak-aktif', request()->query()) }}" target="_blank">
                             <i class="bi bi-printer text-dark me-2"></i> Cetak PDF Mahasiswa Aktif
@@ -129,7 +128,7 @@
                             <th class="text-start" style="width: 25%;">PROGRAM STUDI</th>
                             <th style="width: 10%;">ANGKATAN</th>
                             <th style="width: 10%;">STATUS</th>
-                            <th style="width: 12%;">AKSI</th>
+                            <th style="width: 15%;">AKSI</th>
                         </tr>
                     </thead>
                     <tbody class="small">
@@ -140,7 +139,7 @@
                                     <div class="uppercase fw-bold text-dark">{{ $mahasiswa->nama_lengkap }}</div>
                                     <span class="text-muted font-monospace" style="font-size: 11px;">{{ $mahasiswa->user->email ?? '-' }}</span>
                                 </td>
-                                <td class="text-start uppercase fw-bold text-muted">{{ $mahasiswa->programStudi->nama_prodi }}</td>
+                                <td class="text-start uppercase fw-bold text-muted">{{ optional($mahasiswa->programStudi)->nama_prodi ?? '-' }}</td>
                                 <td class="text-center font-monospace">{{ $mahasiswa->tahun_masuk ?? '-' }}</td>
                                 <td class="text-center">
                                     @php
@@ -157,6 +156,13 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group rounded-0" role="group">
+                                        {{-- [TAMBAHAN] Tombol Surat Aktif --}}
+                                        @if($mahasiswa->status_mahasiswa === 'Aktif')
+                                            <a href="{{ route('admin.mahasiswa.cetak-surat-aktif', $mahasiswa->id) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-0 py-1 px-2" title="Cetak Surat Aktif Kuliah">
+                                                <i class="bi bi-printer"></i>
+                                            </a>
+                                        @endif
+
                                         <a href="{{ route('admin.mahasiswa.edit', $mahasiswa->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2" title="Edit">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>

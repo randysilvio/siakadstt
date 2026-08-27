@@ -230,7 +230,6 @@ class MahasiswaController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
     }
 
-    // [TAMBAHAN] Fungsi Cetak Mahasiswa Aktif Per Angkatan
     public function cetakAktif(Request $request)
     {
         $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
@@ -239,7 +238,6 @@ class MahasiswaController extends Controller
             return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif saat ini.');
         }
 
-        // Filter mahasiswa yang mengisi KRS (ada di pivot) pada semester ini
         $query = Mahasiswa::with('programStudi')
             ->whereHas('mataKuliahs', function($q) use ($periodeAktif) {
                 $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
@@ -259,5 +257,25 @@ class MahasiswaController extends Controller
                ->setPaper('a4', 'portrait');
         
         return $pdf->stream('Mahasiswa_Aktif_' . str_replace('/', '-', $periodeAktif->tahun) . '_' . $angkatan . '.pdf');
+    }
+
+    // [TAMBAHAN] Fungsi Cetak Surat Keterangan Aktif Kuliah
+    public function cetakSuratAktif(Mahasiswa $mahasiswa)
+    {
+        $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
+
+        if (!$periodeAktif) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif saat ini.');
+        }
+
+        // Keamanan: Pastikan status mahasiswa benar-benar Aktif
+        if ($mahasiswa->status_mahasiswa !== 'Aktif') {
+            return redirect()->back()->with('error', 'Mahasiswa tersebut tidak berstatus aktif, surat tidak dapat dicetak.');
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_surat_aktif', compact('mahasiswa', 'periodeAktif'))
+               ->setPaper('a4', 'portrait');
+        
+        return $pdf->stream('Surat_Keterangan_Aktif_' . $mahasiswa->nim . '.pdf');
     }
 }
