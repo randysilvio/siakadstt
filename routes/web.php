@@ -97,21 +97,42 @@ Route::middleware('auth')->group(function () {
     Route::get('/kalender-akademik', [KalenderController::class, 'halamanKalender'])->name('kalender.halaman');
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
 
+    // =========================================================================
+    // BLOK RUTE MODUL VERUM (E-LEARNING) - SUDAH DILENGKAPI FITUR DELETE & REKAP
+    // =========================================================================
     Route::prefix('verum')->name('verum.')->group(function() {
         Route::get('/', [VerumController::class, 'index'])->name('index');
         Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('role:dosen');
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
+        
+        // Hapus Kelas
+        Route::delete('/kelas/{verum_kela}', [VerumController::class, 'destroy'])->name('destroy')->middleware('role:dosen');
+        
+        // V-Con Meeting
         Route::patch('/kelas/{verum_kela}/start-meeting', [VerumController::class, 'startMeeting'])->name('meeting.start')->middleware('role:dosen');
         Route::patch('/kelas/{verum_kela}/stop-meeting', [VerumController::class, 'stopMeeting'])->name('meeting.stop')->middleware('role:dosen');
+        
+        // Forum Diskusi
         Route::post('/kelas/{verum_kela}/forum', [VerumController::class, 'storePost'])->name('forum.store');
+        Route::delete('/forum/{postingan}', [VerumController::class, 'destroyPost'])->name('forum.destroy');
+        
+        // Materi Ajar
         Route::post('/kelas/{verum_kela}/materi', [VerumMateriController::class, 'store'])->name('materi.store')->middleware('role:dosen');
         Route::delete('/materi/{verum_materi}', [VerumMateriController::class, 'destroy'])->name('materi.destroy')->middleware('role:dosen');
+        
+        // Penugasan
         Route::post('/kelas/{verum_kela}/tugas', [VerumTugasController::class, 'store'])->name('tugas.store')->middleware('role:dosen');
+        Route::delete('/tugas/{verum_tuga}', [VerumTugasController::class, 'destroy'])->name('tugas.destroy')->middleware('role:dosen');
+        Route::get('/tugas/{verum_tuga}/rekap', [VerumTugasController::class, 'rekap'])->name('tugas.rekap')->middleware('role:dosen');
         Route::post('/tugas/{verum_tuga}/kumpulkan', [VerumTugasController::class, 'storePengumpulan'])->name('tugas.kumpulkan')->middleware('role:mahasiswa');
+        
+        // Presensi Kehadiran & Rekap Cetak
         Route::post('/kelas/{verum_kela}/presensi', [VerumPresensiController::class, 'store'])->name('presensi.store')->middleware('role:dosen');
+        Route::get('/kelas/{verum_kela}/presensi/cetak', [VerumPresensiController::class, 'cetakRekap'])->name('presensi.cetak')->middleware('role:dosen');
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('role:mahasiswa');
     });
+    // =========================================================================
 
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
         Route::middleware('role:pustakawan')->group(function() {
@@ -169,6 +190,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
         Route::get('/laporan/cetak-beban-dosen', [MutuReportController::class, 'cetakBebanDosen'])->name('laporan.cetak-beban-dosen');
         Route::post('/laporan/cetak-rps', [MutuReportController::class, 'cetakRps'])->name('laporan.cetak-rps');
+        Route::post('/laporan/cetak-distribusi-nilai', [MutuReportController::class, 'cetakDistribusiNilai'])->name('laporan.cetak-distribusi-nilai');
         Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
     });
 
@@ -215,7 +237,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/dashboard/chart/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])->name('dashboard.chart.mahasiswa-per-prodi');
 
-        // [TAMBAHAN] Rute Cetak Mahasiswa Aktif dan Surat Keterangan Aktif
         Route::get('/mahasiswa/cetak-aktif', [MahasiswaController::class, 'cetakAktif'])->name('mahasiswa.cetak-aktif');
         Route::get('/mahasiswa/{mahasiswa}/cetak-surat-aktif', [MahasiswaController::class, 'cetakSuratAktif'])->name('mahasiswa.cetak-surat-aktif');
 

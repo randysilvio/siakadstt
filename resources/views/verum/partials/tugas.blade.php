@@ -1,4 +1,3 @@
-{{-- HEADER TUGAS --}}
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-dark border-2 pb-3">
     <div class="d-flex align-items-center">
         <div class="bg-dark text-white rounded-0 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
@@ -10,7 +9,6 @@
         </div>
     </div>
     
-    {{-- Buat Tugas Khusus Dosen --}}
     @if(Auth::user()->hasRole('dosen'))
         <button class="btn btn-sm btn-dark rounded-0 px-4 uppercase fw-bold small shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#tambahTugasModal">
             <i class="bi bi-plus-lg me-2 text-white align-middle"></i> Distribusikan Tugas
@@ -18,7 +16,6 @@
     @endif
 </div>
 
-{{-- DAFTAR TUGAS AKORDION FLAT --}}
 @if($verum_kela->tugas->isEmpty())
     <div class="text-center py-5 bg-light border border-dark border-opacity-25 rounded-0 mb-5">
         <i class="bi bi-clipboard-x fs-2 d-block mb-2 text-dark opacity-25"></i>
@@ -29,8 +26,18 @@
         @foreach($verum_kela->tugas as $tugas)
             @php
                 $isLate = now() > $tugas->tenggat_waktu;
+                
+                // Mengecek apakah mahasiswa ini sudah mengumpulkan tugas
+                $sudahKumpul = false;
+                $fileKumpul = null;
+                if(Auth::user()->hasRole('mahasiswa') && Auth::user()->mahasiswa) {
+                    $kumpulan = $tugas->pengumpulan->where('mahasiswa_id', Auth::user()->mahasiswa->id)->first();
+                    if($kumpulan) {
+                        $sudahKumpul = true;
+                        $fileKumpul = $kumpulan;
+                    }
+                }
             @endphp
-            {{-- Wadah Akordion Siku Tajam --}}
             <div class="accordion-item border border-dark border-opacity-25 rounded-0 bg-white mb-3 shadow-none">
                 <h2 class="accordion-header" id="heading{{ $tugas->id }}">
                     <button class="accordion-button collapsed bg-light rounded-0 shadow-none p-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $tugas->id }}">
@@ -45,45 +52,66 @@
                 <div id="collapse{{ $tugas->id }}" class="accordion-collapse collapse rounded-0" data-bs-parent="#accordionTugas">
                     <div class="accordion-body p-4 border-top border-dark border-opacity-25">
                         
-                        {{-- Blok Instruksi --}}
                         <h6 class="fw-bold text-dark uppercase small mb-2">Instruksi Pengerjaan:</h6>
                         <div class="bg-light p-4 border border-dark border-opacity-25 rounded-0 text-dark small uppercase mb-4" style="line-height: 1.75; text-align: justify;">
                             {!! nl2br(e($tugas->instruksi)) !!}
                         </div>
                         
-                        {{-- Pengumpulan Mahasiswa --}}
                         @if(Auth::user()->hasRole('mahasiswa'))
                             <div class="card bg-white border border-dark border-opacity-25 rounded-0 shadow-none border-top border-dark border-4">
                                 <div class="card-body p-4">
                                     <h6 class="fw-bold text-dark uppercase small mb-3">
-                                        <i class="bi bi-cloud-arrow-up-fill me-2 align-middle text-primary fs-5"></i>Formulir Pengiriman Jawaban
+                                        <i class="bi bi-cloud-arrow-up-fill me-2 align-middle text-primary fs-5"></i>Status Pengiriman Jawaban
                                     </h6>
                                     
-                                    @if($isLate)
-                                        <div class="alert alert-danger border rounded-0 p-3 mb-3 font-monospace small uppercase">
-                                            <i class="bi bi-exclamation-triangle-fill me-2"></i> PERINGATAN: Batas waktu pengiriman telah terlewati. Sistem akan menandai berkas sebagai keterlambatan.
+                                    @if($sudahKumpul)
+                                        <div class="alert alert-success border rounded-0 p-3 mb-0 font-monospace small uppercase shadow-sm">
+                                            <i class="bi bi-check-circle-fill me-2"></i> BERKAS TELAH DIKIRIM PADA: {{ $fileKumpul->waktu_pengumpulan->format('d/m/Y H:i') }} WIT
+                                            <br>
+                                            <a href="{{ Storage::url($fileKumpul->file_path) }}" target="_blank" class="btn btn-sm btn-outline-success mt-2 rounded-0">
+                                                <i class="bi bi-download me-1"></i> Unduh File Saya
+                                            </a>
                                         </div>
+                                    @else
+                                        @if($isLate)
+                                            <div class="alert alert-danger border rounded-0 p-3 mb-3 font-monospace small uppercase">
+                                                <i class="bi bi-exclamation-triangle-fill me-2"></i> PERINGATAN: Batas waktu pengiriman telah terlewati. Sistem menolak pengiriman baru.
+                                            </div>
+                                        @endif
+                                        
+                                        <form action="{{ route('verum.tugas.kumpulkan', $tugas) }}" method="POST" enctype="multipart/form-data">
+                                            @csrf
+                                            <div class="input-group rounded-0 mb-2">
+                                                <input type="file" class="form-control rounded-0 @error('file_jawaban') is-invalid @enderror" name="file_jawaban" accept=".pdf,.doc,.docx,.zip" required {{ $isLate ? 'disabled' : '' }}>
+                                                <button class="btn btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm" type="submit" {{ $isLate ? 'disabled' : '' }}>
+                                                    Kirim Berkas
+                                                </button>
+                                            </div>
+                                            
+                                            {{-- [PENTING] Memunculkan pesan error gagal upload --}}
+                                            @error('file_jawaban')
+                                                <div class="text-danger small font-monospace fw-bold mb-2">{{ $message }}</div>
+                                            @enderror
+                                            
+                                            <div class="form-text text-muted small uppercase font-monospace">
+                                                Format diizinkan: PDF, DOCX, ZIP. Batas ukuran maksimal: 10MB.
+                                            </div>
+                                        </form>
                                     @endif
-                                    
-                                    <form action="{{ route('verum.tugas.kumpulkan', $tugas) }}" method="POST" enctype="multipart/form-data">
-                                        @csrf
-                                        <div class="input-group rounded-0 mb-2">
-                                            <input type="file" class="form-control rounded-0" name="file_jawaban" accept=".pdf,.doc,.docx" required>
-                                            <button class="btn btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm" type="submit">
-                                                Kirim Berkas
-                                            </button>
-                                        </div>
-                                        <div class="form-text text-muted small uppercase font-monospace">
-                                            Format diizinkan: PDF, DOCX. Batas ukuran maksimal: 5MB.
-                                        </div>
-                                    </form>
                                 </div>
                             </div>
                         @else
-                            {{-- Akses Rekapitulasi Dosen --}}
-                            <div class="d-flex justify-content-end pt-2 border-top border-dark border-opacity-25">
-                                <a href="#" class="btn btn-dark rounded-0 px-4 py-2 uppercase fw-bold small shadow-sm text-center">
-                                    <i class="bi bi-folder-check me-2 align-middle text-white"></i> Rekapitulasi Pengumpulan Mahasiswa
+                            <div class="d-flex justify-content-end pt-3 mt-2 border-top border-dark border-opacity-25">
+                                <form action="{{ route('verum.tugas.destroy', $tugas->id) }}" method="POST" class="me-2" onsubmit="return confirm('Hapus tugas ini beserta seluruh file jawaban mahasiswa secara permanen?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger rounded-0 px-4 py-2 uppercase fw-bold small shadow-sm text-center border-2">
+                                        <i class="bi bi-trash-fill me-2 align-middle"></i> Hapus Tugas
+                                    </button>
+                                </form>
+
+                                {{-- [UPDATE] Link menuju halaman Rekap Dosen --}}
+                                <a href="{{ route('verum.tugas.rekap', $tugas->id) }}" class="btn btn-dark rounded-0 px-4 py-2 uppercase fw-bold small shadow-sm text-center">
+                                    <i class="bi bi-folder-check me-2 align-middle text-white"></i> Rekapitulasi Jawaban
                                 </a>
                             </div>
                         @endif
@@ -93,10 +121,3 @@
         @endforeach
     </div>
 @endif
-
-{{-- Fungsi kustom untuk memastikan angka pertemuan tetap monospace jika dipanggil via fungsi eksternal --}}
-@php
-function font_monospace($val) {
-    return '<span class="font-monospace">' . $val . '</span>';
-}
-@endphp

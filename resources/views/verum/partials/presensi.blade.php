@@ -12,11 +12,17 @@
         </div>
     </div>
     
-    {{-- Eksekusi Buka Presensi Dosen --}}
+    {{-- Eksekusi Buka Presensi Dosen & Cetak Rekap --}}
     @if(Auth::user()->hasRole('dosen'))
-        <button class="btn btn-sm btn-dark rounded-0 px-4 uppercase fw-bold small shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#bukaPresensiModal">
-            <i class="bi bi-qr-code-scan me-2 text-white align-middle"></i> Buka Sesi Presensi
-        </button>
+        <div class="d-flex gap-2">
+            <a href="{{ route('verum.presensi.cetak', $verum_kela->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small py-2 border-2">
+                <i class="bi bi-printer-fill me-1 align-middle"></i> Cetak Rekap
+            </a>
+            
+            <button class="btn btn-sm btn-dark rounded-0 px-4 uppercase fw-bold small shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#bukaPresensiModal">
+                <i class="bi bi-qr-code-scan me-2 text-white align-middle"></i> Buka Sesi
+            </button>
+        </div>
     @endif
 </div>
 
@@ -59,7 +65,8 @@
                     <div class="mb-3 mb-md-0">
                         <div class="d-flex align-items-center mb-1">
                             <h6 class="mb-0 fw-bold text-dark uppercase fs-6">
-                                PERTEMUAN KE-{{ font_monospace($sesi->pertemuan_ke) }}
+                                {{-- [PERBAIKAN ERROR] Mengganti pemanggilan fungsi dengan tag span HTML langsung --}}
+                                PERTEMUAN KE-<span class="font-monospace">{{ $sesi->pertemuan_ke }}</span>
                             </h6>
                             @if($sesiAktif)
                                 <span class="badge bg-danger text-white rounded-0 font-monospace uppercase fw-bold ms-3 px-2 py-1 blink" style="font-size: 10px;">LIVE SESSION</span>

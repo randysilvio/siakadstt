@@ -15,16 +15,14 @@ class VerumController extends Controller
 {
     public function __construct()
     {
-        // HANYA DOSEN yang boleh membuat kelas atau mengatur meeting
-        $this->middleware('role:dosen')->only(['create', 'store', 'startMeeting', 'stopMeeting']);
+        // [UPDATE] Tambahkan destroy pada middleware dosen
+        $this->middleware('role:dosen')->only(['create', 'store', 'startMeeting', 'stopMeeting', 'destroy']);
     }
 
     public function index(): View
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        // 1. BLOKIR ADMIN dan user tanpa peran akademik
         if ($user->hasRole('admin') && !$user->hasRole('dosen') && !$user->hasRole('mahasiswa')) {
             abort(403, 'Akses ditolak. Administrator tidak memiliki akses ke E-Learning.');
         }
@@ -37,15 +35,12 @@ class VerumController extends Controller
                    ->with('error', 'Saat ini tidak ada Tahun Akademik yang aktif.');
         }
 
-        // 2. Logika Tampilan Berdasarkan Peran
         if ($user->hasRole('dosen') && $user->dosen) {
-            // Dosen hanya melihat kelas miliknya
             $semuaKelas = VerumKelas::where('dosen_id', $user->dosen->id)
                                 ->where('tahun_akademik_id', $tahunAkademikAktif->id)
                                 ->with('mataKuliah')
                                 ->get();
         } elseif ($user->hasRole('mahasiswa') && $user->mahasiswa) {
-            // Mahasiswa hanya melihat kelas yang diambil di KRS
             $krsMataKuliahIds = $user->mahasiswa->mataKuliahs()->pluck('mata_kuliahs.id');
 
             $semuaKelas = VerumKelas::whereIn('mata_kuliah_id', $krsMataKuliahIds)
@@ -53,7 +48,6 @@ class VerumController extends Controller
                                 ->with(['mataKuliah', 'dosen.user'])
                                 ->get();
         } else {
-            // Jika user tidak punya data dosen/mahasiswa valid
             abort(403, 'Data profil akademik tidak ditemukan.');
         }
 
@@ -64,17 +58,14 @@ class VerumController extends Controller
     {
         $user = Auth::user();
 
-        // BLOKIR ADMIN
         if ($user->hasRole('admin') && !$user->hasRole('dosen')) {
             abort(403, 'Akses ditolak.');
         }
 
-        // Validasi Kepemilikan Akses
         $isDosenPemilik = $user->dosen && $user->dosen->id == $verum_kela->dosen_id;
         $isMahasiswaTerdaftar = false;
 
         if ($user->mahasiswa) {
-            // Cek apakah mahasiswa mengambil matkul ini
             $isMahasiswaTerdaftar = $user->mahasiswa->mataKuliahs->contains($verum_kela->mata_kuliah_id);
         }
 
@@ -89,7 +80,6 @@ class VerumController extends Controller
     public function create(): View
     {
         $user = Auth::user();
-        // Middleware sudah handle role:dosen, tapi pastikan data dosen ada
         if (!$user->dosen) {
              abort(404, 'Data dosen tidak ditemukan.');
         }
@@ -113,7 +103,6 @@ class VerumController extends Controller
             return back()->with('error', 'Tidak ada tahun akademik aktif.');
         }
 
-        // Validasi: Dosen hanya boleh buat kelas untuk matkul yang dia ampu
         if (!$user->dosen->mataKuliahs->contains($request->mata_kuliah_id)) {
             return back()->with('error', 'Anda tidak mengampu mata kuliah ini.');
         }
@@ -130,10 +119,20 @@ class VerumController extends Controller
         return redirect()->route('verum.index')->with('success', 'Kelas Verum berhasil dibuat.');
     }
 
+    // [BARU] Hapus Kelas
+    public function destroy(VerumKelas $verum_kela): RedirectResponse
+    {
+        if (!Auth::user()->dosen || Auth::user()->dosen->id !== $verum_kela->dosen_id) {
+            abort(403, 'Anda tidak berhak menghapus kelas ini.');
+        }
+
+        $verum_kela->delete();
+        return redirect()->route('verum.index')->with('success', 'Kelas berhasil dihapus.');
+    }
+
     public function storePost(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
         $request->validate(['konten' => 'required|string']);
-        // Akses view show() sudah divalidasi, jadi aman untuk insert
         VerumPostingan::create([
             'kelas_id' => $verum_kela->id,
             'user_id' => Auth::id(),
@@ -143,9 +142,22 @@ class VerumController extends Controller
         return back()->with('success', 'Postingan berhasil ditambahkan.');
     }
 
+    // [BARU] Hapus Postingan
+    public function destroyPost(VerumPostingan $postingan): RedirectResponse
+    {
+        $isPemilikPost = $postingan->user_id === Auth::id();
+        $isDosenKelas = Auth::user()->dosen && Auth::user()->dosen->id === $postingan->kelas->dosen_id;
+
+        if (!$isPemilikPost && !$isDosenKelas) {
+            abort(403, 'Anda tidak berhak menghapus postingan ini.');
+        }
+
+        $postingan->delete();
+        return back()->with('success', 'Postingan berhasil dihapus.');
+    }
+
     public function startMeeting(VerumKelas $verum_kela): RedirectResponse
     {
-        // Hanya Dosen Pemilik
         if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
             $verum_kela->update(['is_meeting_active' => true]);
             return back()->with('success', 'Ruang kelas online telah dibuka.');
@@ -155,7 +167,6 @@ class VerumController extends Controller
 
     public function stopMeeting(VerumKelas $verum_kela): RedirectResponse
     {
-        // Hanya Dosen Pemilik
         if (Auth::user()->dosen && Auth::user()->dosen->id == $verum_kela->dosen_id) {
             $verum_kela->update(['is_meeting_active' => false]);
             return back()->with('success', 'Kelas online telah diakhiri.');

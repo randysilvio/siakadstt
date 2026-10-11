@@ -8,6 +8,7 @@ use App\Models\VerumKehadiran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View; // Pastikan menggunakan library View
 
 class VerumPresensiController extends Controller
 {
@@ -16,7 +17,9 @@ class VerumPresensiController extends Controller
      */
     public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
-        $this->authorize('update', $verum_kela);
+        if (!Auth::user()->dosen || Auth::user()->dosen->id !== $verum_kela->dosen_id) {
+            abort(403, 'Hanya dosen pengampu yang bisa membuka presensi.');
+        }
 
         $request->validate([
             'judul_pertemuan' => 'required|string|max:255',
@@ -39,7 +42,6 @@ class VerumPresensiController extends Controller
      */
     public function storeKehadiran(Request $request, VerumPresensi $verum_presensi): RedirectResponse
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
@@ -47,6 +49,13 @@ class VerumPresensiController extends Controller
             abort(403, 'Aksi ini hanya untuk mahasiswa.');
         }
 
+        // Validasi Keamanan: Pastikan mahasiswa terdaftar di kelas ini
+        $isEnrolled = $mahasiswa->mataKuliahs->contains($verum_presensi->kelas->mata_kuliah_id);
+        if (!$isEnrolled) {
+            return back()->with('error', 'Anda tidak terdaftar di kelas ini.');
+        }
+
+        // Cek Batas Waktu
         if (now()->isAfter($verum_presensi->waktu_tutup)) {
             return back()->with('error', 'Sesi presensi sudah ditutup.');
         }
@@ -67,5 +76,23 @@ class VerumPresensiController extends Controller
         ]);
 
         return back()->with('success', 'Kehadiran Anda berhasil dicatat.');
+    }
+
+    /**
+     * Menampilkan dan menyiapkan data halaman Cetak Rekap Absensi untuk Dosen
+     */
+    public function cetakRekap(VerumKelas $verum_kela): View
+    {
+        if (!Auth::user()->dosen || Auth::user()->dosen->id !== $verum_kela->dosen_id) {
+            abort(403, 'Hanya dosen pengampu yang bisa mencetak absensi.');
+        }
+
+        // Mengambil data seluruh mahasiswa yang KRS-nya aktif pada mata kuliah ini
+        $mahasiswas = $verum_kela->mataKuliah->mahasiswas()->orderBy('nama_lengkap')->get();
+        
+        // Mengambil seluruh data pertemuan sekaligus *eager load* tabel kehadirannya
+        $presensis = $verum_kela->presensi()->with('kehadiran')->orderBy('pertemuan_ke')->get();
+
+        return view('verum.presensi_cetak', compact('verum_kela', 'mahasiswas', 'presensis'));
     }
 }

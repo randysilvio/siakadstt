@@ -236,11 +236,37 @@
     </div>
 @endif
 
+{{-- [BARU] SCRIPT PENGINGAT TAB (LOCAL STORAGE) --}}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Gunakan ID unik per kelas agar tab tidak bentrok antar kelas
+        let storageKey = 'verum_tab_active_' + {{ $verum_kela->id }};
+        let activeTabTarget = localStorage.getItem(storageKey);
+
+        if (activeTabTarget) {
+            // Gunakan API bawaan Bootstrap 5 untuk membuka tab yang disimpan
+            let triggerEl = document.querySelector('button[data-bs-target="' + activeTabTarget + '"]');
+            if (triggerEl) {
+                let tabInstance = new bootstrap.Tab(triggerEl);
+                tabInstance.show();
+            }
+        }
+
+        // Event listener untuk menyimpan posisi tab setiap kali diklik
+        let tabElements = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabElements.forEach(function(el) {
+            el.addEventListener('shown.bs.tab', function (event) {
+                let target = event.target.getAttribute('data-bs-target');
+                localStorage.setItem(storageKey, target);
+            });
+        });
+    });
+</script>
+
 <style>
     @keyframes blink { 50% { opacity: 0; } }
     .blink { animation: blink 1.5s linear infinite; }
     
-    /* Perataan Bilah Tab Navigasi Enterprise Flat 0px */
     .nav-tabs { border-bottom: 2px solid #212529; }
     .nav-tabs .nav-link { 
         color: #fff; 
