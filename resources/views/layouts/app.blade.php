@@ -19,13 +19,10 @@
         .navbar-custom { background-color: #ffffff; border-bottom: 2px solid #212529; padding-top: 0.8rem; padding-bottom: 0.8rem; }
         .brand-text { font-family: 'Raleway', sans-serif; font-weight: 800; color: #212529; letter-spacing: -0.01em; line-height: 1; }
         .brand-sub { font-size: 0.7rem; font-weight: 700; color: #495057; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; display: block; }
-        .navbar-nav .nav-link { color: #495057; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 1rem; transition: all 0.2s; border-radius: 0 !important; }
+        .navbar-nav .nav-link { color: #495057; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 0.65rem !important; transition: all 0.2s; border-radius: 0 !important; }
         .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active, .navbar-nav .show > .nav-link { color: #ffffff; background-color: #212529; }
-        .navbar-nav .nav-link i { margin-right: 6px; color: inherit; }
-        
-        /* PENGHILANGAN PANAH DROPDOWN */
+        .navbar-nav .nav-link i { margin-right: 5px; color: inherit; }
         .dropdown-toggle::after { display: none !important; }
-
         .dropdown-menu { border: 1px solid #212529; box-shadow: none; border-radius: 0; padding: 0; margin-top: 0; }
         .dropdown-item { font-size: 0.85rem; text-transform: uppercase; color: #212529; padding: 0.6rem 1rem; border-radius: 0; font-weight: 600; border-bottom: 1px solid #e9ecef; }
         .dropdown-item:last-child { border-bottom: none; }
@@ -33,9 +30,11 @@
         .dropdown-header { color: #6c757d; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; padding: 0.6rem 1rem; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; margin: 0; }
         .dropdown-divider { border-color: #212529; margin: 0; }
         .user-avatar { width: 32px; height: 32px; background-color: #212529; color: #ffffff; border-radius: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 1rem; }
+        .user-name-truncate { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
         .footer { background-color: #ffffff; border-top: 2px solid #212529; color: #212529; }
         @keyframes pulse-dot { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         .online-dot { animation: pulse-dot 2s infinite ease-in-out; }
+        .bg-light-new { background-color: #e9ecef !important; }
     </style>
 
     @if(request()->routeIs('berita.index') || request()->routeIs('dosen.public.*') || request()->routeIs('pengumuman.public.*'))
@@ -56,7 +55,7 @@
     @endif
 
     <nav class="navbar navbar-expand-xl navbar-light navbar-custom sticky-top shadow-sm">
-        <div class="container">
+        <div class="container-fluid px-3 px-xl-5">
             <a class="navbar-brand d-flex align-items-center gap-3" href="{{ auth()->check() ? route('dashboard') : '/' }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" width="42" height="42" class="d-inline-block">
                 <div class="d-flex flex-column justify-content-center">
@@ -70,7 +69,7 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center gap-1">
+                <ul class="navbar-nav ms-auto align-items-center gap-0">
                     @auth
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('kalender.*') ? 'active' : '' }}" href="{{ route('kalender.halaman') }}">
@@ -78,7 +77,6 @@
                             </a>
                         </li>
 
-                        {{-- STRUKTUR MENU ADMIN --}}
                         @if(Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*', 'admin/mahasiswa*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -126,7 +124,6 @@
                             </li>
                         @endif
 
-                        {{-- [UPDATE]: MENU WEBSITE (Untuk Admin & Administrasi Umum) --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pengumuman*', 'admin/slideshows*', 'admin/dokumen-publik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -141,7 +138,6 @@
                             </li>
                         @endif
 
-                        {{-- MENU PENGATURAN --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -161,7 +157,6 @@
                             </li>
                         @endif
 
-                        {{-- [UPDATE]: MENU PENJAMINAN MUTU (Dibuang Dashboard Mutu-nya) --}}
                         @if(Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('penjaminan-mutu/dashboard') ? 'active' : '' }}" href="{{ route('mutu.dashboard') }}">
@@ -170,12 +165,11 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('penjaminan-mutu/laporan*') ? 'active' : '' }}" href="{{ route('mutu.laporan.index') }}">
-                                    <i class="bi bi-file-earmark-bar-graph"></i>Laporan Mutu
+                                    <i class="bi bi-file-earmark-bar-graph"></i>Laporan
                                 </a>
                             </li>
                         @endif
 
-                        {{-- MENU ADMINISTRASI UMUM & SARPRAS --}}
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('administrasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -218,7 +212,7 @@
                             @if(optional(Auth::user()->mahasiswa)->status_mahasiswa === 'Lulus')
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle {{ request()->is('transkrip*', 'pembayaran*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                        <i class="bi bi-award-fill"></i>Layanan Alumni
+                                        <i class="bi bi-award-fill"></i>Alumni
                                     </a>
                                     <ul class="dropdown-menu">
                                         <li><h6 class="dropdown-header">Arsip Kelulusan</h6></li>
@@ -236,8 +230,8 @@
                                     </a>
                                     <ul class="dropdown-menu">
                                         <li><h6 class="dropdown-header">Studi</h6></li>
-                                        <li><a class="dropdown-item" href="{{ route('krs.index') }}">KRS (Kartu Rencana Studi)</a></li>
-                                        <li><a class="dropdown-item" href="{{ route('khs.index') }}">KHS (Kartu Hasil Studi)</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('krs.index') }}">KRS Studi</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('khs.index') }}">KHS Hasil</a></li>
                                         <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Administrasi</h6></li>
@@ -251,7 +245,7 @@
                         @if (Auth::user()->hasRole('pustakawan'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('perpustakaan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                    <i class="bi bi-book"></i>Perpustakaan
+                                    <i class="bi bi-book"></i>Perpus
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ route('perpustakaan.index') }}">Dashboard</a></li>
@@ -271,28 +265,28 @@
                     @endauth
                 </ul>
 
-                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <ul class="navbar-nav ms-auto align-items-center gap-1 ps-lg-3">
                     @auth
-                        <li class="nav-item me-1">
+                        <li class="nav-item me-1 d-none d-lg-block">
                             <div class="bg-light border border-dark rounded-0 px-2 py-1 d-flex align-items-center shadow-none" title="Jumlah Pengguna Daring Saat Ini">
                                 <i class="bi bi-circle-fill text-success online-dot me-2" style="font-size: 0.55rem;"></i>
                                 <span class="small font-monospace uppercase fw-bold text-dark" style="font-size: 0.75rem;">
-                                    <strong class="text-success font-monospace">{{ $onlineUsersCount ?? 1 }}</strong> ONLINE
+                                    <strong class="text-success font-monospace">{{ $onlineUsersCount ?? 1 }}</strong> ON
                                 </span>
                             </div>
                         </li>
 
-                        <li class="nav-item dropdown ms-1 me-1">
-                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{-- Dropdown dan Badge Notifikasi --}}
+                        <li class="nav-item dropdown mx-1">
+                            <a class="nav-link position-relative px-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell fs-5 text-secondary"></i>
-                                @if(Auth::user()->unreadNotifications->count() > 0)
-                                    <span class="position-absolute top-25 start-75 translate-middle badge rounded-0 bg-danger" style="font-size: 0.65rem;">
-                                        {{ Auth::user()->unreadNotifications->count() }}
-                                    </span>
-                                @endif
+                                <span id="notifBadge" class="position-absolute top-25 start-75 translate-middle badge rounded-0 bg-danger {{ Auth::user()->unreadNotifications->count() > 0 ? '' : 'd-none' }}" style="font-size: 0.65rem;">
+                                    {{ Auth::user()->unreadNotifications->count() > 0 ? Auth::user()->unreadNotifications->count() : '0' }}
+                                </span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
-                                <li>
+                            
+                            <ul id="notifList" class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                                <li id="notifHeader">
                                     <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
                                         <span class="fw-bold uppercase small">Notifikasi</span>
                                         @if(Auth::user()->unreadNotifications->count() > 0)
@@ -303,9 +297,10 @@
                                         @endif
                                     </div>
                                 </li>
+                                
                                 @forelse(Auth::user()->unreadNotifications->take(5) as $notification)
                                     <li>
-                                        <a class="dropdown-item py-3 border-bottom text-wrap" href="{{ $notification->data['url'] ?? '#' }}" style="white-space: normal;">
+                                        <a class="dropdown-item py-3 border-bottom text-wrap" href="{{ route('notifikasi.baca', $notification->id) }}" style="white-space: normal;">
                                             <div class="d-flex align-items-start gap-2">
                                                 <i class="{{ $notification->data['icon'] ?? 'bi-info-circle-fill text-dark' }} fs-4"></i>
                                                 <div>
@@ -317,28 +312,35 @@
                                         </a>
                                     </li>
                                 @empty
-                                    <li>
+                                    <li id="emptyNotifMsg">
                                         <div class="px-3 py-4 text-center text-muted">
                                             <i class="bi bi-bell-slash fs-2 d-block mb-2"></i>
                                             <span class="small uppercase fw-bold">Belum ada notifikasi baru.</span>
                                         </div>
                                     </li>
                                 @endforelse
+
+                                <li><hr class="dropdown-divider m-0 border-secondary opacity-25"></li>
+                                <li>
+                                    <a href="{{ route('notifikasi.index') }}" class="dropdown-item text-center py-2 text-primary fw-bold uppercase bg-light" style="font-size: 0.75rem;">
+                                        Lihat Semua Riwayat <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
-                        <li class="nav-item dropdown ms-lg-2">
+                        <li class="nav-item dropdown ms-lg-1">
                             <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
                                 <div class="user-avatar">
                                     {{ substr(Auth::user()->name, 0, 1) }}
                                 </div>
-                                <span class="d-none d-lg-inline small fw-bold uppercase">{{ Auth::user()->name }}</span>
+                                <span class="d-none d-lg-inline fw-bold uppercase user-name-truncate" style="font-size: 0.85rem;">{{ Auth::user()->name }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                                 <li>
                                     <div class="px-3 py-2 text-center border-bottom mb-2 bg-light">
                                         <div class="small text-muted uppercase">Login Sebagai</div>
-                                        <div class="fw-bold uppercase text-dark">{{ Auth::user()->roles->first()->name ?? 'USER' }}</div>
+                                        <div class="fw-bold uppercase text-dark" style="font-size: 0.85rem;">{{ Auth::user()->roles->first()->name ?? 'USER' }}</div>
                                     </div>
                                 </li>
                                 <li><a class="dropdown-item" href="{{ route('profile.edit') }}"><i class="bi bi-person-gear me-2"></i>Edit Profil</a></li>
@@ -375,6 +377,21 @@
 
     @include('partials.chatbot')
 
+    {{-- WADAH CUSTOM PUSH NOTIFICATION (BOOTSTRAP TOAST) --}}
+    <div class="toast-container position-fixed top-0 end-0 p-4" style="z-index: 1090; margin-top: 60px;">
+        <div id="fcmToast" class="toast align-items-center text-bg-dark border-start border-success border-5 shadow-lg rounded-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-dark text-white border-bottom border-secondary rounded-0 p-3">
+                <i class="bi bi-bell-fill text-success me-2 blink"></i>
+                <strong class="me-auto uppercase fw-bold" id="fcmToastTitle" style="font-size: 0.8rem; letter-spacing: 1px;">Pesan Baru</strong>
+                <small class="text-white-50 font-monospace" style="font-size: 0.65rem;">BARU SAJA</small>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body p-3 text-light uppercase small" id="fcmToastBody" style="line-height: 1.5;">
+                Isi pesan notifikasi akan muncul di sini.
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -390,7 +407,7 @@
 
     <script>
         (function() {
-            const idleDuration = 600 * 1000;
+            const idleDuration = 3 * 24 * 60 * 60 * 1000; 
             let idleTimer;
 
             function resetTimer() {
@@ -399,7 +416,7 @@
             }
 
             function logoutUser() {
-                alert("Sesi Anda telah berakhir karena tidak ada aktivitas selama 10 menit.");
+                alert("Sesi Anda telah berakhir karena tidak ada aktivitas selama 3 hari.");
                 const form = document.getElementById('logout-form');
                 if (form) {
                     form.submit();
@@ -417,5 +434,120 @@
             document.addEventListener('scroll', resetTimer, true); 
         })();
     </script>
+
+    @auth
+    <!-- FIREBASE PUSH NOTIFICATION SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCric2X1hFP4TJ4bghlSnavjQZwmnszehU",
+            authDomain: "stt-gpi-papua.firebaseapp.com",
+            projectId: "stt-gpi-papua",
+            storageBucket: "stt-gpi-papua.firebasestorage.app",
+            messagingSenderId: "633336694324",
+            appId: "1:633336694324:web:a2cb604ff59a4299b4ec61"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const messaging = getMessaging(app);
+
+        function requestPermission() {
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    const vapidKey = "BL2185YiCpj00XSIKLknQcbdc2dNk8wBCR1A96lKfGI38y6cgZI0XMw77JBE_AgbEn7STVZQLWkmK5pOzg_DQII";
+                    getToken(messaging, { vapidKey: vapidKey })
+                    .then((currentToken) => {
+                        if (currentToken) {
+                            kirimTokenKeLaravel(currentToken);
+                        }
+                    }).catch((err) => {
+                        console.log('Error saat mengambil token: ', err);
+                    });
+                }
+            });
+        }
+
+        function kirimTokenKeLaravel(token) {
+            fetch('{{ route("fcmToken.simpan") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ token: token })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Response Simpan Token:', data))
+            .catch(error => console.error('Error simpan token:', error));
+        }
+
+        requestPermission();
+
+        // [PERBAIKAN SUARA] Preload suara memakai asset() agar lokasinya pasti ditemukan
+        const notifSound = new Audio('{{ asset("sounds/notification.mp3") }}');
+        notifSound.preload = 'auto';
+
+        onMessage(messaging, (payload) => {
+            console.log('Pesan masuk: ', payload);
+
+            // 1. Putar Suara Lonceng
+            try {
+                notifSound.currentTime = 0; 
+                notifSound.play().catch(function(error) {
+                    console.log('Suara diblokir oleh browser (Anda belum mengklik layar web):', error);
+                });
+            } catch (err) {
+                console.log('Gagal memutar suara:', err);
+            }
+
+            // 2. Munculkan Toast
+            const toastEl = document.getElementById('fcmToast');
+            if (toastEl && payload.notification) {
+                document.getElementById('fcmToastTitle').innerText = payload.notification.title;
+                document.getElementById('fcmToastBody').innerText = payload.notification.body;
+                new bootstrap.Toast(toastEl, { delay: 6000 }).show();
+            }
+
+            // 3. Tambah angka di Lonceng Merah (Badge) otomatis
+            const badge = document.getElementById('notifBadge');
+            if(badge) {
+                let currentCount = parseInt(badge.innerText) || 0;
+                badge.innerText = currentCount + 1;
+                badge.classList.remove('d-none'); 
+            }
+
+            // 4. Sisipkan Pesan ke Dropdown List paling atas
+            const notifHeader = document.getElementById('notifHeader');
+            if(notifHeader && payload.notification) {
+                const url = payload.data?.url || '#';
+                const title = payload.notification.title;
+                const body = payload.notification.body;
+                const icon = payload.data?.icon || 'bi-info-circle-fill text-primary';
+                
+                const newLi = document.createElement('li');
+                newLi.innerHTML = `
+                    <a class="dropdown-item py-3 border-bottom text-wrap bg-light-new" href="${url}" style="white-space: normal;">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="${icon} fs-4"></i>
+                            <div>
+                                <div class="fw-bold uppercase" style="font-size: 0.85rem; color: #212529;">${title}</div>
+                                <div class="text-muted" style="font-size: 0.8rem;">${body}</div>
+                                <div class="text-primary font-monospace mt-1 fw-bold" style="font-size: 0.7rem;">BARU SAJA</div>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                
+                notifHeader.insertAdjacentElement('afterend', newLi);
+                
+                const emptyMsg = document.getElementById('emptyNotifMsg');
+                if(emptyMsg) emptyMsg.remove();
+            }
+        });
+    </script>
+    @endauth
+
 </body>
 </html>

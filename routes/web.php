@@ -53,6 +53,7 @@ use App\Http\Controllers\RektoratController;
 use App\Http\Controllers\EvaluasiController;
 use App\Http\Controllers\DosenDashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
+use App\Http\Controllers\NotificationController;
 
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/dokumen-publik', [App\Http\Controllers\PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
@@ -82,10 +83,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    Route::post('/notifikasi/baca-semua', function() {
-        auth()->user()->unreadNotifications->markAsRead();
-        return back();
-    })->name('notifikasi.baca-semua');
+    // [BARU] Rute untuk menyimpan Token Firebase dari Browser pengguna
+    Route::post('/simpan-fcm-token', [ProfileController::class, 'simpanFcmToken'])->name('fcmToken.simpan');
+
+    // [BARU] Rute Riwayat Notifikasi
+    Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
+    Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
+    Route::post('/notifikasi/baca-semua', [NotificationController::class, 'tandaiSemuaDibaca'])->name('notifikasi.baca-semua');
 
     Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function() {
         Route::get('/pembayaran', [PmbController::class, 'showPaymentForm'])->name('pembayaran.show');
@@ -98,7 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
 
     // =========================================================================
-    // BLOK RUTE MODUL VERUM (E-LEARNING) - SUDAH DILENGKAPI FITUR DELETE & REKAP
+    // BLOK RUTE MODUL VERUM (E-LEARNING)
     // =========================================================================
     Route::prefix('verum')->name('verum.')->group(function() {
         Route::get('/', [VerumController::class, 'index'])->name('index');
@@ -106,33 +110,26 @@ Route::middleware('auth')->group(function () {
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}', [VerumController::class, 'show'])->name('show');
         
-        // Hapus Kelas
         Route::delete('/kelas/{verum_kela}', [VerumController::class, 'destroy'])->name('destroy')->middleware('role:dosen');
         
-        // V-Con Meeting
         Route::patch('/kelas/{verum_kela}/start-meeting', [VerumController::class, 'startMeeting'])->name('meeting.start')->middleware('role:dosen');
         Route::patch('/kelas/{verum_kela}/stop-meeting', [VerumController::class, 'stopMeeting'])->name('meeting.stop')->middleware('role:dosen');
         
-        // Forum Diskusi
         Route::post('/kelas/{verum_kela}/forum', [VerumController::class, 'storePost'])->name('forum.store');
         Route::delete('/forum/{postingan}', [VerumController::class, 'destroyPost'])->name('forum.destroy');
         
-        // Materi Ajar
         Route::post('/kelas/{verum_kela}/materi', [VerumMateriController::class, 'store'])->name('materi.store')->middleware('role:dosen');
         Route::delete('/materi/{verum_materi}', [VerumMateriController::class, 'destroy'])->name('materi.destroy')->middleware('role:dosen');
         
-        // Penugasan
         Route::post('/kelas/{verum_kela}/tugas', [VerumTugasController::class, 'store'])->name('tugas.store')->middleware('role:dosen');
         Route::delete('/tugas/{verum_tuga}', [VerumTugasController::class, 'destroy'])->name('tugas.destroy')->middleware('role:dosen');
         Route::get('/tugas/{verum_tuga}/rekap', [VerumTugasController::class, 'rekap'])->name('tugas.rekap')->middleware('role:dosen');
         Route::post('/tugas/{verum_tuga}/kumpulkan', [VerumTugasController::class, 'storePengumpulan'])->name('tugas.kumpulkan')->middleware('role:mahasiswa');
         
-        // Presensi Kehadiran & Rekap Cetak
         Route::post('/kelas/{verum_kela}/presensi', [VerumPresensiController::class, 'store'])->name('presensi.store')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}/presensi/cetak', [VerumPresensiController::class, 'cetakRekap'])->name('presensi.cetak')->middleware('role:dosen');
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('role:mahasiswa');
     });
-    // =========================================================================
 
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
         Route::middleware('role:pustakawan')->group(function() {
@@ -166,10 +163,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:dosen')->group(function () {
          Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
          Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
-         
          Route::get('/dosen/mata-kuliah/{mataKuliah}/cetak-absensi', [DosenDashboardController::class, 'cetakAbsensi'])->name('dosen.cetak_absensi');
-         
          Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
+         
          Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
          Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
          Route::delete('/perwalian/{mahasiswa}', [PerwalianController::class, 'destroy'])->name('perwalian.destroy');
