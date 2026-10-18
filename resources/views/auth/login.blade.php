@@ -30,7 +30,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                         </svg>
                     </div>
+                    <!-- PERBAIKAN: Menambahkan style="padding-left: 40px;" -->
                     <x-text-input id="email" 
+                                  style="padding-left: 40px;"
                                   class="block w-full pl-10 border-gray-300 focus:border-teal-600 focus:ring-teal-600 rounded-md shadow-sm transition duration-200 ease-in-out" 
                                   type="email" name="email" :value="old('email')" required autofocus placeholder="nama@sttgpipapua.ac.id" />
                 </div>
@@ -50,7 +52,9 @@
                         </svg>
                     </div>
                     
+                    <!-- PERBAIKAN: Menambahkan style="padding-left: 40px; padding-right: 40px;" -->
                     <x-text-input id="password" 
+                                  style="padding-left: 40px; padding-right: 40px;"
                                   class="block w-full pl-10 pr-10 border-gray-300 focus:border-teal-600 focus:ring-teal-600 rounded-md shadow-sm transition duration-200 ease-in-out"
                                   type="password" name="password" required autocomplete="current-password" placeholder="••••••••" />
                     
