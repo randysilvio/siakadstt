@@ -24,6 +24,7 @@ class Peminjaman extends Model
      */
     protected $fillable = [
         'koleksi_id',
+        'eksemplar_id', // [PERBAIKAN] agar barcode/eksemplar ikut tersimpan
         'user_id',
         'tanggal_pinjam',
         'jatuh_tempo',
@@ -37,6 +38,14 @@ class Peminjaman extends Model
     public function koleksi(): BelongsTo
     {
         return $this->belongsTo(Koleksi::class, 'koleksi_id');
+    }
+
+    /**
+     * [PERBAIKAN] Mendapatkan data eksemplar fisik (barcode) yang dipinjam.
+     */
+    public function eksemplar(): BelongsTo
+    {
+        return $this->belongsTo(PerpustakaanEksemplar::class, 'eksemplar_id');
     }
 
     /**

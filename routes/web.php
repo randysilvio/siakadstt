@@ -140,10 +140,13 @@ Route::middleware('auth')->group(function () {
             // Rute Cetak Barcode Eksemplar
             Route::get('koleksi/{koleksi}/cetak-barcode', [KoleksiController::class, 'cetakBarcode'])->name('koleksi.cetak-barcode');
             
-            Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'create', 'store']);
-            Route::get('/pengembalian', [PeminjamanController::class, 'showReturnForm'])->name('peminjaman.returnForm');
-            Route::post('/pengembalian', [PeminjamanController::class, 'processReturn'])->name('peminjaman.processReturn');
-            Route::get('/peminjaman/history', [PeminjamanController::class, 'history'])->name('peminjaman.history');
+            // [PERBAIKAN] Sirkulasi diarahkan ke PerpustakaanController (versi barcode/eksemplar)
+            Route::get('/peminjaman', [PerpustakaanController::class, 'indexPeminjaman'])->name('peminjaman.index');
+            Route::get('/peminjaman/create', [PerpustakaanController::class, 'createPeminjaman'])->name('peminjaman.create');
+            Route::post('/peminjaman', [PerpustakaanController::class, 'storePeminjaman'])->name('peminjaman.store');
+            Route::get('/peminjaman/history', [PerpustakaanController::class, 'historyPeminjaman'])->name('peminjaman.history');
+            Route::get('/pengembalian', [PerpustakaanController::class, 'returnForm'])->name('peminjaman.returnForm');
+            Route::post('/pengembalian', [PerpustakaanController::class, 'processReturn'])->name('peminjaman.processReturn');
         });
     });
 

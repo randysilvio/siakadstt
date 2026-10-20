@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB; // Tambahan untuk transaksi database yang aman
+use Illuminate\Support\Facades\Log; // [PERBAIKAN] untuk mencatat error
 use App\Models\Koleksi;      
 use App\Models\Peminjaman;   
 use App\Models\User;
@@ -90,14 +91,9 @@ class PerpustakaanController extends Controller
         ]);
 
         $buku = Koleksi::findOrFail($request->koleksi_id);
-        $eksemplar = PerpustakaanEksemplar::findOrFail($request->eksemplar_id);
 
         if ($buku->jumlah_tersedia <= 0) {
             return back()->with('error', 'Gagal meminjam. Stok master buku sudah habis.');
-        }
-
-        if ($eksemplar->status_fisik !== 'Tersedia') {
-            return back()->with('error', 'Gagal meminjam. Eksemplar buku (Barcode: ' . $eksemplar->kode_barcode . ') sedang dipinjam atau tidak tersedia.');
         }
 
         // Cek apakah mahasiswa yang sama sudah meminjam eksemplar ini dan belum mengembalikan
@@ -113,6 +109,20 @@ class PerpustakaanController extends Controller
         // Gunakan DB Transaction agar jika satu proses gagal, semua dibatalkan (aman)
         DB::beginTransaction();
         try {
+            // [PERBAIKAN] Ambil & kunci baris eksemplar di dalam transaksi agar tidak bisa dipinjam dobel
+            $eksemplar = PerpustakaanEksemplar::lockForUpdate()->findOrFail($request->eksemplar_id);
+
+            // [PERBAIKAN] Pastikan barcode memang milik judul buku yang dipinjam
+            if ((int) $eksemplar->koleksi_id !== (int) $request->koleksi_id) {
+                DB::rollback();
+                return back()->with('error', 'Gagal meminjam. Barcode (' . $eksemplar->kode_barcode . ') tidak sesuai dengan judul buku.');
+            }
+
+            if ($eksemplar->status_fisik !== 'Tersedia') {
+                DB::rollback();
+                return back()->with('error', 'Gagal meminjam. Eksemplar buku (Barcode: ' . $eksemplar->kode_barcode . ') sedang dipinjam atau tidak tersedia.');
+            }
+
             // 1. Buat catatan Peminjaman Baru
             Peminjaman::create([
                 'user_id' => $request->user_id,
@@ -134,6 +144,7 @@ class PerpustakaanController extends Controller
             
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Gagal simpan peminjaman: ' . $e->getMessage()); // [PERBAIKAN]
             return back()->with('error', 'Terjadi kesalahan sistem saat memproses peminjaman.');
         }
     }
@@ -205,6 +216,7 @@ class PerpustakaanController extends Controller
             
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Gagal proses pengembalian: ' . $e->getMessage()); // [PERBAIKAN]
             return back()->with('error', 'Terjadi kesalahan saat memproses pengembalian buku.');
         }
     }

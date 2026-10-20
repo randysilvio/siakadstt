@@ -15,6 +15,18 @@
         </div>
     </div>
 
+    {{-- [PERBAIKAN] Tampilkan pesan error dari controller / validasi --}}
+    @if(session('error'))
+        <div class="alert alert-danger border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger border rounded-0 shadow-sm mb-4 p-3 small">
+            @foreach($errors->all() as $err) <div>{{ $err }}</div> @endforeach
+        </div>
+    @endif
+
     <div class="row g-4 mb-5">
         {{-- KOLOM KIRI: SCANNER AREA --}}
         <div class="col-lg-5">
@@ -100,8 +112,8 @@
         return [
             'id' => $eks->id,
             'koleksi_id' => $eks->koleksi_id,
-            'kode_barcode' => $eks->kode_barcode,
-            'judul' => $eks->koleksi->judul
+            'kode_barcode' => strtoupper(trim($eks->kode_barcode)), // [PERBAIKAN] samakan format dengan input scanner
+            'judul' => $eks->koleksi->judul ?? 'N/A' // [PERBAIKAN] cegah error jika master buku terhapus
         ];
     });
 @endphp

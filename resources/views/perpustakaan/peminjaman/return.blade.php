@@ -14,6 +14,18 @@
         </div>
     </div>
 
+    {{-- [PERBAIKAN] Tampilkan pesan error dari controller / validasi --}}
+    @if(session('error'))
+        <div class="alert alert-danger border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger border rounded-0 shadow-sm mb-4 p-3 small">
+            @foreach($errors->all() as $err) <div>{{ $err }}</div> @endforeach
+        </div>
+    @endif
+
     <div class="row g-4 mb-5">
         {{-- KOLOM KIRI: SCANNER AREA --}}
         <div class="col-lg-5">
@@ -78,7 +90,8 @@
                                 <option value="" selected>-- PILIH TRANSAKSI (JIKA SCANNER RUSAK) --</option>
                                 @foreach($peminjamans as $p)
                                     <option value="{{ $p->id }}">
-                                        {{ $p->eksemplar->kode_barcode ?? 'NO-BARCODE' }} | {{ $p->user->name }} - {{ $p->koleksi->judul }}
+                                        {{-- [PERBAIKAN] cegah error jika user / buku sudah dihapus --}}
+                                        {{ $p->eksemplar->kode_barcode ?? 'NO-BARCODE' }} | {{ $p->user->name ?? 'USER DIHAPUS' }} - {{ $p->koleksi->judul ?? 'BUKU DIHAPUS' }}
                                     </option>
                                 @endforeach
                             </select>
@@ -100,7 +113,7 @@
     $dataScan = $peminjamans->map(function($p) {
         return [
             'peminjaman_id' => $p->id,
-            'barcode' => $p->eksemplar ? strtoupper($p->eksemplar->kode_barcode) : '',
+            'barcode' => $p->eksemplar ? strtoupper(trim($p->eksemplar->kode_barcode)) : '', // [PERBAIKAN] tambah trim()
             'judul' => $p->koleksi->judul ?? 'N/A',
             'peminjam' => $p->user->name ?? 'N/A',
             'jatuh_tempo' => \Carbon\Carbon::parse($p->jatuh_tempo)->format('d/m/Y'),
