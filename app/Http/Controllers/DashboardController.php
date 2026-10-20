@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache; 
 use App\Models\Pengumuman;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
@@ -17,6 +18,7 @@ use App\Models\TahunAkademik;
 use App\Models\Peminjaman; 
 use App\Models\SuratKeputusan;
 use App\Models\DokumenPublik;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -53,12 +55,98 @@ class DashboardController extends Controller
 
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
+        // =========================================================
+        // Dashboard Khusus ADMIN
+        // =========================================================
         if ($user->hasRole('admin')) {
             $prodiData = ProgramStudi::withCount('mahasiswas')->get();
             $dataGrafikProdi = [
                 'labels' => $prodiData->pluck('nama_prodi'),
                 'data' => $prodiData->pluck('mahasiswas_count'),
             ];
+
+            // 1. DATA LOG PENGGUNA TERAKHIR
+            $onlineUsersMap = Cache::get('siakad-online-users-list', []);
+            $onlineUserIds = array_keys($onlineUsersMap);
+            $onlineUserIds = array_diff($onlineUserIds, [$user->id]); 
+
+            if (!empty($onlineUserIds)) {
+                $logPengguna = User::with('roles')
+                    ->whereIn('id', $onlineUserIds)
+                    ->get()
+                    ->map(function ($u) use ($onlineUsersMap) {
+                        $u->updated_at = Carbon::createFromTimestamp($onlineUsersMap[$u->id]);
+                        return $u;
+                    })
+                    ->sortByDesc('updated_at')
+                    ->take(5);
+            } else {
+                $logPengguna = User::with('roles')
+                    ->where('id', '!=', $user->id)
+                    ->orderBy('updated_at', 'desc')
+                    ->take(5)
+                    ->get();
+            }
+
+            // 2. DATA PROGRES SEMESTER (Smart Checklist)
+            $matkulBelumDiplot = 0;
+            $persenKrs = 0;
+            
+            if ($periodeAktif) {
+                $totalMhs = Mahasiswa::count();
+                $krsDisetujui = Mahasiswa::where('status_krs', 'Disetujui')->count();
+                $persenKrs = $totalMhs > 0 ? round(($krsDisetujui / $totalMhs) * 100) : 0;
+                $matkulBelumDiplot = MataKuliah::whereNull('dosen_id')->count();
+            }
+
+            // 3. PANTAUAN KELAS LIVE HARI INI
+            $jadwalHariIni = collect();
+            
+            // Konversi nama hari bahasa Inggris ke Indonesia untuk pencarian di DB
+            $mapHari = [
+                'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
+                'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
+            ];
+            $hariIniTxt = $mapHari[date('l')];
+
+            if ($periodeAktif) {
+                $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
+                                       ->where('tahun_akademik_id', $periodeAktif->id)
+                                       ->distinct()
+                                       ->pluck('mata_kuliah_id')
+                                       ->toArray();
+
+                if (!empty($mkAktifSaatIniIds)) {
+                    $jadwalHariIni = Jadwal::with(['mataKuliah.dosen'])
+                        ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
+                        ->where('hari', $hariIniTxt)
+                        ->orderBy('jam_mulai', 'asc')
+                        ->get()
+                        ->map(function($jadwal) {
+                            try {
+                                $now = now();
+                                $mulai = Carbon::parse($jadwal->jam_mulai);
+                                $selesai = Carbon::parse($jadwal->jam_selesai);
+
+                                if ($now->between($mulai, $selesai)) {
+                                    $jadwal->status_kelas = 'LIVE SEDANG BERJALAN';
+                                    $jadwal->warna_status = 'danger'; 
+                                } elseif ($now->lt($mulai)) {
+                                    $jadwal->status_kelas = 'MENUNGGU WAKTU';
+                                    $jadwal->warna_status = 'secondary';
+                                } else {
+                                    $jadwal->status_kelas = 'KULIAH SELESAI';
+                                    $jadwal->warna_status = 'success';
+                                }
+                            } catch (\Exception $e) {
+                                $jadwal->status_kelas = 'WAKTU INVALID';
+                                $jadwal->warna_status = 'dark';
+                            }
+                            return $jadwal;
+                        });
+                }
+            }
+
             return view('dashboard.admin', [
                 'totalMahasiswa' => Mahasiswa::count(),
                 'totalDosen' => Dosen::count(),
@@ -66,10 +154,16 @@ class DashboardController extends Controller
                 'totalMatkul' => MataKuliah::count(),
                 'pengumumans' => $pengumumans,
                 'dataGrafikProdi' => $dataGrafikProdi,
+                'periodeAktif' => $periodeAktif,
+                'logPengguna' => $logPengguna,
+                'persenKrs' => $persenKrs,
+                'matkulBelumDiplot' => $matkulBelumDiplot,
+                'jadwalHariIni' => $jadwalHariIni, // Variabel panel live
+                'namaHariIni' => $hariIniTxt,
             ]);
         }
         // =========================================================
-        // [PERBAIKAN LOGIKA] Dashboard Khusus DOSEN
+        // Dashboard Khusus DOSEN
         // =========================================================
         elseif ($user->hasRole('dosen') || $user->isKaprodi()) {
             $dosen = $user->dosen;
@@ -77,7 +171,6 @@ class DashboardController extends Controller
                 abort(404, 'Data dosen tidak ditemukan untuk akun ini.');
             }
             
-            // 1. FILTER ABSOLUT SEMESTER AKTIF
             $mkAktifSaatIniIds = [];
             if ($periodeAktif) {
                 $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
@@ -87,7 +180,6 @@ class DashboardController extends Controller
                                        ->toArray();
             }
 
-            // 2. FILTER DOSEN PENGAMPU
             $pivotMkIds = DB::table('dosen_mata_kuliah')
                 ->where('dosen_id', $dosen->id)
                 ->pluck('mata_kuliah_id')
@@ -95,25 +187,23 @@ class DashboardController extends Controller
         
             $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
             
-            // 3. TARIK JADWAL KULIAH (Gunakan Saringan Absolut)
             $jadwalKuliahDosen = collect();
             if (!empty($mkAktifSaatIniIds)) {
                 $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen, $pivotMkIds) {
                     $query->where('dosen_id', $dosen->id)
                           ->orWhereIn('id', $pivotMkIds);
                 })
-                ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds) // <- Saringan Mutlak!
+                ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
                 ->with('mataKuliah')
                 ->get()
                 ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
             }
             
-            // 4. TARIK MATA KULIAH (Gunakan Saringan Absolut)
             $mataKuliahDosen = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
                     $query->where('dosen_id', $dosen->id)
                           ->orWhereIn('id', $pivotMkIds);
                 })
-                ->whereIn('id', $mkAktifSaatIniIds) // <- Saringan Mutlak!
+                ->whereIn('id', $mkAktifSaatIniIds)
                 ->withCount(['mahasiswas' => function ($query) use ($periodeAktif) {
                     $query->where('mahasiswas.status_krs', 'Disetujui')
                           ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id ?? null);
