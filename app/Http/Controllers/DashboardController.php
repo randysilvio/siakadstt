@@ -19,6 +19,7 @@ use App\Models\Peminjaman;
 use App\Models\SuratKeputusan;
 use App\Models\DokumenPublik;
 use App\Models\User;
+use App\Models\VerumKelas;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -99,10 +100,9 @@ class DashboardController extends Controller
                 $matkulBelumDiplot = MataKuliah::whereNull('dosen_id')->count();
             }
 
-            // 3. PANTAUAN KELAS LIVE HARI INI
+            // 3. PANTAUAN KELAS VIRTUAL/ONLINE HARI INI
             $jadwalHariIni = collect();
             
-            // Konversi nama hari bahasa Inggris ke Indonesia untuk pencarian di DB
             $mapHari = [
                 'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
                 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
@@ -117,30 +117,48 @@ class DashboardController extends Controller
                                        ->toArray();
 
                 if (!empty($mkAktifSaatIniIds)) {
+                    $verumKelasMap = VerumKelas::where('tahun_akademik_id', $periodeAktif->id)
+                                               ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
+                                               ->get()
+                                               ->keyBy('mata_kuliah_id');
+
                     $jadwalHariIni = Jadwal::with(['mataKuliah.dosen'])
                         ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
                         ->where('hari', $hariIniTxt)
-                        ->orderBy('jam_mulai', 'asc')
                         ->get()
-                        ->map(function($jadwal) {
+                        ->filter(function($jadwal) use ($verumKelasMap) {
+                            $ruang = strtolower($jadwal->ruang ?? '');
+                            $isVirtualRoom = str_contains($ruang, 'zoom') || str_contains($ruang, 'meet') || str_contains($ruang, 'http') || str_contains($ruang, 'virtual') || str_contains($ruang, 'online');
+                            $hasVerum = $verumKelasMap->has($jadwal->mata_kuliah_id);
+                            
+                            return $isVirtualRoom || $hasVerum;
+                        })
+                        ->sortBy('jam_mulai')
+                        ->map(function($jadwal) use ($verumKelasMap) {
+                            $verum = $verumKelasMap->get($jadwal->mata_kuliah_id);
+                            $isMeetingActive = $verum ? $verum->is_meeting_active : false;
+
                             try {
                                 $now = now();
                                 $mulai = Carbon::parse($jadwal->jam_mulai);
                                 $selesai = Carbon::parse($jadwal->jam_selesai);
 
-                                if ($now->between($mulai, $selesai)) {
-                                    $jadwal->status_kelas = 'LIVE SEDANG BERJALAN';
-                                    $jadwal->warna_status = 'danger'; 
+                                if ($isMeetingActive) {
+                                    $jadwal->ikon_status = 'bi-camera-video-fill text-danger pulse-badge'; 
+                                    $jadwal->tooltip_status = 'Video Conference Sedang LIVE';
+                                } elseif ($now->between($mulai, $selesai)) {
+                                    $jadwal->ikon_status = 'bi-broadcast text-primary pulse-badge'; 
+                                    $jadwal->tooltip_status = 'Sesi Online Sedang Berjalan';
                                 } elseif ($now->lt($mulai)) {
-                                    $jadwal->status_kelas = 'MENUNGGU WAKTU';
-                                    $jadwal->warna_status = 'secondary';
+                                    $jadwal->ikon_status = 'bi-clock-history text-warning';
+                                    $jadwal->tooltip_status = 'Menunggu Jadwal';
                                 } else {
-                                    $jadwal->status_kelas = 'KULIAH SELESAI';
-                                    $jadwal->warna_status = 'success';
+                                    $jadwal->ikon_status = 'bi-check2-circle text-success';
+                                    $jadwal->tooltip_status = 'Selesai';
                                 }
                             } catch (\Exception $e) {
-                                $jadwal->status_kelas = 'WAKTU INVALID';
-                                $jadwal->warna_status = 'dark';
+                                $jadwal->ikon_status = 'bi-exclamation-circle text-muted';
+                                $jadwal->tooltip_status = 'Waktu Invalid';
                             }
                             return $jadwal;
                         });
@@ -158,7 +176,7 @@ class DashboardController extends Controller
                 'logPengguna' => $logPengguna,
                 'persenKrs' => $persenKrs,
                 'matkulBelumDiplot' => $matkulBelumDiplot,
-                'jadwalHariIni' => $jadwalHariIni, // Variabel panel live
+                'jadwalHariIni' => $jadwalHariIni, 
                 'namaHariIni' => $hariIniTxt,
             ]);
         }

@@ -190,53 +190,50 @@
         </div>
     </div>
 
-    {{-- FITUR BARU: PANTAUAN PERKULIAHAN LIVE HARI INI --}}
-    <div class="card border-0 shadow-sm rounded-0 mb-4 border-top border-dark border-4">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0 text-dark uppercase">Pemantauan Kelas: {{ $namaHariIni }}, {{ now()->translatedFormat('d F Y') }}</h6>
-            <span class="badge bg-danger rounded-0 pulse-badge px-3 py-2">LIVE MONITORING</span>
+    {{-- TABEL COMPACT: PANTAUAN KELAS VIRTUAL (VERUM) LIVE HARI INI --}}
+    <div class="card border-0 shadow-sm rounded-0 mb-4 border-top border-danger border-4">
+        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark uppercase small">
+                <i class="bi bi-headset text-danger me-2"></i>Monitor Kelas Virtual: {{ now()->translatedFormat('d F Y') }}
+            </h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-borderless mb-0 align-middle">
+                <table class="table table-hover table-borderless table-sm mb-0 align-middle">
                     <thead class="bg-light border-bottom">
                         <tr>
-                            <th class="ps-4 text-muted small fw-bold uppercase" style="width: 15%;">Waktu</th>
-                            <th class="text-muted small fw-bold uppercase" style="width: 30%;">Mata Kuliah</th>
-                            <th class="text-muted small fw-bold uppercase" style="width: 25%;">Dosen Pengampu</th>
-                            <th class="text-muted small fw-bold uppercase" style="width: 15%;">Ruangan</th>
-                            <th class="text-end pe-4 text-muted small fw-bold uppercase" style="width: 15%;">Status</th>
+                            <th class="ps-4 text-muted fw-bold uppercase" style="width: 15%; font-size: 0.75rem;">Jam</th>
+                            <th class="text-muted fw-bold uppercase" style="width: 40%; font-size: 0.75rem;">Mata Kuliah / Dosen</th>
+                            <th class="text-muted fw-bold uppercase" style="width: 30%; font-size: 0.75rem;">Platform</th>
+                            <th class="text-center pe-4 text-muted fw-bold uppercase" style="width: 15%; font-size: 0.75rem;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($jadwalHariIni as $j)
                             <tr class="border-bottom">
                                 <td class="ps-4">
-                                    <span class="font-monospace fw-bold text-dark">{{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }}</span>
-                                    <span class="text-muted small"> - {{ \Carbon\Carbon::parse($j->jam_selesai)->format('H:i') }}</span>
+                                    <span class="font-monospace fw-bold text-dark" style="font-size: 0.8rem;">{{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }}</span>
+                                    <span class="text-muted d-block" style="font-size: 0.7rem;">s/d {{ \Carbon\Carbon::parse($j->jam_selesai)->format('H:i') }}</span>
                                 </td>
                                 <td>
-                                    <span class="fw-bold text-dark d-block">{{ $j->mataKuliah->nama_mata_kuliah ?? '-' }}</span>
-                                    <span class="text-muted small">SKS: {{ $j->mataKuliah->sks ?? '-' }}</span>
+                                    <span class="fw-bold text-dark d-block" style="font-size: 0.85rem;">{{ $j->mataKuliah->nama_mata_kuliah ?? '-' }}</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">{{ $j->mataKuliah->dosen->nama_lengkap ?? 'Belum Diplot' }}</span>
                                 </td>
                                 <td>
-                                    <span class="text-dark small">{{ $j->mataKuliah->dosen->nama_lengkap ?? 'Belum Diplot' }}</span>
+                                    @if(filter_var($j->ruang, FILTER_VALIDATE_URL))
+                                        <a href="{{ $j->ruang }}" target="_blank" class="text-primary text-decoration-none transition-btn" style="font-size: 0.75rem;"><i class="bi bi-link-45deg"></i> Buka Tautan</a>
+                                    @else
+                                        <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-laptop"></i> {{ $j->ruang ?? 'E-Learning Verum' }}</span>
+                                    @endif
                                 </td>
-                                <td>
-                                    <span class="text-dark small">{{ $j->ruang ?? 'TBA' }}</span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <span class="badge bg-{{ $j->warna_status }} rounded-0 {{ $j->warna_status == 'danger' ? 'pulse-badge' : '' }}">
-                                        {{ $j->status_kelas }}
-                                    </span>
+                                <td class="text-center pe-4">
+                                    {{-- Ikon status dinamis --}}
+                                    <i class="bi {{ $j->ikon_status }} fs-5" title="{{ $j->tooltip_status }}" data-bs-toggle="tooltip"></i>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <i class="bi bi-calendar-x fs-3 text-muted d-block mb-2 opacity-50"></i>
-                                    <span class="text-muted small">Tidak ada jadwal perkuliahan untuk hari ini.</span>
-                                </td>
+                                <td colspan="4" class="text-center py-4 text-muted small">Tidak ada kelas virtual yang dijadwalkan hari ini.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -367,14 +364,14 @@
         background-color: #f8f9fa;
     }
 
-    /* Animasi Berkedip Halus (Pulse) untuk Status Kelas Live */
+    /* Animasi Berkedip Halus (Pulse) untuk Icon Status Kelas Live */
     @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.3; transform: scale(1.15); }
+        100% { opacity: 1; transform: scale(1); }
     }
     .pulse-badge {
-        animation: pulse 2s infinite;
+        animation: pulse 1.5s infinite;
     }
 </style>
 @endpush
@@ -383,6 +380,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Inisialisasi Tooltip Bootstrap (Agar keterangan ikon muncul saat di-hover)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Inisialisasi Chart Donat
         const dataGrafik = @json($dataGrafikProdi ?? ['labels' => [], 'data' => []]);
         const ctx = document.getElementById('grafikMahasiswaProdi');
         
