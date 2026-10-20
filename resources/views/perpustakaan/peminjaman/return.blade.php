@@ -138,14 +138,20 @@
             let typingTimer;
 
             inputScanner.focus();
-            inputScanner.on('keyup', function () {
+            // [PERBAIKAN] Enter dari scanner langsung diproses
+            inputScanner.on('keydown', function (e) {
+                clearTimeout(typingTimer);
+                if (e.key === 'Enter') { e.preventDefault(); cekBarcode(); }
+            });
+            inputScanner.on('keyup', function (e) {
+                if (e.key === 'Enter') return;
                 clearTimeout(typingTimer);
                 typingTimer = setTimeout(cekBarcode, 300);
             });
-            inputScanner.on('keydown', function () { clearTimeout(typingTimer); });
 
             function cekBarcode() {
                 let kode = inputScanner.val().trim().toUpperCase();
+                inputScanner.val(''); // [PERBAIKAN] kosongkan input agar scan berikutnya menggantikan, tidak menempel
                 if(kode === '') return;
 
                 let transaksi = bankTransaksi.find(b => b.barcode === kode);

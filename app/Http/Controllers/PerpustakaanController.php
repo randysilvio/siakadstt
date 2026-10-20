@@ -82,70 +82,93 @@ class PerpustakaanController extends Controller
 
     public function storePeminjaman(Request $request)
     {
-        // [FASE 2 UPDATE] Menambahkan validasi eksemplar_id dari hasil scan Barcode
+        // [MODE KASIR] Menerima banyak eksemplar sekaligus dari keranjang scan
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'koleksi_id' => 'required|exists:perpustakaan_koleksi,id',
-            'eksemplar_id' => 'required|exists:perpustakaan_eksemplars,id', // Validasi Barcode
+            'eksemplar_ids' => 'required|array|min:1',
+            'eksemplar_ids.*' => 'required|distinct|exists:perpustakaan_eksemplars,id',
             'jatuh_tempo' => 'required|date|after_or_equal:today',
+        ], [
+            'eksemplar_ids.required' => 'Belum ada buku yang dipindai ke keranjang.',
+            'eksemplar_ids.*.distinct' => 'Ada barcode yang masuk keranjang dua kali.',
+            'eksemplar_ids.*.exists' => 'Ada barcode yang tidak terdaftar di sistem.',
         ]);
 
-        $buku = Koleksi::findOrFail($request->koleksi_id);
-
-        if ($buku->jumlah_tersedia <= 0) {
-            return back()->with('error', 'Gagal meminjam. Stok master buku sudah habis.');
-        }
-
-        // Cek apakah mahasiswa yang sama sudah meminjam eksemplar ini dan belum mengembalikan
-        $sudahPinjam = Peminjaman::where('user_id', $request->user_id)
-                                 ->where('koleksi_id', $request->koleksi_id)
-                                 ->where('status', 'Dipinjam')
-                                 ->exists();
-
-        if ($sudahPinjam) {
-            return back()->with('error', 'Pengguna masih meminjam judul buku ini dan belum mengembalikannya.');
-        }
-
-        // Gunakan DB Transaction agar jika satu proses gagal, semua dibatalkan (aman)
+        // Gunakan DB Transaction: jika satu buku gagal, semua dibatalkan (aman)
         DB::beginTransaction();
         try {
-            // [PERBAIKAN] Ambil & kunci baris eksemplar di dalam transaksi agar tidak bisa dipinjam dobel
-            $eksemplar = PerpustakaanEksemplar::lockForUpdate()->findOrFail($request->eksemplar_id);
+            $barcodeBerhasil = [];
+            $judulDiKeranjang = [];
 
-            // [PERBAIKAN] Pastikan barcode memang milik judul buku yang dipinjam
-            if ((int) $eksemplar->koleksi_id !== (int) $request->koleksi_id) {
-                DB::rollback();
-                return back()->with('error', 'Gagal meminjam. Barcode (' . $eksemplar->kode_barcode . ') tidak sesuai dengan judul buku.');
+            foreach ($request->eksemplar_ids as $eksemplarId) {
+                // Kunci baris eksemplar agar tidak bisa dipinjam dobel secara bersamaan
+                $eksemplar = PerpustakaanEksemplar::lockForUpdate()->find($eksemplarId);
+
+                if (!$eksemplar) {
+                    throw new \DomainException('Eksemplar buku tidak ditemukan.');
+                }
+
+                if ($eksemplar->status_fisik !== 'Tersedia') {
+                    throw new \DomainException('Gagal meminjam. Eksemplar buku (Barcode: ' . $eksemplar->kode_barcode . ') sedang dipinjam atau tidak tersedia.');
+                }
+
+                if (in_array($eksemplar->koleksi_id, $judulDiKeranjang)) {
+                    throw new \DomainException('Gagal meminjam. Ada dua eksemplar dari judul yang sama di keranjang (Barcode: ' . $eksemplar->kode_barcode . ').');
+                }
+
+                $buku = Koleksi::lockForUpdate()->find($eksemplar->koleksi_id);
+
+                if (!$buku) {
+                    throw new \DomainException('Gagal meminjam. Master buku untuk barcode ' . $eksemplar->kode_barcode . ' tidak ditemukan.');
+                }
+
+                if ($buku->jumlah_tersedia <= 0) {
+                    throw new \DomainException('Gagal meminjam. Stok master buku "' . $buku->judul . '" sudah habis.');
+                }
+
+                // Cek apakah pengguna masih meminjam judul yang sama dan belum mengembalikan
+                $sudahPinjam = Peminjaman::where('user_id', $request->user_id)
+                                         ->where('koleksi_id', $buku->id)
+                                         ->where('status', 'Dipinjam')
+                                         ->exists();
+
+                if ($sudahPinjam) {
+                    throw new \DomainException('Pengguna masih meminjam judul "' . $buku->judul . '" dan belum mengembalikannya.');
+                }
+
+                // 1. Buat catatan Peminjaman Baru
+                Peminjaman::create([
+                    'user_id' => $request->user_id,
+                    'koleksi_id' => $buku->id,
+                    'eksemplar_id' => $eksemplar->id, // Simpan Eksemplar Fisik (Barcode)
+                    'tanggal_pinjam' => now(),
+                    'jatuh_tempo' => $request->jatuh_tempo,
+                    'status' => 'Dipinjam',
+                ]);
+
+                // 2. Kurangi stok general di master buku
+                $buku->decrement('jumlah_tersedia');
+
+                // 3. Ubah status fisik eksemplar menjadi 'Dipinjam'
+                $eksemplar->update(['status_fisik' => 'Dipinjam']);
+
+                $judulDiKeranjang[] = $eksemplar->koleksi_id;
+                $barcodeBerhasil[] = $eksemplar->kode_barcode;
             }
-
-            if ($eksemplar->status_fisik !== 'Tersedia') {
-                DB::rollback();
-                return back()->with('error', 'Gagal meminjam. Eksemplar buku (Barcode: ' . $eksemplar->kode_barcode . ') sedang dipinjam atau tidak tersedia.');
-            }
-
-            // 1. Buat catatan Peminjaman Baru
-            Peminjaman::create([
-                'user_id' => $request->user_id,
-                'koleksi_id' => $request->koleksi_id,
-                'eksemplar_id' => $request->eksemplar_id, // Simpan Eksemplar Fisik (Barcode)
-                'tanggal_pinjam' => now(),
-                'jatuh_tempo' => $request->jatuh_tempo,
-                'status' => 'Dipinjam',
-            ]);
-
-            // 2. Kurangi stok general di master buku
-            $buku->decrement('jumlah_tersedia');
-
-            // 3. Ubah status fisik eksemplar menjadi 'Dipinjam'
-            $eksemplar->update(['status_fisik' => 'Dipinjam']);
 
             DB::commit();
-            return redirect()->route('perpustakaan.peminjaman.index')->with('success', 'Transaksi peminjaman berhasil. Eksemplar ('.$eksemplar->kode_barcode.') tercatat keluar.');
-            
+
+            // [MODE KASIR] Kembali ke halaman scan agar bisa langsung melayani transaksi berikutnya
+            return redirect()->route('perpustakaan.peminjaman.create')
+                ->with('success', 'Transaksi berhasil. ' . count($barcodeBerhasil) . ' buku tercatat keluar: ' . implode(', ', $barcodeBerhasil) . '.');
+
+        } catch (\DomainException $e) {
+            DB::rollback();
+            return back()->withInput()->with('error', $e->getMessage());
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Gagal simpan peminjaman: ' . $e->getMessage()); // [PERBAIKAN]
-            return back()->with('error', 'Terjadi kesalahan sistem saat memproses peminjaman.');
+            return back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memproses peminjaman.');
         }
     }
 
