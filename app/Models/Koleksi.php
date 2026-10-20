@@ -9,18 +9,8 @@ class Koleksi extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'perpustakaan_koleksi';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'judul',
         'pengarang',
@@ -33,4 +23,10 @@ class Koleksi extends Model
         'sinopsis',
         'gambar_sampul',
     ];
+
+    // [TAMBAHAN FASE 2] Relasi ke Eksemplar Fisik
+    public function eksemplars()
+    {
+        return $this->hasMany(PerpustakaanEksemplar::class, 'koleksi_id');
+    }
 }

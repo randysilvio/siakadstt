@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    {{-- Header Utama --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Spesifikasi Detail Koleksi</h3>
@@ -21,7 +20,6 @@
         </div>
         <div class="card-body p-0">
             <div class="row g-0">
-                {{-- Kolom Kiri: Gambar Sampul Siku --}}
                 <div class="col-md-3 bg-light d-flex align-items-center justify-content-center p-4 border-end border-dark border-opacity-25">
                     @if($koleksi->gambar_sampul)
                         <img src="{{ Storage::url($koleksi->gambar_sampul) }}" alt="Sampul Buku" class="img-fluid rounded-0 border border-dark border-opacity-25 shadow-none" style="max-height: 320px; object-fit: cover;">
@@ -33,7 +31,6 @@
                     @endif
                 </div>
 
-                {{-- Kolom Kanan: Detail Informasi Formal --}}
                 <div class="col-md-9 p-4 p-md-5">
                     <div class="d-flex justify-content-between align-items-start mb-3 border-bottom pb-3">
                         <div>
@@ -68,7 +65,6 @@
                         </div>
                     </div>
 
-                    {{-- Panel Stok Enterprise 0px --}}
                     <div class="bg-light border border-dark border-opacity-25 rounded-0 p-3 mb-4">
                         <div class="row text-center g-2 align-items-center">
                             <div class="col-4 border-end border-dark border-opacity-25">
@@ -94,6 +90,64 @@
                     <p class="text-dark small uppercase" style="line-height: 1.8; text-align: justify;">
                         {{ $koleksi->sinopsis ?? 'TIDAK ADA SINOPSIS ATAU URAIAN RINGKAS UNTUK BUKU INI.' }}
                     </p>
+
+                    <div class="d-flex justify-content-between align-items-center mt-5 mb-3 border-bottom pb-2">
+                        <h6 class="fw-bold text-dark uppercase mb-0">
+                            <i class="bi bi-upc-scan me-2"></i>Daftar Eksemplar Fisik & Barcode
+                        </h6>
+                        {{-- TOMBOL CETAK DIPERBARUI --}}
+                        <a href="{{ route('perpustakaan.koleksi.cetak-barcode', $koleksi) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 px-3 uppercase fw-bold font-monospace shadow-sm" style="font-size: 11px;">
+                            <i class="bi bi-printer-fill me-1"></i> Cetak Label Stiker
+                        </a>
+                    </div>
+                    
+                    <div class="table-responsive border border-dark border-opacity-25 rounded-0">
+                        <table class="table table-hover table-borderless table-sm mb-0 align-middle">
+                            <thead class="bg-light border-bottom">
+                                <tr>
+                                    <th class="ps-3 text-muted small fw-bold uppercase" style="width: 5%;">#</th>
+                                    <th class="text-muted small fw-bold uppercase" style="width: 35%;">Kode Label Fisik (Barcode)</th>
+                                    <th class="text-muted small fw-bold uppercase" style="width: 25%;">Tgl. Registrasi</th>
+                                    <th class="text-center text-muted small fw-bold uppercase" style="width: 20%;">Kondisi/Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if(isset($koleksi->eksemplars) && $koleksi->eksemplars->count() > 0)
+                                    @foreach($koleksi->eksemplars as $index => $eks)
+                                        <tr class="border-bottom">
+                                            <td class="ps-3 text-muted small font-monospace">{{ $index + 1 }}</td>
+                                            <td>
+                                                <span class="fw-bold text-dark font-monospace fs-6">{{ $eks->kode_barcode }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted small font-monospace">{{ $eks->created_at->format('d/m/Y H:i') }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                @if($eks->status_fisik == 'Tersedia')
+                                                    <span class="badge bg-success text-white rounded-0 uppercase font-monospace px-2 py-1" style="font-size: 10px;">TERSEDIA</span>
+                                                @elseif($eks->status_fisik == 'Dipinjam')
+                                                    <span class="badge bg-warning text-dark rounded-0 uppercase font-monospace px-2 py-1" style="font-size: 10px;">DIPINJAM</span>
+                                                @else
+                                                    <span class="badge bg-danger text-white rounded-0 uppercase font-monospace px-2 py-1" style="font-size: 10px;">{{ strtoupper($eks->status_fisik) }}</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted small uppercase fw-bold">
+                                            <i class="bi bi-box-seam fs-4 d-block mb-1 opacity-50"></i>
+                                            Belum ada eksemplar fisik yang diregistrasikan.
+                                        </td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted small uppercase mt-2 font-monospace" style="font-size: 10px;">
+                        * Tempelkan label barcode pada sampul belakang setiap buku fisik untuk di-scan oleh alat pembaca (scanner) pada meja sirkulasi/kasir.
+                    </div>
+
                 </div>
             </div>
         </div>

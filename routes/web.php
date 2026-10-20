@@ -83,10 +83,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
     Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
 
-    // [BARU] Rute untuk menyimpan Token Firebase dari Browser pengguna
     Route::post('/simpan-fcm-token', [ProfileController::class, 'simpanFcmToken'])->name('fcmToken.simpan');
 
-    // [BARU] Rute Riwayat Notifikasi
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
     Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'tandaiSemuaDibaca'])->name('notifikasi.baca-semua');
@@ -131,10 +129,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('role:mahasiswa');
     });
 
+    // =========================================================================
+    // BLOK RUTE PERPUSTAKAAN (E-LIBRARY)
+    // =========================================================================
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
         Route::middleware('role:pustakawan')->group(function() {
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
             Route::resource('koleksi', KoleksiController::class);
+            
+            // Rute Cetak Barcode Eksemplar
+            Route::get('koleksi/{koleksi}/cetak-barcode', [KoleksiController::class, 'cetakBarcode'])->name('koleksi.cetak-barcode');
+            
             Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'create', 'store']);
             Route::get('/pengembalian', [PeminjamanController::class, 'showReturnForm'])->name('peminjaman.returnForm');
             Route::post('/pengembalian', [PeminjamanController::class, 'processReturn'])->name('peminjaman.processReturn');

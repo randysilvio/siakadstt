@@ -3,31 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Koleksi;
+use App\Models\PerpustakaanEksemplar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class KoleksiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $koleksis = Koleksi::latest()->paginate(10);
+        $koleksis = Koleksi::withCount('eksemplars')->latest()->paginate(10);
         return view('perpustakaan.koleksi.index', compact('koleksis'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('perpustakaan.koleksi.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -39,11 +32,10 @@ class KoleksiController extends Controller
             'jumlah_stok' => 'required|integer|min:1',
             'lokasi_rak' => 'required|string|max:255',
             'sinopsis' => 'nullable|string',
-            'gambar_sampul' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // Maks 2MB
+            'gambar_sampul' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', 
         ]);
 
         $data = $request->all();
-        // Saat buku baru ditambahkan, jumlah yang tersedia sama dengan jumlah stok
         $data['jumlah_tersedia'] = $request->jumlah_stok;
 
         if ($request->hasFile('gambar_sampul')) {
@@ -51,30 +43,23 @@ class KoleksiController extends Controller
             $data['gambar_sampul'] = $path;
         }
 
-        Koleksi::create($data);
+        $koleksi = Koleksi::create($data);
+        $this->generateEksemplarFisik($koleksi, $request->jumlah_stok);
 
-        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Buku berhasil ditambahkan.');
+        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Master Buku & ' . $request->jumlah_stok . ' Eksemplar Fisik berhasil di-generate.');
     }
     
-    /**
-     * Display the specified resource.
-     */
     public function show(Koleksi $koleksi)
     {
+        $koleksi->load('eksemplars');
         return view('perpustakaan.koleksi.show', compact('koleksi'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Koleksi $koleksi)
     {
         return view('perpustakaan.koleksi.edit', compact('koleksi'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Koleksi $koleksi)
     {
         $request->validate([
@@ -91,15 +76,13 @@ class KoleksiController extends Controller
 
         $data = $request->all();
 
-        // Logika penyesuaian jumlah tersedia saat stok diubah
         $selisihStok = $request->jumlah_stok - $koleksi->jumlah_stok;
         $data['jumlah_tersedia'] = $koleksi->jumlah_tersedia + $selisihStok;
         if ($data['jumlah_tersedia'] < 0) {
-            $data['jumlah_tersedia'] = 0; // Pastikan tidak menjadi negatif
+            $data['jumlah_tersedia'] = 0; 
         }
 
         if ($request->hasFile('gambar_sampul')) {
-            // Hapus gambar lama jika ada
             if ($koleksi->gambar_sampul) {
                 Storage::delete($koleksi->gambar_sampul);
             }
@@ -109,22 +92,51 @@ class KoleksiController extends Controller
 
         $koleksi->update($data);
 
-        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Data buku berhasil diperbarui.');
+        if ($selisihStok > 0) {
+            $this->generateEksemplarFisik($koleksi, $selisihStok);
+            $pesan = 'Data buku diperbarui & ' . $selisihStok . ' Eksemplar Fisik baru berhasil di-generate.';
+        } else {
+            $pesan = 'Data buku berhasil diperbarui.';
+        }
+
+        return redirect()->route('perpustakaan.koleksi.index')->with('success', $pesan);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Koleksi $koleksi)
     {
-        // TODO: Tambahkan pengecekan apakah buku sedang dipinjam sebelum dihapus
-        
-        // Hapus gambar sampul dari storage jika ada
         if ($koleksi->gambar_sampul) {
             Storage::delete($koleksi->gambar_sampul);
         }
 
         $koleksi->delete();
-        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Buku berhasil dihapus.');
+        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Master Buku & seluruh eksemplarnya berhasil dihapus.');
+    }
+
+    private function generateEksemplarFisik(Koleksi $koleksi, $jumlahTambahan)
+    {
+        $eksemplarBaru = [];
+        $waktu = now();
+
+        for ($i = 0; $i < $jumlahTambahan; $i++) {
+            $kodeUnik = 'BK-' . str_pad($koleksi->id, 3, '0', STR_PAD_LEFT) . '-' . strtoupper(Str::random(6));
+            
+            $eksemplarBaru[] = [
+                'koleksi_id' => $koleksi->id,
+                'kode_barcode' => $kodeUnik,
+                'status_fisik' => 'Tersedia',
+                'created_at' => $waktu,
+                'updated_at' => $waktu,
+            ];
+        }
+
+        if (!empty($eksemplarBaru)) {
+            PerpustakaanEksemplar::insert($eksemplarBaru);
+        }
+    }
+
+    public function cetakBarcode(Koleksi $koleksi)
+    {
+        $koleksi->load('eksemplars');
+        return view('perpustakaan.koleksi.cetak_barcode', compact('koleksi'));
     }
 }

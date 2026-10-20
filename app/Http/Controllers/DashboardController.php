@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache; 
+use Illuminate\Support\Facades\Schema; // [TAMBAHAN] Untuk mengecek kolom tabel
 use App\Models\Pengumuman;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
@@ -315,13 +316,25 @@ class DashboardController extends Controller
                 'tagihanTerlama' => $tagihanTerlama
             ]);
         }
+        // =========================================================
+        // [PERBAIKAN FASE 2] Dashboard Khusus PUSTAKAWAN
+        // =========================================================
         elseif ($user->hasRole('pustakawan')) {
+            
+            $koleksiPopuler = Koleksi::query()
+                ->when(Schema::hasColumn('perpustakaan_koleksi', 'total_pinjam'), function ($query) {
+                    return $query->orderBy('total_pinjam', 'desc');
+                })
+                ->take(5)
+                ->get();
+
             return view('perpustakaan.dashboard', [
                 'totalJudul' => Koleksi::count(),
                 'totalEksemplar' => Koleksi::sum('jumlah_stok'),
                 'peminjamanAktif' => Peminjaman::where('status', 'Dipinjam')->count(),
-                'terlambat' => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(),
+                'terlambatCount' => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(), // Disamakan menjadi terlambatCount
                 'aktivitasTerakhir' => Peminjaman::with(['user', 'koleksi'])->latest()->take(5)->get(),
+                'koleksiPopuler' => $koleksiPopuler, // Variabel yang tadinya hilang
                 'pengumumans' => $pengumumans
             ]);
         }

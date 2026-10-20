@@ -2,80 +2,184 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    {{-- BAGIAN HEADER UTAMA --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Proses Pengembalian Pustaka</h3>
-            <span class="text-muted small uppercase">Penyelesaian Transaksi Sirkulasi & Pemulihan Stok Inventaris Fisik</span>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Pengembalian Pustaka (POS Mode)</h3>
+            <span class="text-muted small uppercase">Pindai Barcode Buku untuk Verifikasi Pengembalian Otomatis</span>
         </div>
         <div>
             <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
-                Kembali
+                Batal / Kembali
             </a>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 col-md-8 mx-auto mb-5">
-        <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-            Formulir Eksekusi Pengembalian Buku
+    <div class="row g-4 mb-5">
+        {{-- KOLOM KIRI: SCANNER AREA --}}
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-0 border-top border-success border-4 h-100 bg-dark text-white">
+                <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-center align-items-center text-center">
+                    <i class="bi bi-arrow-return-left d-block mb-3 text-success opacity-75" style="font-size: 5rem;"></i>
+                    <h5 class="fw-bold uppercase mb-1">Pindai Buku Kembali</h5>
+                    <p class="small text-light opacity-75 font-monospace mb-4">Arahkan scanner ke label barcode fisik buku.</p>
+                    
+                    <div class="w-100 mb-3 px-3">
+                        <input type="text" id="scanner_input" class="form-control form-control-lg rounded-0 font-monospace fw-bold text-center bg-dark text-white border-secondary focus-ring-none" placeholder="SCAN BARCODE DI SINI..." style="border-width: 2px;" autocomplete="off" autofocus>
+                    </div>
+                    <div class="small font-monospace text-warning opacity-75" id="scanner_status">Menunggu alat scanner...</div>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-4">
-            <form method="POST" action="{{ route('perpustakaan.peminjaman.processReturn') }}">
-                @csrf
-                
-                {{-- Panel Informasi Kaku --}}
-                <div class="p-3 bg-light border border-dark border-opacity-25 rounded-0 mb-4 d-flex align-items-center">
-                    <div class="bg-dark text-white rounded-0 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                        <i class="bi bi-arrow-return-left fs-5"></i>
-                    </div>
-                    <div class="small text-muted uppercase">
-                        <strong class="text-dark d-block mb-0 font-monospace">OTOMATISASI INVENTARIS:</strong>
-                        Pilih data transaksi aktif di bawah ini untuk menandai pengembalian fisik. Stok buku bersangkutan akan dipulihkan secara otomatis pada sistem.
-                    </div>
-                </div>
 
-                {{-- Pilihan Transaksi --}}
-                <div class="mb-4">
-                    <label for="peminjaman_id" class="form-label small fw-bold uppercase text-dark">Cari Transaksi Peminjaman Aktif <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-search text-dark"></i></span>
-                        <select class="form-select select2 rounded-0 uppercase" id="peminjaman_id" name="peminjaman_id" required>
-                            <option value="" disabled selected>-- KETIK NAMA PEMINJAM ATAU JUDUL BUKU... --</option>
-                            @foreach($peminjamans as $peminjaman)
-                                <option value="{{ $peminjaman->id }}">
-                                    {{ str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }} | {{ $peminjaman->user->name }} - {{ $peminjaman->koleksi->judul }} (TENGGAT: {{ \Carbon\Carbon::parse($peminjaman->jatuh_tempo)->format('d/m/Y') }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+        {{-- KOLOM KANAN: FORM VERIFIKASI PENGEMBALIAN --}}
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-0 h-100">
+                <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark d-flex justify-content-between align-items-center">
+                    <span>Verifikasi Data Pengembalian</span>
+                    <span class="badge bg-danger rounded-0 px-2" id="badge_status">MENUNGGU SCAN</span>
                 </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ route('perpustakaan.peminjaman.processReturn') }}" id="formPengembalian">
+                        @csrf
+                        
+                        <input type="hidden" name="peminjaman_id" id="peminjaman_id" required>
 
-                <div class="d-flex justify-content-end pt-4 mt-4 border-top">
-                    <a href="{{ route('perpustakaan.peminjaman.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
-                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
-                        Proses Pengembalian
-                    </button>
+                        {{-- Panel Info Transaksi Terpindai --}}
+                        <div class="bg-light border border-dark border-opacity-25 rounded-0 p-4 mb-4 text-center" id="panel_buku" style="display: none;">
+                            <div class="mb-3 border-bottom pb-3">
+                                <span class="text-muted small uppercase fw-bold d-block mb-1">Judul Buku Terpindai:</span>
+                                <h5 class="fw-bold text-dark mb-0 uppercase" id="display_judul">JUDUL BUKU</h5>
+                                <span class="text-primary font-monospace small fw-bold" id="display_barcode">BK-XXX-XXXX</span>
+                            </div>
+                            
+                            <div class="row g-2 text-start">
+                                <div class="col-md-6 border-end">
+                                    <span class="text-muted small uppercase fw-bold d-block">Data Peminjam</span>
+                                    <strong class="text-dark uppercase d-block" id="display_peminjam">NAMA MAHASISWA</strong>
+                                </div>
+                                <div class="col-md-6 ps-md-3">
+                                    <span class="text-muted small uppercase fw-bold d-block">Jatuh Tempo</span>
+                                    <strong class="text-dark font-monospace d-block" id="display_tempo">00/00/0000</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 pt-3 border-top" id="panel_keterlambatan" style="display: none;">
+                                <div class="alert alert-danger rounded-0 mb-0 py-2 d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <span class="fw-bold small uppercase">Peminjaman ini melewati batas jatuh tempo!</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Fallback Manual (Disembunyikan, hanya muncul jika scan gagal terus) --}}
+                        <div class="mb-4" id="panel_manual">
+                            <label class="form-label small fw-bold uppercase text-dark">Pencarian Manual (Opsional)</label>
+                            <select class="form-select rounded-0 uppercase text-muted" id="peminjaman_manual" onchange="if(this.value) { $('#peminjaman_id').val(this.value); $('#btn_simpan').prop('disabled', false); }">
+                                <option value="" selected>-- PILIH TRANSAKSI (JIKA SCANNER RUSAK) --</option>
+                                @foreach($peminjamans as $p)
+                                    <option value="{{ $p->id }}">
+                                        {{ $p->eksemplar->kode_barcode ?? 'NO-BARCODE' }} | {{ $p->user->name }} - {{ $p->koleksi->judul }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end pt-3 border-top">
+                            <button type="submit" class="btn btn-success rounded-0 px-5 py-2 uppercase fw-bold shadow-sm w-100" id="btn_simpan" disabled>
+                                TERIMA PENGEMBALIAN BUKU
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
+
+@php
+    $dataScan = $peminjamans->map(function($p) {
+        return [
+            'peminjaman_id' => $p->id,
+            'barcode' => $p->eksemplar ? strtoupper($p->eksemplar->kode_barcode) : '',
+            'judul' => $p->koleksi->judul ?? 'N/A',
+            'peminjam' => $p->user->name ?? 'N/A',
+            'jatuh_tempo' => \Carbon\Carbon::parse($p->jatuh_tempo)->format('d/m/Y'),
+            'is_late' => now()->gt($p->jatuh_tempo)
+        ];
+    });
+@endphp
 @endsection
 
 @push('styles')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <style>
+        .focus-ring-none:focus { box-shadow: none !important; border-color: #198754 !important; }
+    </style>
 @endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('.select2').select2({
-                theme: 'bootstrap-5',
-                width: '100%'
+            const bankTransaksi = @json($dataScan);
+            const inputScanner = $('#scanner_input');
+            let typingTimer;
+
+            inputScanner.focus();
+            inputScanner.on('keyup', function () {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(cekBarcode, 300);
             });
+            inputScanner.on('keydown', function () { clearTimeout(typingTimer); });
+
+            function cekBarcode() {
+                let kode = inputScanner.val().trim().toUpperCase();
+                if(kode === '') return;
+
+                let transaksi = bankTransaksi.find(b => b.barcode === kode);
+
+                if(transaksi) {
+                    playBeep(900, 100);
+                    $('#peminjaman_id').val(transaksi.peminjaman_id);
+                    $('#display_judul').text(transaksi.judul);
+                    $('#display_barcode').text(transaksi.barcode);
+                    $('#display_peminjam').text(transaksi.peminjam);
+                    $('#display_tempo').text(transaksi.jatuh_tempo);
+                    
+                    if(transaksi.is_late) {
+                        $('#panel_keterlambatan').show();
+                        $('#display_tempo').addClass('text-danger');
+                    } else {
+                        $('#panel_keterlambatan').hide();
+                        $('#display_tempo').removeClass('text-danger');
+                    }
+                    
+                    $('#panel_manual').hide();
+                    $('#panel_buku').slideDown();
+                    $('#badge_status').removeClass('bg-danger').addClass('bg-success').text('DATA COCOK');
+                    $('#scanner_status').text('Siap diproses!').removeClass('text-warning').addClass('text-success');
+                    $('#btn_simpan').prop('disabled', false);
+                } else {
+                    playBeep(300, 300);
+                    $('#panel_buku').slideUp();
+                    $('#panel_manual').show();
+                    $('#badge_status').removeClass('bg-success').addClass('bg-danger').text('TIDAK DITEMUKAN');
+                    $('#scanner_status').text('Barcode tidak ada dalam daftar sirkulasi aktif.').removeClass('text-success text-warning').addClass('text-danger');
+                    $('#btn_simpan').prop('disabled', true);
+                }
+                setTimeout(() => inputScanner.focus(), 500);
+            }
+
+            function playBeep(frequency, duration) {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+                    oscillator.connect(audioCtx.destination);
+                    oscillator.start();
+                    setTimeout(() => oscillator.stop(), duration);
+                } catch(e) {}
+            }
         });
     </script>
 @endpush
