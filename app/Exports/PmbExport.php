@@ -24,6 +24,15 @@ class PmbExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
         $this->filters = $filters;
     }
 
+    private function safeCell($value): string
+    {
+        $str = (string) ($value ?? '');
+        if ($str !== '' && in_array($str[0], ['=', '+', '-', '@', "\t", "\r"])) {
+            return "'" . $str;
+        }
+        return $str;
+    }
+
     public function collection()
     {
         $query = Camaba::with(['user', 'prodi1', 'period'])->orderBy('created_at', 'desc');
@@ -38,10 +47,15 @@ class PmbExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
     public function map($camaba): array
     {
         return [
-            $camaba->no_pendaftaran, $camaba->user->name ?? '', $camaba->jenis_kelamin == 'L' ? 'Laki-Laki' : 'Perempuan',
-            "'" . $camaba->no_hp, $camaba->sekolah_asal, $camaba->prodi1->nama_prodi ?? '',
-            $camaba->period->nama_gelombang ?? '', strtoupper(str_replace('_', ' ', $camaba->status_pendaftaran)),
-            $camaba->created_at->format('d/m/Y')
+            $this->safeCell($camaba->no_pendaftaran),
+            $this->safeCell($camaba->user->name ?? ''),
+            $camaba->jenis_kelamin == 'L' ? 'Laki-Laki' : 'Perempuan',
+            "'" . $camaba->no_hp,
+            $this->safeCell($camaba->sekolah_asal),
+            $this->safeCell($camaba->prodi1->nama_prodi ?? ''),
+            $this->safeCell($camaba->period->nama_gelombang ?? ''),
+            strtoupper(str_replace('_', ' ', $camaba->status_pendaftaran)),
+            $camaba->created_at ? $camaba->created_at->format('d/m/Y') : '-'
         ];
     }
 
@@ -69,7 +83,7 @@ class PmbExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet;
                 $highestRow = $sheet->getHighestRow();
                 $highestColumn = 'I'; 

@@ -21,27 +21,34 @@ class CekPeriodeKrsMiddleware
         // 1. Cek Gembok Waktu/Periode KRS
         if (
             !$periodeAktif ||
+            !$periodeAktif->tanggal_mulai_krs ||
+            !$periodeAktif->tanggal_selesai_krs ||
             !Carbon::now()->between(
-                $periodeAktif->tanggal_mulai_krs,
+                Carbon::parse($periodeAktif->tanggal_mulai_krs)->startOfDay(),
                 Carbon::parse($periodeAktif->tanggal_selesai_krs)->endOfDay()
             )
         ) {
-            return redirect()->route('dashboard')->with('error', 'Periode pengisian KRS tidak aktif atau telah berakhir.');
+            $pesan = 'Periode pengisian KRS tidak aktif atau telah berakhir.';
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['status' => 'error', 'message' => $pesan], 403);
+            }
+            return redirect()->route('dashboard')->with('error', $pesan);
         }
 
         // 2. Cek Gembok Status KRS Mahasiswa
         if ($user && $user->hasRole('mahasiswa') && $user->mahasiswa) {
             $mahasiswa = $user->mahasiswa;
 
-            // Pastikan kita HANYA memblokir jika KRS sudah disetujui PADA SEMESTER YANG SEDANG AKTIF INI.
-            // Kita cek apakah mahasiswa sudah punya entri KRS di tabel pivot untuk periode aktif ini.
             $krsSemesterIni = $mahasiswa->mataKuliahs()
                                         ->wherePivot('tahun_akademik_id', $periodeAktif->id)
                                         ->exists();
 
-            // Jika statusnya Disetujui DAN dia memang sudah punya KRS di semester ini, blokir.
             if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
-                return redirect()->route('dashboard')->with('warning', 'KRS Anda telah disetujui dan tidak dapat diubah lagi.');
+                $pesan = 'KRS Anda telah disetujui dan tidak dapat diubah lagi.';
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json(['status' => 'error', 'message' => $pesan], 403);
+                }
+                return redirect()->route('dashboard')->with('warning', $pesan);
             }
         }
 

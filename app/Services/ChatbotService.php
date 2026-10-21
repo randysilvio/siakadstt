@@ -14,14 +14,12 @@ class ChatbotService
      */
     public function getResponse(string $userMessage): string
     {
-        // 1. Ambil API Key dari konfigurasi
         $apiKey = config('services.gemini.api_key');
 
         if (empty($apiKey)) {
-            return "Sistem asisten virtual belum siap: GEMINI_API_KEY belum dikonfigurasi pada server.";
+            return "Sistem asisten virtual belum siap: Konfigurasi layanan AI belum diaktifkan pada server.";
         }
 
-        // 2. Tarik basis data pengetahuan lokal sebagai acuan utama
         $knowledgeBase = ChatbotKnowledge::all();
         $contextData = "";
         
@@ -29,7 +27,6 @@ class ChatbotService
             $contextData .= "- Topik/Kata Kunci [" . $data->keywords . "]:\n  " . $data->jawaban . "\n\n";
         }
 
-        // 3. Rancang System Prompt (Master Context SIAKAD STT GPI Papua)
         $systemPrompt = "Kamu adalah Zoe, Asisten Virtual resmi untuk layanan Sistem Informasi Akademik (SIAKAD) di Sekolah Tinggi Teologi (STT) GPI Papua. " .
                         "Gaya bahasamu cerdas, ramah, sopan, dan profesional. Selalu gunakan sapaan 'Shalom' saat memulai percakapan baru.\n\n" .
                         "SIAKAD STT GPI Papua memiliki beberapa modul dan aturan bisnis baku berikut:\n" .
@@ -45,11 +42,9 @@ class ChatbotService
                         "- Jika informasi yang ditanyakan sama sekali tidak ada pada acuan atau di luar konteks akademik, sampaikan permohonan maaf dengan sopan bahwa kamu belum memiliki informasi tersebut, lalu sarankan pengguna untuk menghubungi Admin Akademik (BAAK) atau Bagian Keuangan secara langsung.\n" .
                         "- DILARANG KERAS mengarang, memanipulasi, atau mengasumsikan sendiri nominal biaya kuliah, jadwal spesifik, atau aturan lain jika tidak tertera secara tertulis pada referensi di atas.";
 
-        // 4. Endpoint resmi Google Gemini 2.5 Flash
         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
 
         try {
-            // Pemanggilan API dengan batasan timeout 15 detik dan auto-retry saat server Google sibuk (Error 503)
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
             ])->timeout(15)
@@ -64,7 +59,7 @@ class ChatbotService
                     ['role' => 'user', 'parts' => [['text' => $userMessage]]]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.2 // Suhu sangat rendah agar Zoe menjawab presisi dan patuh pada aturan STT GPI Papua
+                    'temperature' => 0.2
                 ]
             ]);
 
@@ -79,15 +74,14 @@ class ChatbotService
                 return "Mohon maaf, jalur server asisten virtual saat ini sedang dipadati permintaan. Silakan tunggu beberapa saat dan coba kirimkan kembali pertanyaan Anda.";
             }
 
-            // Tangkap dan catat error jika respons dari server Google ditolak
-            $errorBody = $response->body();
-            Log::error('Gemini API Error: ' . $errorBody);
+            // [PERBAIKAN KEAMANAN FASE 6]: Catat detail error di log internal tanpa mengeksposnya ke pengguna
+            Log::error('Gemini API Error: ' . $response->body());
             
-            return "⚠️ **Kesalahan Server AI:** \n```json\n" . $errorBody . "\n```";
+            return "Mohon maaf, saat ini layanan asisten virtual sedang mengalami gangguan teknis sementara. Silakan coba beberapa saat lagi atau hubungi bagian akademik (BAAK).";
 
         } catch (\Exception $e) {
             Log::error('Gemini API Exception: ' . $e->getMessage());
-            return "⚠️ **Gangguan Koneksi Sistem:** \nTidak dapat terhubung ke server kecerdasan buatan. Silakan periksa koneksi internet Anda atau coba kembali nanti.";
+            return "Tidak dapat terhubung ke server asisten virtual saat ini. Silakan periksa koneksi Anda atau coba kembali nanti.";
         }
     }
 }

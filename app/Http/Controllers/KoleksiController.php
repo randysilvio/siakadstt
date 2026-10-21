@@ -23,7 +23,7 @@ class KoleksiController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'judul' => 'required|string|max:255',
             'pengarang' => 'required|string|max:255',
             'penerbit' => 'required|string|max:255',
@@ -35,18 +35,16 @@ class KoleksiController extends Controller
             'gambar_sampul' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', 
         ]);
 
-        $data = $request->all();
-        $data['jumlah_tersedia'] = $request->jumlah_stok;
+        $validated['jumlah_tersedia'] = (int) $validated['jumlah_stok'];
 
         if ($request->hasFile('gambar_sampul')) {
-            $path = $request->file('gambar_sampul')->store('public/sampul_buku');
-            $data['gambar_sampul'] = $path;
+            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('public/sampul_buku');
         }
 
-        $koleksi = Koleksi::create($data);
-        $this->generateEksemplarFisik($koleksi, $request->jumlah_stok);
+        $koleksi = Koleksi::create($validated);
+        $this->generateEksemplarFisik($koleksi, (int) $validated['jumlah_stok']);
 
-        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Master Buku & ' . $request->jumlah_stok . ' Eksemplar Fisik berhasil di-generate.');
+        return redirect()->route('perpustakaan.koleksi.index')->with('success', 'Master Buku & ' . $validated['jumlah_stok'] . ' Eksemplar Fisik berhasil di-generate.');
     }
     
     public function show(Koleksi $koleksi)
@@ -62,7 +60,7 @@ class KoleksiController extends Controller
 
     public function update(Request $request, Koleksi $koleksi)
     {
-        $request->validate([
+        $validated = $request->validate([
             'judul' => 'required|string|max:255',
             'pengarang' => 'required|string|max:255',
             'penerbit' => 'required|string|max:255',
@@ -74,23 +72,17 @@ class KoleksiController extends Controller
             'gambar_sampul' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $data = $request->all();
-
-        $selisihStok = $request->jumlah_stok - $koleksi->jumlah_stok;
-        $data['jumlah_tersedia'] = $koleksi->jumlah_tersedia + $selisihStok;
-        if ($data['jumlah_tersedia'] < 0) {
-            $data['jumlah_tersedia'] = 0; 
-        }
+        $selisihStok = (int) $validated['jumlah_stok'] - (int) $koleksi->jumlah_stok;
+        $validated['jumlah_tersedia'] = max(0, (int) $koleksi->jumlah_tersedia + $selisihStok);
 
         if ($request->hasFile('gambar_sampul')) {
             if ($koleksi->gambar_sampul) {
                 Storage::delete($koleksi->gambar_sampul);
             }
-            $path = $request->file('gambar_sampul')->store('public/sampul_buku');
-            $data['gambar_sampul'] = $path;
+            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('public/sampul_buku');
         }
 
-        $koleksi->update($data);
+        $koleksi->update($validated);
 
         if ($selisihStok > 0) {
             $this->generateEksemplarFisik($koleksi, $selisihStok);

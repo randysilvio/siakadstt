@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 
 class KosongkanDataCommand extends Command
@@ -29,32 +30,41 @@ class KosongkanDataCommand extends Command
     {
         $this->info('Memulai proses pengosongan data...');
 
-        // Matikan pengecekan foreign key untuk sementara
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        // Daftar tabel yang akan dikosongkan
         $tables = [
             'pembayarans',
             'mahasiswa_mata_kuliah',
             'matakuliah_prasyarat',
+            'dosen_mata_kuliah',
             'jadwals',
             'pengumumans',
             'dosens',
             'mahasiswas',
-            'program_studis', // <-- TAMBAHKAN INI
-            'mata_kuliahs',   // <-- TAMBAHKAN INI
+            'tendiks',
+            'camabas',
+            'pmb_documents',
+            'program_studis',
+            'mata_kuliahs',
         ];
 
         foreach ($tables as $table) {
-            DB::table($table)->truncate();
-            $this->line("Tabel '{$table}' berhasil dikosongkan.");
+            if (Schema::hasTable($table)) {
+                DB::table($table)->truncate();
+                $this->line("Tabel '{$table}' berhasil dikosongkan.");
+            }
         }
 
-        // Hapus semua user kecuali yang memiliki peran 'admin'
-        User::where('role', '!=', 'admin')->delete();
+        // [PERBAIKAN BUG FATAL FASE 6]: Gunakan relasi many-to-many roles untuk mempertahankan akun Admin
+        $adminIds = User::whereHas('roles', function ($q) {
+            $q->where('name', 'admin');
+        })->pluck('id')->toArray();
+
+        User::whereNotIn('id', $adminIds)->delete();
+        DB::table('role_user')->whereNotIn('user_id', $adminIds)->delete();
+
         $this->line("Semua user non-admin berhasil dihapus.");
 
-        // Nyalakan kembali pengecekan foreign key
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->info('Proses selesai. Semua data kecuali admin berhasil dikosongkan.');

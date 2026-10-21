@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -14,39 +16,55 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|string|email',
+            'password' => 'required|string',
         ]);
+
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
+        // 1. Cek Rate Limit (Maksimal 5 kali gagal per 60 detik)
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return response()->json([
+                'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+                'errors' => [
+                    'email' => ["Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik."]
+                ]
+            ], 429);
+        }
 
         /** @var \App\Models\User|null $user */
         $user = User::with('roles')->where('email', $request->email)->first();
 
-        // 1. Cek User & Password
-        if (!$user || !Hash::check($request->password, (string)$user->password)) {
+        // 2. Cek User & Password
+        if (!$user || !Hash::check($request->password, (string) $user->password)) {
+            RateLimiter::hit($throttleKey, 60);
+
             throw ValidationException::withMessages([
-                'email' => ['Email atau password yang Anda masukkan salah.'],
+                'email' => ['Email atau kata sandi yang Anda masukkan salah.'],
             ]);
         }
 
-        // 2. Buat Token
+        RateLimiter::clear($throttleKey);
+
+        // 3. Buat Token Sanctum
         $token = $user->createToken('mobile-app-token')->plainTextToken;
 
-        // 3. Ambil Role (FIX: Gunakan relasi roles() manual, bukan getRoleNames())
-        // Mengambil role pertama yang dimiliki user
+        // 4. Tentukan Role Utama
         $roleName = $user->roles->first() ? $user->roles->first()->name : null;
 
         return response()->json([
             'message' => 'Login berhasil',
-            'user' => $user->only('id', 'name', 'email'), 
+            'user' => $user->only('id', 'name', 'email'),
             'token' => $token,
-            'role' => $roleName // Kirim role agar frontend tahu (dosen/mahasiswa)
+            'role' => $roleName,
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-        if ($user) {
+        if ($user && $user->currentAccessToken()) {
             $user->currentAccessToken()->delete();
         }
 

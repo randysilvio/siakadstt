@@ -14,9 +14,16 @@
         </div>
     </div>
 
+    @php
+        $isLocked = $camaba->is_migrated || in_array($camaba->status_pendaftaran, ['lulus', 'tidak_lulus']);
+    @endphp
+
     <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 col-md-10 mx-auto mb-5">
-        <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-            Formulir Portofolio Calon Mahasiswa
+        <div class="card-header bg-dark text-white py-3 border-bottom rounded-0 uppercase fw-bold small d-flex justify-content-between align-items-center">
+            <span>Formulir Portofolio Calon Mahasiswa</span>
+            <span class="badge bg-light text-dark rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 10px;">
+                NO. REG: {{ $camaba->no_pendaftaran }}
+            </span>
         </div>
         <div class="card-body p-4">
 
@@ -40,15 +47,15 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Tempat Lahir <span class="text-danger">*</span></label>
-                        <input type="text" name="tempat_lahir" class="form-control rounded-0 uppercase" value="{{ old('tempat_lahir', $camaba->tempat_lahir) }}" required>
+                        <input type="text" name="tempat_lahir" class="form-control rounded-0 uppercase" value="{{ old('tempat_lahir', $camaba->tempat_lahir) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Tanggal Lahir <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal_lahir" class="form-control rounded-0 font-monospace text-center" value="{{ old('tanggal_lahir', $camaba->tanggal_lahir) }}" required>
+                        <input type="date" name="tanggal_lahir" class="form-control rounded-0 font-monospace text-center" value="{{ old('tanggal_lahir', $camaba->tanggal_lahir) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Jenis Kelamin <span class="text-danger">*</span></label>
-                        <select name="jenis_kelamin" class="form-select rounded-0 uppercase" required>
+                        <select name="jenis_kelamin" class="form-select rounded-0 uppercase" {{ $isLocked ? 'disabled' : 'required' }}>
                             <option value="">-- PILIH --</option>
                             <option value="L" {{ old('jenis_kelamin', $camaba->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
                             <option value="P" {{ old('jenis_kelamin', $camaba->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
@@ -56,7 +63,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Agama <span class="text-danger">*</span></label>
-                        <select name="agama" class="form-select rounded-0 uppercase" required>
+                        <select name="agama" class="form-select rounded-0 uppercase" {{ $isLocked ? 'disabled' : 'required' }}>
                             <option value="Kristen Protestan" {{ old('agama', $camaba->agama) == 'Kristen Protestan' ? 'selected' : '' }}>Kristen Protestan</option>
                             <option value="Katolik" {{ old('agama', $camaba->agama) == 'Katolik' ? 'selected' : '' }}>Katolik</option>
                             <option value="Islam" {{ old('agama', $camaba->agama) == 'Islam' ? 'selected' : '' }}>Islam</option>
@@ -67,7 +74,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label small fw-bold uppercase text-dark">Alamat Lengkap Domisili <span class="text-danger">*</span></label>
-                        <textarea name="alamat" class="form-control rounded-0 uppercase" rows="2" required>{{ old('alamat', $camaba->alamat) }}</textarea>
+                        <textarea name="alamat" class="form-control rounded-0 uppercase" rows="2" {{ $isLocked ? 'disabled' : 'required' }}>{{ old('alamat', $camaba->alamat) }}</textarea>
                     </div>
                 </div>
 
@@ -76,19 +83,19 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Nama Sekolah Asal <span class="text-danger">*</span></label>
-                        <input type="text" name="sekolah_asal" class="form-control rounded-0 uppercase" placeholder="CONTOH: SMA NEGERI 1 FAKFAK" value="{{ old('sekolah_asal', $camaba->sekolah_asal) }}" required>
+                        <input type="text" name="sekolah_asal" class="form-control rounded-0 uppercase" placeholder="CONTOH: SMA NEGERI 1 FAKFAK" value="{{ old('sekolah_asal', $camaba->sekolah_asal) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">NISN <span class="text-danger">*</span></label>
-                        <input type="number" name="nisn" class="form-control rounded-0 font-monospace" value="{{ old('nisn', $camaba->nisn) }}" required>
+                        <input type="number" name="nisn" class="form-control rounded-0 font-monospace" value="{{ old('nisn', $camaba->nisn) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Tahun Lulus <span class="text-danger">*</span></label>
-                        <input type="number" name="tahun_lulus" class="form-control rounded-0 font-monospace" placeholder="2024" value="{{ old('tahun_lulus', $camaba->tahun_lulus) }}" required>
+                        <input type="number" name="tahun_lulus" class="form-control rounded-0 font-monospace" placeholder="2025" value="{{ old('tahun_lulus', $camaba->tahun_lulus) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Nilai Rata-rata Rapor (Skala 100) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" name="nilai_rata_rata_rapor" class="form-control rounded-0 font-monospace" placeholder="85.50" value="{{ old('nilai_rata_rata_rapor', $camaba->nilai_rata_rata_rapor) }}" required>
+                        <input type="number" step="0.01" name="nilai_rata_rata_rapor" class="form-control rounded-0 font-monospace" placeholder="85.50" value="{{ old('nilai_rata_rata_rapor', $camaba->nilai_rata_rata_rapor) }}" {{ $isLocked ? 'disabled' : 'required' }}>
                     </div>
                 </div>
 
@@ -97,22 +104,22 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Pilihan Prodi 1 (Prioritas Utama) <span class="text-danger">*</span></label>
-                        <select name="pilihan_prodi_1_id" class="form-select rounded-0 uppercase" required>
+                        <select name="pilihan_prodi_1_id" class="form-select rounded-0 uppercase" {{ $isLocked ? 'disabled' : 'required' }}>
                             <option value="">-- PILIH PRODI --</option>
                             @foreach($programStudis as $prodi)
                                 <option value="{{ $prodi->id }}" {{ old('pilihan_prodi_1_id', $camaba->pilihan_prodi_1_id) == $prodi->id ? 'selected' : '' }}>
-                                    {{ $prodi->nama_prodi }} ({{ $prodi->jenjang }})
+                                    {{ $prodi->nama_prodi }} {{ $prodi->kode_prodi ? '(' . $prodi->kode_prodi . ')' : '' }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Pilihan Prodi 2 (Cadangan)</label>
-                        <select name="pilihan_prodi_2_id" class="form-select rounded-0 uppercase">
+                        <select name="pilihan_prodi_2_id" class="form-select rounded-0 uppercase" {{ $isLocked ? 'disabled' : '' }}>
                             <option value="">-- PILIH PRODI (OPSIONAL) --</option>
                             @foreach($programStudis as $prodi)
                                 <option value="{{ $prodi->id }}" {{ old('pilihan_prodi_2_id', $camaba->pilihan_prodi_2_id) == $prodi->id ? 'selected' : '' }}>
-                                    {{ $prodi->nama_prodi }} ({{ $prodi->jenjang }})
+                                    {{ $prodi->nama_prodi }} {{ $prodi->kode_prodi ? '(' . $prodi->kode_prodi . ')' : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -129,7 +136,7 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <label class="form-label small fw-bold uppercase text-dark">Scan Ijazah / SKL</label>
-                        <input type="file" name="file_ijazah" class="form-control rounded-0" accept=".jpg,.jpeg,.png,.pdf">
+                        <input type="file" name="file_ijazah" class="form-control rounded-0" accept=".jpg,.jpeg,.png,.pdf" {{ $isLocked ? 'disabled' : '' }}>
                         @if(isset($dokumen['Ijazah']))
                             <div class="mt-1 text-success font-monospace uppercase fw-bold" style="font-size: 10px;">
                                 <i class="bi bi-check-circle-fill me-1"></i> SUDAH TERUNGGAH
@@ -138,7 +145,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold uppercase text-dark">Scan Kartu Keluarga (KK)</label>
-                        <input type="file" name="file_kk" class="form-control rounded-0" accept=".jpg,.jpeg,.png,.pdf">
+                        <input type="file" name="file_kk" class="form-control rounded-0" accept=".jpg,.jpeg,.png,.pdf" {{ $isLocked ? 'disabled' : '' }}>
                         @if(isset($dokumen['Kartu Keluarga']))
                             <div class="mt-1 text-success font-monospace uppercase fw-bold" style="font-size: 10px;">
                                 <i class="bi bi-check-circle-fill me-1"></i> SUDAH TERUNGGAH
@@ -147,7 +154,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold uppercase text-dark">Pas Foto Formal Terbaru</label>
-                        <input type="file" name="file_pas_foto" class="form-control rounded-0" accept=".jpg,.jpeg,.png">
+                        <input type="file" name="file_pas_foto" class="form-control rounded-0" accept=".jpg,.jpeg,.png" {{ $isLocked ? 'disabled' : '' }}>
                         @if(isset($dokumen['Pas Foto']))
                             <div class="mt-1 text-success font-monospace uppercase fw-bold" style="font-size: 10px;">
                                 <i class="bi bi-check-circle-fill me-1"></i> SUDAH TERUNGGAH
@@ -156,13 +163,14 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end pt-4 mt-4 border-top">
-                    <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
-                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
-                        Simpan Biodata
-                    </button>
-                </div>
-
+                @if(!$isLocked)
+                    <div class="d-flex justify-content-end pt-4 mt-4 border-top">
+                        <a href="{{ route('dashboard') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
+                            Simpan Biodata
+                        </button>
+                    </div>
+                @endif
             </form>
         </div>
     </div>

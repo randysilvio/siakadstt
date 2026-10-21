@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use App\Models\User;
 use App\Models\MataKuliah;
@@ -18,7 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        // 'App\Models\Model' => 'App\Models\Policy',
+        //
     ];
 
     /**
@@ -30,41 +31,54 @@ class AuthServiceProvider extends ServiceProvider
 
         /**
          * Gate untuk otorisasi input nilai.
-         * Diizinkan untuk: Admin, Dosen Pengampu, dan Kaprodi yang menaungi mata kuliah.
+         * Diizinkan untuk: Admin, Dosen Pengampu (Utama & Team Teaching), dan Kaprodi yang menaungi mata kuliah.
          */
         Gate::define('inputNilai', function (User $user, MataKuliah $mataKuliah) {
             if ($user->hasRole('admin')) {
                 return true;
             }
-            if ($user->hasRole('dosen') && $user->dosen?->id === $mataKuliah->dosen_id) {
-                return true;
-            }
-            if ($user->hasRole('kaprodi') && $user->dosen) {
-                $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->first();
-                if ($prodiYangDikepalai && $mataKuliah->kurikulum) {
-                    return $mataKuliah->kurikulum->program_studi_id === $prodiYangDikepalai->id;
+
+            if ($user->hasRole('dosen') && $user->dosen) {
+                if ((int) $user->dosen->id === (int) $mataKuliah->dosen_id) {
+                    return true;
+                }
+
+                $isTeamTeaching = DB::table('dosen_mata_kuliah')
+                    ->where('mata_kuliah_id', $mataKuliah->id)
+                    ->where('dosen_id', $user->dosen->id)
+                    ->exists();
+
+                if ($isTeamTeaching) {
+                    return true;
                 }
             }
+
+            if (($user->hasRole('kaprodi') || $user->isKaprodi()) && $user->dosen) {
+                $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->first();
+                if ($prodiYangDikepalai && $mataKuliah->kurikulum) {
+                    return (int) $mataKuliah->kurikulum->program_studi_id === (int) $prodiYangDikepalai->id;
+                }
+            }
+
             return false;
         });
 
         /**
-         * Gate untuk otorisasi update kelas Verum (hanya dosen pembuat).
+         * Gate untuk otorisasi update kelas Verum (dosen pembuat atau team teaching).
          */
-        Gate::define('update', function(User $user, VerumKelas $verumKelas){
-            return $user->dosen?->id === $verumKelas->dosen_id;
+        Gate::define('update', function (User $user, VerumKelas $verumKelas) {
+            return $user->dosen && (int) $user->dosen->id === (int) $verumKelas->dosen_id;
         });
 
         /**
-         * Gate untuk otorisasi hapus materi Verum (hanya dosen pembuat kelasnya).
+         * Gate untuk otorisasi hapus materi Verum (dosen pembuat kelasnya).
          */
-        Gate::define('delete', function(User $user, VerumMateri $verumMateri){
-            return $user->dosen?->id === $verumMateri->kelas?->dosen_id;
+        Gate::define('delete', function (User $user, VerumMateri $verumMateri) {
+            return $user->dosen && (int) $user->dosen->id === (int) $verumMateri->kelas?->dosen_id;
         });
 
         /**
          * Gate untuk mengelola Kalender Akademik.
-         * Saat ini hanya diizinkan untuk Admin.
          */
         Gate::define('manage-kalender', function (User $user) {
             return $user->hasRole('admin');

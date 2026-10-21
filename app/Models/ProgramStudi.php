@@ -10,6 +10,7 @@ class ProgramStudi extends Model
     use HasFactory;
 
     protected $fillable = [
+        'kode_prodi',
         'nama_prodi',
         'kaprodi_dosen_id',
     ];
@@ -24,7 +25,6 @@ class ProgramStudi extends Model
         return $this->belongsTo(Dosen::class, 'kaprodi_dosen_id');
     }
 
-    // TAMBAHKAN RELASI INI
     public function dosens()
     {
         return $this->hasMany(Dosen::class, 'program_studi_id');

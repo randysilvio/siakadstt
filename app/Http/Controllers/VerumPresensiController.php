@@ -7,17 +7,28 @@ use App\Models\VerumPresensi;
 use App\Models\VerumKehadiran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View; // Pastikan menggunakan library View
+use Illuminate\View\View;
 
 class VerumPresensiController extends Controller
 {
+    private function isDosenPengampu($user, VerumKelas $kelas): bool
+    {
+        if (!$user || !$user->dosen) return false;
+        if ((int) $user->dosen->id === (int) $kelas->dosen_id) return true;
+        return DB::table('dosen_mata_kuliah')
+            ->where('mata_kuliah_id', $kelas->mata_kuliah_id)
+            ->where('dosen_id', $user->dosen->id)
+            ->exists();
+    }
+
     /**
      * Dosen membuka sesi presensi baru.
      */
     public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
-        if (!Auth::user()->dosen || Auth::user()->dosen->id !== $verum_kela->dosen_id) {
+        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
             abort(403, 'Hanya dosen pengampu yang bisa membuka presensi.');
         }
 
@@ -28,10 +39,10 @@ class VerumPresensiController extends Controller
         ]);
 
         $verum_kela->presensi()->create([
-            'judul_pertemuan' => $request->judul_pertemuan,
+            'judul_pertemuan' => strip_tags($request->judul_pertemuan),
             'pertemuan_ke' => $request->pertemuan_ke,
             'waktu_buka' => now(),
-            'waktu_tutup' => now()->addMinutes((int)$request->durasi),
+            'waktu_tutup' => now()->addMinutes((int) $request->durasi),
         ]);
 
         return back()->with('success', 'Sesi presensi berhasil dibuka.');
@@ -45,17 +56,20 @@ class VerumPresensiController extends Controller
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        if (!$mahasiswa) {
-            abort(403, 'Aksi ini hanya untuk mahasiswa.');
+        if (!$mahasiswa || $mahasiswa->status_krs !== 'Disetujui') {
+            abort(403, 'Aksi ini hanya untuk mahasiswa dengan KRS yang telah disetujui.');
         }
 
-        // Validasi Keamanan: Pastikan mahasiswa terdaftar di kelas ini
-        $isEnrolled = $mahasiswa->mataKuliahs->contains($verum_presensi->kelas->mata_kuliah_id);
+        // [PERBAIKAN FASE 5]: Pastikan mahasiswa terdaftar di mata kuliah ini pada tahun akademik kelas tersebut
+        $isEnrolled = $mahasiswa->mataKuliahs()
+            ->wherePivot('tahun_akademik_id', $verum_presensi->kelas->tahun_akademik_id)
+            ->where('mata_kuliahs.id', $verum_presensi->kelas->mata_kuliah_id)
+            ->exists();
+
         if (!$isEnrolled) {
-            return back()->with('error', 'Anda tidak terdaftar di kelas ini.');
+            return back()->with('error', 'Anda tidak terdaftar di kelas ini pada semester berjalan.');
         }
 
-        // Cek Batas Waktu
         if (now()->isAfter($verum_presensi->waktu_tutup)) {
             return back()->with('error', 'Sesi presensi sudah ditutup.');
         }
@@ -79,18 +93,23 @@ class VerumPresensiController extends Controller
     }
 
     /**
-     * Menampilkan dan menyiapkan data halaman Cetak Rekap Absensi untuk Dosen
+     * Menampilkan dan menyiapkan data halaman Cetak Rekap Absensi untuk Dosen.
      */
     public function cetakRekap(VerumKelas $verum_kela): View
     {
-        if (!Auth::user()->dosen || Auth::user()->dosen->id !== $verum_kela->dosen_id) {
+        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
             abort(403, 'Hanya dosen pengampu yang bisa mencetak absensi.');
         }
 
-        // Mengambil data seluruh mahasiswa yang KRS-nya aktif pada mata kuliah ini
-        $mahasiswas = $verum_kela->mataKuliah->mahasiswas()->orderBy('nama_lengkap')->get();
+        $verum_kela->load(['mataKuliah', 'dosen', 'tahunAkademik']);
+
+        // [PERBAIKAN BUG FASE 5]: Hanya ambil mahasiswa pada Tahun Akademik kelas ini yang KRS-nya Disetujui
+        $mahasiswas = $verum_kela->mataKuliah->mahasiswas()
+            ->wherePivot('tahun_akademik_id', $verum_kela->tahun_akademik_id)
+            ->where('mahasiswas.status_krs', 'Disetujui')
+            ->orderBy('nama_lengkap')
+            ->get();
         
-        // Mengambil seluruh data pertemuan sekaligus *eager load* tabel kehadirannya
         $presensis = $verum_kela->presensi()->with('kehadiran')->orderBy('pertemuan_ke')->get();
 
         return view('verum.presensi_cetak', compact('verum_kela', 'mahasiswas', 'presensis'));

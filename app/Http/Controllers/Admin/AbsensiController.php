@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiPegawai;
 use App\Models\LokasiKerja;
+use App\Models\PengaturanAbsensi;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -13,17 +14,14 @@ class AbsensiController extends Controller
 {
     /**
      * Menampilkan halaman laporan absensi (Web View).
-     * Menampilkan detail harian dengan filter Bulan & Tahun.
      */
     public function laporanIndex(Request $request)
     {
-        // 1. Ambil Filter (Default: Bulan & Tahun Saat Ini)
         $bulan = $request->input('bulan', date('m'));
         $tahun = $request->input('tahun', date('Y'));
 
         $query = AbsensiPegawai::with('user')->latest();
 
-        // 2. Filter Search Nama
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->whereHas('user', function ($q) use ($search) {
@@ -31,7 +29,6 @@ class AbsensiController extends Controller
             });
         }
 
-        // 3. Filter Bulan & Tahun
         $query->whereMonth('tanggal_absensi', $bulan)
               ->whereYear('tanggal_absensi', $tahun);
 
@@ -42,15 +39,12 @@ class AbsensiController extends Controller
 
     /**
      * [REKAPITULASI] Mencetak Laporan Bulanan Ringkas
-     * Mengelompokkan data per pegawai (1 Orang = 1 Baris)
      */
     public function laporanCetak(Request $request)
     {
-        // 1. Ambil Filter (Default: Bulan & Tahun Saat Ini)
         $bulan = $request->input('bulan', date('m'));
         $tahun = $request->input('tahun', date('Y'));
 
-        // Info untuk Judul Laporan
         $namaBulan = Carbon::createFromDate($tahun, $bulan, 1)->translatedFormat('F Y');
         $filterInfo[] = "Periode: " . $namaBulan;
 
@@ -58,8 +52,12 @@ class AbsensiController extends Controller
             $filterInfo[] = 'Pencarian: "' . $request->search . '"';
         }
 
-        // 2. Ambil User yang memiliki data absensi pada bulan tersebut
-        // Kita gunakan User sebagai model utama agar bisa menghitung total status
+        // Ambil pengaturan jam masuk & toleransi aktual dari database
+        $setting = PengaturanAbsensi::first();
+        $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
+        $toleransi = $setting ? (int) $setting->toleransi_terlambat_menit : 15;
+        $batasTerlambat = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi)->format('H:i:s');
+
         $laporan = User::whereHas('absensiPegawai', function($q) use ($bulan, $tahun) {
                 $q->whereMonth('tanggal_absensi', $bulan)
                   ->whereYear('tanggal_absensi', $tahun);
@@ -72,17 +70,15 @@ class AbsensiController extends Controller
                 $q->where('name', 'like', "%{$request->search}%");
             })
             ->get()
-            ->map(function($user) {
-                // 3. Hitung Statistik Per Orang
+            ->map(function($user) use ($batasTerlambat) {
                 return [
                     'nama' => $user->name,
                     'total_hadir' => $user->absensiPegawai->where('status_kehadiran', 'Hadir')->count(),
                     'total_izin' => $user->absensiPegawai->where('status_kehadiran', 'Izin')->count(),
                     'total_sakit' => $user->absensiPegawai->where('status_kehadiran', 'Sakit')->count(),
                     'total_alpha' => $user->absensiPegawai->where('status_kehadiran', 'Alpha')->count(),
-                    // Hitung Terlambat (Contoh: Lewat jam 08:00)
-                    'total_terlambat' => $user->absensiPegawai->filter(function($item) {
-                        return $item->waktu_check_in && $item->waktu_check_in->format('H:i') > '08:00'; 
+                    'total_terlambat' => $user->absensiPegawai->filter(function($item) use ($batasTerlambat) {
+                        return $item->waktu_check_in && $item->waktu_check_in->format('H:i:s') > $batasTerlambat; 
                     })->count(),
                 ];
             });
@@ -106,14 +102,14 @@ class AbsensiController extends Controller
 
     public function lokasiStore(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_lokasi' => 'required|string|max:255',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'radius_toleransi_meter' => 'required|integer|min:1',
         ]);
 
-        LokasiKerja::create($request->all());
+        LokasiKerja::create($validated);
         return redirect()->route('admin.absensi.lokasi.index')->with('success', 'Lokasi kerja berhasil ditambahkan.');
     }
 
@@ -124,14 +120,14 @@ class AbsensiController extends Controller
 
     public function lokasiUpdate(Request $request, LokasiKerja $lokasi)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_lokasi' => 'required|string|max:255',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'radius_toleransi_meter' => 'required|integer|min:1',
         ]);
 
-        $lokasi->update($request->all());
+        $lokasi->update($validated);
         return redirect()->route('admin.absensi.lokasi.index')->with('success', 'Lokasi kerja berhasil diperbarui.');
     }
 

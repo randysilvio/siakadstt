@@ -12,19 +12,51 @@ use Illuminate\Support\Facades\Storage;
 
 class AbsensiController extends Controller
 {
-    // =========================================================================
-    // 1. FITUR ABSENSI (Check-in, Check-out, History, Radius)
-    // =========================================================================
+    /**
+     * Helper untuk mengecek apakah titik koordinat berada dalam radius lokasi kerja.
+     */
+    private function cariLokasiKerjaValid(float $latUser, float $longUser): array
+    {
+        $lokasiKerja = LokasiKerja::all();
+        $lokasiValid = null;
+        $jarakTerdekat = 999999999;
+
+        foreach ($lokasiKerja as $lokasi) {
+            $jarak = $this->hitungJarak(
+                $latUser,
+                $longUser,
+                (float) $lokasi->latitude,
+                (float) $lokasi->longitude
+            );
+
+            if ($jarak < $jarakTerdekat) {
+                $jarakTerdekat = $jarak;
+            }
+
+            if ($jarak <= $lokasi->radius_toleransi_meter) {
+                $lokasiValid = $lokasi;
+                break;
+            }
+        }
+
+        return ['lokasi' => $lokasiValid, 'jarak_terdekat' => $jarakTerdekat];
+    }
 
     public function checkIn(Request $request)
     {
+        $user = $request->user();
+
+        // [PERBAIKAN KEAMANAN FASE 6]: Tolak mahasiswa/camaba dari fitur absensi pegawai
+        if ($user->hasRole(['mahasiswa', 'camaba']) && !$user->hasRole(['dosen', 'admin', 'pegawai', 'keuangan', 'pustakawan', 'administrasi_umum'])) {
+            return response()->json(['message' => 'Fitur absensi kerja hanya diperuntukkan bagi Dosen dan Tenaga Kependidikan.'], 403);
+        }
+
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'foto_check_in' => 'required|image|max:5120', // Max 5MB
+            'foto_check_in' => 'required|image|max:5120',
         ]);
 
-        $user = $request->user();
         $today = Carbon::today();
 
         $absensiHariIni = AbsensiPegawai::where('user_id', $user->id)
@@ -35,51 +67,33 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda sudah melakukan check-in hari ini.'], 422);
         }
 
-        // =========================================================
-        // LOGIKA CEK JAM MASUK & TOLERANSI
-        // =========================================================
+        // Cek Jam Masuk & Toleransi
         $setting = PengaturanAbsensi::first();
         $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
-        $toleransi = $setting ? $setting->toleransi_terlambat_menit : 15;
+        $toleransi = $setting ? (int) $setting->toleransi_terlambat_menit : 15;
 
         $batasWaktu = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi);
         $waktuSekarang = Carbon::now();
 
         $statusKehadiran = 'Hadir'; 
+        $keterangan = 'Tepat Waktu';
         $pesanResponse = 'Check-in berhasil.';
 
         if ($waktuSekarang->format('H:i:s') > $batasWaktu->format('H:i:s')) {
-            $statusKehadiran = 'Alpha';
-            $pesanResponse = 'Absen diterima, namun status Anda ALPHA karena terlambat melebihi toleransi.';
+            $keterangan = 'Terlambat (Melewati batas toleransi ' . $batasWaktu->format('H:i') . ')';
+            $pesanResponse = 'Check-in berhasil dicatat dengan status Hadir (Terlambat).';
         }
-        // =========================================================
 
         // Cek Lokasi (Logika Radius)
-        $lokasiKerja = LokasiKerja::all();
-        $lokasiValid = null;
-        $jarakTerdekat = 999999999;
-        
         $latUser = (float) $request->latitude;
         $longUser = (float) $request->longitude;
-
-        foreach ($lokasiKerja as $lokasi) {
-            $jarak = $this->hitungJarak(
-                $latUser, $longUser,
-                (float) $lokasi->latitude, (float) $lokasi->longitude
-            );
-
-            if ($jarak < $jarakTerdekat) $jarakTerdekat = $jarak;
-
-            if ($jarak <= $lokasi->radius_toleransi_meter) {
-                $lokasiValid = $lokasi;
-                break;
-            }
-        }
+        $cekLokasi = $this->cariLokasiKerjaValid($latUser, $longUser);
+        $lokasiValid = $cekLokasi['lokasi'];
 
         if (!$lokasiValid) {
             return response()->json([
-                'message' => 'Posisi Anda diluar jangkauan lokasi kerja.',
-                'debug_info' => ['jarak_terdeteksi' => round($jarakTerdekat, 2) . ' meter']
+                'message' => 'Posisi Anda berada di luar jangkauan radius lokasi kerja kampus.',
+                'debug_info' => ['jarak_terdeteksi' => round($cekLokasi['jarak_terdekat'], 2) . ' meter']
             ], 422);
         }
 
@@ -94,6 +108,7 @@ class AbsensiController extends Controller
                 'longitude_check_in' => $longUser,
                 'foto_check_in' => $path,
                 'status_kehadiran' => $statusKehadiran,
+                'keterangan' => $keterangan,
             ]
         );
 
@@ -102,20 +117,26 @@ class AbsensiController extends Controller
             'data' => [
                 'check_in' => $absensi->waktu_check_in,
                 'lokasi' => $lokasiValid->nama_lokasi,
-                'status' => $statusKehadiran, 
+                'status' => $statusKehadiran,
+                'keterangan' => $keterangan,
             ],
         ], 201);
     }
 
     public function checkOut(Request $request)
     {
+        $user = $request->user();
+
+        if ($user->hasRole(['mahasiswa', 'camaba']) && !$user->hasRole(['dosen', 'admin', 'pegawai', 'keuangan', 'pustakawan', 'administrasi_umum'])) {
+            return response()->json(['message' => 'Fitur absensi kerja hanya diperuntukkan bagi Dosen dan Tenaga Kependidikan.'], 403);
+        }
+
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'foto_check_out' => 'required|image|max:5120',
         ]);
 
-        $user = $request->user();
         $absensiHariIni = AbsensiPegawai::where('user_id', $user->id)
             ->whereDate('tanggal_absensi', Carbon::today())
             ->first();
@@ -128,12 +149,24 @@ class AbsensiController extends Controller
             return response()->json(['message' => 'Anda sudah melakukan check-out hari ini.'], 422);
         }
 
+        // [PERBAIKAN KEAMANAN FASE 6]: Validasi radius lokasi kerja saat Check-Out
+        $latUser = (float) $request->latitude;
+        $longUser = (float) $request->longitude;
+        $cekLokasi = $this->cariLokasiKerjaValid($latUser, $longUser);
+
+        if (!$cekLokasi['lokasi']) {
+            return response()->json([
+                'message' => 'Check-out ditolak: Posisi Anda berada di luar jangkauan radius lokasi kerja kampus.',
+                'debug_info' => ['jarak_terdeteksi' => round($cekLokasi['jarak_terdekat'], 2) . ' meter']
+            ], 422);
+        }
+
         $path = $request->file('foto_check_out')->store('foto-absensi', 'public');
 
         $absensiHariIni->update([
             'waktu_check_out' => now(),
-            'latitude_check_out' => $request->latitude,
-            'longitude_check_out' => $request->longitude,
+            'latitude_check_out' => $latUser,
+            'longitude_check_out' => $longUser,
             'foto_check_out' => $path,
         ]);
 
@@ -171,10 +204,6 @@ class AbsensiController extends Controller
         return response()->json(null);
     }
 
-    // =========================================================================
-    // 2. FITUR KEUANGAN (Mahasiswa)
-    // =========================================================================
-    
     public function riwayatPembayaranMahasiswa(Request $request)
     {
         $user = $request->user();
@@ -186,7 +215,7 @@ class AbsensiController extends Controller
         $pembayarans = $user->mahasiswa->pembayarans()
             ->orderBy('semester', 'desc')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'id' => $item->id,
                     'semester' => $item->semester,
@@ -199,10 +228,6 @@ class AbsensiController extends Controller
         return response()->json($pembayarans);
     }
 
-    // =========================================================================
-    // 3. FITUR KHS / NILAI (Mahasiswa)
-    // =========================================================================
-
     public function getKhsMahasiswa(Request $request)
     {
         $user = $request->user();
@@ -212,17 +237,15 @@ class AbsensiController extends Controller
 
         $mahasiswa = $user->mahasiswa;
 
-        // [GATEKEEPER EVALUASI DOSEN]
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
-            return response()->json(['message' => 'Evaluasi belum diisi'], 403);
+            return response()->json(['message' => 'Evaluasi dosen (EDOM) belum diisi'], 403);
         }
         
-        // [PERBAIKAN KUNCI]: Memaksa Laravel memuat pivot table untuk mencegah nilai null hilang dari API
         $transkrip = $mahasiswa->mataKuliahs()
             ->withPivot('nilai', 'tahun_akademik_id') 
             ->orderBy('pivot_tahun_akademik_id', 'desc') 
             ->get()
-            ->groupBy(function($item) {
+            ->groupBy(function ($item) {
                 return $item->pivot->tahun_akademik_id;
             });
 
@@ -230,13 +253,11 @@ class AbsensiController extends Controller
         foreach ($transkrip as $tahunId => $matkuls) {
             $dataIps = $mahasiswa->hitungIps($tahunId); 
             
-            $listMatkul = $matkuls->map(function($mk) {
+            $listMatkul = $matkuls->map(function ($mk) {
                 return [
                     'kode' => $mk->kode_mk,
                     'nama' => $mk->nama_mk,
                     'sks' => $mk->sks,
-                    // [PERBAIKAN KUNCI]: Jika di DB nilainya null, kita paksa ubah jadi '-' di server 
-                    // agar API tidak membuang data ini saat dikirim ke HP.
                     'nilai' => $mk->pivot->nilai === null ? '-' : $mk->pivot->nilai,
                 ];
             });
@@ -261,9 +282,6 @@ class AbsensiController extends Controller
         ]);
     }
 
-    // =========================================================================
-    // HELPER
-    // =========================================================================
     private function hitungJarak($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371000; 

@@ -28,7 +28,7 @@
         {{-- Input Area --}}
         <div class="card-footer bg-light p-3 border-top rounded-0">
             <div class="input-group rounded-0">
-                <input type="text" id="chatbot-input" class="form-control rounded-0 font-monospace small" placeholder="KETIK PESAN...">
+                <input type="text" id="chatbot-input" class="form-control rounded-0 font-monospace small" placeholder="KETIK PESAN..." maxlength="500">
                 <button id="chatbot-send" class="btn btn-dark rounded-0 px-3 uppercase fw-bold small">
                     <i class="bi bi-send-fill"></i>
                 </button>
@@ -91,7 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (sender === 'user') {
             messageBubble.className += 'bg-dark text-white';
-            messageBubble.innerHTML = `<strong class="uppercase fw-bold d-block mb-1 text-light font-monospace text-end">Anda:</strong> ${message}`;
+            // [PERBAIKAN KEAMANAN FASE 6]: Gunakan textContent untuk mencegah DOM-based XSS
+            const senderLabel = document.createElement('strong');
+            senderLabel.className = 'uppercase fw-bold d-block mb-1 text-light font-monospace text-end';
+            senderLabel.textContent = 'Anda:';
+            
+            const textNode = document.createElement('span');
+            textNode.textContent = message;
+
+            messageBubble.appendChild(senderLabel);
+            messageBubble.appendChild(textNode);
         } else {
             messageBubble.className += 'bg-light text-dark border border-secondary border-opacity-25';
             messageBubble.innerHTML = `<strong class="uppercase fw-bold d-block mb-1 text-primary font-monospace">Zoe:</strong> ${message}`;

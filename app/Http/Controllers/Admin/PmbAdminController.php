@@ -22,23 +22,20 @@ class PmbAdminController extends Controller
         $query = Camaba::with(['user', 'prodi1', 'period'])
             ->orderBy('created_at', 'desc');
 
-        // Filter berdasarkan Status Pendaftaran
         if ($request->filled('status')) {
             $query->where('status_pendaftaran', $request->status);
         }
 
-        // Fitur Smart Search: Mencari Nama User atau No Pendaftaran
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('no_pendaftaran', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQuery) use ($search) {
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
                       $userQuery->where('name', 'like', "%{$search}%");
                   });
             });
         }
 
-        // Paginasi 20 data per halaman dan mempertahankan query string
         $pendaftars = $query->paginate(20)->withQueryString();
 
         return view('admin.pmb.index', compact('pendaftars'));
@@ -46,9 +43,10 @@ class PmbAdminController extends Controller
 
     public function show(Camaba $camaba)
     {
-        // Load data tagihan untuk ditampilkan di view admin
+        $camaba->load(['user', 'prodi1', 'prodi2', 'period', 'documents']);
         $tagihan = Pembayaran::where('user_id', $camaba->user_id)
             ->where('jenis_pembayaran', 'formulir_pmb')
+            ->latest()
             ->first();
             
         return view('admin.pmb.show', compact('camaba', 'tagihan'));
@@ -75,39 +73,51 @@ class PmbAdminController extends Controller
      */
     public function approve(Request $request, Camaba $camaba)
     {
-        if ($camaba->is_migrated) {
+        if ($camaba->is_migrated || $camaba->status_pendaftaran === 'lulus') {
             return back()->with('error', 'Camaba ini sudah menjadi mahasiswa aktif.');
         }
 
-        if (!$camaba->pilihan_prodi_1_id) {
-             return back()->with('error', 'Biodata belum lengkap (Prodi belum dipilih). Tidak bisa diluluskan.');
+        // [PERBAIKAN KEAMANAN FASE 4]: Pastikan pembayaran formulir PMB sudah lunas sebelum diluluskan
+        $lunas = Pembayaran::where('user_id', $camaba->user_id)
+            ->where('jenis_pembayaran', 'formulir_pmb')
+            ->where('status', 'lunas')
+            ->exists();
+
+        if (!$lunas) {
+            return back()->with('error', 'Gagal meluluskan: Tagihan formulir pendaftaran Camaba ini belum berstatus LUNAS.');
+        }
+
+        if (!$camaba->pilihan_prodi_1_id || !$camaba->tempat_lahir) {
+            return back()->with('error', 'Biodata belum lengkap. Camaba wajib melengkapi biodata terlebih dahulu.');
         }
 
         DB::beginTransaction();
         try {
-            // 1. Generate NIM Otomatis
+            // 1. Generate NIM Otomatis dengan proteksi anti-bentrok (Lock & Loop Check)
             $tahunMasuk = date('Y');
-            $kodeProdi = $camaba->prodi1->kode_prodi ?? '00'; 
-            
-            $lastMhs = Mahasiswa::where('program_studi_id', $camaba->pilihan_prodi_1_id)
-                ->where('tahun_masuk', $tahunMasuk)
+            $kodeProdi = $camaba->prodi1->kode_prodi ?: str_pad((string) $camaba->pilihan_prodi_1_id, 2, '0', STR_PAD_LEFT);
+            $prefixNim = $tahunMasuk . $kodeProdi;
+
+            $lastMhs = Mahasiswa::where('nim', 'like', $prefixNim . '%')
+                ->lockForUpdate()
                 ->orderBy('nim', 'desc')
                 ->first();
 
             $urutan = 1;
             if ($lastMhs && !empty($lastMhs->nim)) {
-                $lastUrutan = (int) substr($lastMhs->nim, -3);
+                $lastUrutan = (int) substr($lastMhs->nim, strlen($prefixNim));
                 $urutan = $lastUrutan + 1;
             }
 
-            $nimBaru = $tahunMasuk . $kodeProdi . str_pad($urutan, 3, '0', STR_PAD_LEFT);
+            do {
+                $nimBaru = $prefixNim . str_pad((string) $urutan, 3, '0', STR_PAD_LEFT);
+                $urutan++;
+            } while (Mahasiswa::where('nim', $nimBaru)->exists());
 
-            // [PERBAIKAN MUTLAK]: Bypass Constraint Basis Data
-            // Karena form awal PMB belum mewajibkan NIK, kita buatkan NIK 16 digit sementara 
-            // format: TahunBulanHariJamMenitDetik + 2 digit ID agar pasti UNIQUE
-            $nikDummy = $camaba->nik ?? (date('YmdHis') . str_pad($camaba->id, 2, '0', STR_PAD_LEFT));
+            $nikDummy = $camaba->nik ?? (date('YmdHis') . str_pad((string) ($camaba->id % 100), 2, '0', STR_PAD_LEFT));
 
             // 2. Insert ke Tabel Mahasiswas
+            // [PERBAIKAN BUG FASE 4]: Menggunakan 'nomor_telepon' & menyertakan 'nisn' agar data tidak hilang
             Mahasiswa::create([
                 'user_id' => $camaba->user_id,
                 'nim' => $nimBaru,
@@ -116,13 +126,14 @@ class PmbAdminController extends Controller
                 'tempat_lahir' => $camaba->tempat_lahir ?? 'Belum Diisi',
                 'tanggal_lahir' => $camaba->tanggal_lahir ?? now(),
                 'jenis_kelamin' => $camaba->jenis_kelamin ?? 'L',
-                'agama' => $camaba->agama ?? 'Belum Diisi',
-                'no_hp' => $camaba->no_hp ?? '-',
+                'agama' => $camaba->agama ?? 'Kristen Protestan',
+                'nomor_telepon' => $camaba->no_hp ?? '-',
+                'nisn' => $camaba->nisn,
                 'alamat' => $camaba->alamat ?? 'Belum Diisi',
-                'nik' => $nikDummy, // Bebas dari error Duplicate Entry!
-                'kewarganegaraan' => 'WNI', // Default Wajib
-                'nama_ibu_kandung' => 'Belum Diisi', // Default Wajib
-                'tanggal_masuk' => now(),
+                'nik' => $nikDummy,
+                'kewarganegaraan' => 'WNI',
+                'nama_ibu_kandung' => 'Belum Diisi',
+                'jalur_pendaftaran' => 'Mandiri (PMB)',
                 'tahun_masuk' => $tahunMasuk, 
                 'status_mahasiswa' => 'Aktif',
             ]);
@@ -133,32 +144,36 @@ class PmbAdminController extends Controller
                 'is_migrated' => true
             ]);
 
-            // 4. Ganti Role User
+            // 4. Ganti Role User dari Camaba menjadi Mahasiswa
             $user = User::find($camaba->user_id);
             $roleCamaba = Role::where('name', 'camaba')->first();
             $roleMhs = Role::where('name', 'mahasiswa')->first();
 
-            if ($roleCamaba && $roleMhs) {
+            if ($user && $roleCamaba && $roleMhs) {
                 $user->roles()->detach($roleCamaba->id);
-                $user->roles()->attach($roleMhs->id);
+                $user->roles()->syncWithoutDetaching([$roleMhs->id]);
             }
 
             DB::commit();
 
             return redirect()->route('admin.pmb.index')
-                ->with('success', 'Berhasil! ' . $user->name . ' resmi menjadi Mahasiswa dengan NIM: ' . $nimBaru);
+                ->with('success', 'Berhasil! ' . $user->name . ' resmi menjadi Mahasiswa Aktif dengan NIM: ' . $nimBaru);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
             
-            return back()->with('error', 'Gagal memproses kelulusan (Hubungi Teknisi): ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses kelulusan: ' . $e->getMessage());
         }
     }
 
-    public function reject(Camaba $camaba)
+    public function reject(Request $request, Camaba $camaba)
     {
+        if ($camaba->is_migrated) {
+            return back()->with('error', 'Camaba yang sudah dimigrasikan menjadi mahasiswa tidak dapat ditolak.');
+        }
+
         $camaba->update(['status_pendaftaran' => 'tidak_lulus']);
-        return back()->with('success', 'Pendaftaran ditolak.');
+        return back()->with('success', 'Pendaftaran kandidat telah ditolak.');
     }
 }

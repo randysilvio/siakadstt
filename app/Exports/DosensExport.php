@@ -17,36 +17,44 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, WithMapping, WithStyles, WithEvents
 {
+    private function safeCell($value): string
+    {
+        $str = (string) ($value ?? '');
+        if ($str !== '' && in_array($str[0], ['=', '+', '-', '@', "\t", "\r"])) {
+            return "'" . $str;
+        }
+        return $str;
+    }
+
     public function collection()
     {
-        // Load relasi user dan programStudi agar export lebih cepat (Eager Loading)
         return Dosen::with(['user', 'programStudi'])->get();
     }
 
     public function map($dosen): array
     {
         return [
-            $dosen->nidn, 
-            $dosen->nama_lengkap, 
-            $dosen->user->email ?? '',
-            $dosen->programStudi->nama_prodi ?? 'Tanpa Prodi', // <-- Tambahkan Relasi Prodi
+            "'" . $dosen->nidn, 
+            $this->safeCell($dosen->nama_lengkap), 
+            $this->safeCell($dosen->user->email ?? ''),
+            $this->safeCell($dosen->programStudi->nama_prodi ?? 'Tanpa Prodi'),
             "'" . $dosen->nik, 
-            $dosen->jenis_kelamin, 
-            $dosen->agama,
-            $dosen->status_kepegawaian, 
-            $dosen->jabatan_akademik, 
-            $dosen->pangkat_golongan,
-            $dosen->bidang_keahlian, 
-            $dosen->email_institusi, 
-            $dosen->tempat_lahir,
+            $this->safeCell($dosen->jenis_kelamin), 
+            $this->safeCell($dosen->agama),
+            $this->safeCell($dosen->status_kepegawaian), 
+            $this->safeCell($dosen->jabatan_akademik), 
+            $this->safeCell($dosen->pangkat_golongan),
+            $this->safeCell($dosen->bidang_keahlian), 
+            $this->safeCell($dosen->email_institusi), 
+            $this->safeCell($dosen->tempat_lahir),
             $dosen->tanggal_lahir, 
-            $dosen->alamat, 
+            $this->safeCell($dosen->alamat), 
             "'" . $dosen->nuptk,
             "'" . $dosen->npwp, 
-            $dosen->no_sk_pengangkatan, 
+            $this->safeCell($dosen->no_sk_pengangkatan), 
             $dosen->tmt_sk_pengangkatan,
-            $dosen->link_google_scholar, 
-            $dosen->link_sinta,
+            $this->safeCell($dosen->link_google_scholar), 
+            $this->safeCell($dosen->link_sinta),
         ];
     }
 
@@ -80,10 +88,10 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet;
                 $highestRow = $sheet->getHighestRow();
-                $highestColumn = 'U'; // <-- Diganti ke 'U' karena nambah 1 kolom (Program Studi)
+                $highestColumn = 'U';
 
                 $sheet->mergeCells('A1:' . $highestColumn . '1'); 
                 $sheet->mergeCells('A2:' . $highestColumn . '2'); 

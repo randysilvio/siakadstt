@@ -8,7 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Pengaturan;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
-use App\Models\Jadwal; // Import Model Jadwal
+use App\Models\Jadwal;
 
 class CetakController extends Controller
 {
@@ -24,36 +24,34 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // 1. Tangkap parameter tahun akademik yang dilempar dari dropdown view
+        // [PERBAIKAN KEAMANAN FASE 3]: Cegah bypass EDOM melalui URL cetak KHS langsung
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')
+                ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mencetak KHS.');
+        }
+
         $selectedTaId = $request->input('tahun_akademik_id');
-        
         if (!$selectedTaId) {
             return redirect()->back()->with('error', 'Gagal mencetak. Silakan pilih Tahun Akademik terlebih dahulu.');
         }
 
-        // 2. Tarik data Tahun Akademik yang dipilih
         $tahunSelected = TahunAkademik::findOrFail($selectedTaId);
         
-        // 3. Tarik KRS spesifik untuk 1 semester itu saja
         $krsSelected = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $selectedTaId)
             ->withPivot('nilai')
             ->get();
             
-        // 4. Hitung IPS untuk 1 semester tersebut
         $ipsData = $mahasiswa->hitungIps($selectedTaId);
 
-        // 5. Render ke PDF dengan variabel baru yang diminta view
         $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsSelected', 'tahunSelected', 'ipsData'));
         
         $namaFile = 'KHS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunSelected->tahun) . '_' . strtoupper($tahunSelected->semester) . '.pdf';
         
-        // 6. Cek jika mode download ditekan
         if ($request->has('download') && $request->input('download') == 1) {
             return $pdf->download($namaFile);
         }
         
-        // Default: Tampilkan preview di Iframe (Modal)
         return $pdf->stream($namaFile);
     }
 
@@ -69,13 +67,40 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        $krs = $mahasiswa->mataKuliahs()
+        // [PERBAIKAN KEAMANAN FASE 3]: Cegah bypass EDOM melalui URL cetak Transkrip langsung
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')
+                ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mencetak Transkrip Nilai.');
+        }
+
+        // [PERBAIKAN BUG FASE 3]: Saring hanya 1 nilai terbaik untuk mata kuliah yang diulang (konsisten dengan TranskripController)
+        $semuaKrsSelesai = $mahasiswa->mataKuliahs()
                          ->wherePivotNotNull('nilai')
                          ->get();
 
-        $krs_per_semester = $krs->groupBy('semester');
+        $bobot = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
+        $matkulTerbaik = [];
+
+        foreach ($semuaKrsSelesai as $mk) {
+            $nilaiSekarang = $mk->pivot->nilai;
+            $bobotSekarang = $bobot[$nilaiSekarang] ?? 0;
+
+            if (isset($matkulTerbaik[$mk->id])) {
+                $nilaiTersimpan = $matkulTerbaik[$mk->id]->pivot->nilai;
+                $bobotTersimpan = $bobot[$nilaiTersimpan] ?? 0;
+
+                if ($bobotSekarang > $bobotTersimpan) {
+                    $matkulTerbaik[$mk->id] = $mk;
+                }
+            } else {
+                $matkulTerbaik[$mk->id] = $mk;
+            }
+        }
+
+        $krsSelesaiUnik = collect(array_values($matkulTerbaik));
+        $krs_per_semester = $krsSelesaiUnik->groupBy('semester');
         $ipk = $mahasiswa->hitungIpk();
-        $total_sks = $mahasiswa->totalSksLulus();
+        $total_sks = $krsSelesaiUnik->sum('sks');
 
         $pdf = Pdf::loadView('transkrip.pdf', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));
         return $pdf->download('Transkrip_' . $mahasiswa->nim . '.pdf');
@@ -106,7 +131,7 @@ class CetakController extends Controller
     }
 
     /**
-     * [BARU] Generate PDF Jadwal Kuliah Semester Ini
+     * Generate PDF Jadwal Kuliah Semester Ini.
      */
     public function cetakJadwal()
     {
@@ -119,24 +144,19 @@ class CetakController extends Controller
         
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // 1. Ambil ID Mata Kuliah yang diambil mahasiswa semester ini
         $mataKuliahIds = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
             ->pluck('mata_kuliahs.id');
 
-        // 2. Ambil Jadwal berdasarkan mata kuliah tersebut
         $jadwals = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
             ->with(['mataKuliah', 'mataKuliah.dosen'])
             ->get()
-            ->sortBy(function($jadwal) {
-                // Urutkan berdasarkan Hari (Senin=1, ..., Minggu=7)
+            ->sortBy(function ($jadwal) {
                 $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
                 return $hariOrder[$jadwal->hari] ?? 99;
             });
 
         $pdf = Pdf::loadView('mahasiswa.cetak_jadwal', compact('mahasiswa', 'jadwals', 'tahunAkademik'));
-        
-        // Stream agar bisa dipreview dulu di browser
         return $pdf->stream('Jadwal_Kuliah_' . $mahasiswa->nim . '.pdf');
     }
 }

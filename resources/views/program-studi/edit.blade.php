@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Edit Program Studi</h3>
-            <span class="text-muted small uppercase">Pembaruan Informasi Nomenklatur & Alokasi Pimpinan Kaprodi</span>
+            <span class="text-muted small uppercase">Pembaruan Informasi Nomenklatur, Kode NIM & Alokasi Pimpinan Kaprodi</span>
         </div>
         <div>
             <a href="{{ route('admin.program-studi.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
@@ -24,14 +24,30 @@
                 @csrf
                 @method('PUT')
 
-                <div class="mb-4">
-                    <label for="nama_prodi" class="form-label small fw-bold uppercase text-dark">Nama Program Studi <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-building text-dark"></i></span>
-                        <input type="text" class="form-control rounded-0 uppercase @error('nama_prodi') is-invalid @enderror" id="nama_prodi" name="nama_prodi" value="{{ old('nama_prodi', $programStudi->nama_prodi) }}" required>
-                        @error('nama_prodi')
-                            <div class="invalid-feedback font-monospace small">{{ $message }}</div>
-                        @enderror
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="kode_prodi" class="form-label small fw-bold uppercase text-dark">Kode Prodi <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-hash text-dark"></i></span>
+                            <input type="text" class="form-control rounded-0 font-monospace uppercase @error('kode_prodi') is-invalid @enderror" id="kode_prodi" name="kode_prodi" value="{{ old('kode_prodi', $programStudi->kode_prodi) }}" maxlength="10" required>
+                            @error('kode_prodi')
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-text text-muted small uppercase mt-1" style="font-size: 0.7rem;">
+                            Digunakan sebagai prefix otomatis NIM Mahasiswa Baru.
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="nama_prodi" class="form-label small fw-bold uppercase text-dark">Nama Program Studi <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-building text-dark"></i></span>
+                            <input type="text" class="form-control rounded-0 uppercase @error('nama_prodi') is-invalid @enderror" id="nama_prodi" name="nama_prodi" value="{{ old('nama_prodi', $programStudi->nama_prodi) }}" required>
+                            @error('nama_prodi')
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 

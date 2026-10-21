@@ -150,7 +150,7 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    Route::middleware('role:mahasiswa')->group(function () {
+Route::middleware('role:mahasiswa')->group(function () {
         Route::middleware([CekStatusPembayaranMiddleware::class, CekPeriodeKrsMiddleware::class])->group(function () {
             Route::get('/krs', [KrsController::class, 'index'])->name('krs.index');
             Route::post('/krs', [KrsController::class, 'store'])->name('krs.store');
@@ -163,6 +163,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/krs/cetak', [CetakController::class, 'cetakKrs'])->name('krs.cetak.final');
         Route::get('/jadwal/cetak', [CetakController::class, 'cetakJadwal'])->name('jadwal.cetak');
         Route::get('/riwayat-pembayaran', [PembayaranController::class, 'riwayat'])->name('pembayaran.riwayat');
+        // [TAMBAHAN FASE 4]: Rute Upload Bukti Pembayaran SPP/Akademik oleh Mahasiswa
+        Route::post('/riwayat-pembayaran/{pembayaran}/upload-bukti', [PembayaranController::class, 'uploadBuktiMahasiswa'])->name('pembayaran.uploadBukti');
         Route::get('/evaluasi', [EvaluasiController::class, 'index'])->name('evaluasi.index');
         Route::get('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'show'])->name('evaluasi.show');
         Route::post('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'store'])->name('evaluasi.store');

@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Manajemen Program Studi</h3>
-            <span class="text-muted small uppercase">Kelola Data Program Studi & Struktur Kepemimpinan Kaprodi</span>
+            <span class="text-muted small uppercase">Kelola Data Program Studi, Kode NIM & Struktur Kepemimpinan Kaprodi</span>
         </div>
         <div>
             <a href="{{ route('admin.program-studi.create') }}" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">
@@ -32,7 +32,7 @@
     @endif
 
     {{-- Tabel Utama Standar Enterprise --}}
-    <div class="card border-0 shadow-sm rounded-0 mb-5">
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
         <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
             Daftar Rekapitulasi Program Studi
         </div>
@@ -41,9 +41,10 @@
                 <table class="table table-bordered align-middle mb-0">
                     <thead class="bg-light text-dark small uppercase text-center fw-bold">
                         <tr>
-                            <th style="width: 8%;">NO</th>
-                            <th class="text-start" style="width: 42%;">NAMA PROGRAM STUDI</th>
-                            <th class="text-start" style="width: 35%;">KETUA PRODI (KAPRODI)</th>
+                            <th style="width: 7%;">NO</th>
+                            <th style="width: 13%;">KODE PRODI</th>
+                            <th class="text-start" style="width: 35%;">NAMA PROGRAM STUDI</th>
+                            <th class="text-start" style="width: 30%;">KETUA PRODI (KAPRODI)</th>
                             <th style="width: 15%;">AKSI</th>
                         </tr>
                     </thead>
@@ -52,6 +53,11 @@
                             <tr>
                                 <td class="text-center font-monospace fw-bold text-muted">
                                     {{ $loop->iteration }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-dark text-white rounded-0 font-monospace fw-bold px-2 py-1" style="font-size: 11px;">
+                                        {{ $prodi->kode_prodi ?? '-' }}
+                                    </span>
                                 </td>
                                 <td class="text-start ps-3">
                                     <div class="d-flex align-items-center">
@@ -88,7 +94,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-5 uppercase fw-bold text-muted">
+                                <td colspan="5" class="text-center py-5 uppercase fw-bold text-muted">
                                     <i class="bi bi-building-slash fs-2 d-block mb-2 text-secondary opacity-50"></i>
                                     Data program studi belum tersedia di pangkalan data.
                                 </td>

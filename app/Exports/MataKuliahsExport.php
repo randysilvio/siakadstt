@@ -17,6 +17,15 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class MataKuliahsExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithEvents
 {
+    private function safeCell($value): string
+    {
+        $str = (string) ($value ?? '');
+        if ($str !== '' && in_array($str[0], ['=', '+', '-', '@', "\t", "\r"])) {
+            return "'" . $str;
+        }
+        return $str;
+    }
+
     public function collection()
     {
         return MataKuliah::with(['dosen', 'programStudi'])->get();
@@ -25,9 +34,14 @@ class MataKuliahsExport implements FromCollection, WithHeadings, WithMapping, Sh
     public function map($mk): array
     {
         return [
-            $mk->kode_mk, $mk->nama_mk, $mk->sks, $mk->semester,
-            $mk->programStudi->nama_prodi ?? '-', $mk->dosen->nama_lengkap ?? '-',
-            $mk->kurikulum_id, $mk->deskripsi,
+            $this->safeCell($mk->kode_mk),
+            $this->safeCell($mk->nama_mk),
+            $mk->sks,
+            $mk->semester,
+            $this->safeCell($mk->programStudi->nama_prodi ?? '-'),
+            $this->safeCell($mk->dosen->nama_lengkap ?? '-'),
+            $mk->kurikulum_id,
+            $this->safeCell($mk->deskripsi ?? '-'),
         ];
     }
 
@@ -55,7 +69,7 @@ class MataKuliahsExport implements FromCollection, WithHeadings, WithMapping, Sh
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet;
                 $highestRow = $sheet->getHighestRow();
                 $highestColumn = 'H'; 

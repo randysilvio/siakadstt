@@ -108,12 +108,13 @@
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/dosen*', 'admin/user*', 'admin/absensi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/dosen*', 'admin/tendik*', 'admin/user*', 'admin/absensi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-person-badge-fill"></i>SDM & User
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><h6 class="dropdown-header">Personalia</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.dosen.index') }}">Data Dosen</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.tendik.index') }}">Data Pegawai (Tendik)</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.user.index') }}">Akun User System</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Absensi Pegawai</h6></li>
@@ -199,7 +200,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ route('dosen.dashboard') }}">Dashboard Dosen</a></li>
                                     <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">Perwalian Mahasiswa</a></li>
-                                    @if(Auth::user()->isKaprodi())
+                                    @if(Auth::user()->isKaprodi() || Auth::user()->hasRole('kaprodi'))
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Kaprodi Area</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('kaprodi.dashboard') }}">Dashboard Kaprodi</a></li>
@@ -304,8 +305,8 @@
                                             <div class="d-flex align-items-start gap-2">
                                                 <i class="{{ $notification->data['icon'] ?? 'bi-info-circle-fill text-dark' }} fs-4"></i>
                                                 <div>
-                                                    <div class="fw-bold uppercase" style="font-size: 0.85rem; color: #212529;">{{ $notification->data['title'] }}</div>
-                                                    <div class="text-muted" style="font-size: 0.8rem;">{{ $notification->data['message'] }}</div>
+                                                    <div class="fw-bold uppercase" style="font-size: 0.85rem; color: #212529;">{{ $notification->data['title'] ?? 'Notifikasi' }}</div>
+                                                    <div class="text-muted" style="font-size: 0.8rem;">{{ $notification->data['message'] ?? '' }}</div>
                                                     <div class="text-muted font-monospace mt-1" style="font-size: 0.7rem;">{{ $notification->created_at->diffForHumans() }}</div>
                                                 </div>
                                             </div>
@@ -485,7 +486,6 @@
 
         requestPermission();
 
-        // [PERBAIKAN SUARA] Preload suara memakai asset() agar lokasinya pasti ditemukan
         const notifSound = new Audio('{{ asset("sounds/notification.mp3") }}');
         notifSound.preload = 'auto';
 
@@ -505,45 +505,71 @@
             // 2. Munculkan Toast
             const toastEl = document.getElementById('fcmToast');
             if (toastEl && payload.notification) {
-                document.getElementById('fcmToastTitle').innerText = payload.notification.title;
-                document.getElementById('fcmToastBody').innerText = payload.notification.body;
+                document.getElementById('fcmToastTitle').textContent = payload.notification.title || 'Pesan Baru';
+                document.getElementById('fcmToastBody').textContent = payload.notification.body || '';
                 new bootstrap.Toast(toastEl, { delay: 6000 }).show();
             }
 
             // 3. Tambah angka di Lonceng Merah (Badge) otomatis
             const badge = document.getElementById('notifBadge');
-            if(badge) {
+            if (badge) {
                 let currentCount = parseInt(badge.innerText) || 0;
                 badge.innerText = currentCount + 1;
                 badge.classList.remove('d-none'); 
             }
 
-            // 4. Sisipkan Pesan ke Dropdown List paling atas
+            // 4. [PERBAIKAN KEAMANAN FASE 6]: Sisipkan Pesan ke Dropdown List menggunakan DOM API aman (Anti-XSS)
             const notifHeader = document.getElementById('notifHeader');
-            if(notifHeader && payload.notification) {
-                const url = payload.data?.url || '#';
-                const title = payload.notification.title;
-                const body = payload.notification.body;
-                const icon = payload.data?.icon || 'bi-info-circle-fill text-primary';
+            if (notifHeader && payload.notification) {
+                const rawUrl = payload.data?.url || '#';
+                const safeUrl = (rawUrl.startsWith('/') || rawUrl.startsWith(window.location.origin)) ? rawUrl : '#';
+                const title = payload.notification.title || 'Notifikasi';
+                const body = payload.notification.body || '';
+                const iconClass = (payload.data?.icon || 'bi-info-circle-fill text-primary').replace(/[^a-zA-Z0-9\-\s_]/g, '');
                 
                 const newLi = document.createElement('li');
-                newLi.innerHTML = `
-                    <a class="dropdown-item py-3 border-bottom text-wrap bg-light-new" href="${url}" style="white-space: normal;">
-                        <div class="d-flex align-items-start gap-2">
-                            <i class="${icon} fs-4"></i>
-                            <div>
-                                <div class="fw-bold uppercase" style="font-size: 0.85rem; color: #212529;">${title}</div>
-                                <div class="text-muted" style="font-size: 0.8rem;">${body}</div>
-                                <div class="text-primary font-monospace mt-1 fw-bold" style="font-size: 0.7rem;">BARU SAJA</div>
-                            </div>
-                        </div>
-                    </a>
-                `;
+                const linkEl = document.createElement('a');
+                linkEl.className = 'dropdown-item py-3 border-bottom text-wrap bg-light-new';
+                linkEl.href = safeUrl;
+                linkEl.style.whiteSpace = 'normal';
+
+                const wrapperDiv = document.createElement('div');
+                wrapperDiv.className = 'd-flex align-items-start gap-2';
+
+                const iconEl = document.createElement('i');
+                iconEl.className = `${iconClass} fs-4`;
+
+                const contentDiv = document.createElement('div');
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'fw-bold uppercase';
+                titleDiv.style.fontSize = '0.85rem';
+                titleDiv.style.color = '#212529';
+                titleDiv.textContent = title;
+
+                const bodyDiv = document.createElement('div');
+                bodyDiv.className = 'text-muted';
+                bodyDiv.style.fontSize = '0.8rem';
+                bodyDiv.textContent = body;
+
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'text-primary font-monospace mt-1 fw-bold';
+                timeDiv.style.fontSize = '0.7rem';
+                timeDiv.textContent = 'BARU SAJA';
+
+                contentDiv.appendChild(titleDiv);
+                contentDiv.appendChild(bodyDiv);
+                contentDiv.appendChild(timeDiv);
+
+                wrapperDiv.appendChild(iconEl);
+                wrapperDiv.appendChild(contentDiv);
+                linkEl.appendChild(wrapperDiv);
+                newLi.appendChild(linkEl);
                 
                 notifHeader.insertAdjacentElement('afterend', newLi);
                 
                 const emptyMsg = document.getElementById('emptyNotifMsg');
-                if(emptyMsg) emptyMsg.remove();
+                if (emptyMsg) emptyMsg.remove();
             }
         });
     </script>

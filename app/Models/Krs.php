@@ -10,11 +10,11 @@ class Krs extends Model
     use HasFactory;
     
     /**
-     * The table associated with the model.
+     * [PERBAIKAN FASE 1] Menunjuk ke tabel pivot mahasiswa_mata_kuliah yang sebenarnya ada di DB.
      *
      * @var string
      */
-    protected $table = 'krs';
+    protected $table = 'mahasiswa_mata_kuliah';
 
     /**
      * The attributes that are mass assignable.
@@ -25,10 +25,7 @@ class Krs extends Model
         'mahasiswa_id',
         'mata_kuliah_id',
         'tahun_akademik_id',
-        'nilai_huruf',
-        'nilai_angka',
-        'status_krs',
-        'tanggal_validasi',
+        'nilai',
     ];
 
     /**

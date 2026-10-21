@@ -8,7 +8,7 @@ use App\Models\ProgramStudi;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB; // [PENTING] Pastikan baris ini ada
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -18,12 +18,12 @@ class PembayaranController extends Controller
 {
     /**
      * KONSTRUKTOR: Kunci Akses
-     * HANYA role 'keuangan' yang boleh akses Controller ini.
-     * KECUALI method 'riwayat' yang diizinkan untuk 'mahasiswa'.
+     * HANYA role 'keuangan' yang boleh akses Controller ini,
+     * KECUALI method 'riwayat' dan 'uploadBuktiMahasiswa' yang diizinkan untuk 'mahasiswa'.
      */
     public function __construct()
     {
-        $this->middleware('role:keuangan')->except(['riwayat']);
+        $this->middleware('role:keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
     }
 
     /**
@@ -46,7 +46,7 @@ class PembayaranController extends Controller
         // 2. Pencarian Cerdas
         if ($request->filled('q')) {
             $q = $request->input('q');
-            $query->where(function($sub) use ($q) {
+            $query->where(function ($sub) use ($q) {
                 $sub->whereHas('mahasiswa', function ($m) use ($q) {
                     $m->where('nama_lengkap', 'like', "%{$q}%")
                       ->orWhere('nim', 'like', "%{$q}%");
@@ -57,14 +57,18 @@ class PembayaranController extends Controller
             });
         }
 
-        // 3. Filter Status
+        // 3. Filter Status (Mendukung kompatibilitas data lama 'belum_bayar')
         if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+            if ($request->status === 'belum_lunas') {
+                $query->whereIn('status', ['belum_lunas', 'belum_bayar']);
+            } else {
+                $query->where('status', $request->input('status'));
+            }
         }
 
         // 4. Filter Semester
         if ($request->filled('semester')) {
-            $query->where(function($sub) use ($request) {
+            $query->where(function ($sub) use ($request) {
                 $sub->where('semester', 'like', '%' . $request->semester . '%')
                     ->orWhere('keterangan', 'like', '%' . $request->semester . '%')
                     ->orWhere('jenis_pembayaran', 'like', '%' . $request->semester . '%');
@@ -81,8 +85,12 @@ class PembayaranController extends Controller
      */
     public function create(): View
     {
-        $mahasiswas = Mahasiswa::with('programStudi')->where('status', 'Aktif')->orderBy('nama_lengkap')->get();
-        $prodis = ProgramStudi::all();
+        // [PERBAIKAN BUG KRITIS FASE 4]: Menggunakan kolom 'status_mahasiswa' (bukan 'status')
+        $mahasiswas = Mahasiswa::with('programStudi')
+                        ->where('status_mahasiswa', 'Aktif')
+                        ->orderBy('nama_lengkap')
+                        ->get();
+        $prodis = ProgramStudi::orderBy('nama_prodi')->get();
         $angkatans = Mahasiswa::select('tahun_masuk')
                         ->distinct()
                         ->whereNotNull('tahun_masuk')
@@ -107,7 +115,7 @@ class PembayaranController extends Controller
 
         $validatedData['status'] = 'belum_lunas'; 
         
-        $mhs = Mahasiswa::find($request->mahasiswa_id);
+        $mhs = Mahasiswa::findOrFail($request->mahasiswa_id);
         $validatedData['user_id'] = $mhs->user_id;
 
         // Cek Duplikasi
@@ -160,17 +168,20 @@ class PembayaranController extends Controller
      */
     public function generate(): View
     {
-        $prodis = ProgramStudi::all();
-        $angkatans = Mahasiswa::select('tahun_masuk')->distinct()->orderBy('tahun_masuk', 'desc')->pluck('tahun_masuk');
+        $prodis = ProgramStudi::orderBy('nama_prodi')->get();
+        $angkatans = Mahasiswa::select('tahun_masuk')
+                        ->distinct()
+                        ->whereNotNull('tahun_masuk')
+                        ->orderBy('tahun_masuk', 'desc')
+                        ->pluck('tahun_masuk');
         return view('pembayaran.generate', compact('prodis', 'angkatans'));
     }
 
     /**
-     * Proses Generate Massal (DIPERBAIKI & AMAN).
+     * Proses Generate Massal.
      */
     public function storeGenerate(Request $request): RedirectResponse
     {
-        // 1. Validasi Input
         $request->validate([
             'semester' => 'required|string|max:50',
             'jumlah' => 'required|integer|min:1',
@@ -179,30 +190,31 @@ class PembayaranController extends Controller
             'angkatan' => 'nullable|integer',
         ]);
 
-        // 2. Query Mahasiswa Aktif
-        $query = Mahasiswa::where('status', 'Aktif');
-        if ($request->filled('prodi_id')) $query->where('program_studi_id', $request->prodi_id);
-        if ($request->filled('angkatan')) $query->where('tahun_masuk', $request->angkatan);
+        // [PERBAIKAN BUG KRITIS FASE 4]: Menggunakan kolom 'status_mahasiswa' (bukan 'status')
+        $query = Mahasiswa::where('status_mahasiswa', 'Aktif');
+        if ($request->filled('prodi_id')) {
+            $query->where('program_studi_id', $request->prodi_id);
+        }
+        if ($request->filled('angkatan')) {
+            $query->where('tahun_masuk', $request->angkatan);
+        }
         
         $mahasiswas = $query->get();
 
         if ($mahasiswas->isEmpty()) {
-            return back()->with('error', 'Tidak ditemukan mahasiswa aktif untuk kriteria ini.');
+            return back()->withInput()->with('error', 'Tidak ditemukan mahasiswa aktif untuk kriteria ini.');
         }
 
-        // 3. Proses Generate dengan Transaction (Agar aman jika error di tengah)
         DB::beginTransaction();
         try {
             $count = 0;
             $keteranganOtomatis = ucwords(str_replace('_', ' ', $request->jenis_pembayaran)) . ' - ' . $request->semester;
 
             foreach ($mahasiswas as $mhs) {
-                // Safety Check: Lewati jika data user rusak (tidak punya user_id)
                 if (!$mhs->user_id) {
                     continue; 
                 }
 
-                // Cek Duplikasi agar tidak double
                 $exists = Pembayaran::where('mahasiswa_id', $mhs->id)
                                     ->where('semester', $request->semester)
                                     ->where('jenis_pembayaran', $request->jenis_pembayaran)
@@ -223,12 +235,11 @@ class PembayaranController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('pembayaran.index')->with('success', "Generate Selesai! $count tagihan berhasil dibuat.");
+            return redirect()->route('pembayaran.index')->with('success', "Generate Selesai! {$count} tagihan baru berhasil dibuat.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Tampilkan pesan error spesifik untuk debugging
-            return back()->with('error', 'Gagal generate: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal generate tagihan massal: ' . $e->getMessage());
         }
     }
 
@@ -246,7 +257,7 @@ class PembayaranController extends Controller
 
         if ($request->filled('q')) {
             $q = $request->input('q');
-            $query->where(function($sub) use ($q) {
+            $query->where(function ($sub) use ($q) {
                 $sub->whereHas('mahasiswa', function ($m) use ($q) {
                     $m->where('nama_lengkap', 'like', "%{$q}%")->orWhere('nim', 'like', "%{$q}%");
                 })->orWhereHas('user', function ($u) use ($q) {
@@ -255,10 +266,16 @@ class PembayaranController extends Controller
             });
         }
 
-        if ($request->filled('status')) $query->where('status', $request->input('status'));
+        if ($request->filled('status')) {
+            if ($request->status === 'belum_lunas') {
+                $query->whereIn('status', ['belum_lunas', 'belum_bayar']);
+            } else {
+                $query->where('status', $request->input('status'));
+            }
+        }
         
         if ($request->filled('semester')) {
-            $query->where(function($sub) use ($request) {
+            $query->where(function ($sub) use ($request) {
                 $sub->where('semester', 'like', '%' . $request->semester . '%')
                     ->orWhere('keterangan', 'like', '%' . $request->semester . '%')
                     ->orWhere('jenis_pembayaran', 'like', '%' . $request->semester . '%');
@@ -285,8 +302,11 @@ class PembayaranController extends Controller
      */
     public function tandaiLunas(Pembayaran $pembayaran): RedirectResponse
     {
-        $pembayaran->update(['status' => 'lunas', 'tanggal_bayar' => now()]);
-        return back()->with('success', 'Pembayaran diverifikasi LUNAS.');
+        $pembayaran->update([
+            'status' => 'lunas',
+            'tanggal_bayar' => $pembayaran->tanggal_bayar ?? now()
+        ]);
+        return back()->with('success', 'Pembayaran berhasil diverifikasi LUNAS.');
     }
     
     /**
@@ -294,11 +314,11 @@ class PembayaranController extends Controller
      */
     public function destroy(Pembayaran $pembayaran): RedirectResponse
     {
-        if ($pembayaran->bukti_bayar) {
+        if ($pembayaran->bukti_bayar && Storage::disk('public')->exists($pembayaran->bukti_bayar)) {
             Storage::disk('public')->delete($pembayaran->bukti_bayar);
         }
         $pembayaran->delete();
-        return back()->with('success', 'Tagihan dihapus.');
+        return back()->with('success', 'Tagihan berhasil dihapus.');
     }
 
     /**
@@ -307,13 +327,61 @@ class PembayaranController extends Controller
     public function riwayat(): View
     {
         $user = Auth::user();
-        if (!$user->mahasiswa) abort(403, 'Akses ditolak.');
+        if (!$user->mahasiswa) {
+            abort(403, 'Akses ditolak.');
+        }
         
-        $pembayarans = Pembayaran::where('user_id', $user->id)
-                        ->orWhere('mahasiswa_id', $user->mahasiswa->id)
+        // [PERBAIKAN FASE 4]: Grouping klausa WHERE agar aman dari kebocoran data
+        $pembayarans = Pembayaran::where(function ($q) use ($user) {
+                            $q->where('user_id', $user->id)
+                              ->orWhere('mahasiswa_id', $user->mahasiswa->id);
+                        })
                         ->latest()
                         ->get();
                         
         return view('pembayaran.riwayat', compact('pembayarans'));
+    }
+
+    /**
+     * [FITUR BARU FASE 4] Upload Bukti Pembayaran Tagihan oleh Mahasiswa.
+     */
+    public function uploadBuktiMahasiswa(Request $request, Pembayaran $pembayaran): RedirectResponse
+    {
+        $user = Auth::user();
+        if (!$user->mahasiswa) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        // Pastikan tagihan ini benar-benar milik mahasiswa yang sedang login (Anti-IDOR)
+        if ((int) $pembayaran->user_id !== (int) $user->id && (int) $pembayaran->mahasiswa_id !== (int) $user->mahasiswa->id) {
+            abort(403, 'Anda tidak berhak mengunggah bukti untuk tagihan ini.');
+        }
+
+        if ($pembayaran->status === 'lunas') {
+            return back()->with('error', 'Tagihan ini sudah diverifikasi lunas.');
+        }
+
+        $request->validate([
+            'bukti_bayar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'bukti_bayar.required' => 'Silakan pilih file foto/screenshot bukti transfer.',
+            'bukti_bayar.image' => 'File bukti transfer harus berupa gambar (JPG/PNG).',
+            'bukti_bayar.max' => 'Ukuran file bukti transfer maksimal 2MB.',
+        ]);
+
+        if ($request->hasFile('bukti_bayar')) {
+            if ($pembayaran->bukti_bayar && Storage::disk('public')->exists($pembayaran->bukti_bayar)) {
+                Storage::disk('public')->delete($pembayaran->bukti_bayar);
+            }
+
+            $path = $request->file('bukti_bayar')->store('bukti-bayar-spp', 'public');
+            $pembayaran->update([
+                'bukti_bayar' => $path,
+                'status' => 'menunggu_konfirmasi',
+                'tanggal_bayar' => now(),
+            ]);
+        }
+
+        return redirect()->route('pembayaran.riwayat')->with('success', 'Bukti pembayaran berhasil diunggah! Mohon tunggu verifikasi dari Bagian Keuangan.');
     }
 }

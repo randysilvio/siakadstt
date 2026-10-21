@@ -25,7 +25,6 @@
         .ttd { margin-top: 40px; width: 100%; border: none; }
         .ttd td { border: none; text-align: center; }
         
-        /* Hilangkan warna background saat di-print */
         @media print {
             body { -webkit-print-color-adjust: exact; }
             table.data-table th { background-color: #f0f0f0 !important; }
@@ -63,7 +62,13 @@
             <td>{{ $verum_kela->nama_kelas }}</td>
             <td>TAHUN AKADEMIK</td>
             <td>:</td>
-            <td>{{ optional($verum_kela->tahunAkademik)->nama_tahun ?? '-' }}</td>
+            <td>
+                @if($verum_kela->tahunAkademik)
+                    {{ $verum_kela->tahunAkademik->tahun }} ({{ $verum_kela->tahunAkademik->semester }})
+                @else
+                    -
+                @endif
+            </td>
         </tr>
         <tr>
             <td>DOSEN PENGAMPU</td>
@@ -107,7 +112,6 @@
                     
                     @forelse($presensis as $sesi)
                         @php
-                            // Cek apakah mahasiswa ini ada di relasi kehadiran pada sesi ini
                             $hadir = $sesi->kehadiran->where('mahasiswa_id', $mhs->id)->isNotEmpty();
                             if($hadir) $totalHadir++;
                         @endphp
@@ -123,7 +127,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ 5 + $presensis->count() }}">Belum ada mahasiswa yang mengambil mata kuliah ini.</td>
+                    <td colspan="{{ 5 + max(1, $presensis->count()) }}">Belum ada mahasiswa yang mengambil mata kuliah ini.</td>
                 </tr>
             @endforelse
         </tbody>

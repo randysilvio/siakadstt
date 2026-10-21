@@ -10,68 +10,62 @@ use Illuminate\View\View;
 
 class ProgramStudiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(): View
     {
-        // Eager load relasi kaprodi dan user untuk menampilkan nama
-        $program_studis = ProgramStudi::with('kaprodi.user')->latest()->get();
+        $program_studis = ProgramStudi::with('kaprodi.user')->orderBy('kode_prodi', 'asc')->orderBy('nama_prodi', 'asc')->get();
         return view('program-studi.index', compact('program_studis'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(): View
     {
-        return view('program-studi.create');
+        $dosens = Dosen::orderBy('nama_lengkap')->get();
+        return view('program-studi.create', compact('dosens'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'nama_prodi' => 'required|unique:program_studis|max:255',
+        $validated = $request->validate([
+            'kode_prodi' => 'required|string|max:10|unique:program_studis,kode_prodi',
+            'nama_prodi' => 'required|string|max:255|unique:program_studis,nama_prodi',
+            'kaprodi_dosen_id' => 'nullable|exists:dosens,id',
         ]);
-        ProgramStudi::create($request->all());
+
+        $validated['kode_prodi'] = strtoupper(trim($validated['kode_prodi']));
+        ProgramStudi::create($validated);
+
         return redirect()->route('admin.program-studi.index')->with('success', 'Program Studi berhasil ditambahkan!');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(ProgramStudi $programStudi): View
     {
         $dosens = Dosen::orderBy('nama_lengkap')->get();
         return view('program-studi.edit', compact('programStudi', 'dosens'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, ProgramStudi $programStudi): RedirectResponse
     {
-        $request->validate([
-            'nama_prodi' => 'required|max:255|unique:program_studis,nama_prodi,' . $programStudi->id,
-            'kaprodi_dosen_id' => 'nullable|exists:dosens,id'
+        $validated = $request->validate([
+            'kode_prodi' => 'required|string|max:10|unique:program_studis,kode_prodi,' . $programStudi->id,
+            'nama_prodi' => 'required|string|max:255|unique:program_studis,nama_prodi,' . $programStudi->id,
+            'kaprodi_dosen_id' => 'nullable|exists:dosens,id',
         ]);
-        $programStudi->update($request->all());
+
+        $validated['kode_prodi'] = strtoupper(trim($validated['kode_prodi']));
+        $programStudi->update($validated);
+
         return redirect()->route('admin.program-studi.index')->with('success', 'Program Studi berhasil diperbarui!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(ProgramStudi $programStudi): RedirectResponse
     {
         if ($programStudi->mahasiswas()->exists()) {
             return redirect()->route('admin.program-studi.index')->with('error', 'Program Studi tidak bisa dihapus karena masih memiliki mahasiswa terdaftar.');
         }
+        if ($programStudi->dosens()->exists()) {
+            return redirect()->route('admin.program-studi.index')->with('error', 'Program Studi tidak bisa dihapus karena masih memiliki dosen homebase terdaftar.');
+        }
+
         $programStudi->delete();
         return redirect()->route('admin.program-studi.index')->with('success', 'Program Studi berhasil dihapus!');
     }
 }
-

@@ -14,7 +14,6 @@ class TahunAkademikController extends Controller
 {
     public function index(): View
     {
-        // [PERBAIKAN]: Mengganti get() menjadi paginate(10) agar fitur tombol halaman di view berfungsi
         $tahun_akademiks = TahunAkademik::orderBy('tahun', 'desc')
                             ->orderBy('semester', 'desc')
                             ->paginate(10);
@@ -49,14 +48,17 @@ class TahunAkademikController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'tahun' => ['required', 'string', 'max:9', new UniqueTahunSemesterRule()],
             'semester' => ['required', 'in:Ganjil,Genap', new UniqueTahunSemesterRule()],
             'tanggal_mulai_krs' => 'required|date',
             'tanggal_selesai_krs' => 'required|date|after_or_equal:tanggal_mulai_krs',
         ]);
 
-        TahunAkademik::create($request->all());
+        // Pastikan tahun akademik baru berstatus tidak aktif sampai diaktifkan secara eksplisit
+        $validated['is_active'] = false;
+
+        TahunAkademik::create($validated);
         return redirect()->route('admin.tahun-akademik.index')->with('success', 'Tahun Akademik berhasil dibuat.');
     }
 
@@ -67,14 +69,14 @@ class TahunAkademikController extends Controller
 
     public function update(Request $request, TahunAkademik $tahunAkademik): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'tahun' => ['required', 'string', 'max:9', new UniqueTahunSemesterRule($tahunAkademik->id)],
             'semester' => ['required', 'in:Ganjil,Genap', new UniqueTahunSemesterRule($tahunAkademik->id)],
             'tanggal_mulai_krs' => 'required|date',
             'tanggal_selesai_krs' => 'required|date|after_or_equal:tanggal_mulai_krs',
         ]);
 
-        $tahunAkademik->update($request->all());
+        $tahunAkademik->update($validated);
         return redirect()->route('admin.tahun-akademik.index')->with('success', 'Tahun Akademik berhasil diperbarui.');
     }
 

@@ -19,21 +19,23 @@ class CekStatusPembayaranMiddleware
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
 
-        // Pastikan pengguna sudah login, adalah mahasiswa, dan data relasi mahasiswa ada
         if ($user && $user->hasRole('mahasiswa') && $user->mahasiswa) {
             $mahasiswa = $user->mahasiswa;
 
-            // Cek jika mahasiswa punya tagihan dengan status 'belum_lunas'
-            $memilikiTagihan = $mahasiswa->pembayarans()->where('status', 'belum_lunas')->exists();
+            // Cek jika mahasiswa punya tagihan yang belum lunas
+            $memilikiTagihan = $mahasiswa->pembayarans()
+                ->whereIn('status', ['belum_lunas', 'belum_bayar'])
+                ->exists();
 
             if ($memilikiTagihan) {
-                // Jika punya, kembalikan ke dashboard dengan pesan error
-                return redirect()->route('dashboard')->with('error', 'Anda memiliki tagihan yang belum lunas. Silakan selesaikan pembayaran untuk mengisi KRS.');
+                $pesan = 'Anda memiliki tagihan yang belum lunas. Silakan selesaikan pembayaran untuk mengisi KRS.';
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json(['status' => 'error', 'message' => $pesan], 403);
+                }
+                return redirect()->route('dashboard')->with('error', $pesan);
             }
         }
 
-        // Jika tidak punya tagihan atau pengguna bukan mahasiswa, lanjutkan ke halaman tujuan
         return $next($request);
     }
 }
-

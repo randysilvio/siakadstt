@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Tambah Program Studi Baru</h3>
-            <span class="text-muted small uppercase">Entri Master Data Nomenklatur & Struktur Akademik Prodi</span>
+            <span class="text-muted small uppercase">Entri Master Data Nomenklatur, Kode NIM & Struktur Akademik Prodi</span>
         </div>
         <div>
             <a href="{{ route('admin.program-studi.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
@@ -23,16 +23,52 @@
             <form action="{{ route('admin.program-studi.store') }}" method="POST">
                 @csrf
 
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="kode_prodi" class="form-label small fw-bold uppercase text-dark">Kode Prodi <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-hash text-dark"></i></span>
+                            <input type="text" class="form-control rounded-0 font-monospace uppercase @error('kode_prodi') is-invalid @enderror" id="kode_prodi" name="kode_prodi" value="{{ old('kode_prodi') }}" placeholder="CONTOH: 01 / TEO" maxlength="10" required autofocus>
+                            @error('kode_prodi')
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="form-text text-muted small uppercase mt-1" style="font-size: 0.7rem;">
+                            Digunakan sebagai prefix otomatis NIM Mahasiswa Baru.
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="nama_prodi" class="form-label small fw-bold uppercase text-dark">Nama Program Studi <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-building text-dark"></i></span>
+                            <input type="text" class="form-control rounded-0 uppercase @error('nama_prodi') is-invalid @enderror" id="nama_prodi" name="nama_prodi" value="{{ old('nama_prodi') }}" placeholder="CONTOH: TEOLOGI KRISTEN PROTESTAN" required>
+                            @error('nama_prodi')
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                @if(isset($dosens) && $dosens->count() > 0)
                 <div class="mb-4">
-                    <label for="nama_prodi" class="form-label small fw-bold uppercase text-dark">Nama Program Studi <span class="text-danger">*</span></label>
+                    <label for="kaprodi_dosen_id" class="form-label small fw-bold uppercase text-dark">Ketua Program Studi (Opsional)</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-building text-dark"></i></span>
-                        <input type="text" class="form-control rounded-0 uppercase @error('nama_prodi') is-invalid @enderror" id="nama_prodi" name="nama_prodi" value="{{ old('nama_prodi') }}" placeholder="CONTOH: TEKNIK INFORMATIKA" required>
-                        @error('nama_prodi')
+                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-person-badge text-dark"></i></span>
+                        <select class="form-select rounded-0 uppercase @error('kaprodi_dosen_id') is-invalid @enderror" id="kaprodi_dosen_id" name="kaprodi_dosen_id">
+                            <option value="">-- PILIH DOSEN KAPRODI --</option>
+                            @foreach ($dosens as $dosen)
+                                <option value="{{ $dosen->id }}" {{ old('kaprodi_dosen_id') == $dosen->id ? 'selected' : '' }}>
+                                    {{ $dosen->nama_lengkap }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('kaprodi_dosen_id')
                             <div class="invalid-feedback font-monospace small">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
+                @endif
 
                 <div class="d-flex justify-content-end pt-4 mt-4 border-top">
                     <a href="{{ route('admin.program-studi.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>

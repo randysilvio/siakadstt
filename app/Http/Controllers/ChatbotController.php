@@ -33,13 +33,16 @@ class ChatbotController extends Controller
         ]);
 
         // 2. Ambil pesan dari request
-        $message = $request->input('message');
+        $message = strip_tags($request->input('message'));
         
         // 3. Teruskan pesan ke ChatbotService untuk diproses oleh Gemini API
         $rawResponse = $this->chatbotService->getResponse($message);
 
-        // 4. Konversi output Markdown dari Gemini menjadi format HTML standar
-        $formattedResponse = Str::markdown($rawResponse);
+        // 4. [PERBAIKAN KEAMANAN FASE 6]: Konversi Markdown dengan sanitasi HTML & blokir tautan berbahaya (javascript:)
+        $formattedResponse = Str::markdown($rawResponse, [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
 
         // 5. Kirim balasan kembali ke frontend dalam format JSON
         return response()->json([

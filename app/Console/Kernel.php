@@ -4,8 +4,9 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\Models\JadwalKuliah; 
-use App\Models\Krs;
+use App\Models\Jadwal; 
+use App\Models\TahunAkademik;
+use App\Models\Mahasiswa;
 use App\Notifications\GeneralNotification;
 use Carbon\Carbon;
 
@@ -16,40 +17,43 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
-        // Di sinilah Anda bisa mendaftarkan tugas otomatis nanti,
-        // seperti perintah 'app:buat-tagihan-semester' yang pernah kita diskusikan.
-
-        // [OTOMASI NOTIFIKASI] Pengecekan Jadwal Otomatis setiap Jam 06:00 Pagi
+        // [PERBAIKAN BUG FATAL FASE 6]: Menggunakan model Jadwal & TahunAkademik aktif yang sesuai dengan skema DB
         $schedule->call(function () {
-            
-            // 1. Dapatkan nama hari ini dalam bahasa Indonesia
+            $periodeAktif = TahunAkademik::where('is_active', true)->first();
+            if (!$periodeAktif) {
+                return;
+            }
+
             Carbon::setLocale('id');
-            $hariIni = Carbon::now()->isoFormat('dddd'); // Menghasilkan: 'Senin', 'Selasa', dll.
+            $hariIni = Carbon::now()->isoFormat('dddd'); // 'Senin', 'Selasa', dst.
             
-            // 2. Ambil semua jadwal kuliah hari ini
-            $jadwals = JadwalKuliah::where('hari', $hariIni)->with('mataKuliah')->get();
+            $jadwals = Jadwal::where('hari', $hariIni)->with('mataKuliah')->get();
             
             foreach ($jadwals as $jadwal) {
-                // 3. Cari Mahasiswa yang KRS-nya disetujui untuk mata kuliah ini
-                $krsList = Krs::where('mata_kuliah_id', $jadwal->mata_kuliah_id)
-                            ->where('status_krs', 'Disetujui')
-                            ->with('mahasiswa.user')
-                            ->get();
+                if (!$jadwal->mataKuliah) {
+                    continue;
+                }
+
+                $mahasiswas = Mahasiswa::where('status_krs', 'Disetujui')
+                    ->whereHas('mataKuliahs', function ($q) use ($jadwal, $periodeAktif) {
+                        $q->where('mata_kuliahs.id', $jadwal->mata_kuliah_id)
+                          ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
+                    })
+                    ->with('user')
+                    ->get();
                             
-                // 4. Kirim notifikasi ke tiap mahasiswa
-                foreach ($krsList as $krs) {
-                    if ($krs->mahasiswa && $krs->mahasiswa->user) {
-                        $krs->mahasiswa->user->notify(new GeneralNotification(
+                foreach ($mahasiswas as $mhs) {
+                    if ($mhs->user) {
+                        $mhs->user->notify(new GeneralNotification(
                             'Jadwal Kuliah Hari Ini',
-                            'Pengingat: Ada perkuliahan ' . $jadwal->mataKuliah->nama_mk . ' pada jam ' . $jadwal->jam_mulai,
-                            route('dashboard'), // Jika diklik, arahkan ke dashboard
+                            'Pengingat: Ada perkuliahan ' . $jadwal->mataKuliah->nama_mk . ' pada jam ' . substr($jadwal->jam_mulai, 0, 5) . ' WIT',
+                            route('dashboard'),
                             'bi-clock-fill text-warning'
                         ));
                     }
                 }
             }
-        })->dailyAt('06:00'); // Berjalan otomatis setiap pukul 06:00 pagi zona waktu server
+        })->dailyAt('06:00');
     }
 
     /**

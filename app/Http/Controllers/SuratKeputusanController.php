@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SuratKeputusan;
 use App\Models\Dosen;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +22,7 @@ class SuratKeputusanController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('judul', 'like', "%{$search}%")
                   ->orWhere('nomor_surat', 'like', "%{$search}%");
             });
@@ -33,7 +34,6 @@ class SuratKeputusanController extends Controller
 
         $suratKeputusans = $query->paginate(20)->withQueryString();
 
-        // [TAMBAHAN BARU] Kalkulasi Metrik E-Office untuk Dashboard
         $metrics = [
             'total' => SuratKeputusan::count(),
             'selesai' => SuratKeputusan::where('status', 'Selesai')->count(),
@@ -59,7 +59,6 @@ class SuratKeputusanController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            // [TAMBAHAN BARU] Menyusun array untuk Pihak Eksternal / Non-Dosen
             $panitiaLainnya = [];
             if ($request->has('panitia_lainnya_nama')) {
                 foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
@@ -85,7 +84,7 @@ class SuratKeputusanController extends Controller
                 'tembusan' => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
                 'penandatangan_nama' => $request->penandatangan_nama,
-                'panitia_lainnya' => $panitiaLainnya, // [DISIMPAN]
+                'panitia_lainnya' => $panitiaLainnya,
                 'status' => 'Menunggu Tanda Tangan'
             ]);
 
@@ -126,7 +125,6 @@ class SuratKeputusanController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $suratKeputusan) {
-            // [TAMBAHAN BARU] Menyusun array untuk Pihak Eksternal / Non-Dosen
             $panitiaLainnya = [];
             if ($request->has('panitia_lainnya_nama')) {
                 foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
@@ -152,7 +150,7 @@ class SuratKeputusanController extends Controller
                 'tembusan' => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
                 'penandatangan_nama' => $request->penandatangan_nama,
-                'panitia_lainnya' => $panitiaLainnya, // [DIPERBARUI]
+                'panitia_lainnya' => $panitiaLainnya,
             ]);
 
             if ($request->has('dosen_id')) {
@@ -194,6 +192,9 @@ class SuratKeputusanController extends Controller
         ]);
 
         if ($request->hasFile('file_pdf')) {
+            if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
+                Storage::disk('public')->delete($suratKeputusan->file_path);
+            }
             $path = $request->file('file_pdf')->store('dokumen_sk', 'public');
             $suratKeputusan->update([
                 'file_path' => $path,
@@ -206,6 +207,21 @@ class SuratKeputusanController extends Controller
     
     public function download(SuratKeputusan $suratKeputusan)
     {
+        $user = Auth::user();
+
+        // [PERBAIKAN KEAMANAN FASE 6]: Otorisasi unduhan SK (Hanya Admin, Administrasi Umum, Rektorat, Mutu, atau Dosen yang tercantum di SK)
+        $isAuthorizedStaff = $user->hasRole(['admin', 'administrasi_umum', 'rektorat', 'penjaminan_mutu']);
+        $isTaggedDosen = false;
+
+        if ($user->hasRole('dosen') && $user->dosen) {
+            $isTaggedDosen = $suratKeputusan->status === 'Selesai' &&
+                             $suratKeputusan->dosens()->where('dosens.id', $user->dosen->id)->exists();
+        }
+
+        if (!$isAuthorizedStaff && !$isTaggedDosen) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki otorisasi untuk mengunduh dokumen Surat Keputusan ini.');
+        }
+
         if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
             $safeName = \Illuminate\Support\Str::slug($suratKeputusan->judul ?? 'SURAT_SK', '_') . '.pdf';
             return Storage::disk('public')->download($suratKeputusan->file_path, $safeName);

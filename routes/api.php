@@ -13,14 +13,12 @@ use App\Http\Controllers\KrsController;
 // =========================================================================
 Route::post('/login', [AuthController::class, 'login']);
 
-// [FITUR BARU]: Pengecekan Versi Aplikasi (Force Update)
 Route::get('/check-version', function () {
     return response()->json([
-        'min_version' => 1, // Naikkan angka ini jika merilis APK baru dan mewajibkan update
-        'download_url' => 'https://sttgpipapua.ac.id/download/siakad-mobile-v2.apk' // Link unduh APK terbaru
+        'min_version' => 1,
+        'download_url' => 'https://sttgpipapua.ac.id/download/siakad-mobile-v2.apk'
     ]);
 });
-
 
 // =========================================================================
 // RUTE TERPROTEKSI (Wajib Token / Login)
@@ -52,13 +50,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // 2. FITUR ABSENSI
+    // 2. FITUR ABSENSI PEGAWAI & DOSEN
     Route::post('/absensi/check-in', [AbsensiController::class, 'checkIn']);
     Route::post('/absensi/check-out', [AbsensiController::class, 'checkOut']);
     Route::get('/absensi/riwayat', [AbsensiController::class, 'getHistory']);
     Route::get('/status-absensi', [AbsensiController::class, 'getStatusHariIni']);
 
-    // 3. FITUR KEUANGAN
+    // 3. FITUR KEUANGAN MAHASISWA
     Route::get('/riwayat-pembayaran-mahasiswa', [AbsensiController::class, 'riwayatPembayaranMahasiswa']);
 
     // 4. FITUR AKADEMIK
@@ -68,20 +66,26 @@ Route::middleware('auth:sanctum')->group(function () {
     // 5. FITUR NILAI / KHS
     Route::get('/khs-mahasiswa', [AbsensiController::class, 'getKhsMahasiswa']);
 
-    // ==========================================================
     // 6. FITUR KRS & VALIDASI
-    // ==========================================================
-    Route::get('/krs/perlu-validasi', [KrsController::class, 'getPerluValidasiApi']);
-    Route::post('/krs/validasi/{id}', [KrsController::class, 'validasiKrsApi']);
+    // [PERBAIKAN KEAMANAN FASE 3]: Hanya Dosen / Kaprodi / Admin yang boleh memvalidasi KRS
+    Route::middleware('role:dosen,kaprodi,admin')->group(function () {
+        Route::get('/krs/perlu-validasi', [KrsController::class, 'getPerluValidasiApi']);
+        Route::post('/krs/validasi/{id}', [KrsController::class, 'validasiKrsApi']);
+    });
     
-    // Rute Baru Pengisian KRS di HP (Dilindungi Middleware Keuangan & Periode Waktu)
-    Route::middleware([\App\Http\Middleware\CekStatusPembayaranMiddleware::class, \App\Http\Middleware\CekPeriodeKrsMiddleware::class])->group(function () {
+    // Rute Pengisian KRS Mahasiswa di HP (Dilindungi Role Mahasiswa, Keuangan & Periode Waktu)
+    Route::middleware([
+        'role:mahasiswa',
+        \App\Http\Middleware\CekStatusPembayaranMiddleware::class,
+        \App\Http\Middleware\CekPeriodeKrsMiddleware::class
+    ])->group(function () {
         Route::get('/krs/form', [KrsController::class, 'getFormKrsApi']);
         Route::post('/krs/submit', [KrsController::class, 'submitKrsApi']);
     });
 
-    // 7. STATISTIK
-    Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi']);
+    // 7. STATISTIK (Khusus Pimpinan & Admin)
+    Route::get('/stats/mahasiswa-per-prodi', [DashboardController::class, 'mahasiswaPerProdi'])
+        ->middleware('role:admin,rektorat,penjaminan_mutu,dosen,kaprodi');
 
     // 8. FITUR NOTIFIKASI
     Route::get('/notifikasi', function (Request $request) {
@@ -90,7 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/notifikasi/{id}/read', function (Request $request, $id) {
         $notif = $request->user()->notifications()->where('id', $id)->first();
-        if($notif) { $notif->markAsRead(); }
+        if ($notif) {
+            $notif->markAsRead();
+        }
         return response()->json(['status' => 'success']);
     });
 });

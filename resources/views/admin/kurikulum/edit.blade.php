@@ -2,45 +2,77 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h3 class="mb-0 text-dark fw-bold">Pembaruan Kurikulum Akademik</h3>
-                    <span class="text-muted small">Modifikasi informasi pada basis standar pembelajaran institusi</span>
-                </div>
-                <a href="{{ route('admin.kurikulum.index') }}" class="btn btn-outline-dark btn-sm rounded-1">Batal</a>
-            </div>
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Pembaruan Kurikulum Akademik</h3>
+            <span class="text-muted small uppercase">Modifikasi Informasi Basis Standar Pembelajaran Institusi</span>
+        </div>
+        <div>
+            <a href="{{ route('admin.kurikulum.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Kembali
+            </a>
+        </div>
+    </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <form action="{{ route('admin.kurikulum.update', $kurikulum->id) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        
-                        <div class="mb-4">
-                            <label for="nama_kurikulum" class="form-label text-dark fw-semibold">Identifikasi Kurikulum <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control rounded-1 @error('nama_kurikulum') is-invalid @enderror" id="nama_kurikulum" name="nama_kurikulum" value="{{ old('nama_kurikulum', $kurikulum->nama_kurikulum) }}" required autofocus>
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 col-md-8 mx-auto mb-5">
+        <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
+            Formulir Pembaruan Parameter Kurikulum
+        </div>
+        <div class="card-body p-4">
+            <form action="{{ route('admin.kurikulum.update', $kurikulum->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                
+                <div class="mb-4">
+                    <label for="program_studi_id" class="form-label small fw-bold uppercase text-dark">Program Studi <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light rounded-0"><i class="bi bi-building text-dark"></i></span>
+                        <select class="form-select rounded-0 uppercase @error('program_studi_id') is-invalid @enderror" id="program_studi_id" name="program_studi_id" required>
+                            <option value="" disabled>-- PILIH PROGRAM STUDI --</option>
+                            @foreach($program_studis as $prodi)
+                                <option value="{{ $prodi->id }}" {{ old('program_studi_id', $kurikulum->program_studi_id) == $prodi->id ? 'selected' : '' }}>
+                                    {{ $prodi->nama_prodi }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('program_studi_id')
+                            <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-8">
+                        <label for="nama_kurikulum" class="form-label small fw-bold uppercase text-dark">Identifikasi / Nama Kurikulum <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-journal-bookmark text-dark"></i></span>
+                            <input type="text" class="form-control rounded-0 uppercase @error('nama_kurikulum') is-invalid @enderror" id="nama_kurikulum" name="nama_kurikulum" value="{{ old('nama_kurikulum', $kurikulum->nama_kurikulum) }}" required>
                             @error('nama_kurikulum')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
                             @enderror
                         </div>
+                    </div>
 
-                        <div class="mb-4">
-                            <label for="tahun" class="form-label text-dark fw-semibold">Tahun Berlaku / Penetapan <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control rounded-1 font-monospace @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $kurikulum->tahun) }}" required>
+                    <div class="col-md-4">
+                        <label for="tahun" class="form-label small fw-bold uppercase text-dark">Tahun Berlaku <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light rounded-0"><i class="bi bi-calendar-check text-dark"></i></span>
+                            <input type="number" class="form-control rounded-0 font-monospace @error('tahun') is-invalid @enderror" id="tahun" name="tahun" value="{{ old('tahun', $kurikulum->tahun) }}" min="2000" required>
                             @error('tahun')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback font-monospace small">{{ $message }}</div>
                             @enderror
                         </div>
-
-                        <hr class="text-muted my-4">
-                        <div class="text-end">
-                            <button type="submit" class="btn btn-primary px-5 rounded-1">Simpan Pembaruan</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+
+                <div class="d-flex justify-content-end pt-4 mt-4 border-top">
+                    <a href="{{ route('admin.kurikulum.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
+                        Simpan Pembaruan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

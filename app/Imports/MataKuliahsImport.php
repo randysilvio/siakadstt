@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\MataKuliah;
 use App\Models\Dosen;
 use App\Models\ProgramStudi;
+use App\Models\Kurikulum;
 use App\Models\Jadwal;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -20,62 +21,72 @@ class MataKuliahsImport implements ToModel, WithHeadingRow, WithValidation, Skip
 
     public function model(array $row)
     {
-        // 1. Skip jika kode kosong
         if (empty($row['kode_mk']) || empty($row['nama_mata_kuliah'])) {
             return null;
         }
 
-        // 2. LOGIKA CERDAS: DOSEN PENGAMPU
+        // 1. Cari Dosen Pengampu
         $dosenId = null;
         if (!empty($row['dosen_pengampu'])) {
-            // Jika Angka (NIDN/ID)
-            if (is_numeric($row['dosen_pengampu'])) {
-                $dosen = Dosen::where('nidn', $row['dosen_pengampu'])->orWhere('id', $row['dosen_pengampu'])->first();
+            $inputDosen = ltrim(trim((string) $row['dosen_pengampu']), "'");
+            if (is_numeric($inputDosen)) {
+                $dosen = Dosen::where('nidn', $inputDosen)->orWhere('id', $inputDosen)->first();
                 $dosenId = $dosen ? $dosen->id : null;
-            } 
-            // Jika Teks (Nama)
-            else {
-                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . $row['dosen_pengampu'] . '%')->first();
+            } else {
+                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . $inputDosen . '%')->first();
                 $dosenId = $dosen ? $dosen->id : null;
             }
         }
 
-        // 3. LOGIKA CERDAS: PROGRAM STUDI
+        // 2. Cari Program Studi & Kurikulum
         $prodiId = null;
         if (!empty($row['program_studi'])) {
             if (is_numeric($row['program_studi'])) {
-                $prodiId = $row['program_studi'];
+                $prodiId = (int) $row['program_studi'];
             } else {
-                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . $row['program_studi'] . '%')->first();
+                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . trim($row['program_studi']) . '%')->first();
                 $prodiId = $prodi ? $prodi->id : null;
             }
         }
 
-        // 4. Simpan / Update MK
+        $kurikulumId = !empty($row['kurikulum_id']) ? (int) $row['kurikulum_id'] : null;
+        if (!$kurikulumId && $prodiId) {
+            $kurikulum = Kurikulum::where('program_studi_id', $prodiId)->orderBy('is_active', 'desc')->first();
+            $kurikulumId = $kurikulum ? $kurikulum->id : null;
+        }
+        if (!$kurikulumId) {
+            $defaultKurikulum = Kurikulum::orderBy('is_active', 'desc')->first();
+            $kurikulumId = $defaultKurikulum ? $defaultKurikulum->id : null;
+        }
+
+        // 3. Simpan / Update MK sesuai kolom asli tabel mata_kuliahs
         $mk = MataKuliah::updateOrCreate(
-            ['kode_mk' => trim($row['kode_mk'])],
+            ['kode_mk' => trim((string) $row['kode_mk'])],
             [
-                'nama_mk'      => trim($row['nama_mata_kuliah']),
-                'sks'          => $row['sks'] ?? 2,
-                'semester'     => $row['semester'] ?? 1,
-                'prodi_id'     => $prodiId,
-                'dosen_id'     => $dosenId, // Hasil logika cerdas di atas
-                'kurikulum_id' => $row['kurikulum_id'] ?? null,
-                'deskripsi'    => $row['deskripsi'] ?? null,
+                'nama_mk'      => trim((string) $row['nama_mata_kuliah']),
+                'sks'          => (int) ($row['sks'] ?? 2),
+                'semester'     => (int) ($row['semester'] ?? 1),
+                'dosen_id'     => $dosenId,
+                'kurikulum_id' => $kurikulumId,
             ]
         );
 
-        // 5. LOGIKA JADWAL
+        // Sinkronisasi ke tabel pivot dosen_mata_kuliah jika ada dosen pengampu
+        if ($dosenId) {
+            $mk->teamDosens()->syncWithoutDetaching([$dosenId => ['is_utama' => true]]);
+        }
+
+        // 4. Logika Jadwal
         if (!empty($row['hari']) && !empty($row['jam_mulai']) && !empty($row['jam_selesai'])) {
             Jadwal::updateOrCreate(
                 [
                     'mata_kuliah_id' => $mk->id,
-                    'hari'           => trim($row['hari'])
+                    'hari'           => trim((string) $row['hari'])
                 ],
                 [
-                    'jam_mulai'   => trim($row['jam_mulai']),
-                    'jam_selesai' => trim($row['jam_selesai']),
-                    'ruang'       => trim($row['ruang']) ?? null,
+                    'jam_mulai'   => trim((string) $row['jam_mulai']),
+                    'jam_selesai' => trim((string) $row['jam_selesai']),
+                    'ruang'       => !empty($row['ruang']) ? trim((string) $row['ruang']) : null,
                 ]
             );
         }

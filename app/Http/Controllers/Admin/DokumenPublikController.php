@@ -20,14 +20,11 @@ class DokumenPublikController extends Controller
             $query->where('judul_dokumen', 'like', '%' . $request->input('search') . '%');
         }
 
-        // [TAMBAHAN] Filter berdasarkan Kategori
         if ($request->filled('kategori')) {
             $query->where('kategori', $request->input('kategori'));
         }
 
         $dokumens = $query->paginate(10)->withQueryString();
-        
-        // [TAMBAHAN] Mengambil daftar kategori unik untuk dropdown filter
         $kategoris = DokumenPublik::select('kategori')->distinct()->pluck('kategori');
 
         return view('admin.dokumen-publik.index', compact('dokumens', 'kategoris'));
@@ -42,7 +39,7 @@ class DokumenPublikController extends Controller
     {
         $request->validate([
             'judul_dokumen' => 'required|string|max:255',
-            'kategori'      => 'required|string|max:100', // [TAMBAHAN]
+            'kategori'      => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
             'file_dokumen'  => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240', 
         ]);
@@ -50,17 +47,18 @@ class DokumenPublikController extends Controller
         $filePath = $request->file('file_dokumen')->store('dokumen-publik', 'public');
 
         DokumenPublik::create([
-            'judul_dokumen' => $request->judul_dokumen,
-            'kategori'      => $request->kategori, // [TAMBAHAN]
-            'deskripsi'     => $request->deskripsi,
+            'judul_dokumen' => strip_tags($request->judul_dokumen),
+            'kategori'      => strip_tags($request->kategori),
+            'deskripsi'     => strip_tags($request->deskripsi),
             'file_path'     => $filePath,
         ]);
 
         $semuaUser = User::all();
+        // [PERBAIKAN BUG FASE 6]: Arahkan ke halaman dokumen publik (bukan rute admin)
         Notification::send($semuaUser, new GeneralNotification(
             'Dokumen Publik Baru',
-            'Telah diunggah dokumen: ' . $request->judul_dokumen,
-            route('admin.dokumen-publik.index'), 
+            'Telah diunggah dokumen: ' . strip_tags($request->judul_dokumen),
+            route('dokumen.publik'), 
             'bi-file-pdf-fill text-danger'
         ));
 

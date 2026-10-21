@@ -62,20 +62,61 @@ class Mahasiswa extends Model
 
     /**
      * Menggunakan asset lokal untuk privasi.
-     * Tidak lagi mengirim nama mahasiswa ke server pihak ketiga (ui-avatars).
      */
     public function getFotoProfilUrlAttribute()
     {
         if ($this->foto_profil) {
             return asset('storage/' . $this->foto_profil);
         }
-        // Pastikan Anda punya file ini di folder public/images/
         return asset('images/default-student.png');
     }
 
     /**
+     * [PERBAIKAN FASE 1] Accessor Kompatibilitas Kolom Angkatan (untuk Export Excel & View)
+     */
+    public function getAngkatanAttribute()
+    {
+        return $this->attributes['tahun_masuk'] ?? null;
+    }
+
+    /**
+     * [PERBAIKAN FASE 1] Accessor Dinamis Gatekeeper EDOM ($mahasiswa->status_evaluasi)
+     * Mengembalikan 'belum_isi' jika ada sesi EDOM aktif dan mahasiswa belum mengevaluasi
+     * seluruh mata kuliah yang diambil pada tahun akademik sesi tersebut.
+     */
+    public function getStatusEvaluasiAttribute(): string
+    {
+        $sesiAktif = EvaluasiSesi::where('is_active', true)
+            ->where('tanggal_mulai', '<=', now())
+            ->where('tanggal_selesai', '>=', now())
+            ->first();
+
+        if (!$sesiAktif || !$sesiAktif->tahun_akademik_id || $this->status_krs !== 'Disetujui') {
+            return 'sudah_isi';
+        }
+
+        $mataKuliahWajibIds = $this->mataKuliahs()
+            ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
+            ->pluck('mata_kuliahs.id')
+            ->toArray();
+
+        if (empty($mataKuliahWajibIds)) {
+            return 'sudah_isi';
+        }
+
+        $evaluasiSelesaiIds = EvaluasiJawaban::where('mahasiswa_id', $this->id)
+            ->where('evaluasi_sesi_id', $sesiAktif->id)
+            ->distinct()
+            ->pluck('mata_kuliah_id')
+            ->toArray();
+
+        $belumDievaluasi = array_diff($mataKuliahWajibIds, $evaluasiSelesaiIds);
+
+        return !empty($belumDievaluasi) ? 'belum_isi' : 'sudah_isi';
+    }
+
+    /**
      * Menghitung IPK (Indeks Prestasi Kumulatif) - Standar BAN-PT
-     * Mengambil 1 nilai terbaik dari mata kuliah yang sama dan menghitung pembagi dari semua SKS yang diambil.
      */
     public function hitungIpk(): float
     {
@@ -114,7 +155,6 @@ class Mahasiswa extends Model
 
     /**
      * Menghitung Total SKS yang sudah lulus (Nilai A, B, C, D)
-     * Mengabaikan SKS ganda jika mata kuliah diulang.
      */
     public function totalSksLulus(): int
     {
@@ -146,11 +186,9 @@ class Mahasiswa extends Model
 
     /**
      * Menghitung IPS (Indeks Prestasi Semester)
-     * Mengembalikan Array lengkap agar kompatibel dengan view KHS
      */
     public function hitungIps($tahun_akademik_id)
     {
-        // Ambil matkul di semester tertentu yang sudah dinilai
         $krs = $this->mataKuliahs()
                     ->wherePivot('tahun_akademik_id', $tahun_akademik_id)
                     ->wherePivotNotNull('nilai')
@@ -158,7 +196,7 @@ class Mahasiswa extends Model
 
         $total_sks_diambil = 0;
         $total_bobot_sks = 0;
-        $nilaiBobot = []; // Menyimpan bobot per matkul (misal: 3 SKS * 4 = 12)
+        $nilaiBobot = [];
         
         $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
 
@@ -169,17 +207,14 @@ class Mahasiswa extends Model
             
             $sub_total = $sks * $bobot;
 
-            // Semua SKS masuk ke pembagi
             $total_sks_diambil += $sks;
             $total_bobot_sks += $sub_total;
             
-            // Simpan untuk ditampilkan di tabel
             $nilaiBobot[$mk->id] = $sub_total;
         }
 
         $ips = ($total_sks_diambil > 0) ? round($total_bobot_sks / $total_sks_diambil, 2) : 0;
 
-        // Mengembalikan array agar view index.blade.php tidak error
         return [
             'ips' => $ips,
             'total_sks' => $total_sks_diambil,
