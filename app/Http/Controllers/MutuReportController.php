@@ -7,6 +7,8 @@ use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
+use App\Models\Camaba;
+use App\Models\TahunAkademik;
 use App\Models\EvaluasiSesi;
 use App\Models\EvaluasiJawaban;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,9 +24,14 @@ class MutuReportController extends Controller
     {
         $prodis = ProgramStudi::orderBy('nama_prodi')->get();
         $tahunTersedia = Mahasiswa::select('tahun_masuk')
+                            ->whereNotNull('tahun_masuk')
                             ->distinct()
                             ->orderBy('tahun_masuk', 'desc')
                             ->pluck('tahun_masuk');
+
+        if ($tahunTersedia->isEmpty()) {
+            $tahunTersedia = collect([date('Y')]);
+        }
         
         return view('penjaminan_mutu.laporan.index', compact('prodis', 'tahunTersedia'));
     }
@@ -39,18 +46,16 @@ class MutuReportController extends Controller
         $jumlahDosen = Dosen::count();
         $rasio = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
 
-        // 2. Hitung Rata-rata IPK
+        // 2. Hitung Rata-rata IPK (Menggunakan fungsi standar BAN-PT di Model Mahasiswa)
         $mahasiswas = Mahasiswa::with('mataKuliahs')->where('status_mahasiswa', 'Aktif')->get();
-        $totalIpk = 0; $count = 0;
+        $totalIpk = 0;
+        $count = 0;
         foreach ($mahasiswas as $mhs) {
-            $tSks = 0; $tBobot = 0;
-            foreach ($mhs->mataKuliahs as $mk) {
-                if(!$mk->pivot->nilai) continue;
-                $val = match ($mk->pivot->nilai) { 'A'=>4,'B'=>3,'C'=>2,'D'=>1, default=>0 };
-                $tSks += $mk->sks;
-                $tBobot += ($val * $mk->sks);
+            $ipkMhs = $mhs->hitungIpk();
+            if ($ipkMhs > 0) {
+                $totalIpk += $ipkMhs;
+                $count++;
             }
-            if ($tSks > 0) { $totalIpk += ($tBobot/$tSks); $count++; }
         }
         $rataIPK = $count > 0 ? round($totalIpk / $count, 2) : 0.00;
 
@@ -75,11 +80,11 @@ class MutuReportController extends Controller
                 ->get();
         }
 
-        // 5. [LOGIKA BARU] Profil Kelulusan (Standar Akreditasi BAN-PT)
+        // 5. Profil Kelulusan (Standar Akreditasi BAN-PT)
         $dataLulusan = Mahasiswa::with('mataKuliahs')
             ->where('status_mahasiswa', 'Lulus')
             ->get()
-            ->groupBy(function($item) {
+            ->groupBy(function ($item) {
                 return $item->tanggal_lulus ? Carbon::parse($item->tanggal_lulus)->format('Y') : $item->updated_at->format('Y'); 
             })
             ->map(function ($mahasiswas, $tahunLulus) {
@@ -87,12 +92,9 @@ class MutuReportController extends Controller
                 $totalIpk = 0;
                 $totalMasaStudi = 0;
 
-                foreach($mahasiswas as $mhs) {
+                foreach ($mahasiswas as $mhs) {
                     $totalIpk += $mhs->hitungIpk();
-                    
-                    // Masa studi = Tahun Lulus - Tahun Masuk
-                    $masaStudi = (int)$tahunLulus - (int)$mhs->tahun_masuk;
-                    // Minimal masa studi dianggap 1 tahun untuk menghindari angka 0
+                    $masaStudi = (int) $tahunLulus - (int) $mhs->tahun_masuk;
                     $totalMasaStudi += max($masaStudi, 1); 
                 }
 
@@ -103,7 +105,7 @@ class MutuReportController extends Controller
                     'rata_masa_studi' => round($totalMasaStudi / $jumlahLulusan, 1)
                 ];
             })
-            ->sortByDesc('tahun_lulus') // Urutkan dari tahun terbaru
+            ->sortByDesc('tahun_lulus')
             ->values();
 
         $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_ringkasan', compact(
@@ -115,26 +117,19 @@ class MutuReportController extends Controller
     }
 
     /**
-     * [BARU] Cetak Laporan Beban Kerja Dosen
+     * Cetak Laporan Beban Kerja Dosen
      */
     public function cetakBebanDosen()
     {
-        // Ambil semua dosen beserta mata kuliah yang diampu
-        // Kita asumsikan beban dihitung dari MK yang dosen_id nya adalah dosen tsb
-        $dosens = Dosen::with(['mataKuliahs' => function($q) {
-            // Bisa ditambahkan filter semester aktif jika ada tabel TahunAkademik
-            // $q->where('is_active', true);
-        }])->orderBy('nama_lengkap')->get();
+        $dosens = Dosen::with(['mataKuliahs'])->orderBy('nama_lengkap')->get();
 
-        // Hitung total SKS per dosen
-        $laporanDosen = $dosens->map(function($dosen) {
+        $laporanDosen = $dosens->map(function ($dosen) {
             $jumlahKelas = $dosen->mataKuliahs->count();
             $totalSks = $dosen->mataKuliahs->sum('sks');
             
-            // Status Beban
             $statusBeban = 'Normal';
             if ($totalSks < 3) $statusBeban = 'Kurang Beban (<3 SKS)';
-            if ($totalSks > 16) $statusBeban = 'Kelebihan Beban (>16 SKS)'; // Standar PO BKD
+            if ($totalSks > 16) $statusBeban = 'Kelebihan Beban (>16 SKS)';
 
             return [
                 'nidn' => $dosen->nidn,
@@ -148,7 +143,7 @@ class MutuReportController extends Controller
         });
 
         $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_beban_dosen', compact('laporanDosen'))
-                  ->setPaper('a4', 'landscape'); // Landscape agar muat detail MK
+                  ->setPaper('a4', 'landscape');
 
         return $pdf->stream('Laporan_Beban_Kerja_Dosen_' . date('Ymd') . '.pdf');
     }
@@ -166,8 +161,8 @@ class MutuReportController extends Controller
         $query = MataKuliah::with(['dosen', 'kurikulum.programStudi']);
 
         if ($request->lingkup == 'prodi') {
-            $prodi = ProgramStudi::find($request->program_studi_id);
-            $query->whereHas('kurikulum', function($q) use ($request) {
+            $prodi = ProgramStudi::findOrFail($request->program_studi_id);
+            $query->whereHas('kurikulum', function ($q) use ($request) {
                 $q->where('program_studi_id', $request->program_studi_id);
             });
             $judulLingkup = "PROGRAM STUDI " . strtoupper($prodi->nama_prodi);
@@ -187,7 +182,69 @@ class MutuReportController extends Controller
     }
 
     /**
-     * Cetak Laporan Student Body
+     * [METHOD YANG SEBELUMNYA HILANG] Cetak Laporan Distribusi Nilai (Grade Distribution)
+     */
+    public function cetakDistribusiNilai(Request $request)
+    {
+        $request->validate([
+            'lingkup' => 'nullable|string',
+            'program_studi_id' => 'required_if:lingkup,prodi',
+        ]);
+
+        $lingkup = $request->input('lingkup', 'institusi');
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
+
+        $query = MataKuliah::with(['dosen', 'kurikulum.programStudi', 'mahasiswas']);
+
+        if ($lingkup === 'prodi' && $request->filled('program_studi_id')) {
+            $prodi = ProgramStudi::findOrFail($request->program_studi_id);
+            $query->whereHas('kurikulum', function ($q) use ($request) {
+                $q->where('program_studi_id', $request->program_studi_id);
+            });
+            $judulLingkup = "PROGRAM STUDI " . strtoupper($prodi->nama_prodi);
+        } else {
+            $judulLingkup = "SELURUH PROGRAM STUDI (INSTITUSI)";
+        }
+
+        $mataKuliahs = $query->orderBy('semester')->orderBy('kode_mk')->get();
+
+        $dataDistribusi = $mataKuliahs->map(function ($mk) {
+            $pesertaDinilai = $mk->mahasiswas->filter(fn($mhs) => !is_null($mhs->pivot->nilai));
+            $total = $pesertaDinilai->count();
+
+            $countA = $pesertaDinilai->filter(fn($m) => strtoupper($m->pivot->nilai) === 'A')->count();
+            $countB = $pesertaDinilai->filter(fn($m) => strtoupper($m->pivot->nilai) === 'B')->count();
+            $countC = $pesertaDinilai->filter(fn($m) => strtoupper($m->pivot->nilai) === 'C')->count();
+            $countD = $pesertaDinilai->filter(fn($m) => strtoupper($m->pivot->nilai) === 'D')->count();
+            $countE = $pesertaDinilai->filter(fn($m) => strtoupper($m->pivot->nilai) === 'E')->count();
+
+            return [
+                'kode_mk'   => $mk->kode_mk,
+                'nama_mk'   => $mk->nama_mk,
+                'semester'  => $mk->semester,
+                'sks'       => $mk->sks,
+                'dosen'     => $mk->dosen->nama_lengkap ?? '-',
+                'total'     => $total,
+                'A'         => $countA,
+                'B'         => $countB,
+                'C'         => $countC,
+                'D'         => $countD,
+                'E'         => $countE,
+                'lulus_pct' => $total > 0 ? round((($countA + $countB + $countC + $countD) / $total) * 100, 1) : 0,
+            ];
+        });
+
+        $pdf = Pdf::loadView('penjaminan_mutu.laporan.pdf_distribusi_nilai', compact(
+            'dataDistribusi',
+            'judulLingkup',
+            'tahunAkademikAktif'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Laporan_Distribusi_Nilai_' . date('Ymd') . '.pdf');
+    }
+
+    /**
+     * Cetak Laporan Student Body (Data Riil PMB & Mahasiswa)
      */
     public function cetakMahasiswa(Request $request)
     {
@@ -197,34 +254,47 @@ class MutuReportController extends Controller
             'tahun_saat_ini' => 'required|numeric',
         ]);
 
-        $ts = $request->tahun_saat_ini;
+        $ts = (int) $request->tahun_saat_ini;
         $years = [$ts - 2, $ts - 1, $ts];
         $laporan = [];
 
         foreach ($years as $tahun) {
+            // 1. Mahasiswa Baru terdaftar pada tahun tersebut
             $queryMasuk = Mahasiswa::where('tahun_masuk', $tahun);
             if ($request->lingkup == 'prodi') {
                 $queryMasuk->where('program_studi_id', $request->program_studi_id);
             }
             $maba = $queryMasuk->count();
 
+            // 2. Mahasiswa Aktif dari angkatan tersebut
             $queryAktif = Mahasiswa::where('tahun_masuk', $tahun)->where('status_mahasiswa', 'Aktif');
             if ($request->lingkup == 'prodi') {
                 $queryAktif->where('program_studi_id', $request->program_studi_id);
             }
             $aktif = $queryAktif->count();
 
+            // 3. [PERBAIKAN]: Tarik data riil Calon Pendaftar & Lulus Seleksi dari tabel Camabas (bukan rand())
+            $queryCamaba = Camaba::whereYear('created_at', $tahun);
+            if ($request->lingkup == 'prodi') {
+                $queryCamaba->where('pilihan_prodi_1_id', $request->program_studi_id);
+            }
+            $pendaftarCamaba = (clone $queryCamaba)->count();
+            $lulusCamaba = (clone $queryCamaba)->where('status_pendaftaran', 'lulus')->count();
+
+            $calonPendaftarRiil = max($pendaftarCamaba, $maba);
+            $lulusSeleksiRiil = max($lulusCamaba, $maba);
+
             $laporan[$tahun] = [
-                'daya_tampung' => 30,
-                'calon_pendaftar' => $maba + rand(5, 15),
-                'lulus_seleksi' => $maba,
-                'mahasiswa_baru' => $maba,
-                'mahasiswa_aktif' => $aktif
+                'daya_tampung'     => 30,
+                'calon_pendaftar'  => $calonPendaftarRiil,
+                'lulus_seleksi'    => $lulusSeleksiRiil,
+                'mahasiswa_baru'   => $maba,
+                'mahasiswa_aktif'  => $aktif,
             ];
         }
 
         if ($request->lingkup == 'prodi') {
-            $prodi = ProgramStudi::find($request->program_studi_id);
+            $prodi = ProgramStudi::findOrFail($request->program_studi_id);
             $judulLingkup = "PROGRAM STUDI " . strtoupper($prodi->nama_prodi);
         } else {
             $judulLingkup = "TINGKAT INSTITUSI (STT GPI PAPUA)";
