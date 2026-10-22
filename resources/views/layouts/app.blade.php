@@ -403,6 +403,39 @@
           return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     </script>
+
+    {{-- SCRIPT GLOBAL ANTI-SILENT ERROR PADA FORM MULTI-TAB (BOOTSTRAP TABS) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 1. Jika ada field yang gagal validasi server (.is-invalid) di dalam Tab, otomatis buka Tab tersebut
+            const firstInvalid = document.querySelector('.tab-pane .is-invalid');
+            if (firstInvalid) {
+                const pane = firstInvalid.closest('.tab-pane');
+                if (pane && pane.id) {
+                    const tabBtn = document.querySelector('[data-bs-target="#' + pane.id + '"], [href="#' + pane.id + '"]');
+                    if (tabBtn) {
+                        new bootstrap.Tab(tabBtn).show();
+                    }
+                }
+                firstInvalid.focus();
+            }
+
+            // 2. Jika ada field required HTML5 yang belum diisi di Tab yang tersembunyi, otomatis pindah ke Tab tersebut saat klik Submit
+            document.querySelectorAll('form').forEach(function (form) {
+                form.querySelectorAll('input, select, textarea').forEach(function (input) {
+                    input.addEventListener('invalid', function () {
+                        const pane = input.closest('.tab-pane');
+                        if (pane && !pane.classList.contains('active') && pane.id) {
+                            const tabBtn = document.querySelector('[data-bs-target="#' + pane.id + '"], [href="#' + pane.id + '"]');
+                            if (tabBtn) {
+                                new bootstrap.Tab(tabBtn).show();
+                            }
+                        }
+                    });
+                });
+            });
+        });
+    </script>
     
     @stack('scripts')
 
@@ -518,7 +551,7 @@
                 badge.classList.remove('d-none'); 
             }
 
-            // 4. [PERBAIKAN KEAMANAN FASE 6]: Sisipkan Pesan ke Dropdown List menggunakan DOM API aman (Anti-XSS)
+            // 4. Sisipkan Pesan ke Dropdown List menggunakan DOM API aman (Anti-XSS)
             const notifHeader = document.getElementById('notifHeader');
             if (notifHeader && payload.notification) {
                 const rawUrl = payload.data?.url || '#';

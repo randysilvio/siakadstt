@@ -28,7 +28,7 @@ class DashboardController extends Controller
     /**
      * Menampilkan dashboard yang sesuai berdasarkan peran pengguna.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
@@ -45,7 +45,6 @@ class DashboardController extends Controller
             
             return view('dashboard.camaba', compact('camaba', 'tagihan'));
         }
-        // =========================================================
         
         $userRoles = $user->roles->pluck('name')->toArray();
         array_push($userRoles, 'semua');
@@ -182,89 +181,14 @@ class DashboardController extends Controller
             ]);
         }
         // =========================================================
-        // Dashboard Khusus DOSEN
+        // Dashboard Khusus DOSEN (Delegasi Terpusat ke DosenDashboardController)
         // =========================================================
         elseif ($user->hasRole('dosen') || $user->isKaprodi()) {
-            $dosen = $user->dosen;
-            if (!$dosen) {
-                abort(404, 'Data dosen tidak ditemukan untuk akun ini.');
-            }
-            
-            $mkAktifSaatIniIds = [];
-            if ($periodeAktif) {
-                $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
-                                       ->where('tahun_akademik_id', $periodeAktif->id)
-                                       ->distinct()
-                                       ->pluck('mata_kuliah_id')
-                                       ->toArray();
-            }
-
-            $pivotMkIds = DB::table('dosen_mata_kuliah')
-                ->where('dosen_id', $dosen->id)
-                ->pluck('mata_kuliah_id')
-                ->toArray();
-        
-            $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-            
-            $jadwalKuliahDosen = collect();
-            if (!empty($mkAktifSaatIniIds)) {
-                $jadwalKuliahDosen = Jadwal::whereHas('mataKuliah', function ($query) use ($dosen, $pivotMkIds) {
-                    $query->where('dosen_id', $dosen->id)
-                          ->orWhereIn('id', $pivotMkIds);
-                })
-                ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
-                ->with('mataKuliah')
-                ->get()
-                ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
-            }
-            
-            $mataKuliahDosen = MataKuliah::where(function ($query) use ($dosen, $pivotMkIds) {
-                    $query->where('dosen_id', $dosen->id)
-                          ->orWhereIn('id', $pivotMkIds);
-                })
-                ->whereIn('id', $mkAktifSaatIniIds)
-                ->withCount(['mahasiswas' => function ($query) use ($periodeAktif) {
-                    $query->where('mahasiswas.status_krs', 'Disetujui')
-                          ->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id ?? null);
-                }])
-                ->get();
-            
-            $dataKaprodi = null;
-            if ($user->isKaprodi() || $user->hasRole('kaprodi')) {
-                $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
-                if ($prodiYangDikepalai) {
-                    $krsMenungguPersetujuan = Mahasiswa::where('program_studi_id', $prodiYangDikepalai->id)
-                                                    ->where('status_krs', 'Menunggu Persetujuan')
-                                                    ->count();
-                    $dataKaprodi = [
-                        'prodi' => $prodiYangDikepalai,
-                        'krs_count' => $krsMenungguPersetujuan
-                    ];
-                }
-            }
-
-            $querySurat = $dosen->suratKeputusans()->where('status', 'Selesai');
-            
-            if (request()->filled('search_surat')) {
-                $search = request('search_surat');
-                $querySurat->where(function ($q) use ($search) {
-                    $q->where('judul', 'like', "%{$search}%")
-                      ->orWhere('nomor_surat', 'like', "%{$search}%");
-                });
-            }
-
-            $suratKeputusans = $querySurat->latest()->paginate(5)->withQueryString();
-
-            return view('dosen.dashboard', [
-                'dosen' => $dosen,
-                'mata_kuliahs' => $mataKuliahDosen, 
-                'jumlahMahasiswaWali' => $dosen->mahasiswaWali()->count(),
-                'dataKaprodi' => $dataKaprodi,
-                'pengumumans' => $pengumumans,
-                'jadwalKuliah' => $jadwalKuliahDosen, 
-                'suratKeputusans' => $suratKeputusans,
-            ]);
+            return app(\App\Http\Controllers\DosenDashboardController::class)->index($request);
         }
+        // =========================================================
+        // Dashboard Khusus MAHASISWA
+        // =========================================================
         elseif ($user->hasRole('mahasiswa')) {
             $mahasiswa = $user->mahasiswa;
             if (!$mahasiswa) {
@@ -296,6 +220,9 @@ class DashboardController extends Controller
                 'jadwalKuliah' => $jadwalKuliahMahasiswa,
             ]);
         }
+        // =========================================================
+        // Dashboard Khusus KEUANGAN
+        // =========================================================
         elseif ($user->hasRole('keuangan')) {
             $pembayaranTerbaru = Pembayaran::where('status', 'lunas')
                 ->with('mahasiswa')
@@ -318,6 +245,9 @@ class DashboardController extends Controller
                 'tagihanTerlama' => $tagihanTerlama
             ]);
         }
+        // =========================================================
+        // Dashboard Khusus PUSTAKAWAN
+        // =========================================================
         elseif ($user->hasRole('pustakawan')) {
             $koleksiPopuler = Koleksi::query()
                 ->when(Schema::hasColumn('perpustakaan_koleksi', 'total_pinjam'), function ($query) {
@@ -336,6 +266,9 @@ class DashboardController extends Controller
                 'pengumumans' => $pengumumans
             ]);
         }
+        // =========================================================
+        // Dashboard Khusus ADMINISTRASI UMUM
+        // =========================================================
         elseif ($user->hasRole('administrasi_umum')) {
             $suratSelesai = SuratKeputusan::where('status', 'Selesai')->count();
             $suratMenunggu = SuratKeputusan::where('status', 'Menunggu Tanda Tangan')->count();

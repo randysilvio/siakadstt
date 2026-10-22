@@ -5,43 +5,61 @@
     {{-- BAGIAN HEADER UTAMA --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Detail Rencana Studi Mahasiswa</h3>
-            <span class="text-muted small uppercase">Pengawasan Bimbingan & Eksekusi Validasi KRS Akademik</span>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Detail Rencana Studi & Konseling Perwalian</h3>
+            <span class="text-muted small uppercase">Pengawasan Akademik Mahasiswa Bimbingan & Validasi KRS</span>
         </div>
         <div>
             <a href="{{ route('perwalian.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
-                Kembali ke Daftar Wali
+                <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Wali
             </a>
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show border rounded-0 p-3 mb-4 font-monospace small uppercase fw-bold shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     @php
-        // [PERBAIKAN LOGIKA] Deteksi apakah mahasiswa punya KRS di semester aktif ini
         $hasKrsThisSemester = $krs->isNotEmpty();
         $displayStatus = $hasKrsThisSemester ? $mahasiswa->status_krs : 'Belum Mengajukan';
+        $ipkVal = $ipk ?? $mahasiswa->hitungIpk();
+        $sksLulusVal = $sksLulus ?? $mahasiswa->totalSksLulus();
     @endphp
+
+    @if($ipkVal > 0 && $ipkVal < 2.00)
+        <div class="alert alert-danger border-start border-danger border-5 rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            <i class="bi bi-exclamation-octagon-fill me-2"></i> PERINGATAN DINI AKADEMIK (EARLY WARNING SYSTEM): Mahasiswa ini memiliki IPK di bawah standar minimum ({{ number_format($ipkVal, 2) }}). Mohon berikan pendampingan khusus dalam pengambilan beban SKS semester ini.
+        </div>
+    @endif
 
     {{-- DATA BIODATA & PANEL VALIDASI KAKU --}}
     <div class="row g-4 mb-4">
         {{-- Kolom Kiri: Informasi Mahasiswa --}}
-        <div class="col-md-8">
+        <div class="col-md-7">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-                    Informasi Portofolio Mahasiswa
+                    Informasi Portofolio Akademik Mahasiswa
                 </div>
                 <div class="card-body p-4">
                     <table class="table table-borderless small uppercase text-dark mb-0">
                         <tr>
-                            <td style="width: 180px;" class="fw-bold">NAMA LENGKAP</td>
+                            <td style="width: 190px;" class="fw-bold">NAMA LENGKAP</td>
                             <td>: <strong class="text-dark">{{ $mahasiswa->nama_lengkap }}</strong></td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">NIM</td>
-                            <td class="font-monospace text-primary fw-bold">: {{ $mahasiswa->nim }}</td>
+                            <td class="fw-bold">NIM / ANGKATAN</td>
+                            <td class="font-monospace text-primary fw-bold">: {{ $mahasiswa->nim }} ({{ $mahasiswa->tahun_masuk }})</td>
                         </tr>
                         <tr>
                             <td class="fw-bold">PROGRAM STUDI</td>
                             <td>: {{ optional($mahasiswa->programStudi)->nama_prodi ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">CAPAIAN KUMULATIF</td>
+                            <td class="font-monospace fw-bold">: IPK {{ number_format($ipkVal, 2) }} | {{ $sksLulusVal }} SKS LULUS</td>
                         </tr>
                         <tr>
                             <td class="fw-bold align-middle">STATUS KRS SAAT INI</td>
@@ -63,27 +81,32 @@
         </div>
         
         {{-- Kolom Kanan: Aksi Eksekusi Dosen --}}
-        <div class="col-md-4">
+        <div class="col-md-5">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
-                <div class="card-header bg-light py-3 border-bottom rounded-0 uppercase fw-bold small text-dark text-center">
-                    Eksekusi Status Validasi
+                <div class="card-header bg-dark text-white py-3 border-bottom rounded-0 uppercase fw-bold small text-center">
+                    Keputusan & Catatan Dosen Wali
                 </div>
                 <div class="card-body p-4 d-flex flex-column justify-content-center">
                     @if($hasKrsThisSemester)
                         <form action="{{ route('perwalian.updateStatus', $mahasiswa->id) }}" method="POST">
                             @csrf @method('PATCH')
                             
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold uppercase text-dark mb-1">Catatan Pembimbing / Alasan Revisi (Opsional)</label>
+                                <textarea name="catatan_kaprodi" rows="2" class="form-control rounded-0 small uppercase" placeholder="TULIS ARAHAN ATAU ALASAN PENOLAKAN KRS...">{{ old('catatan_kaprodi', $mahasiswa->catatan_kaprodi) }}</textarea>
+                            </div>
+
                             <div class="d-grid gap-2">
                                 <button type="submit" name="status_krs" value="Disetujui" class="btn btn-success rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $displayStatus == 'Disetujui' ? 'disabled' : '' }}>
                                     <i class="bi bi-check-lg me-1 align-middle"></i> Setujui Pengajuan KRS
                                 </button>
                                 
                                 <button type="submit" name="status_krs" value="Ditolak" class="btn btn-danger rounded-0 py-2 uppercase fw-bold small text-white shadow-sm" {{ $displayStatus == 'Ditolak' ? 'disabled' : '' }}>
-                                    <i class="bi bi-x-lg me-1 align-middle"></i> Tolak Pengajuan KRS
+                                    <i class="bi bi-x-lg me-1 align-middle"></i> Tolak / Minta Revisi KRS
                                 </button>
 
                                 @if($displayStatus != 'Menunggu Persetujuan')
-                                    <button type="submit" name="status_krs" value="Menunggu Persetujuan" class="btn btn-outline-dark rounded-0 py-1 uppercase fw-bold mt-2" style="font-size: 10px;">
+                                    <button type="submit" name="status_krs" value="Menunggu Persetujuan" class="btn btn-outline-dark rounded-0 py-1 uppercase fw-bold mt-1" style="font-size: 10px;">
                                         Reset Status ke Menunggu
                                     </button>
                                 @endif
@@ -101,10 +124,10 @@
         </div>
     </div>
 
-    {{-- TABEL MATA KULIAH DIAMBIL (MONOSPACE KETAT) --}}
-    <div class="card border-0 shadow-sm rounded-0 mb-5">
+    {{-- TABEL MATA KULIAH DIAMBIL --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
         <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
-            <span class="uppercase fw-bold small">Daftar Mata Kuliah Diambil</span>
+            <span class="uppercase fw-bold small">Daftar Mata Kuliah Diambil ({{ $periodeAktif->tahun }} - {{ strtoupper($periodeAktif->semester) }})</span>
             <span class="badge bg-light text-dark rounded-0 font-monospace uppercase fw-bold px-2 py-1" style="font-size: 11px;">
                 TOTAL BEBAN: {{ $totalSks }} SKS
             </span>
@@ -132,7 +155,7 @@
                                 <td class="text-start ps-3 font-monospace text-muted">
                                     @forelse($mk->jadwals as $jadwal)
                                         <span class="d-block">
-                                            <strong class="text-dark">{{ strtoupper($jadwal->hari) }}</strong>, {{ substr($jadwal->jam_mulai, 0, 5) }} - {{ substr($jadwal->jam_selesai, 0, 5) }} WIT
+                                            <strong class="text-dark">{{ strtoupper($jadwal->hari) }}</strong>, {{ substr($jadwal->jam_mulai, 0, 5) }} - {{ substr($jadwal->jam_selesai, 0, 5) }} WIT ({{ $jadwal->ruang ?? 'TBA' }})
                                         </span>
                                     @empty
                                         <span class="text-danger small uppercase">BELUM ADA JADWAL</span>

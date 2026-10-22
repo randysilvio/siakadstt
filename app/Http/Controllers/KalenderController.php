@@ -6,10 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
 use App\Models\User; 
-// PERBAIKAN FATAL: Menggunakan model Jadwal, bukan JadwalKuliah
 use App\Models\Jadwal; 
+use App\Models\MataKuliah;
 use App\Models\TahunAkademik; 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification; 
 use App\Notifications\GeneralNotification; 
 use Carbon\Carbon;
@@ -33,7 +34,7 @@ class KalenderController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'judul_kegiatan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal_mulai' => 'required|date',
@@ -42,11 +43,16 @@ class KalenderController extends Controller
             'target_roles.*' => 'exists:roles,id',
         ]);
 
-        $kegiatan = KegiatanAkademik::create($request->except('target_roles'));
-        $kegiatan->roles()->sync($request->target_roles);
+        $kegiatan = KegiatanAkademik::create([
+            'judul_kegiatan' => $validated['judul_kegiatan'],
+            'deskripsi' => $validated['deskripsi'] ?? null,
+            'tanggal_mulai' => $validated['tanggal_mulai'],
+            'tanggal_selesai' => $validated['tanggal_selesai'],
+        ]);
+        $kegiatan->roles()->sync($validated['target_roles']);
 
-        $targetRoleIds = $request->target_roles;
-        $usersToNotify = User::whereHas('roles', function($q) use ($targetRoleIds) {
+        $targetRoleIds = $validated['target_roles'];
+        $usersToNotify = User::whereHas('roles', function ($q) use ($targetRoleIds) {
             $q->whereIn('roles.id', $targetRoleIds);
         })->get();
 
@@ -71,7 +77,7 @@ class KalenderController extends Controller
 
     public function update(Request $request, KegiatanAkademik $kalender): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'judul_kegiatan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'tanggal_mulai' => 'required|date',
@@ -80,8 +86,13 @@ class KalenderController extends Controller
             'target_roles.*' => 'exists:roles,id',
         ]);
 
-        $kalender->update($request->except('target_roles'));
-        $kalender->roles()->sync($request->target_roles);
+        $kalender->update([
+            'judul_kegiatan' => $validated['judul_kegiatan'],
+            'deskripsi' => $validated['deskripsi'] ?? null,
+            'tanggal_mulai' => $validated['tanggal_mulai'],
+            'tanggal_selesai' => $validated['tanggal_selesai'],
+        ]);
+        $kalender->roles()->sync($validated['target_roles']);
 
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil diperbarui.');
     }
@@ -143,13 +154,31 @@ class KalenderController extends Controller
         return response()->json($kegiatans);
     }
 
+    /**
+     * [API MOBILE] Jadwal Kuliah Hari Ini.
+     */
     public function jadwalHariIni(Request $request): JsonResponse
     {
-        return response()->json([]); 
+        $mapHari = [
+            'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
+        ];
+        $hariIni = $mapHari[date('l')] ?? 'Senin';
+
+        $semuaJadwal = $this->jadwalKuliahUser($request)->getData(true);
+        if (!is_array($semuaJadwal)) {
+            return response()->json([]);
+        }
+
+        $jadwalHariIni = array_values(array_filter($semuaJadwal, function ($item) use ($hariIni) {
+            return isset($item['hari']) && strcasecmp($item['hari'], $hariIni) === 0;
+        }));
+
+        return response()->json($jadwalHariIni);
     }
 
     /**
-     * [API MOBILE] Jadwal Kuliah Seluruhnya (Semester Ini).
+     * [API MOBILE] Jadwal Kuliah Seluruhnya (Semester Ini - Mendukung Team Teaching Dosen).
      */
     public function jadwalKuliahUser(Request $request): JsonResponse
     {
@@ -160,25 +189,22 @@ class KalenderController extends Controller
             if ($user->hasRole('mahasiswa')) {
                 $mahasiswa = $user->mahasiswa;
                 
-                // Pastikan KRS Disetujui
                 if ($mahasiswa && $mahasiswa->status_krs === 'Disetujui') {
                     $periodeAktif = TahunAkademik::where('is_active', true)->first();
                     
                     if ($periodeAktif) {
-                        // Ambil ID Mata Kuliah semester ini
                         $mkIds = $mahasiswa->mataKuliahs()
                             ->wherePivot('tahun_akademik_id', $periodeAktif->id)
                             ->pluck('mata_kuliahs.id')
                             ->toArray();
 
-                        // PERBAIKAN: Gunakan model Jadwal dan relasi yang sesuai dengan show_jadwal.blade.php
                         $jadwal = Jadwal::query()
                             ->whereIn('mata_kuliah_id', $mkIds)
-                            ->with(['mataKuliah.dosen']) // Dosen nempel di mata kuliah
+                            ->with(['mataKuliah.dosen'])
                             ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
                             ->orderBy('jam_mulai')
                             ->get()
-                            ->map(function($item) {
+                            ->map(function ($item) {
                                 return [
                                     'id' => $item->id,
                                     'hari' => $item->hari,
@@ -194,9 +220,16 @@ class KalenderController extends Controller
                 }
             } elseif ($user->hasRole('dosen')) {
                 $dosen = $user->dosen;
-                if($dosen) {
-                    // Cari MK yang diajar dosen ini
-                    $mkIds = \App\Models\MataKuliah::where('dosen_id', $dosen->id)->pluck('id')->toArray();
+                if ($dosen) {
+                    $pivotMkIds = DB::table('dosen_mata_kuliah')
+                        ->where('dosen_id', $dosen->id)
+                        ->pluck('mata_kuliah_id')
+                        ->toArray();
+
+                    $mkIds = MataKuliah::where('dosen_id', $dosen->id)
+                        ->orWhereIn('id', $pivotMkIds)
+                        ->pluck('id')
+                        ->toArray();
                     
                     $jadwal = Jadwal::query()
                         ->whereIn('mata_kuliah_id', $mkIds)
@@ -204,7 +237,7 @@ class KalenderController extends Controller
                         ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
                         ->orderBy('jam_mulai')
                         ->get()
-                        ->map(function($item) {
+                        ->map(function ($item) {
                             return [
                                 'id' => $item->id,
                                 'hari' => $item->hari,

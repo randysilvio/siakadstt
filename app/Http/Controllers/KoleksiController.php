@@ -38,7 +38,7 @@ class KoleksiController extends Controller
         $validated['jumlah_tersedia'] = (int) $validated['jumlah_stok'];
 
         if ($request->hasFile('gambar_sampul')) {
-            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('public/sampul_buku');
+            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('sampul_buku', 'public');
         }
 
         $koleksi = Koleksi::create($validated);
@@ -76,10 +76,10 @@ class KoleksiController extends Controller
         $validated['jumlah_tersedia'] = max(0, (int) $koleksi->jumlah_tersedia + $selisihStok);
 
         if ($request->hasFile('gambar_sampul')) {
-            if ($koleksi->gambar_sampul) {
-                Storage::delete($koleksi->gambar_sampul);
+            if ($koleksi->gambar_sampul && Storage::disk('public')->exists($koleksi->gambar_sampul)) {
+                Storage::disk('public')->delete($koleksi->gambar_sampul);
             }
-            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('public/sampul_buku');
+            $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('sampul_buku', 'public');
         }
 
         $koleksi->update($validated);
@@ -96,8 +96,8 @@ class KoleksiController extends Controller
 
     public function destroy(Koleksi $koleksi)
     {
-        if ($koleksi->gambar_sampul) {
-            Storage::delete($koleksi->gambar_sampul);
+        if ($koleksi->gambar_sampul && Storage::disk('public')->exists($koleksi->gambar_sampul)) {
+            Storage::disk('public')->delete($koleksi->gambar_sampul);
         }
 
         $koleksi->delete();

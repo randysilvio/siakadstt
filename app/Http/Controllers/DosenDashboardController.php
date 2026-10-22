@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf; 
 use App\Models\ProgramStudi;
 use App\Models\MataKuliah;
+use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
 use App\Models\Jadwal; 
 use App\Models\Pengumuman;
@@ -22,100 +23,125 @@ class DosenDashboardController extends Controller
     
     public function index(Request $request)
     {
-        $dosen = Auth::user()->dosen;
-        if (!$dosen) abort(403, 'Data dosen tidak ditemukan.');
+        $user = Auth::user();
+        $dosen = $user->dosen;
+        if (!$dosen) {
+            abort(403, 'Data dosen tidak ditemukan.');
+        }
 
         $tahunAkademik = TahunAkademik::where('is_active', true)->first();
         
-        $mkAktifSaatIniIds = [];
-        if ($tahunAkademik) {
-            $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
-                                   ->where('tahun_akademik_id', $tahunAkademik->id)
-                                   ->distinct()
-                                   ->pluck('mata_kuliah_id')
-                                   ->toArray();
-        }
-
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
         
-        $mata_kuliahs = MataKuliah::where(function($query) use ($dosen, $pivotMkIds) {
+        // Tampilkan seluruh mata kuliah yang diampu dosen (Utama maupun Team Teaching)
+        // pada kurikulum aktif atau yang memiliki peserta di semester aktif
+        $mata_kuliahs = MataKuliah::where(function ($query) use ($dosen, $pivotMkIds) {
                 $query->where('dosen_id', $dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkAktifSaatIniIds)
+            ->where(function ($q) use ($tahunAkademik) {
+                $q->whereHas('kurikulum', fn($k) => $k->where('is_active', true));
+                if ($tahunAkademik) {
+                    $q->orWhereHas('mahasiswas', fn($m) => $m->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id));
+                }
+            })
             ->with(['mahasiswas' => function ($query) use ($tahunAkademik) {
-                // [PERBAIKAN] Menghapus filter 'Disetujui', sehingga asalkan sudah isi KRS masuk ke absensi
-                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null)
+                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? 0)
                       ->orderBy('nim', 'asc');
-            }, 'mahasiswas.programStudi'])
+            }, 'mahasiswas.programStudi', 'kurikulum.programStudi'])
             ->withCount(['mahasiswas' => function ($query) use ($tahunAkademik) {
-                // [PERBAIKAN] Sama, hapus filter 'Disetujui' untuk count
-                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? null);
+                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id ?? 0);
             }])
+            ->orderBy('semester')
+            ->orderBy('kode_mk')
             ->get();
         
         $jadwalKuliah = collect();
-        if ($tahunAkademik && $mata_kuliahs->isNotEmpty()) {
+        if ($mata_kuliahs->isNotEmpty()) {
             $mkIds = $mata_kuliahs->pluck('id');
             $jadwalKuliah = Jadwal::with('mataKuliah')
                 ->whereIn('mata_kuliah_id', $mkIds)
                 ->get()
-                ->sortBy(function($jadwal) {
+                ->sortBy(function ($jadwal) {
                     $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
                     return $hariOrder[$jadwal->hari] ?? 99;
                 });
         }
 
         $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
+        $krsWaliMenunggu = 0;
+        if ($tahunAkademik) {
+            $krsWaliMenunggu = $dosen->mahasiswaWali()
+                ->where('status_krs', 'Menunggu Persetujuan')
+                ->whereHas('mataKuliahs', fn($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id))
+                ->count();
+        }
+
         $prodiYangDikepalai = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first();
-        $pengumumans = Pengumuman::latest()->take(5)->get();
+        $dataKaprodi = null;
+        if ($prodiYangDikepalai) {
+            $krsProdiMenunggu = Mahasiswa::where('program_studi_id', $prodiYangDikepalai->id)
+                ->where('status_mahasiswa', 'Aktif')
+                ->where('status_krs', 'Menunggu Persetujuan')
+                ->when($tahunAkademik, function ($q) use ($tahunAkademik) {
+                    $q->whereHas('mataKuliahs', fn($sub) => $sub->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id));
+                })
+                ->count();
+
+            $dataKaprodi = [
+                'prodi' => $prodiYangDikepalai,
+                'krs_count' => $krsProdiMenunggu,
+            ];
+        }
+
+        $userRoles = $user->roles->pluck('name')->toArray();
+        $userRoles[] = 'semua';
+        $pengumumans = Pengumuman::whereIn('target_role', $userRoles)->latest()->take(5)->get();
 
         $query = $dosen->suratKeputusans()->where('status', 'Selesai');
         if ($request->filled('search_surat')) {
             $search = $request->search_surat;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('judul', 'like', "%{$search}%")
                   ->orWhere('nomor_surat', 'like', "%{$search}%");
             });
         }
-        $suratKeputusans = $query->latest()->paginate(10)->withQueryString();
+        $suratKeputusans = $query->latest()->paginate(5)->withQueryString();
 
         return view('dosen.dashboard', compact(
-            'dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 
-            'prodiYangDikepalai', 'pengumumans', 'suratKeputusans'
+            'dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'krsWaliMenunggu',
+            'prodiYangDikepalai', 'dataKaprodi', 'pengumumans', 'suratKeputusans', 'tahunAkademik'
         ));
     }
 
     public function cetakJadwal()
     {
         $dosen = Auth::user()->dosen;
+        if (!$dosen) abort(403);
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
-        
-        $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
-                               ->where('tahun_akademik_id', $tahunAkademik->id)
-                               ->distinct()
-                               ->pluck('mata_kuliah_id')
-                               ->toArray();
 
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $dosen->id)
             ->pluck('mata_kuliah_id')
             ->toArray();
             
-        $mkIds = MataKuliah::where(function($q) use ($dosen, $pivotMkIds) {
+        $mkIds = MataKuliah::where(function ($q) use ($dosen, $pivotMkIds) {
                 $q->where('dosen_id', $dosen->id)
                   ->orWhereIn('id', $pivotMkIds);
             })
-            ->whereIn('id', $mkAktifSaatIniIds)
+            ->where(function ($q) use ($tahunAkademik) {
+                $q->whereHas('kurikulum', fn($k) => $k->where('is_active', true))
+                  ->orWhereHas('mahasiswas', fn($m) => $m->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id));
+            })
             ->pluck('id');
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
             ->whereIn('mata_kuliah_id', $mkIds)
             ->get()
-            ->sortBy(function($jadwal) {
+            ->sortBy(function ($jadwal) {
                 $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
                 return $hariOrder[$jadwal->hari] ?? 99;
             });
@@ -124,30 +150,28 @@ class DosenDashboardController extends Controller
         return $pdf->stream('Jadwal_Mengajar_' . $dosen->nama_lengkap . '.pdf');
     }
 
-    // [TAMBAHAN] Fungsi Cetak Absensi Kelas
     public function cetakAbsensi(MataKuliah $mataKuliah)
     {
         $dosen = Auth::user()->dosen;
+        if (!$dosen) abort(403);
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        // Keamanan: Cek apakah dosen mengajar matkul ini
         $isTeam = DB::table('dosen_mata_kuliah')
             ->where('mata_kuliah_id', $mataKuliah->id)
             ->where('dosen_id', $dosen->id)
             ->exists();
 
-        if ($mataKuliah->dosen_id !== $dosen->id && !$isTeam) {
+        if ((int) $mataKuliah->dosen_id !== (int) $dosen->id && !$isTeam) {
             abort(403, 'Akses ditolak. Anda bukan pengajar kelas ini.');
         }
 
-        // Ambil mahasiswa yang mengisi KRS semester aktif ini
         $mahasiswas = $mataKuliah->mahasiswas()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
             ->orderBy('nim', 'asc')
             ->get();
 
         $pdf = Pdf::loadView('dosen.pdf_absensi', compact('dosen', 'mataKuliah', 'tahunAkademik', 'mahasiswas'))
-               ->setPaper('a4', 'landscape'); // Format landscape karena banyak kolom
+               ->setPaper('a4', 'landscape');
                
         return $pdf->stream('Daftar_Hadir_' . str_replace(' ', '_', $mataKuliah->kode_mk) . '.pdf');
     }
@@ -155,17 +179,24 @@ class DosenDashboardController extends Controller
     public function uploadRps(Request $request, MataKuliah $mataKuliah)
     {
         $dosen = Auth::user()->dosen;
+        if (!$dosen) abort(403);
         
         $isTeam = DB::table('dosen_mata_kuliah')
             ->where('mata_kuliah_id', $mataKuliah->id)
             ->where('dosen_id', $dosen->id)
             ->exists();
 
-        if ($mataKuliah->dosen_id !== $dosen->id && !$isTeam) {
+        if ((int) $mataKuliah->dosen_id !== (int) $dosen->id && !$isTeam) {
             abort(403, 'Anda tidak berhak mengubah RPS mata kuliah ini.');
         }
 
-        $request->validate(['file_rps' => 'required|mimes:pdf|max:5120']);
+        $request->validate([
+            'file_rps' => 'required|mimes:pdf|max:5120',
+        ], [
+            'file_rps.required' => 'Silakan pilih file RPS terlebih dahulu.',
+            'file_rps.mimes' => 'Format dokumen RPS wajib berupa file PDF.',
+            'file_rps.max' => 'Ukuran file RPS maksimal adalah 5MB.',
+        ]);
 
         if ($request->hasFile('file_rps')) {
             if ($mataKuliah->file_rps && Storage::disk('public')->exists($mataKuliah->file_rps)) {
@@ -175,6 +206,6 @@ class DosenDashboardController extends Controller
             $mataKuliah->update(['file_rps' => $path]);
         }
 
-        return redirect()->back()->with('success', 'File RPS berhasil diunggah.');
+        return redirect()->back()->with('success', 'Dokumen RPS untuk mata kuliah ' . $mataKuliah->nama_mk . ' berhasil diunggah.');
     }
 }
