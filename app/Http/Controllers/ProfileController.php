@@ -45,6 +45,18 @@ class ProfileController extends Controller
             }
             $path = $request->file('foto_profil')->store('foto-profil', 'public');
             $user->mahasiswa->update(['foto_profil' => $path]);
+        } elseif ($user->dosen) {
+            if ($user->dosen->foto_profil) {
+                Storage::disk('public')->delete($user->dosen->foto_profil);
+            }
+            $path = $request->file('foto_profil')->store('foto-profil-dosen', 'public');
+            $user->dosen->update(['foto_profil' => $path]);
+        } elseif ($user->tendik) {
+            if ($user->tendik->foto_profil) {
+                Storage::disk('public')->delete($user->tendik->foto_profil);
+            }
+            $path = $request->file('foto_profil')->store('foto-profil-tendik', 'public');
+            $user->tendik->update(['foto_profil' => $path]);
         }
 
         return Redirect::route('profile.edit')->with('success', 'Foto profil berhasil diperbarui.');
@@ -65,22 +77,16 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
-    // ==========================================================
-    // FUNGSI PENERIMA TOKEN DARI BROWSER FIREBASE
-    // ==========================================================
     public function simpanFcmToken(Request $request)
     {
-        // 1. Validasi
         $request->validate([
             'token' => 'required|string'
         ]);
 
-        // 2. Gunakan cara simpan manual (Mencegah masalah fillable / mass assignment yang menyebabkan Null)
         $user = auth()->user();
         $user->fcm_token = $request->token;
         $user->save();
 
-        // 3. Kembalikan response sukses
         return response()->json([
             'message' => 'Token FCM berhasil disimpan.',
             'token_yang_disimpan' => $request->token

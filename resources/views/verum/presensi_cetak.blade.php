@@ -2,51 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Rekap Absensi - {{ $verum_kela->nama_kelas }}</title>
+    <title>Rekap Absensi Verum - {{ $verum_kela->nama_kelas }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 11px; margin: 20px; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; margin: 20px; color: #000; }
         .text-center { text-align: center; }
         .text-left { text-align: left; }
         .fw-bold { font-weight: bold; }
         .uppercase { text-transform: uppercase; }
+        .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         
-        .header-table { width: 100%; border-bottom: 3px double #000; margin-bottom: 20px; padding-bottom: 10px; }
-        .header-table td { border: none; vertical-align: middle; }
-        .logo { width: 70px; }
+        .doc-title { text-align: center; font-weight: bold; font-size: 13pt; text-decoration: underline; text-transform: uppercase; margin: 10px 0 15px 0; }
         
-        .info-table { width: 100%; margin-bottom: 15px; }
-        .info-table td { padding: 3px 0; border: none; }
+        .info-table { width: 100%; margin-bottom: 15px; border-collapse: collapse; }
+        .info-table td { padding: 3px 0; border: none; font-size: 10pt; }
         
         table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table.data-table th, table.data-table td { border: 1px solid #000; padding: 5px; text-align: center; }
-        table.data-table th { background-color: #f0f0f0; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 5px; text-align: center; font-size: 9pt; }
+        table.data-table th { background-color: #212529; color: #ffffff; }
         table.data-table td.nama-mhs { text-align: left; white-space: nowrap; }
         
-        .ttd { margin-top: 40px; width: 100%; border: none; }
+        .ttd { margin-top: 35px; width: 100%; border: none; page-break-inside: avoid; }
         .ttd td { border: none; text-align: center; }
+
+        .no-print { text-align: right; margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .btn-print { background-color: #212529; color: #fff; border: none; padding: 7px 16px; font-family: Arial, sans-serif; cursor: pointer; text-transform: uppercase; font-size: 11px; font-weight: bold; }
         
         @media print {
-            body { -webkit-print-color-adjust: exact; }
-            table.data-table th { background-color: #f0f0f0 !important; }
+            body { -webkit-print-color-adjust: exact; margin: 0; }
+            .no-print { display: none !important; }
+            @page { size: A4 landscape; margin: 1.2cm; }
         }
     </style>
 </head>
 <body onload="window.print()">
 
-    {{-- KOP SURAT --}}
-    <table class="header-table">
-        <tr>
-            <td width="10%" class="text-center">
-                <img src="{{ asset('images/logo.png') }}" class="logo" alt="Logo STT">
-            </td>
-            <td width="90%" class="text-center">
-                <h3 style="margin:0">SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA</h3>
-                <h4 style="margin:5px 0">REKAPITULASI KEHADIRAN KELAS E-LEARNING (VERUM)</h4>
-            </td>
-        </tr>
-    </table>
+    <div class="no-print">
+        <button onclick="window.print()" class="btn-print">Cetak Dokumen</button>
+    </div>
 
-    {{-- INFO KELAS --}}
+    @include('partials._kop')
+
+    <div class="doc-title">REKAPITULASI KEHADIRAN KELAS E-LEARNING (VERUM)</div>
+
     <table class="info-table uppercase fw-bold">
         <tr>
             <td width="15%">MATA KULIAH</td>
@@ -74,22 +71,21 @@
             <td>DOSEN PENGAMPU</td>
             <td>:</td>
             <td>{{ optional($verum_kela->dosen)->nama_lengkap ?? '-' }}</td>
-            <td>TOTAL MHS</td>
+            <td>TOTAL PESERTA</td>
             <td>:</td>
-            <td>{{ $mahasiswas->count() }} ORANG</td>
+            <td>{{ $mahasiswas->count() }} MAHASISWA</td>
         </tr>
     </table>
 
-    {{-- TABEL MATRIX ABSENSI --}}
     <table class="data-table uppercase">
         <thead>
             <tr>
-                <th width="3%" rowspan="2">NO</th>
-                <th width="10%" rowspan="2">NIM</th>
-                <th width="25%" rowspan="2" class="text-left">NAMA MAHASISWA</th>
+                <th width="4%" rowspan="2">NO</th>
+                <th width="12%" rowspan="2">NIM</th>
+                <th width="26%" rowspan="2" class="text-left">NAMA MAHASISWA</th>
                 <th colspan="{{ $presensis->count() > 0 ? $presensis->count() : 1 }}">PERTEMUAN KE-</th>
-                <th width="5%" rowspan="2">TOTAL<br>HADIR</th>
-                <th width="5%" rowspan="2">PERSEN<br>(%)</th>
+                <th width="7%" rowspan="2">TOTAL<br>HADIR</th>
+                <th width="8%" rowspan="2">PERSEN<br>(%)</th>
             </tr>
             <tr>
                 @forelse($presensis as $sesi)
@@ -106,22 +102,22 @@
                     $totalPertemuan = $presensis->count();
                 @endphp
                 <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $mhs->nim }}</td>
-                    <td class="nama-mhs">{{ $mhs->nama_lengkap }}</td>
+                    <td class="font-monospace">{{ $index + 1 }}</td>
+                    <td class="font-monospace">{{ $mhs->nim }}</td>
+                    <td class="nama-mhs fw-bold">{{ $mhs->nama_lengkap }}</td>
                     
                     @forelse($presensis as $sesi)
                         @php
                             $hadir = $sesi->kehadiran->where('mahasiswa_id', $mhs->id)->isNotEmpty();
                             if($hadir) $totalHadir++;
                         @endphp
-                        <td>{{ $hadir ? 'H' : '-' }}</td>
+                        <td class="font-monospace">{{ $hadir ? 'H' : '-' }}</td>
                     @empty
                         <td>-</td>
                     @endforelse
                     
-                    <td class="fw-bold">{{ $totalHadir }}</td>
-                    <td class="fw-bold">
+                    <td class="fw-bold font-monospace">{{ $totalHadir }}</td>
+                    <td class="fw-bold font-monospace">
                         {{ $totalPertemuan > 0 ? round(($totalHadir / $totalPertemuan) * 100) . '%' : '0%' }}
                     </td>
                 </tr>
@@ -133,23 +129,20 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 15px; font-size: 10px;">
-        <strong>Keterangan:</strong><br>
-        H : Hadir / Terverifikasi oleh Sistem Verum<br>
-        - : Tidak Hadir / Alpa
+    <div style="margin-top: 12px; font-size: 9pt;">
+        <strong>Keterangan:</strong> H = Hadir (Terverifikasi Sistem E-Learning Verum) | - = Tidak Hadir / Alpha
     </div>
 
-    {{-- TANDA TANGAN --}}
     <table class="ttd">
         <tr>
             <td width="60%"></td>
             <td width="40%">
-                Fakfak, {{ now()->format('d F Y') }} <br>
+                Fakfak, {{ now()->translatedFormat('d F Y') }} <br>
                 Dosen Pengampu Mata Kuliah,
                 <br><br><br><br>
                 <b class="uppercase"><u>{{ optional($verum_kela->dosen)->nama_lengkap ?? '.....................................' }}</u></b>
                 <br>
-                NIDN. {{ optional($verum_kela->dosen)->nidn ?? '-' }}
+                <span class="font-monospace" style="font-size: 9pt;">NIDN. {{ optional($verum_kela->dosen)->nidn ?? '-' }}</span>
             </td>
         </tr>
     </table>

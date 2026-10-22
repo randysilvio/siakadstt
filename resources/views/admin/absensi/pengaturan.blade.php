@@ -2,63 +2,69 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <h3 class="mb-2 text-dark fw-bold">Konfigurasi Aturan Absensi</h3>
-            <p class="text-muted small mb-4">Pengaturan parameter waktu operasional kerja institusi.</p>
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+        <div>
+            <h3 class="mb-0 text-dark fw-bold uppercase">Konfigurasi Aturan Absensi</h3>
+            <span class="text-muted small uppercase">Pengaturan Parameter Waktu Operasional Kerja Institusi</span>
+        </div>
+        <div>
+            <a href="{{ route('admin.absensi.laporan.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                Lihat Laporan Absensi
+            </a>
+        </div>
+    </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 text-dark fw-bold">Parameter Sistem Kehadiran</h5>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 col-lg-8 mx-auto mb-5">
+        <div class="card-header bg-white border-bottom py-3 rounded-0">
+            <h6 class="mb-0 text-dark fw-bold uppercase small">Parameter Sistem Kehadiran Pegawai</h6>
+        </div>
+        <div class="card-body p-4">
+            <form action="{{ route('admin.absensi.pengaturan.update') }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="row mb-4 g-4">
+                    <div class="col-md-6">
+                        <label class="form-label text-dark small fw-bold uppercase">Waktu Masuk Kerja <span class="text-danger">*</span></label>
+                        <input type="time" name="jam_masuk" class="form-control rounded-0 font-monospace fw-bold" value="{{ $pengaturan->jam_masuk }}" required>
+                        <div class="form-text text-muted small uppercase mt-1">Acuan waktu dimulainya jam operasional.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-dark small fw-bold uppercase">Waktu Pulang Kerja <span class="text-danger">*</span></label>
+                        <input type="time" name="jam_pulang" class="form-control rounded-0 font-monospace fw-bold" value="{{ $pengaturan->jam_pulang }}" required>
+                        <div class="form-text text-muted small uppercase mt-1">Batas waktu absen keluar pegawai.</div>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    @if(session('success'))
-                        <div class="alert alert-success border-0 bg-success text-white py-2 px-3 rounded-1 mb-4">
-                            {{ session('success') }}
-                        </div>
-                    @endif
 
-                    <form action="{{ route('admin.absensi.pengaturan.update') }}" method="POST">
-                        @csrf
-                        @method('PUT')
-
-                        <div class="row mb-4 g-4">
-                            <div class="col-md-6">
-                                <label class="form-label text-dark fw-semibold">Waktu Batas Masuk Kerja</label>
-                                <input type="time" name="jam_masuk" class="form-control rounded-1" value="{{ $pengaturan->jam_masuk }}">
-                                <div class="form-text mt-1">Acuan waktu dimulainya jam operasional.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-dark fw-semibold">Waktu Mulai Absen Pulang</label>
-                                <input type="time" name="jam_pulang" class="form-control rounded-1" value="{{ $pengaturan->jam_pulang }}">
-                                <div class="form-text mt-1">Batas minimum pegawai diperkenankan melakukan absen keluar.</div>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-dark fw-semibold">Durasi Toleransi Keterlambatan</label>
-                            <div class="input-group">
-                                <input type="number" name="toleransi_terlambat_menit" class="form-control rounded-start-1" value="{{ $pengaturan->toleransi_terlambat_menit }}">
-                                <span class="input-group-text rounded-end-1 bg-light">Menit</span>
-                            </div>
-                        </div>
-
-                        <div class="alert bg-light border text-dark rounded-1 mb-4">
-                            <h6 class="fw-bold mb-1">Catatan Sistem:</h6>
-                            <p class="mb-0 small text-muted">
-                                Sistem secara otomatis akan mencatat status kehadiran menjadi <strong>ALPHA</strong> jika pegawai tidak melakukan check-in setelah melewati kalkulasi waktu (Waktu Masuk + Toleransi Keterlambatan).
-                            </p>
-                        </div>
-
-                        <hr class="text-muted my-4">
-                        <div class="text-end">
-                            <button type="submit" class="btn btn-primary px-4">
-                                Simpan Konfigurasi
-                            </button>
-                        </div>
-                    </form>
+                <div class="mb-4">
+                    <label class="form-label text-dark small fw-bold uppercase">Durasi Toleransi Keterlambatan <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="number" name="toleransi_terlambat_menit" class="form-control rounded-0 font-monospace fw-bold" value="{{ $pengaturan->toleransi_terlambat_menit }}" min="0" required>
+                        <span class="input-group-text rounded-0 bg-light uppercase fw-bold small font-monospace">Menit</span>
+                    </div>
                 </div>
-            </div>
+
+                <div class="alert bg-light border border-dark border-opacity-25 text-dark rounded-0 mb-4 p-3">
+                    <h6 class="fw-bold mb-1 small uppercase font-monospace"><i class="bi bi-info-circle-fill me-1"></i> Catatan Sistem:</h6>
+                    <p class="mb-0 small text-muted uppercase">
+                        Pegawai yang melakukan check-in melewati batas <strong>(Waktu Masuk + Toleransi Keterlambatan)</strong> tetap tercatat hadir namun secara otomatis ditandai sebagai <strong>TERLAMBAT</strong> pada rekapitulasi bulanan.
+                    </p>
+                </div>
+
+                <div class="d-flex justify-content-end pt-3 border-top">
+                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-5 py-2 uppercase fw-bold small shadow-sm">
+                        <i class="bi bi-save me-1"></i> Simpan Konfigurasi
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -1,90 +1,97 @@
-<style>
-    /* STYLING KAKU & FORMAL KOP SURAT (0PX PRESISI) */
-    .kop-container {
-        width: 100%;
-        margin-bottom: 20px;
-        background-color: #ffffff;
+@php
+    $logoPath = public_path('images/logo.png');
+    if (!file_exists($logoPath)) {
+        $logoPath = public_path('assets/images/logo-stt.png');
     }
-    .kop-table {
+    $logoBase64 = '';
+    if (file_exists($logoPath)) {
+        $logoData = base64_encode(file_get_contents($logoPath));
+        $logoBase64 = 'data:image/png;base64,' . $logoData;
+    } else {
+        $logoBase64 = asset('images/logo.png');
+    }
+@endphp
+
+<style>
+    .kop-surat-wrapper {
+        width: 100%;
+        margin-bottom: 18px;
+        background-color: #ffffff;
+        color: #000000;
+        font-family: 'Times New Roman', Times, serif;
+    }
+    .kop-surat-table {
         width: 100%;
         border-collapse: collapse;
         border: none;
+        margin-bottom: 0;
     }
-    .kop-table td {
-        border: none;
-        vertical-align: middle;
+    .kop-surat-table td {
+        border: none !important;
         padding: 0;
+        vertical-align: middle;
     }
-    .logo-cell {
-        width: 15%;
+    .kop-logo-cell {
+        width: 14%;
         text-align: center;
     }
-    .text-cell {
-        width: 85%;
+    .kop-logo-img {
+        width: 75px;
+        height: auto;
+    }
+    .kop-text-cell {
+        width: 86%;
         text-align: center;
         line-height: 1.25;
     }
-    .kop-org {
-        font-size: 14px;
+    .kop-yayasan {
+        font-size: 12pt;
         font-weight: bold;
         text-transform: uppercase;
-        margin-bottom: 2px;
-        color: #000000;
-    }
-    .kop-inst {
-        font-size: 18px;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-        color: #000000;
+        margin: 0;
         letter-spacing: 0.5px;
     }
-    .kop-address {
-        font-size: 11px;
-        font-style: normal;
-        text-transform: uppercase;
-        color: #212529;
-    }
-    .kop-contact {
-        font-size: 10px;
-        font-family: 'Courier New', Courier, monospace;
+    .kop-institusi {
+        font-size: 15pt;
         font-weight: bold;
         text-transform: uppercase;
-        margin-top: 3px;
-        color: #000000;
+        margin: 2px 0;
+        letter-spacing: 0.5px;
     }
-    /* Pembatas Bawah Standar Dokumen Enterprise Indonesia */
-    .kop-line {
+    .kop-akreditasi {
+        font-size: 10pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin: 2px 0;
+    }
+    .kop-alamat {
+        font-size: 9pt;
+        margin: 2px 0 0 0;
+    }
+    .kop-garis-ganda {
         border-top: 3px solid #000000;
         border-bottom: 1px solid #000000;
         height: 2px;
-        margin-top: 10px;
-        margin-bottom: 6px;
-        background-color: transparent;
+        margin-top: 8px;
     }
 </style>
 
-<div class="kop-container">
-    <table class="kop-table">
+<div class="kop-surat-wrapper">
+    <table class="kop-surat-table">
         <tr>
-            <td class="logo-cell">
-                {{-- Penarikan aset fisik gambar mutlak untuk rendering DOMPDF --}}
-                <img src="{{ public_path('assets/images/logo-stt.png') }}" alt="Logo Institusi" style="width: 80px; height: auto;">
+            <td class="kop-logo-cell">
+                <img src="{{ $logoBase64 }}" alt="Logo STT GPI Papua" class="kop-logo-img">
             </td>
-
-            <td class="text-cell">
-                <div class="kop-org">GEREJA PROTESTAN INDONESIA DI PAPUA</div>
-                <div class="kop-inst">SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA</div>
-                <div class="kop-address">
-                    JL. JEND. A. YANI, FAKFAK, PAPUA BARAT<br>
-                    TERAKREDITASI RESMI BAN-PT
-                </div>
-                <div class="kop-contact">
-                    WEBSITE: WWW.STTGPIPAPUA.AC.ID | EMAIL: ADMIN@STTGPIPAPUA.AC.ID
+            <td class="kop-text-cell">
+                <div class="kop-yayasan">GEREJA PROTESTAN INDONESIA DI PAPUA</div>
+                <div class="kop-institusi">SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA</div>
+                <div class="kop-akreditasi">TERAKREDITASI BAN-PT No. 1599/SK/BAN-PT/Ak.Ppj/PT/X/2022</div>
+                <div class="kop-alamat">
+                    Jl. Jenderal Sudirman / Jl. Pattimura No. 1, P.O. Box 138, Telp. (0956) 22252, Fakfak - Papua Barat<br>
+                    Website: www.sttgpipapua.ac.id | Email: info@sttgpipapua.ac.id
                 </div>
             </td>
         </tr>
     </table>
-    
-    <div class="kop-line"></div>
+    <div class="kop-garis-ganda"></div>
 </div>

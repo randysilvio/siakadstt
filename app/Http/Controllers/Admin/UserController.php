@@ -7,18 +7,17 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth; // [TAMBAHAN] Wajib untuk fitur login menyamar
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
-    /**
-     * Menampilkan daftar semua pengguna dengan Smart Filter.
-     */
     public function index(Request $request)
     {
         $query = User::with('roles')->latest();
 
-        // 1. Filter Pencarian Teks (Nama, Email)
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -27,18 +26,14 @@ class UserController extends Controller
             });
         }
 
-        // 2. Filter Peran (Role)
         if ($request->filled('role_id')) {
             $roleId = $request->input('role_id');
-            // Mencari user yang memiliki role tertentu melalui relasi many-to-many
             $query->whereHas('roles', function ($q) use ($roleId) {
                 $q->where('roles.id', $roleId);
             });
         }
 
         $users = $query->paginate(15)->withQueryString();
-        
-        // Data untuk Dropdown Filter
         $roles = Role::orderBy('display_name')->get();
 
         return view('admin.user.index', compact('users', 'roles'));
@@ -53,14 +48,48 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $request->validate([
+        $rules = [
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|max:255|unique:users,email,' . $user->id,
             'roles' => 'nullable|array',
-            'roles.*' => 'exists:roles,id'
-        ]);
+            'roles.*' => 'exists:roles,id',
+        ];
 
-        $user->roles()->sync($request->input('roles', []));
+        if ($request->filled('password')) {
+            $rules['password'] = ['required', 'confirmed', Rules\Password::defaults()];
+        }
 
-        return redirect()->route('admin.user.index')->with('success', 'Peran untuk pengguna ' . $user->name . ' berhasil diperbarui.');
+        $request->validate($rules);
+
+        DB::transaction(function () use ($request, $user) {
+            if ($request->filled('name')) {
+                $user->name = $request->name;
+            }
+            if ($request->filled('email')) {
+                $user->email = $request->email;
+            }
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
+            }
+            $user->save();
+
+            // Sinkronkan nama lengkap ke tabel profil jika ada
+            if ($request->filled('name')) {
+                if ($user->mahasiswa) {
+                    $user->mahasiswa->update(['nama_lengkap' => $request->name]);
+                }
+                if ($user->dosen) {
+                    $user->dosen->update(['nama_lengkap' => $request->name]);
+                }
+                if ($user->tendik) {
+                    $user->tendik->update(['nama_lengkap' => $request->name]);
+                }
+            }
+
+            $user->roles()->sync($request->input('roles', []));
+        });
+
+        return redirect()->route('admin.user.index')->with('success', 'Data akun dan otoritas peran untuk ' . $user->name . ' berhasil diperbarui.');
     }
 
     public function destroy(User $user)
@@ -70,28 +99,23 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($user) {
-            // [UPDATE] Hapus profil Tendik jika ada
             if ($user->tendik) {
-                // Hapus foto profil tendik jika ada (optional, jika logika delete ada di Model boot)
                 if ($user->tendik->foto_profil) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->tendik->foto_profil);
+                    Storage::disk('public')->delete($user->tendik->foto_profil);
                 }
                 $user->tendik->delete();
             }
 
-            // Hapus profil Dosen jika ada
             if ($user->dosen) {
                 if ($user->dosen->foto_profil) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->dosen->foto_profil);
+                    Storage::disk('public')->delete($user->dosen->foto_profil);
                 }
                 $user->dosen->delete();
             }
 
-            // Hapus profil Mahasiswa jika ada
             if ($user->mahasiswa) {
-                // Tambahkan logika hapus foto mahasiswa jika perlu
                 if ($user->mahasiswa->foto_profil) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($user->mahasiswa->foto_profil);
+                    Storage::disk('public')->delete($user->mahasiswa->foto_profil);
                 }
                 $user->mahasiswa->delete();
             }
@@ -103,37 +127,25 @@ class UserController extends Controller
         return redirect()->route('admin.user.index')->with('success', 'Pengguna berhasil dihapus.');
     }
 
-    // --- [TAMBAHAN] FITUR MENYAMAR (IMPERSONATE) ---
-
     public function impersonate($id)
     {
         $userToImpersonate = User::findOrFail($id);
 
-        // [MINOR UPDATE] Jangan biarkan admin menyamar jadi dirinya sendiri atau menyamar sebagai sesama Admin
         if ($userToImpersonate->id === Auth::id() || $userToImpersonate->hasRole('admin')) {
             return back()->with('error', 'Anda tidak dapat menyamar menjadi diri sendiri atau sesama Admin.');
         }
 
-        // Simpan ID admin asli ke dalam session
         session()->put('impersonate_by', Auth::id());
-
-        // Paksa sistem untuk login menggunakan akun target
         Auth::login($userToImpersonate);
 
-        // Arahkan ke dashboard sesuai role baru
         return redirect()->route('dashboard')->with('success', 'Anda sekarang login sebagai ' . $userToImpersonate->name);
     }
 
     public function stopImpersonate()
     {
-        // Cek apakah user ini benar-benar sedang menyamar
         if (session()->has('impersonate_by')) {
             $adminId = session()->pull('impersonate_by');
-            
-            // Kembalikan login ke ID Admin
             Auth::loginUsingId($adminId);
-            
-            // [MINOR UPDATE] Membersihkan sisa sesi penyamaran dari memori server
             session()->forget('impersonate_by');
             
             return redirect()->route('admin.user.index')->with('success', 'Penyamaran dihentikan. Anda telah kembali menjadi Admin.');

@@ -118,7 +118,7 @@ class MahasiswaController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Gagal menambah Mahasiswa: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa. Silakan coba lagi.');
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa: ' . $e->getMessage());
         }
     }
 
@@ -136,7 +136,8 @@ class MahasiswaController extends Controller
 
     public function update(Request $request, Mahasiswa $mahasiswa): RedirectResponse
     {
-        $request->validate([
+        // [PERBAIKAN]: Validasi password ditempatkan di luar blok try-catch
+        $rules = [
             'nim' => 'required|max:20|unique:mahasiswas,nim,' . $mahasiswa->id,
             'nik' => 'required|digits:16|unique:mahasiswas,nik,' . $mahasiswa->id,
             'nama_lengkap' => 'required|string|max:255',
@@ -148,7 +149,13 @@ class MahasiswaController extends Controller
             'tanggal_lulus' => 'nullable|date|required_if:status_mahasiswa,Lulus',
             'nik_ayah' => 'nullable|digits:16',
             'nik_ibu' => 'nullable|digits:16',
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = ['required', 'confirmed', Rules\Password::defaults()];
+        }
+
+        $request->validate($rules);
     
         try {
             DB::transaction(function () use ($request, $mahasiswa) {
@@ -165,7 +172,6 @@ class MahasiswaController extends Controller
                         'email' => $request->email,
                     ];
                     if ($request->filled('password')) {
-                        $request->validate(['password' => ['required', 'confirmed', Rules\Password::defaults()]]);
                         $userData['password'] = Hash::make($request->password);
                     }
                     $mahasiswa->user->update($userData);
@@ -176,7 +182,7 @@ class MahasiswaController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Gagal memperbarui Mahasiswa: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa. Silakan coba lagi.');
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa: ' . $e->getMessage());
         }
     }
 
@@ -202,7 +208,7 @@ class MahasiswaController extends Controller
     {
         $search = $request->input('search');
         $program_studi_id = $request->input('program_studi_id');
-        return \Maatwebsite\Excel\Facades\Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
+        return Excel::download(new MahasiswasExport($search, $program_studi_id), 'mahasiswa.xlsx');
     }
 
     public function import(Request $request): RedirectResponse
@@ -210,7 +216,7 @@ class MahasiswaController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
 
         try {
-            \Maatwebsite\Excel\Facades\Excel::import(new MahasiswasImport, $request->file('file'));
+            Excel::import(new MahasiswasImport, $request->file('file'));
         } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];
@@ -227,7 +233,7 @@ class MahasiswaController extends Controller
 
     public function downloadImportTemplate()
     {
-        return \Maatwebsite\Excel\Facades\Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
+        return Excel::download(new MahasiswaImportTemplateExport(), 'template-impor-mahasiswa.xlsx');
     }
 
     public function cetakAktif(Request $request)
@@ -239,7 +245,7 @@ class MahasiswaController extends Controller
         }
 
         $query = Mahasiswa::with('programStudi')
-            ->whereHas('mataKuliahs', function($q) use ($periodeAktif) {
+            ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
                 $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
             });
 
@@ -259,7 +265,6 @@ class MahasiswaController extends Controller
         return $pdf->stream('Mahasiswa_Aktif_' . str_replace('/', '-', $periodeAktif->tahun) . '_' . $angkatan . '.pdf');
     }
 
-    // [PEMBARUAN] Menangkap Request untuk parameter nomor surat dan keperluan
     public function cetakSuratAktif(Request $request, Mahasiswa $mahasiswa)
     {
         $periodeAktif = \App\Models\TahunAkademik::where('is_active', true)->first();
@@ -272,7 +277,6 @@ class MahasiswaController extends Controller
             return redirect()->back()->with('error', 'Mahasiswa tersebut tidak berstatus aktif, surat tidak dapat dicetak.');
         }
 
-        // Tangkap inputan dari modal form (berikan default fallback jika kosong)
         $nomorSurat = $request->input('nomor_surat', '........');
         $keperluan = $request->input('keperluan', '........................................................................................................');
 

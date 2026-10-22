@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log; // [TAMBAHAN] Untuk mencatat log error
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use App\Exports\DosensExport;
 use App\Imports\DosensImport;
@@ -63,18 +63,15 @@ class DosenController extends Controller
         $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            
             'nidn' => 'nullable|unique:dosens|max:20',
             'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik',
             'nama_lengkap' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:L,P',
-            
             'tempat_lahir' => 'nullable|string',
             'tanggal_lahir' => 'nullable|date',
             'nuptk' => 'nullable|string',
             'npwp' => 'nullable|string',
-            
             'status_kepegawaian' => 'required|string',
             'program_studi_id' => 'nullable|exists:program_studis,id', 
             'jabatan_akademik' => 'nullable|string|max:255',
@@ -98,7 +95,6 @@ class DosenController extends Controller
 
                 $dosenData = $request->except(['email', 'password', 'password_confirmation', '_token', 'foto_profil']);
                 $dosenData['user_id'] = $user->id;
-                
                 $dosenData['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
                 if ($request->hasFile('foto_profil')) {
@@ -111,9 +107,8 @@ class DosenController extends Controller
             return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil ditambahkan.');
 
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
             Log::error('Gagal menambah Dosen: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data dosen. Silakan coba lagi.');
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data dosen: ' . $e->getMessage());
         }
     }
 
@@ -125,27 +120,33 @@ class DosenController extends Controller
 
     public function update(Request $request, Dosen $dosen): RedirectResponse
     {
-        $request->validate([
+        // [PERBAIKAN]: Validasi password dikeluarkan dari blok try-catch agar tidak tertelan sebagai error sistem
+        $rules = [
             'nidn' => 'nullable|max:20|unique:dosens,nidn,' . $dosen->id,
             'jenis_pengajar' => 'required|string|max:100',
             'nik' => 'required|digits_between:15,16|unique:dosens,nik,' . $dosen->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $dosen->user_id],
-            
             'jenis_kelamin' => 'required|in:L,P',
             'status_kepegawaian' => 'required|string',
             'program_studi_id' => 'nullable|exists:program_studis,id', 
-            
             'email_institusi' => 'nullable|email|max:255|unique:dosens,email_institusi,' . $dosen->id,
             'link_google_scholar' => 'nullable|url',
             'link_sinta' => 'nullable|url',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = $request->has('password_confirmation')
+                ? ['required', 'confirmed', Rules\Password::defaults()]
+                : ['required', Rules\Password::defaults()];
+        }
+
+        $request->validate($rules);
 
         try {
             DB::transaction(function () use ($request, $dosen) {
                 $dataUpdate = $request->except(['email', 'password', 'password_confirmation', '_token', '_method', 'foto_profil']);
-                
                 $dataUpdate['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
                 if ($request->hasFile('foto_profil')) {
@@ -158,10 +159,12 @@ class DosenController extends Controller
                 $dosen->update($dataUpdate);
 
                 if ($dosen->user) {
-                    $userData = ['name' => $request->nama_lengkap, 'email' => $request->email];
+                    $userData = [
+                        'name' => $request->nama_lengkap,
+                        'email' => $request->email,
+                    ];
                     
                     if ($request->filled('password')) {
-                        $request->validate(['password' => ['confirmed', Rules\Password::defaults()]]);
                         $userData['password'] = Hash::make($request->password);
                     }
                     
@@ -172,9 +175,8 @@ class DosenController extends Controller
             return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil diperbarui.');
 
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani error database dan mengembalikan notifikasi yang rapi
             Log::error('Gagal memperbarui Dosen: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data dosen. Silakan coba lagi.');
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data dosen: ' . $e->getMessage());
         }
     }
 
@@ -196,7 +198,6 @@ class DosenController extends Controller
             return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil dihapus.');
 
         } catch (\Exception $e) {
-            // [PERBAIKAN] Menangani kegagalan penghapusan (misal karena Foreign Key Constraint)
             Log::error('Gagal menghapus Dosen: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menghapus data. Pastikan dosen tidak sedang terikat pada jadwal mata kuliah, nilai, atau perwalian.');
         }

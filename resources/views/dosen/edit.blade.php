@@ -5,14 +5,19 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="mb-0 text-dark fw-bold uppercase">Modifikasi Data Dosen</h3>
-            <span class="text-muted small">ID Pengguna: {{ $dosen->user->id ?? '-' }} | Terakhir diperbarui: {{ $dosen->updated_at->format('d/m/Y H:i') }}</span>
+            <span class="text-muted small uppercase">ID Pengguna: {{ $dosen->user->id ?? '-' }} | Terakhir diperbarui: {{ $dosen->updated_at->format('d/m/Y H:i') }}</span>
         </div>
-        <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-dark btn-sm rounded-0">KEMBALI</a>
+        <a href="{{ route('admin.dosen.index') }}" class="btn btn-outline-dark btn-sm rounded-0 px-3 uppercase fw-bold small">Kembali</a>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger border-0 bg-danger text-white py-2 px-3 rounded-0 mb-4 small" role="alert">
-            <span class="fw-bold">GAGAL MEMPERBARUI DATA:</span> Harap periksa kembali isian formulir Anda.
+        <div class="alert alert-danger border rounded-0 shadow-sm mb-4 p-3 small uppercase" role="alert">
+            <strong class="fw-bold d-block mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>GAGAL MEMPERBARUI DATA:</strong>
+            <ul class="mb-0 ps-3 font-monospace">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -20,22 +25,22 @@
         @csrf
         @method('PUT')
 
-        <ul class="nav nav-tabs mb-4 border-bottom-2" id="dosenTabs" role="tablist">
+        <ul class="nav nav-tabs mb-4 rounded-0" id="dosenTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#pribadi" type="button">Identitas Personal</button>
+                <button class="nav-link active fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#pribadi" type="button">1. Identitas Personal</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#kepegawaian" type="button">Status & Jabatan</button>
+                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#kepegawaian" type="button">2. Status & Jabatan</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#akun" type="button">Akses & Foto</button>
+                <button class="nav-link fw-bold text-dark rounded-0 uppercase small" data-bs-toggle="tab" data-bs-target="#akun" type="button">3. Akses & Foto</button>
             </li>
         </ul>
 
         <div class="tab-content">
             {{-- TAB 1: DATA PRIBADI --}}
             <div class="tab-pane fade show active" id="pribadi">
-                <div class="card border-0 shadow-sm rounded-0">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4">
                     <div class="card-body p-4">
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -44,7 +49,6 @@
                                 @error('nama_lengkap') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                {{-- [UPDATE] NIDN menjadi tidak wajib --}}
                                 <label class="form-label small fw-bold uppercase">NIDN / NIP / NIDK</label>
                                 <input type="text" class="form-control rounded-0 font-monospace @error('nidn') is-invalid @enderror" name="nidn" value="{{ old('nidn', $dosen->nidn) }}" autocomplete="off" placeholder="Kosongkan jika tidak ada">
                                 @error('nidn') <div class="invalid-feedback small">{{ $message }}</div> @enderror
@@ -64,7 +68,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold uppercase">Tanggal Lahir</label>
-                                <input type="date" class="form-control rounded-0" name="tanggal_lahir" value="{{ old('tanggal_lahir', $dosen->tanggal_lahir) }}">
+                                <input type="date" class="form-control rounded-0 font-monospace" name="tanggal_lahir" value="{{ old('tanggal_lahir', $dosen->tanggal_lahir) }}">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold uppercase">Jenis Kelamin <span class="text-danger">*</span></label>
@@ -84,10 +88,9 @@
 
             {{-- TAB 2: KEPEGAWAIAN --}}
             <div class="tab-pane fade" id="kepegawaian">
-                <div class="card border-0 shadow-sm rounded-0">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4">
                     <div class="card-body p-4">
                         <div class="row g-4">
-                            {{-- [UPDATE] Dropdown Kategori Pengajar ditambahkan --}}
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Kategori Pengajar <span class="text-danger">*</span></label>
                                 <select class="form-select rounded-0" name="jenis_pengajar" required>
@@ -149,7 +152,7 @@
                                 <input type="text" class="form-control rounded-0" name="pangkat_golongan" value="{{ old('pangkat_golongan', $dosen->pangkat_golongan) }}" autocomplete="off">
                             </div>
                             
-                            <div class="col-md-12">
+                            <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Bidang Keahlian Spesifik</label>
                                 <input type="text" class="form-control rounded-0" name="bidang_keahlian" value="{{ old('bidang_keahlian', $dosen->bidang_keahlian) }}" autocomplete="off">
                             </div>
@@ -160,17 +163,27 @@
 
             {{-- TAB 3: AKUN & FOTO --}}
             <div class="tab-pane fade" id="akun">
-                <div class="card border-0 shadow-sm rounded-0">
+                <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4">
                     <div class="card-body p-4">
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Email Utama Sistem <span class="text-danger">*</span></label>
+                                <label class="form-label small fw-bold uppercase">Email Utama Sistem (Login) <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control rounded-0 font-monospace @error('email') is-invalid @enderror" name="email" value="{{ old('email', optional($dosen->user)->email) }}" required autocomplete="off">
                                 @error('email') <div class="invalid-feedback small">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold uppercase">Ubah Kata Sandi (Opsional)</label>
-                                <input type="password" class="form-control rounded-0" name="password" placeholder="Kosongkan jika tidak ingin diubah" autocomplete="new-password">
+                                <label class="form-label small fw-bold uppercase">Email Institusi (Publik/Opsional)</label>
+                                <input type="email" class="form-control rounded-0 font-monospace @error('email_institusi') is-invalid @enderror" name="email_institusi" value="{{ old('email_institusi', $dosen->email_institusi) }}" autocomplete="off">
+                                @error('email_institusi') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Kata Sandi Baru (Opsional)</label>
+                                <input type="password" class="form-control rounded-0 font-monospace @error('password') is-invalid @enderror" name="password" placeholder="Kosongkan jika tidak ingin diubah" autocomplete="new-password">
+                                @error('password') <div class="invalid-feedback small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold uppercase">Konfirmasi Kata Sandi Baru</label>
+                                <input type="password" class="form-control rounded-0 font-monospace" name="password_confirmation" placeholder="Ulangi kata sandi baru" autocomplete="new-password">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase">Pas Foto Profil</label>
@@ -195,7 +208,10 @@
         </div>
 
         <div class="mt-4 mb-5 text-end">
-            <button type="submit" class="btn btn-primary px-5 rounded-0 fw-bold">PERBARUI DATA DOSEN</button>
+            <a href="{{ route('admin.dosen.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 py-2 uppercase fw-bold small me-2">Batal</a>
+            <button type="submit" class="btn btn-sm btn-primary px-5 py-2 rounded-0 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-save me-1"></i> Perbarui Data Dosen
+            </button>
         </div>
     </form>
 </div>

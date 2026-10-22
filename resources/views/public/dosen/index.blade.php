@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Direktori Dosen - STT GPI Papua</title>
 
-    {{-- Favicon Integration --}}
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
-
-    {{-- Fonts Premium Integration --}}
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|raleway:700,800,900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,7 +16,7 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#f0fdfa', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 900: '#134e4a' },
                     },
                     fontFamily: {
                         sans: ['Figtree', 'sans-serif'],
@@ -30,43 +27,13 @@
         }
     </script>
     <style>
-        .glass-effect { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .glass-effect { background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="antialiased text-slate-800 flex flex-col min-h-screen bg-slate-50">
 
-    {{-- ================= NAVBAR KONSISTEN ================= --}}
-    <header class="sticky top-0 z-50 transition-all duration-300 glass-effect border-b border-gray-100 shadow-sm">
-        <nav class="container mx-auto px-6 py-3 flex justify-between items-center max-w-6xl">
-            <a href="{{ url('/') }}" class="flex items-center space-x-3 group">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo STT GPI" class="h-11 w-11 transition-transform duration-500 group-hover:rotate-6"> 
-                <div>
-                    <span class="font-heading font-extrabold text-xl text-slate-900 block leading-none tracking-tight">STT GPI PAPUA</span>
-                    <span class="text-[10px] text-brand-600 font-bold uppercase tracking-widest block mt-1">Sistem Informasi Akademik</span>
-                </div>
-            </a>
-
-            <div class="hidden md:flex items-center space-x-8">
-                <a href="{{ url('/#berita') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Berita</a>
-                <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Program Studi</a>
-                <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-600 hover:text-brand-600 transition">Dokumen</a>
-                
-                <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-6 py-2.5 font-bold text-white rounded-full shadow-md bg-slate-900 hover:bg-brand-600 border border-slate-800 transition duration-300">
-                    <span class="text-xs tracking-widest uppercase font-heading text-white">Portal Login</span>
-                </a>
-            </div>
-
-            <button id="mobile-btn" class="md:hidden text-slate-700 p-2"><i class="fa-solid fa-bars text-lg"></i></button>
-        </nav>
-        
-        <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl p-5 flex flex-col space-y-3">
-            <a href="{{ url('/#berita') }}" class="text-sm font-semibold text-slate-700">Berita</a>
-            <a href="{{ url('/#prodi') }}" class="text-sm font-semibold text-slate-700">Program Studi</a>
-            <a href="{{ url('/#dokumen') }}" class="text-sm font-semibold text-slate-700">Dokumen</a>
-            <a href="{{ route('login') }}" class="bg-slate-900 text-white text-center py-3 rounded-xl tracking-widest text-xs font-bold uppercase block shadow-md hover:bg-brand-600">Portal SIAKAD</a>
-        </div>
-    </header>
+    @include('partials.public_navbar')
 
     <main class="flex-grow">
         {{-- ================= HERO DIREKTORI ================= --}}
@@ -82,14 +49,13 @@
         {{-- ================= AREA PENCARIAN & KARTU ================= --}}
         <section class="py-12 container mx-auto px-6 max-w-6xl -mt-8 relative z-20">
             
-            {{-- Kotak Pencarian Mengambang (Diperbarui dengan Filter Prodi) --}}
             <div class="max-w-3xl mx-auto mb-12">
                 <div class="bg-white p-1.5 md:p-2 rounded-3xl md:rounded-full shadow-lg border border-gray-100">
                     <form action="{{ route('dosen.public.index') }}" method="GET" class="flex flex-col md:flex-row items-center w-full">
                         
                         <div class="flex items-center w-full md:w-1/2 md:border-r border-gray-200 py-1">
                             <span class="pl-4 md:pl-5 text-gray-400"><i class="fa-solid fa-search text-sm"></i></span>
-                            <input type="text" name="search" class="w-full px-3 py-2 text-xs md:text-sm outline-none text-slate-700 placeholder-gray-400 font-medium bg-transparent" placeholder="Pencarian nama atau spesialisasi..." value="{{ request('search') }}">
+                            <input type="text" name="search" class="w-full px-3 py-2 text-xs md:text-sm outline-none text-slate-700 placeholder-gray-400 font-medium bg-transparent" placeholder="Pencarian nama dosen..." value="{{ request('search') }}">
                         </div>
                         
                         <div class="flex items-center w-full md:w-1/3 py-1 border-t md:border-t-0 border-gray-100">
@@ -111,7 +77,6 @@
                 </div>
             </div>
 
-            {{-- Hasil Daftar Dosen --}}
             @if($dosens->isEmpty())
                 <div class="text-center py-16 bg-white rounded-2xl border border-gray-100 max-w-md mx-auto shadow-sm">
                     <i class="fa-solid fa-user-slash text-4xl text-slate-300 block mb-3"></i>
@@ -124,7 +89,6 @@
                     @foreach ($dosens as $dosen)
                         <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 border border-gray-100 p-6 flex flex-col items-center text-center group relative overflow-hidden">
                             
-                            {{-- Foto Avatar Denyut (Perbaikan Gambar/Inisial) --}}
                             <div class="relative w-28 h-28 mx-auto mb-4">
                                 <div class="absolute inset-0 bg-brand-100 rounded-full animate-pulse opacity-75 group-hover:hidden"></div>
                                 @if($dosen->foto_profil)
@@ -136,7 +100,6 @@
                                 @endif
                             </div>
 
-                            {{-- Identitas Dosen --}}
                             <h3 class="text-base font-bold text-slate-900 mb-1 group-hover:text-brand-600 transition leading-snug truncate w-full" title="{{ $dosen->nama_lengkap }}">
                                 {{ $dosen->nama_lengkap }}
                             </h3>
@@ -145,17 +108,21 @@
                             
                             <div class="w-8 h-0.5 bg-gray-100 rounded-full mb-4 group-hover:bg-brand-300 transition"></div>
 
-                            {{-- Tautan Aksi --}}
                             <div class="mt-auto w-full pt-2">
-                                <a href="{{ route('dosen.public.show', $dosen->nidn) }}" class="block w-full py-2 bg-slate-50 hover:bg-brand-600 text-slate-700 hover:text-white rounded-xl text-xs font-bold tracking-wide transition duration-200">
-                                    Lihat Profil Lengkap
-                                </a>
+                                @if($dosen->nidn)
+                                    <a href="{{ route('dosen.public.show', $dosen->nidn) }}" class="block w-full py-2 bg-slate-50 hover:bg-brand-600 text-slate-700 hover:text-white rounded-xl text-xs font-bold tracking-wide transition duration-200">
+                                        Lihat Profil Lengkap
+                                    </a>
+                                @else
+                                    <span class="block w-full py-2 bg-gray-50 text-slate-400 rounded-xl text-xs font-semibold">
+                                        Profil Terdaftar
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     @endforeach
                 </div>
 
-                {{-- Penomoran Halaman --}}
                 <div class="mt-12 flex justify-center">
                     {{ $dosens->links('pagination::tailwind') }} 
                 </div>
@@ -163,21 +130,7 @@
         </section>
     </main>
 
-    {{-- ================= FOOTER KONSISTEN ================= --}}
-    <footer class="bg-slate-950 text-white pt-10 pb-5 border-t-2 border-brand-600 mt-auto">
-        <div class="container mx-auto px-6 max-w-6xl text-center flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center space-x-2.5">
-                <img src="{{ asset('images/logo.png') }}" class="h-8 w-8 brightness-0 invert" alt="Logo">
-                <span class="font-heading font-bold text-sm tracking-wider block">STT GPI PAPUA</span>
-            </div>
-            <p class="text-[11px] text-slate-500 font-light">&copy; {{ date('Y') }} STT GPI Papua. Semua Hak Dilindungi.</p>
-        </div>
-    </footer>
+    @include('partials.public_footer')
 
-    <script>
-        document.getElementById('mobile-btn')?.addEventListener('click', function() {
-            document.getElementById('mobile-menu')?.classList.toggle('hidden');
-        });
-    </script>
 </body>
 </html>

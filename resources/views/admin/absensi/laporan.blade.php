@@ -2,100 +2,122 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    {{-- BAGIAN HEADER UTAMA --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="mb-0 text-dark fw-bold">Rekapitulasi Kehadiran Pegawai</h3>
-            <span class="text-muted small">Laporan periode absensi harian staf dan dosen</span>
+            <h3 class="mb-0 text-dark fw-bold uppercase">Rekapitulasi Kehadiran Pegawai</h3>
+            <span class="text-muted small uppercase">Monitoring & Laporan Periode Absensi Harian Staf dan Dosen</span>
         </div>
-        <a href="{{ route('admin.absensi.laporan.cetak', request()->query()) }}" target="_blank" class="btn btn-primary">
-            <i class="bi bi-printer me-2"></i>Cetak Laporan
-        </a>
+        <div>
+            <a href="{{ route('admin.absensi.laporan.cetak', request()->query()) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 px-4 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-printer-fill me-2"></i>Cetak Rekap Bulanan
+            </a>
+        </div>
     </div>
 
-    {{-- Filter Bar Formal --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-3">
+    {{-- Filter Bar Flat --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-light">
+        <div class="card-body p-4">
             <form method="GET" action="{{ route('admin.absensi.laporan.index') }}">
-                <div class="row g-3 align-items-center">
+                <div class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <label class="form-label text-muted small fw-bold mb-1">PENCARIAN PEGAWAI</label>
-                        <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Ketik nama pegawai atau dosen...">
+                        <label class="form-label text-dark small fw-bold uppercase mb-1">Pencarian Pegawai / Dosen</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white rounded-0"><i class="bi bi-search text-dark"></i></span>
+                            <input type="text" name="search" class="form-control rounded-0 font-monospace uppercase" value="{{ request('search') }}" placeholder="KETIK NAMA PEGAWAI...">
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label text-muted small fw-bold mb-1">BULAN</label>
-                        <select name="bulan" class="form-select">
+                        <label class="form-label text-dark small fw-bold uppercase mb-1">Bulan</label>
+                        <select name="bulan" class="form-select rounded-0 uppercase small fw-bold">
                             @for($i = 1; $i <= 12; $i++)
                                 <option value="{{ sprintf('%02d', $i) }}" {{ request('bulan', date('m')) == sprintf('%02d', $i) ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::create()->month($i)->translatedFormat('F') }}
+                                    {{ strtoupper(\Carbon\Carbon::create()->month($i)->translatedFormat('F')) }}
                                 </option>
                             @endfor
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label text-muted small fw-bold mb-1">TAHUN</label>
-                        <select name="tahun" class="form-select">
-                            @for($i = date('Y'); $i >= date('Y')-2; $i--)
+                        <label class="form-label text-dark small fw-bold uppercase mb-1">Tahun</label>
+                        <select name="tahun" class="form-select rounded-0 font-monospace fw-bold">
+                            @for($i = date('Y'); $i >= date('Y')-3; $i--)
                                 <option value="{{ $i }}" {{ request('tahun', date('Y')) == $i ? 'selected' : '' }}>{{ $i }}</option>
                             @endfor
                         </select>
                     </div>
-                    <div class="col-md-3 mt-4 text-end">
-                        <button type="submit" class="btn btn-dark px-4">Terapkan</button>
-                        <a href="{{ route('admin.absensi.laporan.index') }}" class="btn btn-light border">Reset</a>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary rounded-0 flex-grow-1 uppercase fw-bold small py-2 shadow-sm">
+                            Filter
+                        </button>
+                        <a href="{{ route('admin.absensi.laporan.index') }}" class="btn btn-outline-dark rounded-0 px-3 py-2 uppercase fw-bold small" title="Reset Filter">
+                            Reset
+                        </a>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- Data Table --}}
-    <div class="card border-0 shadow-sm">
+    {{-- Data Table Standar Enterprise --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
+        <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
+            Daftar Log Kehadiran Harian
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light border-bottom">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
                         <tr>
-                            <th class="text-center text-muted small" style="width: 60px;">NO</th>
-                            <th class="text-muted small">NAMA PEGAWAI / DOSEN</th>
-                            <th class="text-muted small">TANGGAL</th>
-                            <th class="text-muted small">WAKTU MASUK</th>
-                            <th class="text-muted small">WAKTU KELUAR</th>
-                            <th class="text-center text-muted small">STATUS</th>
+                            <th style="width: 6%;">NO</th>
+                            <th class="text-start" style="width: 28%;">NAMA PEGAWAI / DOSEN</th>
+                            <th style="width: 16%;">TANGGAL</th>
+                            <th style="width: 14%;">JAM MASUK</th>
+                            <th style="width: 14%;">JAM PULANG</th>
+                            <th style="width: 12%;">STATUS</th>
+                            <th style="width: 10%;">CATATAN</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="small text-dark">
                         @forelse ($laporan as $item)
                             <tr>
-                                <td class="text-center text-muted">{{ $loop->iteration + $laporan->firstItem() - 1 }}</td>
-                                <td class="fw-bold text-dark">{{ $item->user->name ?? 'N/A' }}</td>
-                                <td>{{ $item->tanggal_absensi->translatedFormat('d M Y') }}</td>
-                                <td>
+                                <td class="text-center font-monospace fw-bold text-muted">{{ $loop->iteration + $laporan->firstItem() - 1 }}</td>
+                                <td class="text-start ps-3 fw-bold text-dark uppercase">{{ $item->user->name ?? 'N/A' }}</td>
+                                <td class="text-center font-monospace">{{ $item->tanggal_absensi->translatedFormat('d M Y') }}</td>
+                                <td class="text-center font-monospace fw-bold">
                                     @if ($item->waktu_check_in)
-                                        <span class="text-dark">{{ $item->waktu_check_in->format('H:i') }}</span>
+                                        <span class="text-success">{{ $item->waktu_check_in->format('H:i:s') }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td class="text-center font-monospace fw-bold">
                                      @if ($item->waktu_check_out)
-                                        <span class="text-dark">{{ $item->waktu_check_out->format('H:i') }}</span>
+                                        <span class="text-primary">{{ $item->waktu_check_out->format('H:i:s') }}</span>
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
                                     @if($item->status_kehadiran == 'Hadir')
-                                        <span class="badge bg-success rounded-1 px-2 py-1">HADIR</span>
+                                        <span class="badge bg-success text-white rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">HADIR</span>
                                     @elseif($item->status_kehadiran == 'Izin')
-                                        <span class="badge bg-warning text-dark rounded-1 px-2 py-1">IZIN</span>
+                                        <span class="badge bg-warning text-dark rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">IZIN</span>
+                                    @elseif($item->status_kehadiran == 'Sakit')
+                                        <span class="badge bg-info text-dark rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">SAKIT</span>
                                     @else
-                                        <span class="badge bg-danger rounded-1 px-2 py-1">ALPHA</span>
+                                        <span class="badge bg-danger text-white rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">ALPHA</span>
                                     @endif
+                                </td>
+                                <td class="text-center small text-muted uppercase font-monospace" style="font-size: 10px;">
+                                    {{ $item->keterangan ?? '-' }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">Data absensi tidak ditemukan untuk periode yang dipilih.</td>
+                                <td colspan="7" class="text-center py-5 uppercase fw-bold text-muted">
+                                    <i class="bi bi-calendar-x fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                                    Data absensi tidak ditemukan untuk periode yang dipilih.
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -103,8 +125,10 @@
             </div>
         </div>
         @if($laporan->hasPages())
-            <div class="card-footer bg-white border-top py-3">
-                {{ $laporan->links() }}
+            <div class="card-footer bg-white border-top py-3 rounded-0">
+                <div class="d-flex justify-content-center">
+                    {{ $laporan->links() }}
+                </div>
             </div>
         @endif
     </div>
