@@ -3,186 +3,191 @@
 @section('content')
 <div class="container-fluid px-4">
     {{-- BAGIAN HEADER UTAMA --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mt-3 gap-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Manajemen Pembayaran</h3>
-            <span class="text-muted small uppercase">Kelola Data Tagihan & Verifikasi Status Pembayaran Sistem</span>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Manajemen Keuangan & Tagihan</h3>
+            <span class="text-muted small uppercase">Verifikasi Pembayaran SPP, Formulir PMB, & Otorisasi Dispensasi Cicilan KRS</span>
         </div>
-        <div>
-            <a href="{{ route('pembayaran.cetak', request()->query()) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 px-3 uppercase fw-bold small me-2">
-                <i class="bi bi-printer-fill me-1"></i> Cetak Laporan
-            </a>
-            <a href="{{ route('pembayaran.generate') }}" class="btn btn-sm btn-success rounded-0 px-3 uppercase fw-bold small text-white me-2 shadow-sm">
-                <i class="bi bi-lightning-charge-fill me-1"></i> Generate Massal
-            </a>
-            <a href="{{ route('pembayaran.create') }}" class="btn btn-sm btn-primary rounded-0 px-3 uppercase fw-bold small shadow-sm">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('pembayaran.create') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 py-2 uppercase fw-bold small">
                 <i class="bi bi-plus-lg me-1"></i> Tagihan Manual
+            </a>
+            <a href="{{ route('pembayaran.generate') }}" class="btn btn-sm btn-primary rounded-0 px-3 py-2 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-lightning-charge-fill me-1"></i> Generate Tagihan Massal
+            </a>
+            <a href="{{ route('pembayaran.cetak', request()->query()) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 px-3 py-2 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-printer-fill me-1"></i> Cetak Laporan
             </a>
         </div>
     </div>
 
-    {{-- === SMART FILTER SECTION FLAT === --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    {{-- FILTER BAR FLAT --}}
     <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-light">
         <div class="card-body p-4">
-            <form action="{{ route('pembayaran.index') }}" method="GET" id="filterForm">
-                <div class="row g-3">
-                    {{-- 1. Cari Nama/NIM --}}
+            <form action="{{ route('pembayaran.index') }}" method="GET">
+                <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label small fw-bold uppercase text-dark">Pencarian Teks</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white rounded-0"><i class="bi bi-search text-dark"></i></span>
-                            <input type="text" name="q" class="form-control rounded-0 font-monospace uppercase" placeholder="NAMA / NIM / REG..." value="{{ request('q') }}">
-                        </div>
+                        <label class="form-label small fw-bold uppercase text-dark mb-1">Pencarian Nama / NIM</label>
+                        <input type="text" name="q" class="form-control rounded-0 font-monospace uppercase" placeholder="KETIK NAMA / NIM..." value="{{ request('q') }}">
                     </div>
-
-                    {{-- 2. Filter Tipe User --}}
                     <div class="col-md-2">
-                        <label class="form-label small fw-bold uppercase text-dark">Tipe Entitas</label>
-                        <select name="tipe_user" class="form-select rounded-0 uppercase small fw-bold" onchange="document.getElementById('filterForm').submit()">
+                        <label class="form-label small fw-bold uppercase text-dark mb-1">Tipe Pembayar</label>
+                        <select name="tipe_user" class="form-select rounded-0 uppercase small fw-bold">
                             <option value="">-- SEMUA --</option>
-                            <option value="mahasiswa" {{ request('tipe_user') == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa Aktif</option>
+                            <option value="mahasiswa" {{ request('tipe_user') == 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                             <option value="camaba" {{ request('tipe_user') == 'camaba' ? 'selected' : '' }}>Camaba (PMB)</option>
                         </select>
                     </div>
-
-                    {{-- 3. Filter Semester --}}
                     <div class="col-md-3">
-                        <label class="form-label small fw-bold uppercase text-dark">Semester / Periode</label>
-                        <input type="text" name="semester" class="form-control rounded-0 font-monospace uppercase" placeholder="GASAL 2024 / PMB..." value="{{ request('semester') }}">
-                    </div>
-
-                    {{-- 4. Filter Status --}}
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold uppercase text-dark">Status Bayar</label>
-                        <select name="status" class="form-select rounded-0 uppercase small fw-bold" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">-- SEMUA --</option>
-                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                        <label class="form-label small fw-bold uppercase text-dark mb-1">Status Pembayaran</label>
+                        <select name="status" class="form-select rounded-0 uppercase small fw-bold">
+                            <option value="">-- SEMUA STATUS --</option>
+                            <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi Bukti</option>
                             <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
-                            <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Bukti</option>
+                            <option value="dispensasi" {{ request('status') == 'dispensasi' ? 'selected' : '' }}>Dispensasi / Cicilan KRS</option>
+                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
                         </select>
                     </div>
-
-                    {{-- 5. Tombol Filter --}}
-                    <div class="col-md-2 d-flex align-items-end">
-                        <div class="d-flex w-100 gap-1">
-                            <button type="submit" class="btn btn-primary rounded-0 flex-grow-1 uppercase fw-bold small py-2 shadow-sm">
-                                Filter
-                            </button>
-                            @if(request()->hasAny(['q', 'semester', 'status', 'tipe_user']))
-                                <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-dark rounded-0 px-3 py-2" title="Reset Filter">
-                                    <i class="bi bi-arrow-counterclockwise"></i>
-                                </a>
-                            @endif
-                        </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold uppercase text-dark mb-1">Semester / Ket.</label>
+                        <input type="text" name="semester" class="form-control rounded-0 font-monospace uppercase" placeholder="2025/2026..." value="{{ request('semester') }}">
+                    </div>
+                    <div class="col-md-2 d-flex gap-1">
+                        <button type="submit" class="btn btn-primary rounded-0 flex-grow-1 uppercase fw-bold small py-2">Filter</button>
+                        <a href="{{ route('pembayaran.index') }}" class="btn btn-outline-dark rounded-0 px-3 py-2" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- === TABEL DATA ENTERPRISE === --}}
-    <div class="card border-0 shadow-sm rounded-0 mb-5">
+    {{-- TABEL DATA TAGIHAN --}}
+    <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
         <div class="card-header bg-dark text-white rounded-0 py-3 uppercase fw-bold small">
-            Daftar Rekapitulasi Kewajiban Finansial
+            Daftar Tagihan & Transaksi Keuangan
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0">
-                    <thead class="bg-light text-dark small uppercase text-center fw-bold">
+                <table class="table table-bordered align-middle mb-0 small">
+                    <thead class="bg-light text-dark uppercase text-center fw-bold">
                         <tr>
-                            <th class="text-start ps-3" style="width: 30%;">IDENTITAS PEMBAYAR</th>
-                            <th class="text-start" style="width: 25%;">KETERANGAN / SEMESTER</th>
-                            <th style="width: 15%;">JUMLAH TAGIHAN</th>
-                            <th style="width: 15%;">STATUS</th>
-                            <th style="width: 15%;">AKSI</th>
+                            <th style="width: 5%;">NO</th>
+                            <th class="text-start" style="width: 22%;">IDENTITAS PEMBAYAR</th>
+                            <th class="text-start" style="width: 20%;">RINCIAN TAGIHAN</th>
+                            <th style="width: 13%;">NOMINAL</th>
+                            <th style="width: 10%;">BUKTI BAYAR</th>
+                            <th style="width: 13%;">STATUS</th>
+                            <th style="width: 17%;">AKSI VERIFIKASI</th>
                         </tr>
                     </thead>
-                    <tbody class="small text-dark">
-                    @forelse ($pembayarans as $pembayaran)
-                        <tr>
-                            <td class="text-start ps-3">
-                                @if($pembayaran->mahasiswa)
-                                    <div class="uppercase fw-bold text-dark">{{ $pembayaran->mahasiswa->nama_lengkap }}</div>
-                                    <span class="text-muted font-monospace" style="font-size: 11px;">NIM: {{ $pembayaran->mahasiswa->nim }}</span>
-                                @elseif($pembayaran->user)
-                                    <div class="uppercase fw-bold text-dark">{{ $pembayaran->user->name }}</div>
-                                    <span class="badge bg-info text-dark rounded-0 font-monospace" style="font-size: 9px;">CAMABA / PMB</span>
-                                @else
-                                    <span class="text-muted font-monospace uppercase">USER TERHAPUS</span>
-                                @endif
-                            </td>
-                            <td class="text-start">
-                                <div class="font-monospace fw-bold text-dark uppercase">{{ $pembayaran->semester }}</div>
-                                <span class="text-muted uppercase" style="font-size: 11px;">
-                                    {{ $pembayaran->keterangan ?? ucwords(str_replace('_', ' ', $pembayaran->jenis_pembayaran)) }}
-                                </span>
-                            </td>
-                            <td class="text-center font-monospace fw-bold text-primary">
-                                Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}
-                            </td>
-                            <td class="text-center">
-                                @if($pembayaran->status == 'lunas')
-                                    <span class="badge bg-success text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">LUNAS</span>
-                                @elseif($pembayaran->status == 'menunggu_konfirmasi')
-                                    <span class="badge bg-warning text-dark rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">CEK BUKTI</span>
-                                @else
-                                    <span class="badge bg-danger text-white rounded-0 uppercase fw-bold font-monospace" style="font-size: 10px;">BELUM LUNAS</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <div class="btn-group rounded-0" role="group">
-                                    @if($pembayaran->bukti_bayar)
-                                        <a href="{{ Storage::url($pembayaran->bukti_bayar) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-0 py-1 px-2" title="Lihat Bukti Transfer">
-                                            <i class="bi bi-image"></i>
+                    <tbody>
+                        @forelse($pembayarans as $index => $p)
+                            <tr>
+                                <td class="text-center font-monospace fw-bold text-muted">{{ $pembayarans->firstItem() + $index }}</td>
+                                <td class="ps-3">
+                                    @if($p->mahasiswa)
+                                        <div class="fw-bold text-dark uppercase">{{ $p->mahasiswa->nama_lengkap }}</div>
+                                        <span class="font-monospace text-primary fw-bold" style="font-size: 11px;">NIM: {{ $p->mahasiswa->nim }}</span>
+                                    @elseif($p->user)
+                                        <div class="fw-bold text-dark uppercase">{{ $p->user->name }}</div>
+                                        <span class="badge bg-secondary rounded-0 font-monospace" style="font-size: 9px;">CAMABA / PMB</span>
+                                    @else
+                                        <span class="text-muted fst-italic">Akun Terhapus</span>
+                                    @endif
+                                </td>
+                                <td class="ps-3">
+                                    <span class="fw-bold text-dark font-monospace d-block">{{ $p->semester }}</span>
+                                    <span class="text-muted uppercase" style="font-size: 11px;">{{ $p->keterangan ?? strtoupper(str_replace('_', ' ', $p->jenis_pembayaran)) }}</span>
+                                </td>
+                                <td class="text-end pe-3 font-monospace fw-bold text-dark">
+                                    Rp {{ number_format($p->jumlah, 0, ',', '.') }}
+                                </td>
+                                <td class="text-center">
+                                    @if($p->bukti_bayar)
+                                        <a href="{{ asset('storage/' . $p->bukti_bayar) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-0 py-0 px-2 font-monospace fw-bold" style="font-size: 10px;">
+                                            <i class="bi bi-image me-1"></i>Lihat Bukti
                                         </a>
+                                    @else
+                                        <span class="text-muted font-monospace" style="font-size: 10px;">BELUM ADA</span>
                                     @endif
-
-                                    <a href="{{ route('pembayaran.edit', $pembayaran->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2" title="Edit Tagihan">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-
-                                    @if($pembayaran->status != 'lunas')
-                                    <form action="{{ route('pembayaran.lunas', $pembayaran->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Verifikasi pembayaran ini? Status akan berubah secara permanen menjadi LUNAS.');">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-0 py-1 px-2" title="Verifikasi Lunas">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                    </form>
+                                </td>
+                                <td class="text-center">
+                                    @if($p->status == 'lunas')
+                                        <span class="badge bg-success text-white rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">LUNAS</span>
+                                        @if($p->tanggal_bayar)
+                                            <div class="text-muted font-monospace mt-1" style="font-size: 9px;">{{ \Carbon\Carbon::parse($p->tanggal_bayar)->format('d/m/Y') }}</div>
+                                        @endif
+                                    @elseif($p->status == 'dispensasi')
+                                        <span class="badge bg-info text-dark border border-dark rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">DISPENSASI KRS</span>
+                                    @elseif($p->status == 'menunggu_konfirmasi')
+                                        <span class="badge bg-warning text-dark rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">CEK BUKTI</span>
+                                    @else
+                                        <span class="badge bg-danger text-white rounded-0 font-monospace uppercase px-2 py-1" style="font-size: 10px;">BELUM LUNAS</span>
                                     @endif
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                        @if($p->status != 'lunas')
+                                            <form action="{{ route('pembayaran.lunas', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Verifikasi tagihan ini sebagai LUNAS?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-success rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Tandai Lunas">
+                                                    <i class="bi bi-check-lg"></i> Lunas
+                                                </button>
+                                            </form>
+                                        @endif
 
-                                    <form action="{{ route('pembayaran.destroy', $pembayaran->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2" onclick="return confirm('Yakin ingin menghapus tagihan ini secara permanen?')" title="Hapus Tagihan">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-5 uppercase fw-bold text-muted">
-                                <i class="bi bi-receipt fs-2 d-block mb-2"></i>
-                                Data pembayaran tidak ditemukan untuk kriteria filter ini.
-                            </td>
-                        </tr>
-                    @endforelse
+                                        @if(in_array($p->status, ['belum_lunas', 'belum_bayar', 'menunggu_konfirmasi']) && $p->mahasiswa_id)
+                                            <form action="{{ route('pembayaran.dispensasi', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Berikan Dispensasi Cicilan? Mahasiswa akan diizinkan mengisi KRS semester ini.');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-info text-dark border border-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Beri Dispensasi Cicilan (Buka Kunci KRS)">
+                                                    <i class="bi bi-unlock-fill"></i> Dispensasi
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        <a href="{{ route('pembayaran.edit', $p->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2" title="Edit Tagihan">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+
+                                        <form action="{{ route('pembayaran.destroy', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus data tagihan ini secara permanen?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2" title="Hapus">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted uppercase fw-bold">Data tagihan tidak ditemukan.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-        
-        {{-- Paginasi Flat --}}
         @if($pembayarans->hasPages())
             <div class="card-footer bg-white border-top py-3 rounded-0">
-                <div class="d-flex justify-content-center">
-                    {{ $pembayarans->withQueryString()->links() }}
-                </div>
+                <div class="d-flex justify-content-center">{{ $pembayarans->links() }}</div>
             </div>
         @endif
     </div>
-
 </div>
 @endsection

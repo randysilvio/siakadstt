@@ -67,7 +67,6 @@ class VerumTugasController extends Controller
             abort(403, 'Akses ditolak. Anda bukan pengampu kelas ini.');
         }
 
-        // [PERBAIKAN BUG FASE 5]: Hanya ambil mahasiswa pada Tahun Akademik kelas ini yang KRS-nya Disetujui
         $mahasiswas = $verum_tuga->kelas->mataKuliah->mahasiswas()
             ->wherePivot('tahun_akademik_id', $verum_tuga->kelas->tahun_akademik_id)
             ->where('mahasiswas.status_krs', 'Disetujui')
@@ -79,6 +78,66 @@ class VerumTugasController extends Controller
                                        ->keyBy('mahasiswa_id');
 
         return view('verum.tugas_rekap', compact('verum_tuga', 'mahasiswas', 'pengumpulan'));
+    }
+
+    /**
+     * [FITUR BARU OBE]: Menyimpan nilai tugas (0-100) & catatan umpan balik dosen pada pengumpulan tugas mahasiswa.
+     */
+    public function simpanNilai(Request $request, VerumTugas $verum_tuga): RedirectResponse
+    {
+        if (!$this->isDosenPengampu(Auth::user(), $verum_tuga->kelas)) {
+            abort(403, 'Akses ditolak. Anda bukan pengampu kelas ini.');
+        }
+
+        $request->validate([
+            'nilai' => 'nullable|array',
+            'nilai.*' => 'nullable|numeric|min:0|max:100',
+            'catatan_dosen' => 'nullable|array',
+            'catatan_dosen.*' => 'nullable|string|max:500',
+        ]);
+
+        $validMahasiswaIds = $verum_tuga->kelas->mataKuliah->mahasiswas()
+            ->wherePivot('tahun_akademik_id', $verum_tuga->kelas->tahun_akademik_id)
+            ->where('mahasiswas.status_krs', 'Disetujui')
+            ->pluck('mahasiswas.id')
+            ->toArray();
+
+        DB::transaction(function () use ($request, $verum_tuga, $validMahasiswaIds) {
+            $nilaiInput = $request->input('nilai', []);
+            $catatanInput = $request->input('catatan_dosen', []);
+
+            foreach ($nilaiInput as $mhsId => $skor) {
+                if (!in_array((int) $mhsId, $validMahasiswaIds)) {
+                    continue;
+                }
+
+                $catatan = isset($catatanInput[$mhsId]) ? strip_tags(trim($catatanInput[$mhsId])) : null;
+                $skorClean = ($skor !== null && $skor !== '') ? round((float) $skor, 2) : null;
+
+                $existing = VerumPengumpulan::where('tugas_id', $verum_tuga->id)
+                    ->where('mahasiswa_id', $mhsId)
+                    ->first();
+
+                if ($existing) {
+                    $existing->update([
+                        'nilai' => $skorClean,
+                        'catatan_dosen' => $catatan,
+                    ]);
+                } elseif ($skorClean !== null || !empty($catatan)) {
+                    // Memungkinkan dosen tetap memberi nilai meskipun tugas dikumpulkan luring/di luar file upload
+                    VerumPengumpulan::create([
+                        'tugas_id' => $verum_tuga->id,
+                        'mahasiswa_id' => $mhsId,
+                        'file_path' => '',
+                        'waktu_pengumpulan' => now(),
+                        'nilai' => $skorClean,
+                        'catatan_dosen' => $catatan,
+                    ]);
+                }
+            }
+        });
+
+        return back()->with('success', 'Nilai dan umpan balik tugas mahasiswa berhasil disimpan.');
     }
 
     public function storePengumpulan(Request $request, VerumTugas $verum_tuga): RedirectResponse
@@ -111,7 +170,6 @@ class VerumTugasController extends Controller
             'file_jawaban.max' => 'Ukuran file maksimal adalah 10MB.'
         ]);
 
-        // Hapus file jawaban lama jika mahasiswa mengunggah ulang sebelum tenggat waktu
         $existing = VerumPengumpulan::where('tugas_id', $verum_tuga->id)
             ->where('mahasiswa_id', $mahasiswa->id)
             ->first();

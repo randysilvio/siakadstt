@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Pembayaran;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,25 +15,16 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class PembayaranController extends Controller
 {
-    /**
-     * KONSTRUKTOR: Kunci Akses
-     * HANYA role 'keuangan' yang boleh akses Controller ini,
-     * KECUALI method 'riwayat' dan 'uploadBuktiMahasiswa' yang diizinkan untuk 'mahasiswa'.
-     */
     public function __construct()
     {
         $this->middleware('role:keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
     }
 
-    /**
-     * Menampilkan daftar tagihan dengan Smart Filter.
-     */
     public function index(Request $request): View
     {
         $query = Pembayaran::with(['mahasiswa', 'user'])
                     ->orderBy('created_at', 'desc');
 
-        // 1. Filter Tipe User
         if ($request->filled('tipe_user')) {
             if ($request->tipe_user == 'mahasiswa') {
                 $query->whereNotNull('mahasiswa_id');
@@ -43,7 +33,6 @@ class PembayaranController extends Controller
             }
         }
 
-        // 2. Pencarian Cerdas
         if ($request->filled('q')) {
             $q = $request->input('q');
             $query->where(function ($sub) use ($q) {
@@ -57,7 +46,6 @@ class PembayaranController extends Controller
             });
         }
 
-        // 3. Filter Status (Mendukung kompatibilitas data lama 'belum_bayar')
         if ($request->filled('status')) {
             if ($request->status === 'belum_lunas') {
                 $query->whereIn('status', ['belum_lunas', 'belum_bayar']);
@@ -66,7 +54,6 @@ class PembayaranController extends Controller
             }
         }
 
-        // 4. Filter Semester
         if ($request->filled('semester')) {
             $query->where(function ($sub) use ($request) {
                 $sub->where('semester', 'like', '%' . $request->semester . '%')
@@ -80,12 +67,8 @@ class PembayaranController extends Controller
         return view('pembayaran.index', compact('pembayarans'));
     }
 
-    /**
-     * Form buat tagihan manual.
-     */
     public function create(): View
     {
-        // [PERBAIKAN BUG KRITIS FASE 4]: Menggunakan kolom 'status_mahasiswa' (bukan 'status')
         $mahasiswas = Mahasiswa::with('programStudi')
                         ->where('status_mahasiswa', 'Aktif')
                         ->orderBy('nama_lengkap')
@@ -100,17 +83,14 @@ class PembayaranController extends Controller
         return view('pembayaran.create', compact('mahasiswas', 'prodis', 'angkatans'));
     }
 
-    /**
-     * Simpan tagihan manual.
-     */
     public function store(Request $request): RedirectResponse
     {
         $validatedData = $request->validate([
-            'mahasiswa_id' => 'required|exists:mahasiswas,id',
-            'jumlah' => 'required|integer|min:1',
-            'semester' => 'required|string|max:50',
-            'keterangan' => 'nullable|string',
-            'jenis_pembayaran' => 'required|string'
+            'mahasiswa_id'     => 'required|exists:mahasiswas,id',
+            'jumlah'           => 'required|integer|min:1',
+            'semester'         => 'required|string|max:50',
+            'keterangan'       => 'nullable|string',
+            'jenis_pembayaran' => 'required|string',
         ]);
 
         $validatedData['status'] = 'belum_lunas'; 
@@ -118,7 +98,6 @@ class PembayaranController extends Controller
         $mhs = Mahasiswa::findOrFail($request->mahasiswa_id);
         $validatedData['user_id'] = $mhs->user_id;
 
-        // Cek Duplikasi
         $exists = Pembayaran::where('mahasiswa_id', $request->mahasiswa_id)
                             ->where('semester', $request->semester)
                             ->where('jenis_pembayaran', $request->jenis_pembayaran)
@@ -132,40 +111,31 @@ class PembayaranController extends Controller
         return redirect()->route('pembayaran.index')->with('success', 'Tagihan berhasil dibuat.');
     }
 
-    /**
-     * Edit Tagihan.
-     */
     public function edit(Pembayaran $pembayaran): View
     {
         return view('pembayaran.edit', compact('pembayaran'));
     }
 
-    /**
-     * Update Tagihan.
-     */
     public function update(Request $request, Pembayaran $pembayaran): RedirectResponse
     {
         $request->validate([
-            'jumlah' => 'required|integer|min:0',
-            'semester' => 'required|string|max:50',
-            'status' => 'required|in:lunas,belum_lunas,menunggu_konfirmasi',
+            'jumlah'     => 'required|integer|min:0',
+            'semester'   => 'required|string|max:50',
+            'status'     => 'required|in:lunas,belum_lunas,menunggu_konfirmasi,dispensasi',
             'keterangan' => 'nullable|string',
         ]);
         
         $pembayaran->update([
-            'jumlah' => $request->jumlah,
-            'semester' => $request->semester,
-            'status' => $request->status,
-            'keterangan' => $request->keterangan,
-            'tanggal_bayar' => ($request->status == 'lunas' && !$pembayaran->tanggal_bayar) ? now() : $pembayaran->tanggal_bayar
+            'jumlah'        => $request->jumlah,
+            'semester'      => $request->semester,
+            'status'        => $request->status,
+            'keterangan'    => $request->keterangan,
+            'tanggal_bayar' => ($request->status == 'lunas' && !$pembayaran->tanggal_bayar) ? now() : $pembayaran->tanggal_bayar,
         ]);
 
         return redirect()->route('pembayaran.index')->with('success', 'Data tagihan berhasil diperbarui.');
     }
 
-    /**
-     * Halaman Generate Massal.
-     */
     public function generate(): View
     {
         $prodis = ProgramStudi::orderBy('nama_prodi')->get();
@@ -177,20 +147,16 @@ class PembayaranController extends Controller
         return view('pembayaran.generate', compact('prodis', 'angkatans'));
     }
 
-    /**
-     * Proses Generate Massal.
-     */
     public function storeGenerate(Request $request): RedirectResponse
     {
         $request->validate([
-            'semester' => 'required|string|max:50',
-            'jumlah' => 'required|integer|min:1',
+            'semester'         => 'required|string|max:50',
+            'jumlah'           => 'required|integer|min:1',
             'jenis_pembayaran' => 'required|string',
-            'prodi_id' => 'nullable|exists:program_studis,id',
-            'angkatan' => 'nullable|integer',
+            'prodi_id'         => 'nullable|exists:program_studis,id',
+            'angkatan'         => 'nullable|integer',
         ]);
 
-        // [PERBAIKAN BUG KRITIS FASE 4]: Menggunakan kolom 'status_mahasiswa' (bukan 'status')
         $query = Mahasiswa::where('status_mahasiswa', 'Aktif');
         if ($request->filled('prodi_id')) {
             $query->where('program_studi_id', $request->prodi_id);
@@ -222,13 +188,13 @@ class PembayaranController extends Controller
                 
                 if (!$exists) {
                     Pembayaran::create([
-                        'user_id' => $mhs->user_id,
-                        'mahasiswa_id' => $mhs->id,
-                        'semester' => $request->semester,
+                        'user_id'          => $mhs->user_id,
+                        'mahasiswa_id'     => $mhs->id,
+                        'semester'         => $request->semester,
                         'jenis_pembayaran' => $request->jenis_pembayaran,
-                        'jumlah' => $request->jumlah,
-                        'status' => 'belum_lunas',
-                        'keterangan' => $keteranganOtomatis,
+                        'jumlah'           => $request->jumlah,
+                        'status'           => 'belum_lunas',
+                        'keterangan'       => $keteranganOtomatis,
                     ]);
                     $count++;
                 }
@@ -243,9 +209,6 @@ class PembayaranController extends Controller
         }
     }
 
-    /**
-     * Cetak Laporan PDF.
-     */
     public function cetakLaporan(Request $request)
     {
         $query = Pembayaran::with(['mahasiswa', 'user'])->orderBy('created_at', 'desc');
@@ -285,11 +248,11 @@ class PembayaranController extends Controller
         $pembayarans = $query->get();
         
         $filterInfo = [
-            'status' => $request->status ? ucfirst(str_replace('_', ' ', $request->status)) : 'Semua Status',
-            'semester' => $request->semester ?? 'Semua Semester',
-            'tipe_user' => $request->tipe_user ? ucfirst($request->tipe_user) : 'Semua User',
+            'status'        => $request->status ? ucfirst(str_replace('_', ' ', $request->status)) : 'Semua Status',
+            'semester'      => $request->semester ?? 'Semua Semester',
+            'tipe_user'     => $request->tipe_user ? ucfirst($request->tipe_user) : 'Semua User',
             'tanggal_cetak' => now()->isoFormat('D MMMM Y (HH:mm)'),
-            'pencetak' => Auth::user()->name
+            'pencetak'      => Auth::user()->name,
         ];
 
         $pdf = Pdf::loadView('pembayaran.cetak_laporan', compact('pembayarans', 'filterInfo'));
@@ -297,21 +260,33 @@ class PembayaranController extends Controller
         return $pdf->stream('Laporan_Keuangan.pdf');
     }
 
-    /**
-     * Aksi Tandai Lunas.
-     */
     public function tandaiLunas(Pembayaran $pembayaran): RedirectResponse
     {
         $pembayaran->update([
-            'status' => 'lunas',
-            'tanggal_bayar' => $pembayaran->tanggal_bayar ?? now()
+            'status'        => 'lunas',
+            'tanggal_bayar' => $pembayaran->tanggal_bayar ?? now(),
         ]);
         return back()->with('success', 'Pembayaran berhasil diverifikasi LUNAS.');
     }
-    
+
     /**
-     * Hapus Tagihan.
+     * [FITUR BARU FASE 7]: Memberikan status Dispensasi / Cicilan agar mahasiswa diizinkan mengisi KRS.
      */
+    public function tandaiDispensasi(Pembayaran $pembayaran): RedirectResponse
+    {
+        $catatan = $pembayaran->keterangan;
+        if (!str_contains(strtolower((string) $catatan), 'dispensasi')) {
+            $catatan = trim(($catatan ? $catatan . ' | ' : '') . 'Dispensasi Cicilan KRS');
+        }
+
+        $pembayaran->update([
+            'status'     => 'dispensasi',
+            'keterangan' => $catatan,
+        ]);
+
+        return back()->with('success', 'Status tagihan diubah menjadi DISPENSASI / CICILAN. Kunci KRS mahasiswa telah dibuka.');
+    }
+    
     public function destroy(Pembayaran $pembayaran): RedirectResponse
     {
         if ($pembayaran->bukti_bayar && Storage::disk('public')->exists($pembayaran->bukti_bayar)) {
@@ -321,9 +296,6 @@ class PembayaranController extends Controller
         return back()->with('success', 'Tagihan berhasil dihapus.');
     }
 
-    /**
-     * Halaman Riwayat (KHUSUS MAHASISWA).
-     */
     public function riwayat(): View
     {
         $user = Auth::user();
@@ -331,7 +303,6 @@ class PembayaranController extends Controller
             abort(403, 'Akses ditolak.');
         }
         
-        // [PERBAIKAN FASE 4]: Grouping klausa WHERE agar aman dari kebocoran data
         $pembayarans = Pembayaran::where(function ($q) use ($user) {
                             $q->where('user_id', $user->id)
                               ->orWhere('mahasiswa_id', $user->mahasiswa->id);
@@ -342,9 +313,6 @@ class PembayaranController extends Controller
         return view('pembayaran.riwayat', compact('pembayarans'));
     }
 
-    /**
-     * [FITUR BARU FASE 4] Upload Bukti Pembayaran Tagihan oleh Mahasiswa.
-     */
     public function uploadBuktiMahasiswa(Request $request, Pembayaran $pembayaran): RedirectResponse
     {
         $user = Auth::user();
@@ -352,7 +320,6 @@ class PembayaranController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        // Pastikan tagihan ini benar-benar milik mahasiswa yang sedang login (Anti-IDOR)
         if ((int) $pembayaran->user_id !== (int) $user->id && (int) $pembayaran->mahasiswa_id !== (int) $user->mahasiswa->id) {
             abort(403, 'Anda tidak berhak mengunggah bukti untuk tagihan ini.');
         }
@@ -365,8 +332,8 @@ class PembayaranController extends Controller
             'bukti_bayar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ], [
             'bukti_bayar.required' => 'Silakan pilih file foto/screenshot bukti transfer.',
-            'bukti_bayar.image' => 'File bukti transfer harus berupa gambar (JPG/PNG).',
-            'bukti_bayar.max' => 'Ukuran file bukti transfer maksimal 2MB.',
+            'bukti_bayar.image'    => 'File bukti transfer harus berupa gambar (JPG/PNG).',
+            'bukti_bayar.max'      => 'Ukuran file bukti transfer maksimal 2MB.',
         ]);
 
         if ($request->hasFile('bukti_bayar')) {
@@ -376,8 +343,8 @@ class PembayaranController extends Controller
 
             $path = $request->file('bukti_bayar')->store('bukti-bayar-spp', 'public');
             $pembayaran->update([
-                'bukti_bayar' => $path,
-                'status' => 'menunggu_konfirmasi',
+                'bukti_bayar'   => $path,
+                'status'        => 'menunggu_konfirmasi',
                 'tanggal_bayar' => now(),
             ]);
         }

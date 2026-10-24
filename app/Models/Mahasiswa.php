@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Mahasiswa extends Model
 {
     use HasFactory;
 
-    // Semua kolom PDDikti sudah didaftarkan penuh + tanggal_lulus
     protected $fillable = [
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',
@@ -25,7 +25,6 @@ class Mahasiswa extends Model
         'penghasilan_ayah', 'nama_wali', 'pekerjaan_wali'
     ];
     
-    // Menambahkan atribut virtual
     protected $appends = ['foto_profil_url'];
 
     protected $casts = [
@@ -46,7 +45,15 @@ class Mahasiswa extends Model
     public function mataKuliahs(): BelongsToMany
     {
         return $this->belongsToMany(MataKuliah::class, 'mahasiswa_mata_kuliah')
-                    ->withPivot('nilai', 'tahun_akademik_id')
+                    ->withPivot(
+                        'nilai',
+                        'tahun_akademik_id',
+                        'nilai_kehadiran',
+                        'nilai_tugas',
+                        'nilai_uts',
+                        'nilai_uas',
+                        'nilai_akhir_angka'
+                    )
                     ->withTimestamps();
     }
 
@@ -60,9 +67,16 @@ class Mahasiswa extends Model
         return $this->belongsTo(Dosen::class, 'dosen_wali_id');
     }
 
-    /**
-     * Menggunakan asset lokal untuk privasi.
-     */
+    public function tracerStudy(): HasOne
+    {
+        return $this->hasOne(TracerStudy::class, 'mahasiswa_id');
+    }
+
+    public function getSudahIsiTracerAttribute(): bool
+    {
+        return $this->tracerStudy()->exists();
+    }
+
     public function getFotoProfilUrlAttribute()
     {
         if ($this->foto_profil) {
@@ -71,21 +85,18 @@ class Mahasiswa extends Model
         return asset('images/default-student.png');
     }
 
-    /**
-     * [PERBAIKAN FASE 1] Accessor Kompatibilitas Kolom Angkatan (untuk Export Excel & View)
-     */
     public function getAngkatanAttribute()
     {
         return $this->attributes['tahun_masuk'] ?? null;
     }
 
-    /**
-     * [PERBAIKAN FASE 1] Accessor Dinamis Gatekeeper EDOM ($mahasiswa->status_evaluasi)
-     * Mengembalikan 'belum_isi' jika ada sesi EDOM aktif dan mahasiswa belum mengevaluasi
-     * seluruh mata kuliah yang diambil pada tahun akademik sesi tersebut.
-     */
     public function getStatusEvaluasiAttribute(): string
     {
+        // Alumni (Lulus) tidak terkena kewajiban EDOM semester berjalan
+        if ($this->status_mahasiswa === 'Lulus') {
+            return 'sudah_isi';
+        }
+
         $sesiAktif = EvaluasiSesi::where('is_active', true)
             ->where('tanggal_mulai', '<=', now())
             ->where('tanggal_selesai', '>=', now())
@@ -115,9 +126,6 @@ class Mahasiswa extends Model
         return !empty($belumDievaluasi) ? 'belum_isi' : 'sudah_isi';
     }
 
-    /**
-     * Menghitung IPK (Indeks Prestasi Kumulatif) - Standar BAN-PT
-     */
     public function hitungIpk(): float
     {
         $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
@@ -153,9 +161,6 @@ class Mahasiswa extends Model
         return ($total_sks_diambil > 0) ? round($total_bobot_sks / $total_sks_diambil, 2) : 0.00;
     }
 
-    /**
-     * Menghitung Total SKS yang sudah lulus (Nilai A, B, C, D)
-     */
     public function totalSksLulus(): int
     {
         $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
@@ -184,9 +189,6 @@ class Mahasiswa extends Model
         return $total_lulus;
     }
 
-    /**
-     * Menghitung IPS (Indeks Prestasi Semester)
-     */
     public function hitungIps($tahun_akademik_id)
     {
         $krs = $this->mataKuliahs()

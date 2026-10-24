@@ -60,7 +60,11 @@ class DashboardController extends Controller
         // Dashboard Khusus ADMIN
         // =========================================================
         if ($user->hasRole('admin')) {
-            $prodiData = ProgramStudi::withCount('mahasiswas')->get();
+            // Hanya hitung mahasiswa berstatus Aktif untuk grafik populasi aktif per Prodi
+            $prodiData = ProgramStudi::withCount(['mahasiswas' => function ($q) {
+                $q->where('status_mahasiswa', 'Aktif');
+            }])->get();
+
             $dataGrafikProdi = [
                 'labels' => $prodiData->pluck('nama_prodi'),
                 'data' => $prodiData->pluck('mahasiswas_count'),
@@ -89,14 +93,20 @@ class DashboardController extends Controller
                     ->get();
             }
 
-            // 2. DATA PROGRES SEMESTER (Smart Checklist)
+            // 2. DATA PROGRES SEMESTER (HANYA MAHASISWA AKTIF - TIDAK TERPENGARUH LULUS/DO/CUTI)
             $matkulBelumDiplot = 0;
             $persenKrs = 0;
             
             if ($periodeAktif) {
-                $totalMhs = Mahasiswa::count();
-                $krsDisetujui = Mahasiswa::where('status_krs', 'Disetujui')->count();
-                $persenKrs = $totalMhs > 0 ? round(($krsDisetujui / $totalMhs) * 100) : 0;
+                $totalMhsAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
+                $krsDisetujui = Mahasiswa::where('status_mahasiswa', 'Aktif')
+                    ->where('status_krs', 'Disetujui')
+                    ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
+                        $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
+                    })
+                    ->count();
+
+                $persenKrs = $totalMhsAktif > 0 ? round(($krsDisetujui / $totalMhsAktif) * 100) : 0;
                 $matkulBelumDiplot = MataKuliah::whereNull('dosen_id')->count();
             }
 
@@ -166,7 +176,7 @@ class DashboardController extends Controller
             }
 
             return view('dashboard.admin', [
-                'totalMahasiswa' => Mahasiswa::count(),
+                'totalMahasiswa' => Mahasiswa::where('status_mahasiswa', 'Aktif')->count(),
                 'totalDosen' => Dosen::count(),
                 'totalProdi' => ProgramStudi::count(),
                 'totalMatkul' => MataKuliah::count(),
@@ -181,13 +191,13 @@ class DashboardController extends Controller
             ]);
         }
         // =========================================================
-        // Dashboard Khusus DOSEN (Delegasi Terpusat ke DosenDashboardController)
+        // Dashboard Khusus DOSEN
         // =========================================================
         elseif ($user->hasRole('dosen') || $user->isKaprodi()) {
             return app(\App\Http\Controllers\DosenDashboardController::class)->index($request);
         }
         // =========================================================
-        // Dashboard Khusus MAHASISWA
+        // Dashboard Khusus MAHASISWA / ALUMNI
         // =========================================================
         elseif ($user->hasRole('mahasiswa')) {
             $mahasiswa = $user->mahasiswa;
@@ -196,7 +206,7 @@ class DashboardController extends Controller
             }
 
             $jadwalKuliahMahasiswa = collect();
-            if ($mahasiswa->status_krs === 'Disetujui' && $periodeAktif) {
+            if ($mahasiswa->status_mahasiswa === 'Aktif' && $mahasiswa->status_krs === 'Disetujui' && $periodeAktif) {
                 $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
                 
                 $mataKuliahIds = $mahasiswa->mataKuliahs()

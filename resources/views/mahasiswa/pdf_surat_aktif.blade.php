@@ -6,21 +6,17 @@
     <style>
         body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; margin: 0; padding: 0; line-height: 1.45; }
         @page { size: A4 portrait; margin: 1.5cm; }
-        
         .title-container { text-align: center; margin: 15px 0 20px 0; }
         .title { font-weight: bold; font-size: 13pt; text-decoration: underline; text-transform: uppercase; margin-bottom: 3px; }
         .nomor-surat { font-size: 11pt; font-weight: bold; }
-
         .content { margin-top: 10px; text-align: justify; }
         .content p { margin: 10px 0; }
-        
         table.data-table { width: 92%; margin: 6px 0 12px 30px; border-collapse: collapse; }
         .data-table td { padding: 3px 0; vertical-align: top; border: none; }
         .data-table .label { width: 160px; }
-        
-        .footer-sign { width: 100%; margin-top: 30px; page-break-inside: avoid; border-collapse: collapse; }
+        .footer-sign { width: 100%; margin-top: 25px; page-break-inside: avoid; border-collapse: collapse; }
         .footer-sign td { width: 50%; text-align: center; vertical-align: bottom; border: none; }
-        .sign-space { height: 70px; }
+        .sign-space { height: 65px; }
     </style>
 </head>
 <body>
@@ -94,5 +90,8 @@
             </td>
         </tr>
     </table>
+
+    @include('partials._qr_verifikasi', ['jenisDoc' => 'SURATAKTIF', 'idEntitas' => $mahasiswa->id])
+
 </body>
 </html>

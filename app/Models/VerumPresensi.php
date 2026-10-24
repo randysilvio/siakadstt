@@ -14,12 +14,13 @@ class VerumPresensi extends Model
     protected $fillable = [
         'kelas_id',
         'judul_pertemuan',
+        'materi_aktual',
+        'metode_pembelajaran',
         'pertemuan_ke',
         'waktu_buka',
-        'waktu_tutup'
+        'waktu_tutup',
     ];
 
-    // PENTING: Casting agar field ini dianggap sebagai Carbon Date Object
     protected $casts = [
         'waktu_buka' => 'datetime',
         'waktu_tutup' => 'datetime',

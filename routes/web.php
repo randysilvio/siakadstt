@@ -52,13 +52,22 @@ use App\Http\Controllers\MutuReportController;
 use App\Http\Controllers\RektoratController;
 use App\Http\Controllers\EvaluasiController;
 use App\Http\Controllers\DosenDashboardController;
+use App\Http\Controllers\DosenTridharmaController;
+use App\Http\Controllers\TracerStudyController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\BimbinganAkademikController;
+use App\Http\Controllers\PengajuanSuratController;
+use App\Http\Controllers\VerifikasiDokumenController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 use App\Http\Controllers\NotificationController;
 
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
-Route::get('/dokumen-publik', [App\Http\Controllers\PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
+Route::get('/dokumen-publik', [PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
+
+// Rute Verifikasi Keaslian Dokumen Resmi (QR-Code Publik)
+Route::get('/verifikasi-dokumen/{token}', [VerifikasiDokumenController::class, 'verify'])->name('verifikasi.dokumen');
 
 Route::get('/pmb-register', [PmbRegisterController::class, 'showRegistrationForm'])->name('pmb.register');
 Route::post('/pmb-register', [PmbRegisterController::class, 'register'])->name('pmb.register.store');
@@ -73,6 +82,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+
+    Route::get('/global-search', [GlobalSearchController::class, 'search'])->name('global.search');
 
     Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
     Route::get('/surat-keputusan/{surat_keputusan}/download-pdf', [\App\Http\Controllers\SuratKeputusanController::class, 'download'])->name('surat-keputusan.download');
@@ -89,7 +100,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'tandaiSemuaDibaca'])->name('notifikasi.baca-semua');
 
-    Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function() {
+    // Cetak Kartu Peserta Ujian PMB (Bisa diakses Camaba maupun Admin PMB)
+    Route::get('/pmb/kartu-ujian/cetak', [PmbController::class, 'cetakKartuUjian'])->name('pmb.kartu-ujian.cetak');
+
+    Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function () {
         Route::get('/pembayaran', [PmbController::class, 'showPaymentForm'])->name('pembayaran.show');
         Route::post('/pembayaran', [PmbController::class, 'storePaymentProof'])->name('pembayaran.store');
         Route::get('/biodata', [PmbController::class, 'showBiodataForm'])->name('biodata.show');
@@ -100,9 +114,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/kalender-akademik/events', [KalenderController::class, 'getEvents'])->name('kalender.events');
 
     // =========================================================================
-    // BLOK RUTE MODUL VERUM (E-LEARNING)
+    // BLOK RUTE BIMBINGAN SKRIPSI / TUGAS AKHIR & PPL / VIKARIAT
     // =========================================================================
-    Route::prefix('verum')->name('verum.')->group(function() {
+    Route::prefix('bimbingan-akademik')->name('bimbingan.')->group(function () {
+        Route::get('/', [BimbinganAkademikController::class, 'index'])->name('index');
+        Route::post('/', [BimbinganAkademikController::class, 'store'])->name('store');
+        Route::get('/{bimbingan}', [BimbinganAkademikController::class, 'show'])->name('show');
+        Route::patch('/{bimbingan}/status', [BimbinganAkademikController::class, 'updateStatus'])->name('updateStatus');
+        Route::post('/{bimbingan}/log', [BimbinganAkademikController::class, 'storeLog'])->name('log.store');
+        Route::patch('/log/{log}/validasi', [BimbinganAkademikController::class, 'validasiLog'])->name('log.validasi');
+        Route::get('/{bimbingan}/cetak-kartu', [BimbinganAkademikController::class, 'cetakKartu'])->name('cetak');
+    });
+
+    // =========================================================================
+    // BLOK RUTE CETAK PDF SURAT MANDIRI (MAHASISWA & ADMIN)
+    // =========================================================================
+    Route::get('/layanan-surat/{pengajuanSurat}/cetak', [PengajuanSuratController::class, 'cetakPdf'])->name('surat-mandiri.cetak');
+
+    // =========================================================================
+    // BLOK RUTE MODUL VERUM (E-LEARNING) & BAP PERKULIAHAN
+    // =========================================================================
+    Route::prefix('verum')->name('verum.')->group(function () {
         Route::get('/', [VerumController::class, 'index'])->name('index');
         Route::get('/kelas/create', [VerumController::class, 'create'])->name('create')->middleware('role:dosen');
         Route::post('/kelas', [VerumController::class, 'store'])->name('store')->middleware('role:dosen');
@@ -122,25 +154,25 @@ Route::middleware('auth')->group(function () {
         Route::post('/kelas/{verum_kela}/tugas', [VerumTugasController::class, 'store'])->name('tugas.store')->middleware('role:dosen');
         Route::delete('/tugas/{verum_tuga}', [VerumTugasController::class, 'destroy'])->name('tugas.destroy')->middleware('role:dosen');
         Route::get('/tugas/{verum_tuga}/rekap', [VerumTugasController::class, 'rekap'])->name('tugas.rekap')->middleware('role:dosen');
+        Route::post('/tugas/{verum_tuga}/nilai', [VerumTugasController::class, 'simpanNilai'])->name('tugas.nilai')->middleware('role:dosen');
         Route::post('/tugas/{verum_tuga}/kumpulkan', [VerumTugasController::class, 'storePengumpulan'])->name('tugas.kumpulkan')->middleware('role:mahasiswa');
         
         Route::post('/kelas/{verum_kela}/presensi', [VerumPresensiController::class, 'store'])->name('presensi.store')->middleware('role:dosen');
+        Route::patch('/presensi/{verum_presensi}/jurnal', [VerumPresensiController::class, 'updateJurnal'])->name('presensi.updateJurnal')->middleware('role:dosen');
         Route::get('/kelas/{verum_kela}/presensi/cetak', [VerumPresensiController::class, 'cetakRekap'])->name('presensi.cetak')->middleware('role:dosen');
+        Route::get('/kelas/{verum_kela}/presensi/cetak-bap', [VerumPresensiController::class, 'cetakBap'])->name('presensi.cetakBap')->middleware('role:dosen');
         Route::post('/presensi/{verum_presensi}/hadir', [VerumPresensiController::class, 'storeKehadiran'])->name('presensi.hadir')->middleware('role:mahasiswa');
     });
 
     // =========================================================================
     // BLOK RUTE PERPUSTAKAAN (E-LIBRARY)
     // =========================================================================
-    Route::prefix('perpustakaan')->name('perpustakaan.')->group(function() {
-        Route::middleware('role:pustakawan')->group(function() {
+    Route::prefix('perpustakaan')->name('perpustakaan.')->group(function () {
+        Route::middleware('role:pustakawan')->group(function () {
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
             Route::resource('koleksi', KoleksiController::class);
-            
-            // Rute Cetak Barcode Eksemplar
             Route::get('koleksi/{koleksi}/cetak-barcode', [KoleksiController::class, 'cetakBarcode'])->name('koleksi.cetak-barcode');
             
-            // [PERBAIKAN] Sirkulasi diarahkan ke PerpustakaanController (versi barcode/eksemplar)
             Route::get('/peminjaman', [PerpustakaanController::class, 'indexPeminjaman'])->name('peminjaman.index');
             Route::get('/peminjaman/create', [PerpustakaanController::class, 'createPeminjaman'])->name('peminjaman.create');
             Route::post('/peminjaman', [PerpustakaanController::class, 'storePeminjaman'])->name('peminjaman.store');
@@ -150,7 +182,10 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-Route::middleware('role:mahasiswa')->group(function () {
+    // =========================================================================
+    // BLOK RUTE MAHASISWA & ALUMNI (TRACER STUDY & PENGAJUAN SURAT MANDIRI)
+    // =========================================================================
+    Route::middleware('role:mahasiswa')->group(function () {
         Route::middleware([CekStatusPembayaranMiddleware::class, CekPeriodeKrsMiddleware::class])->group(function () {
             Route::get('/krs', [KrsController::class, 'index'])->name('krs.index');
             Route::post('/krs', [KrsController::class, 'store'])->name('krs.store');
@@ -163,38 +198,58 @@ Route::middleware('role:mahasiswa')->group(function () {
         Route::get('/krs/cetak', [CetakController::class, 'cetakKrs'])->name('krs.cetak.final');
         Route::get('/jadwal/cetak', [CetakController::class, 'cetakJadwal'])->name('jadwal.cetak');
         Route::get('/riwayat-pembayaran', [PembayaranController::class, 'riwayat'])->name('pembayaran.riwayat');
-        // [TAMBAHAN FASE 4]: Rute Upload Bukti Pembayaran SPP/Akademik oleh Mahasiswa
         Route::post('/riwayat-pembayaran/{pembayaran}/upload-bukti', [PembayaranController::class, 'uploadBuktiMahasiswa'])->name('pembayaran.uploadBukti');
         Route::get('/evaluasi', [EvaluasiController::class, 'index'])->name('evaluasi.index');
         Route::get('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'show'])->name('evaluasi.show');
         Route::post('/evaluasi/{mataKuliah}', [EvaluasiController::class, 'store'])->name('evaluasi.store');
+
+        Route::get('/tracer-study', [TracerStudyController::class, 'index'])->name('tracer.index');
+        Route::post('/tracer-study', [TracerStudyController::class, 'store'])->name('tracer.store');
+
+        Route::get('/layanan-surat', [PengajuanSuratController::class, 'mahasiswaIndex'])->name('surat-mandiri.index');
+        Route::post('/layanan-surat', [PengajuanSuratController::class, 'store'])->name('surat-mandiri.store');
     });
 
+    // =========================================================================
+    // BLOK RUTE DOSEN, TRIDHARMA (BKD/SISTER), & TUTORSHIP
+    // =========================================================================
     Route::middleware('role:dosen')->group(function () {
-         Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
-         Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
-         Route::get('/dosen/mata-kuliah/{mataKuliah}/cetak-absensi', [DosenDashboardController::class, 'cetakAbsensi'])->name('dosen.cetak_absensi');
-         Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
-         
-         Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
-         Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
-         Route::delete('/perwalian/{mahasiswa}', [PerwalianController::class, 'destroy'])->name('perwalian.destroy');
-         Route::get('/perwalian/{mahasiswa}', [PerwalianController::class, 'show'])->name('perwalian.show');
-         Route::patch('/perwalian/{mahasiswa}/status', [PerwalianController::class, 'updateStatus'])->name('perwalian.updateStatus');
-         Route::delete('/perwalian/krs/{mahasiswa}/{mk}', [PerwalianController::class, 'destroyKrs'])->name('perwalian.krs.destroy');
+        Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
+        Route::get('/cetak/jadwal-dosen', [DosenDashboardController::class, 'cetakJadwal'])->name('dosen.cetak_jadwal');
+        Route::get('/dosen/mata-kuliah/{mataKuliah}/cetak-absensi', [DosenDashboardController::class, 'cetakAbsensi'])->name('dosen.cetak_absensi');
+        Route::post('/dosen/mata-kuliah/{mataKuliah}/upload-rps', [DosenDashboardController::class, 'uploadRps'])->name('dosen.upload_rps');
+
+        Route::get('/dosen/tridharma', [DosenTridharmaController::class, 'index'])->name('dosen.tridharma.index');
+        Route::post('/dosen/tridharma', [DosenTridharmaController::class, 'store'])->name('dosen.tridharma.store');
+        Route::delete('/dosen/tridharma/{tridharma}', [DosenTridharmaController::class, 'destroy'])->name('dosen.tridharma.destroy');
+        Route::get('/dosen/tridharma/cetak-bkd', [DosenTridharmaController::class, 'cetakCvBkd'])->name('dosen.tridharma.cetak');
+        
+        Route::get('/perwalian', [PerwalianController::class, 'index'])->name('perwalian.index');
+        Route::post('/perwalian', [PerwalianController::class, 'store'])->name('perwalian.store');
+        Route::delete('/perwalian/{mahasiswa}', [PerwalianController::class, 'destroy'])->name('perwalian.destroy');
+        Route::get('/perwalian/{mahasiswa}', [PerwalianController::class, 'show'])->name('perwalian.show');
+        Route::patch('/perwalian/{mahasiswa}/status', [PerwalianController::class, 'updateStatus'])->name('perwalian.updateStatus');
+        Route::delete('/perwalian/krs/{mahasiswa}/{mk}', [PerwalianController::class, 'destroyKrs'])->name('perwalian.krs.destroy');
     });
 
+    // =========================================================================
+    // BLOK RUTE KAPRODI
+    // =========================================================================
     Route::middleware(KaprodiMiddleware::class)->group(function () {
         Route::get('/kaprodi/dashboard', [KaprodiDashboardController::class, 'index'])->name('kaprodi.dashboard');
         Route::get('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'show'])->name('kaprodi.krs.show');
         Route::patch('/kaprodi/validasi-krs/{mahasiswa}', [ValidasiKrsController::class, 'update'])->name('kaprodi.krs.update');
     });
 
+    // =========================================================================
+    // BLOK RUTE PENJAMINAN MUTU & REKTORAT
+    // =========================================================================
     Route::middleware('role:penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
         Route::get('/dashboard', [PenjaminanMutuController::class, 'dashboard'])->name('dashboard');
         Route::get('/laporan', [MutuReportController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
         Route::get('/laporan/cetak-beban-dosen', [MutuReportController::class, 'cetakBebanDosen'])->name('laporan.cetak-beban-dosen');
+        Route::get('/laporan/cetak-tridharma', [MutuReportController::class, 'cetakTridharmaDosen'])->name('laporan.cetak-tridharma');
         Route::post('/laporan/cetak-rps', [MutuReportController::class, 'cetakRps'])->name('laporan.cetak-rps');
         Route::post('/laporan/cetak-distribusi-nilai', [MutuReportController::class, 'cetakDistribusiNilai'])->name('laporan.cetak-distribusi-nilai');
         Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
@@ -205,17 +260,28 @@ Route::middleware('role:mahasiswa')->group(function () {
         Route::get('/cetak', [RektoratController::class, 'cetakLaporan'])->name('cetak');
     });
 
+    // =========================================================================
+    // BLOK RUTE BUKU NILAI OBE & SINKRONISASI VERUM
+    // =========================================================================
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
+    Route::post('/nilai/{mataKuliah}/sync-verum', [NilaiController::class, 'syncVerum'])->name('nilai.syncVerum');
 
-    Route::middleware(['role:keuangan'])->group(function() {
+    // =========================================================================
+    // BLOK RUTE KEUANGAN (TERMASUK DISPENSASI CICILAN KRS)
+    // =========================================================================
+    Route::middleware(['role:keuangan'])->group(function () {
         Route::get('/pembayaran/generate', [PembayaranController::class, 'generate'])->name('pembayaran.generate');
         Route::post('/pembayaran/generate', [PembayaranController::class, 'storeGenerate'])->name('pembayaran.storeGenerate');
         Route::get('/pembayaran/cetak', [PembayaranController::class, 'cetakLaporan'])->name('pembayaran.cetak');
         Route::resource('pembayaran', PembayaranController::class)->except(['show']);
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
+        Route::patch('/pembayaran/{pembayaran}/dispensasi', [PembayaranController::class, 'tandaiDispensasi'])->name('pembayaran.dispensasi');
     });
 
+    // =========================================================================
+    // BLOK RUTE ADMINISTRASI UMUM & ADMIN
+    // =========================================================================
     Route::middleware('role:admin,administrasi_umum')->prefix('administrasi')->name('administrasi.')->group(function () {
         Route::resource('surat-keputusan', \App\Http\Controllers\SuratKeputusanController::class);
         Route::post('/surat-keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])->name('surat-keputusan.duplicate');
@@ -226,6 +292,9 @@ Route::middleware('role:mahasiswa')->group(function () {
         Route::resource('pengumuman', PengumumanController::class);
         Route::resource('slideshows', SlideshowController::class);
         Route::resource('dokumen-publik', DokumenPublikController::class);
+
+        Route::get('/layanan-surat-mahasiswa', [PengajuanSuratController::class, 'adminIndex'])->name('surat-mandiri.index');
+        Route::patch('/layanan-surat-mahasiswa/{pengajuanSurat}/status', [PengajuanSuratController::class, 'updateStatus'])->name('surat-mandiri.updateStatus');
     });
 
     Route::middleware('role:admin,penjaminan_mutu')->prefix('admin')->name('admin.')->group(function () {
@@ -234,6 +303,9 @@ Route::middleware('role:mahasiswa')->group(function () {
         Route::get('/evaluasi-hasil', [EvaluasiHasilController::class, 'index'])->name('evaluasi-hasil.index');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}', [EvaluasiHasilController::class, 'show'])->name('evaluasi-hasil.show');
         Route::get('/evaluasi-hasil/{sesi}/{dosen}/cetak', [EvaluasiHasilController::class, 'cetak'])->name('evaluasi-hasil.cetak');
+
+        Route::get('/tracer-study', [TracerStudyController::class, 'adminIndex'])->name('tracer.index');
+        Route::get('/tracer-study/cetak', [TracerStudyController::class, 'cetakPdf'])->name('tracer.cetak');
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {

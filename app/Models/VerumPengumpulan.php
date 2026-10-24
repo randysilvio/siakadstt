@@ -16,12 +16,13 @@ class VerumPengumpulan extends Model
         'mahasiswa_id', 
         'file_path', 
         'waktu_pengumpulan', 
-        'nilai'
+        'nilai',
+        'catatan_dosen',
     ];
 
-    // [TAMBAHAN] Beritahu Laravel bahwa ini adalah kolom Date/Time
     protected $casts = [
         'waktu_pengumpulan' => 'datetime',
+        'nilai' => 'float',
     ];
 
     public function tugas() 

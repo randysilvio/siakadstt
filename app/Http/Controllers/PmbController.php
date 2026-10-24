@@ -8,6 +8,7 @@ use App\Models\PmbDocument;
 use App\Models\PmbPeriod;
 use App\Models\Pembayaran;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -109,7 +110,7 @@ class PmbController extends Controller
     }
 
     // ====================================================================
-    // FUNGSI UNTUK CAMABA (FRONTEND)
+    // FUNGSI UNTUK CAMABA (FRONTEND) & CETAK KARTU UJIAN
     // ====================================================================
 
     public function showPaymentForm()
@@ -178,13 +179,11 @@ class PmbController extends Controller
             abort(403, 'Data pendaftar tidak ditemukan.');
         }
 
-        // [PERBAIKAN KEAMANAN FASE 4]: Cek wajib lunas formulir PMB sebelum izinkan simpan biodata
         $lunas = $user->pembayarans()->where('jenis_pembayaran', 'formulir_pmb')->where('status', 'lunas')->exists();
         if (!$lunas) {
             return redirect()->route('dashboard')->with('error', 'Akses ditolak. Pembayaran formulir PMB Anda belum diverifikasi lunas.');
         }
 
-        // [PERBAIKAN KEAMANAN FASE 4]: Kunci perubahan biodata jika sudah lulus / sudah dimigrasikan
         if ($camaba->is_migrated || in_array($camaba->status_pendaftaran, ['lulus', 'tidak_lulus'])) {
             return redirect()->route('dashboard')->with('error', 'Biodata telah dikunci karena proses seleksi Anda sudah selesai.');
         }
@@ -228,11 +227,55 @@ class PmbController extends Controller
             $this->handleUpload($request, 'file_pas_foto', 'Pas Foto', $camaba);
 
             DB::commit();
-            return redirect()->route('dashboard')->with('success', 'Biodata berhasil disimpan! Data Anda sedang diverifikasi oleh Panitia PMB.');
+            return redirect()->route('dashboard')->with('success', 'Biodata berhasil disimpan! Anda kini dapat mencetak Kartu Peserta Ujian PMB.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Terjadi kesalahan saat menyimpan biodata. Silakan coba lagi.')->withInput();
         }
+    }
+
+    /**
+     * [FITUR BARU FASE 8]: Cetak Kartu Tanda Peserta Ujian Seleksi PMB Berfoto (PDF).
+     */
+    public function cetakKartuUjian(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->hasRole('admin') && $request->filled('camaba_id')) {
+            $camaba = Camaba::with(['user', 'prodi1', 'prodi2', 'period', 'documents'])->findOrFail($request->camaba_id);
+        } elseif ($user->camaba) {
+            $camaba = $user->camaba->load(['user', 'prodi1', 'prodi2', 'period', 'documents']);
+        } else {
+            abort(403, 'Data kandidat PMB tidak ditemukan.');
+        }
+
+        $lunas = Pembayaran::where('user_id', $camaba->user_id)
+            ->where('jenis_pembayaran', 'formulir_pmb')
+            ->where('status', 'lunas')
+            ->exists();
+
+        if (!$lunas) {
+            return redirect()->route('dashboard')->with('error', 'Anda wajib menyelesaikan pembayaran formulir terlebih dahulu sebelum mencetak Kartu Peserta Ujian.');
+        }
+
+        if (!$camaba->tempat_lahir || !$camaba->pilihan_prodi_1_id) {
+            return redirect()->route('pmb.biodata.show')->with('error', 'Silakan lengkapi formulir biodata terlebih dahulu sebelum mencetak Kartu Peserta Ujian.');
+        }
+
+        $pasFotoDoc = $camaba->documents->where('jenis_dokumen', 'Pas Foto')->first();
+        $pasFotoBase64 = null;
+        if ($pasFotoDoc && $pasFotoDoc->path_file) {
+            $fullPath = storage_path('app/public/' . $pasFotoDoc->path_file);
+            if (file_exists($fullPath)) {
+                $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpeg';
+                $pasFotoBase64 = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($fullPath));
+            }
+        }
+
+        $pdf = Pdf::loadView('pmb.pdf_kartu_ujian', compact('camaba', 'pasFotoBase64'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Kartu_Peserta_Ujian_PMB_' . $camaba->no_pendaftaran . '.pdf');
     }
 
     private function handleUpload($request, $inputName, $jenisDokumen, $camaba)

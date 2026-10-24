@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $dosen->nama_lengkap }} - Profil Tenaga Pendidik</title>
+    <title>{{ $dosen->nama_lengkap }} - Profil Tenaga Pendidik & Riset</title>
 
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -93,7 +93,7 @@
                     </div>
                 </div>
 
-                {{-- Kanvas Informasi Kanan --}}
+                {{-- Kanvas Informasi Kanan (Portofolio Tridharma) --}}
                 <div class="w-full md:w-2/3 p-8 md:p-10 flex flex-col justify-between">
                     <div>
                         <div class="mb-8">
@@ -102,7 +102,7 @@
                         </div>
 
                         @if($dosen->bidang_keahlian)
-                            <div class="mb-8 border-t border-gray-50 pt-6">
+                            <div class="mb-8 border-t border-gray-100 pt-6">
                                 <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">Spesialisasi Riset & Kajian</span>
                                 <div class="flex flex-wrap gap-2">
                                     @foreach(explode(',', $dosen->bidang_keahlian) as $keahlian)
@@ -114,8 +114,57 @@
                             </div>
                         @endif
 
+                        {{-- Penelitian & Publikasi Ilmiah --}}
+                        @if($dosen->penelitians && $dosen->penelitians->isNotEmpty())
+                            <div class="mb-8 border-t border-gray-100 pt-6">
+                                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">
+                                    <i class="fa-solid fa-book-open mr-1"></i> Publikasi Ilmiah & Penelitian Terpilih
+                                </span>
+                                <div class="space-y-3">
+                                    @foreach($dosen->penelitians as $pub)
+                                        <div class="p-3.5 rounded-xl bg-slate-50 border border-gray-100 hover:border-brand-200 transition">
+                                            <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 bg-brand-100 text-brand-700 rounded">{{ $pub->kategori }}</span>
+                                                <span class="text-[11px] font-mono font-bold text-slate-400">{{ $pub->tahun }}</span>
+                                            </div>
+                                            <h4 class="text-xs md:text-sm font-bold text-slate-800 leading-snug">{{ $pub->judul }}</h4>
+                                            <p class="text-[11px] text-slate-500 mt-1">
+                                                {{ $pub->nama_jurnal_penerbit_lokasi ?? 'STT GPI Papua' }}
+                                                @if($pub->nomor_identitas) | <span class="font-mono">{{ $pub->nomor_identitas }}</span> @endif
+                                            </p>
+                                            @if($pub->tautan_eksternal)
+                                                <a href="{{ $pub->tautan_eksternal }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-[11px] font-bold text-brand-600 hover:text-brand-800 mt-1.5">
+                                                    Buka Publikasi <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px]"></i>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Pengabdian kepada Masyarakat (PkM) --}}
+                        @if($dosen->pengabdians && $dosen->pengabdians->isNotEmpty())
+                            <div class="mb-8 border-t border-gray-100 pt-6">
+                                <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">
+                                    <i class="fa-solid fa-hands-holding-circle mr-1"></i> Pengabdian Masyarakat & Pelayanan Gerejawi
+                                </span>
+                                <ul class="space-y-2">
+                                    @foreach($dosen->pengabdians as $pkm)
+                                        <li class="p-3 rounded-xl bg-slate-50 border border-gray-100 text-xs flex justify-between items-center gap-3">
+                                            <div>
+                                                <span class="font-bold text-slate-800 block">{{ $pkm->judul }}</span>
+                                                <span class="text-[11px] text-slate-500">{{ $pkm->nama_jurnal_penerbit_lokasi ?? $pkm->kategori }} ({{ $pkm->peran }})</span>
+                                            </div>
+                                            <span class="text-[11px] font-mono font-bold text-brand-600 bg-white px-2.5 py-1 rounded border border-gray-200">{{ $pkm->tahun }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         @if($dosen->mataKuliahs->isNotEmpty())
-                            <div class="border-t border-gray-50 pt-6">
+                            <div class="border-t border-gray-100 pt-6">
                                 <span class="text-[10px] font-bold text-brand-600 uppercase tracking-widest block mb-3">Mata Kuliah Diampu</span>
                                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                     @foreach($dosen->mataKuliahs->unique('nama_mk') as $matkul)
@@ -130,7 +179,7 @@
                     </div>
 
                     <div class="pt-6 mt-8 border-t border-gray-100 text-center md:text-left text-[11px] text-slate-400 font-light">
-                        Sinkronisasi Basis Data SIAKAD STT GPI Papua secara berkala.
+                        Sinkronisasi Basis Data Portofolio Tridharma SIAKAD STT GPI Papua.
                     </div>
                 </div>
             </div>

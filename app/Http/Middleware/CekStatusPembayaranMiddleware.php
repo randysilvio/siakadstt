@@ -11,28 +11,29 @@ class CekStatusPembayaranMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * Menolak akses KRS jika mahasiswa masih memiliki tagihan berstatus 'belum_lunas' atau 'belum_bayar'.
+     * Jika status tagihan sudah 'lunas' atau 'dispensasi' (Cicilan Resmi), akses KRS dibuka.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        /** @var \App\Models\User|null $user */
         $user = Auth::user();
 
         if ($user && $user->hasRole('mahasiswa') && $user->mahasiswa) {
-            $mahasiswa = $user->mahasiswa;
-
-            // Cek jika mahasiswa punya tagihan yang belum lunas
-            $memilikiTagihan = $mahasiswa->pembayarans()
+            $memilikiTunggakan = $user->mahasiswa->pembayarans()
                 ->whereIn('status', ['belum_lunas', 'belum_bayar'])
                 ->exists();
 
-            if ($memilikiTagihan) {
-                $pesan = 'Anda memiliki tagihan yang belum lunas. Silakan selesaikan pembayaran untuk mengisi KRS.';
+            if ($memilikiTunggakan) {
+                $pesan = 'Akses ke halaman KRS ditolak. Anda masih memiliki tagihan keuangan yang belum lunas atau belum mendapatkan persetujuan Dispensasi Cicilan dari Bagian Keuangan.';
+
                 if ($request->expectsJson() || $request->is('api/*')) {
-                    return response()->json(['status' => 'error', 'message' => $pesan], 403);
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $pesan,
+                    ], 403);
                 }
-                return redirect()->route('dashboard')->with('error', $pesan);
+
+                return redirect()->route('pembayaran.riwayat')->with('error', $pesan);
             }
         }
 

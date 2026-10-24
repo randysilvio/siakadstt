@@ -46,7 +46,7 @@
                 <tr>
                     <td class="label">NIM</td>
                     <td style="width: 38%;">: <span class="font-monospace">{{ $mahasiswa->nim }}</span></td>
-                    <td class="label">DOSEN WALI</td>
+                    <td class="label">DOSEN TUTOR</td>
                     <td>: {{ optional($mahasiswa->dosenWali)->nama_lengkap ?? '-' }}</td>
                 </tr>
                 <tr>

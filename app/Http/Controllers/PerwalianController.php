@@ -26,6 +26,7 @@ class PerwalianController extends Controller
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
         $mahasiswa_wali = Mahasiswa::where('dosen_wali_id', $dosen->id)
+                            ->where('status_mahasiswa', 'Aktif')
                             ->with(['programStudi', 'mataKuliahs'])
                             ->orderBy('nama_lengkap')
                             ->get();
@@ -45,6 +46,7 @@ class PerwalianController extends Controller
         }
 
         $query = Mahasiswa::whereNull('dosen_wali_id')
+                    ->where('status_mahasiswa', 'Aktif')
                     ->with('programStudi')
                     ->latest();
 
@@ -67,6 +69,7 @@ class PerwalianController extends Controller
         $mahasiswa_tersedia = $query->paginate(10)->withQueryString();
         $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
         $angkatans = Mahasiswa::whereNull('dosen_wali_id')
+                        ->where('status_mahasiswa', 'Aktif')
                         ->select('tahun_masuk')->distinct()->orderBy('tahun_masuk', 'desc')->pluck('tahun_masuk');
 
         return view('perwalian.index', compact('mahasiswa_wali', 'mahasiswa_tersedia', 'program_studis', 'angkatans', 'dosen'));
@@ -93,7 +96,31 @@ class PerwalianController extends Controller
         $ipk = $mahasiswa->hitungIpk();
         $sksLulus = $mahasiswa->totalSksLulus();
 
-        return view('perwalian.show', compact('mahasiswa', 'krs', 'totalSks', 'periodeAktif', 'ipk', 'sksLulus'));
+        // Navigasi Cepat Prev/Next Mahasiswa Bimbingan Tutorship
+        $bimbinganIds = Mahasiswa::where('dosen_wali_id', $dosen->id)
+            ->where('status_mahasiswa', 'Aktif')
+            ->orderBy('nama_lengkap')
+            ->pluck('id')
+            ->toArray();
+
+        $prevMahasiswaId = null;
+        $nextMahasiswaId = null;
+        $currentIndex = array_search($mahasiswa->id, $bimbinganIds);
+        if ($currentIndex !== false) {
+            $prevMahasiswaId = $bimbinganIds[$currentIndex - 1] ?? null;
+            $nextMahasiswaId = $bimbinganIds[$currentIndex + 1] ?? null;
+        }
+
+        return view('perwalian.show', compact(
+            'mahasiswa',
+            'krs',
+            'totalSks',
+            'periodeAktif',
+            'ipk',
+            'sksLulus',
+            'prevMahasiswaId',
+            'nextMahasiswaId'
+        ));
     }
 
     public function updateStatus(Request $request, $id): RedirectResponse
@@ -117,14 +144,13 @@ class PerwalianController extends Controller
         }
         $mahasiswa->save();
 
-        // Kirim notifikasi real-time ke mahasiswa jika Disetujui atau Ditolak
         if ($mahasiswa->user && in_array($request->status_krs, ['Disetujui', 'Ditolak'])) {
             $mahasiswa->user->notify(new KrsValidated($mahasiswa, $request->status_krs));
         }
 
         $pesan = $request->status_krs == 'Disetujui'
-            ? 'KRS Mahasiswa berhasil DISETUJUI dan notifikasi telah dikirim.'
-            : 'Status KRS mahasiswa berhasil diperbarui.';
+            ? 'KRS Mahasiswa ' . $mahasiswa->nama_lengkap . ' berhasil DISETUJUI oleh Dosen Tutor.'
+            : 'Status KRS mahasiswa berhasil diperbarui menjadi ' . strtoupper($request->status_krs) . '.';
 
         return redirect()->back()->with('success', $pesan);
     }
@@ -142,11 +168,12 @@ class PerwalianController extends Controller
 
         if ($request->has('mahasiswa_ids')) {
             Mahasiswa::whereIn('id', $request->mahasiswa_ids)
+                     ->where('status_mahasiswa', 'Aktif')
                      ->whereNull('dosen_wali_id')
                      ->update(['dosen_wali_id' => $dosen->id]);
         }
 
-        return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil ditambahkan ke daftar bimbingan perwalian.');
+        return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil ditambahkan ke daftar bimbingan Tutorship Anda.');
     }
 
     public function destroy(Mahasiswa $mahasiswa): RedirectResponse
@@ -157,7 +184,7 @@ class PerwalianController extends Controller
 
         if ((int) $mahasiswa->dosen_wali_id === (int) $dosen->id) {
             $mahasiswa->update(['dosen_wali_id' => null]);
-            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari perwalian.');
+            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari bimbingan Tutorship.');
         }
 
         return redirect()->route('perwalian.index')->with('error', 'Akses ditolak.');
@@ -176,6 +203,6 @@ class PerwalianController extends Controller
 
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($mk_id);
 
-        return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus (Revisi Dosen Wali).');
+        return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus (Koreksi Dosen Tutor).');
     }
 }

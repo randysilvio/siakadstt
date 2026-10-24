@@ -12,16 +12,12 @@ use Illuminate\Validation\ValidationException;
 
 class KrsController extends Controller
 {
-    /**
-     * Helper terpusat untuk menghitung IPK dan Batas Maksimal SKS.
-     */
     private function hitungBatasSks(Mahasiswa $mahasiswa): array
     {
         $ipk = $mahasiswa->hitungIpk();
 
         $max_sks = 15;
         if ($ipk == 0.00 && $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->doesntExist()) {
-            // Mahasiswa semester awal yang belum punya nilai mendapat kuota paket normal
             $max_sks = 24;
         } elseif ($ipk >= 3.00) {
             $max_sks = 24;
@@ -34,10 +30,6 @@ class KrsController extends Controller
         return ['ipk' => $ipk, 'max_sks' => $max_sks];
     }
 
-    /**
-     * Helper terpusat untuk memvalidasi aturan akademik KRS (Web & API).
-     * Mengembalikan array berisi pesan error jika ada pelanggaran, atau array kosong jika valid.
-     */
     private function validateKrsRules(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, array $mata_kuliah_ids, int $max_sks): array
     {
         if (empty($mata_kuliah_ids)) {
@@ -51,20 +43,17 @@ class KrsController extends Controller
             return ['Terdapat mata kuliah yang tidak valid di dalam pilihan Anda.'];
         }
 
-        // 1. Cek Kesesuaian Semester Ganjil/Genap
         foreach ($mk_dipilih as $mk) {
             if (!in_array((int) $mk->semester, $allowedSemesters)) {
                 return ["Mata kuliah {$mk->nama_mk} (Semester {$mk->semester}) tidak ditawarkan pada semester {$periodeAktif->semester}."];
             }
         }
 
-        // 2. Cek Batas Maksimal SKS
         $sks_diambil = $mk_dipilih->sum('sks');
         if ($sks_diambil > $max_sks) {
             return ["Total SKS yang dipilih ({$sks_diambil} SKS) melebihi batas maksimal SKS Anda ({$max_sks} SKS)."];
         }
 
-        // 3. Cek Kelulusan Mata Kuliah Prasyarat
         $mk_lulus_ids = $mahasiswa->mataKuliahs()
             ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
             ->pluck('mata_kuliahs.id')
@@ -83,7 +72,6 @@ class KrsController extends Controller
             return $error_prasyarat;
         }
 
-        // 4. Cek Jadwal Bentrok
         $jadwalTerpilih = [];
         foreach ($mk_dipilih as $mk) {
             foreach ($mk->jadwals as $jadwal) {
@@ -109,14 +97,16 @@ class KrsController extends Controller
         return [];
     }
 
-    /**
-     * Menampilkan halaman pengisian KRS (Untuk Website).
-     */
     public function index()
     {
         $mahasiswa = Auth::user()->mahasiswa;
         if (!$mahasiswa) {
             abort(403, 'Data mahasiswa tidak ditemukan.');
+        }
+
+        if ($mahasiswa->status_mahasiswa !== 'Aktif') {
+            return redirect()->route('dashboard')
+                ->with('error', 'Akses KRS Ditolak: Status akademik Anda saat ini adalah ' . strtoupper($mahasiswa->status_mahasiswa) . '. Hanya mahasiswa berstatus AKTIF yang dapat mengisi KRS.');
         }
 
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
@@ -177,6 +167,11 @@ class KrsController extends Controller
             abort(403, 'Data mahasiswa tidak ditemukan.');
         }
 
+        if ($mahasiswa->status_mahasiswa !== 'Aktif') {
+            return redirect()->route('dashboard')
+                ->with('error', 'Akses Ditolak: Status akademik Anda adalah ' . strtoupper($mahasiswa->status_mahasiswa) . '.');
+        }
+
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')->with('error', 'Akses Ditolak: Anda tidak dapat menyimpan KRS sebelum Evaluasi Dosen (EDOM) diselesaikan.');
         }
@@ -201,7 +196,6 @@ class KrsController extends Controller
             throw ValidationException::withMessages(['mata_kuliahs' => $ruleErrors]);
         }
         
-        // Mekanisme Backup & Restore Nilai
         $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
         $gradesToKeep = [];
         foreach ($existingKrs as $existingMk) {
@@ -234,8 +228,8 @@ class KrsController extends Controller
     public function destroy($id)
     {
         $mahasiswa = Auth::user()->mahasiswa;
-        if (!$mahasiswa) {
-            abort(403, 'Data mahasiswa tidak ditemukan.');
+        if (!$mahasiswa || $mahasiswa->status_mahasiswa !== 'Aktif') {
+            abort(403, 'Akses ditolak.');
         }
 
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
@@ -262,7 +256,8 @@ class KrsController extends Controller
         $user = $request->user();
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
-        $query = Mahasiswa::where('status_krs', 'Menunggu Persetujuan');
+        $query = Mahasiswa::where('status_mahasiswa', 'Aktif')
+            ->where('status_krs', 'Menunggu Persetujuan');
 
         if ($periodeAktif) {
             $query->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
@@ -270,7 +265,6 @@ class KrsController extends Controller
             });
         }
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Filter hanya mahasiswa bimbingan Dosen Wali / Prodi Kaprodi
         if (!$user->hasRole('admin')) {
             if (!$user->dosen) {
                 return response()->json(['message' => 'Akses ditolak.'], 403);
@@ -286,7 +280,6 @@ class KrsController extends Controller
             });
         }
 
-        // [PERBAIKAN BUG FASE 3]: Menggunakan 'nama_lengkap' (bukan 'name')
         $mahasiswas = $query->select('id', 'nama_lengkap', 'nim', 'status_krs')->orderBy('nama_lengkap')->get();
 
         $formattedData = $mahasiswas->map(function ($mhs) {
@@ -309,7 +302,6 @@ class KrsController extends Controller
         $request->validate(['status' => 'required|in:Setujui,Tolak']);
         $mahasiswa = Mahasiswa::findOrFail($id);
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Cegah IDOR & Self-Approval KRS
         if (!$user->hasRole('admin')) {
             if (!$user->dosen) {
                 return response()->json(['status' => 'error', 'message' => 'Akses ditolak.'], 403);
@@ -341,6 +333,10 @@ class KrsController extends Controller
         $mahasiswa = $request->user()->mahasiswa;
         if (!$mahasiswa) {
             return response()->json(['message' => 'Data mahasiswa tidak ditemukan.'], 403);
+        }
+
+        if ($mahasiswa->status_mahasiswa !== 'Aktif') {
+            return response()->json(['message' => 'Status akademik Anda adalah ' . $mahasiswa->status_mahasiswa . '. Hanya mahasiswa Aktif yang dapat mengisi KRS.'], 403);
         }
 
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
@@ -387,6 +383,10 @@ class KrsController extends Controller
             return response()->json(['message' => 'Data mahasiswa tidak ditemukan.'], 403);
         }
 
+        if ($mahasiswa->status_mahasiswa !== 'Aktif') {
+            return response()->json(['message' => 'Status akademik Anda adalah ' . $mahasiswa->status_mahasiswa . '. Hanya mahasiswa Aktif yang dapat mengisi KRS.'], 403);
+        }
+
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return response()->json(['message' => 'Silakan isi evaluasi dosen (EDOM) terlebih dahulu.'], 403);
         }
@@ -409,7 +409,6 @@ class KrsController extends Controller
         $mata_kuliah_ids = array_values(array_unique($request->input('mata_kuliahs', [])));
         $batas = $this->hitungBatasSks($mahasiswa);
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Terapkan validasi SKS, Prasyarat, dan Jadwal Bentrok di API
         $ruleErrors = $this->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks']);
         if (!empty($ruleErrors)) {
             return response()->json([

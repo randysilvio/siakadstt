@@ -5,13 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * @property-read object|null $pivot
- * @property-read \App\Models\Dosen|null $dosen
- * @property-read \App\Models\Kurikulum|null $kurikulum
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\Jadwal[] $jadwals
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\MataKuliah[] $prasyarats
- */
 class MataKuliah extends Model
 {
     use HasFactory;
@@ -33,17 +26,15 @@ class MataKuliah extends Model
         return $this->belongsTo(Kurikulum::class);
     }
 
-    // [TAMBAHAN] Helper untuk mengambil Prodi via Kurikulum
-    // Ini penting agar filter "Per Prodi" di laporan RPS berjalan lancar
     public function programStudi()
     {
         return $this->hasOneThrough(
             ProgramStudi::class,
             Kurikulum::class,
-            'id', // Foreign key on kurikulums table...
-            'id', // Foreign key on program_studis table...
-            'kurikulum_id', // Local key on mata_kuliahs table...
-            'program_studi_id' // Local key on kurikulums table...
+            'id',
+            'id',
+            'kurikulum_id',
+            'program_studi_id'
         );
     }
 
@@ -65,11 +56,18 @@ class MataKuliah extends Model
     public function mahasiswas()
     {
         return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah')
-                    ->withPivot('nilai', 'tahun_akademik_id')
+                    ->withPivot(
+                        'nilai',
+                        'tahun_akademik_id',
+                        'nilai_kehadiran',
+                        'nilai_tugas',
+                        'nilai_uts',
+                        'nilai_uas',
+                        'nilai_akhir_angka'
+                    )
                     ->withTimestamps();
     }
 
-    // --- [TAMBAHAN BARU MULTI-DOSEN / TEAM TEACHING] ---
     public function teamDosens()
     {
         return $this->belongsToMany(Dosen::class, 'dosen_mata_kuliah', 'mata_kuliah_id', 'dosen_id')

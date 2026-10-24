@@ -24,7 +24,6 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Cegah bypass EDOM melalui URL cetak KHS langsung
         if ($mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')
                 ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mencetak KHS.');
@@ -67,13 +66,18 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Cegah bypass EDOM melalui URL cetak Transkrip langsung
-        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+        // 1. Gatekeeper Alumni: Wajib isi Tracer Study sebelum cetak PDF Transkrip Nilai Akhir
+        if ($mahasiswa->status_mahasiswa === 'Lulus' && !$mahasiswa->sudah_isi_tracer) {
+            return redirect()->route('tracer.index')
+                ->with('error', 'Selamat atas kelulusan Anda! Mohon lengkapi kuesioner Tracer Study Alumni terlebih dahulu sebelum mencetak Transkrip Nilai Akhir.');
+        }
+
+        // 2. Gatekeeper Mahasiswa Aktif: Wajib isi EDOM sebelum cetak Transkrip Sementara
+        if ($mahasiswa->status_mahasiswa !== 'Lulus' && $mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')
                 ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mencetak Transkrip Nilai.');
         }
 
-        // [PERBAIKAN BUG FASE 3]: Saring hanya 1 nilai terbaik untuk mata kuliah yang diulang (konsisten dengan TranskripController)
         $semuaKrsSelesai = $mahasiswa->mataKuliahs()
                          ->wherePivotNotNull('nilai')
                          ->get();

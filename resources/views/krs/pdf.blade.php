@@ -90,7 +90,7 @@
             </td>
             <td style="width: 50%;">
                 Fakfak, {{ now()->translatedFormat('d F Y') }}<br>
-                Dosen Pembimbing Akademik (Wali),<br>
+                Dosen Tutor (Pembimbing Tutorship),<br>
                 <div class="signature-space"></div>
                 <strong style="text-transform: uppercase; text-decoration: underline;">{{ $mahasiswa->dosenWali->nama_lengkap ?? '........................................' }}</strong><br>
                 <span class="font-monospace" style="font-size: 9pt;">NIDN. {{ $mahasiswa->dosenWali->nidn ?? '-' }}</span>

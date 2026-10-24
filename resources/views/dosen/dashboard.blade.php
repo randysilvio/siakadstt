@@ -7,7 +7,7 @@
     <div class="card border-0 shadow-sm mb-4 rounded-0 bg-dark text-white border-top border-secondary border-4">
         <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div>
-                <span class="badge bg-light text-dark rounded-0 font-monospace uppercase mb-2">PORTAL TENAGA PENDIDIK & TRIDHARMA</span>
+                <span class="badge bg-light text-dark rounded-0 font-monospace uppercase mb-2">DOSEN COMMAND CENTER & TRIDHARMA</span>
                 <h3 class="fw-bold mb-1 uppercase">{{ strtoupper($dosen->nama_lengkap) }}</h3>
                 <p class="mb-0 text-white-50 font-monospace small uppercase">
                     NIDN: {{ $dosen->nidn ?? 'BELUM TERDAFTAR' }} | 
@@ -49,22 +49,38 @@
         </div>
     @endif
 
-    {{-- RINGKASAN METRIK BEBAN KERJA PENGAJARAN & PERWALIAN (STANDAR BKD) --}}
     @php
         $totalSksAmpu = $mata_kuliahs->sum('sks');
         $totalKelasAmpu = $mata_kuliahs->count();
         $totalRpsTerisi = $mata_kuliahs->whereNotNull('file_rps')->count();
+        $mkBelumRps = $totalKelasAmpu - $totalRpsTerisi;
         $persenRps = $totalKelasAmpu > 0 ? round(($totalRpsTerisi / $totalKelasAmpu) * 100) : 100;
+        $totalSkBkd = isset($ringkasanBkd['total_sks_bkd']) ? $ringkasanBkd['total_sks_bkd'] : $totalSksAmpu;
     @endphp
+
+    {{-- DOSEN COMMAND CENTER: SMART TO-DO LIST & INDIKATOR PRIORITAS KERJA --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">BEBAN PENGAJARAN</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">1. TOTAL BEBAN BKD</span>
                     <div class="d-flex align-items-baseline justify-content-between mt-1">
-                        <h3 class="fw-bold font-monospace text-dark mb-0">{{ $totalSksAmpu }} <small class="fs-6">SKS</small></h3>
-                        <span class="badge {{ ($totalSksAmpu >= 3 && $totalSksAmpu <= 16) ? 'bg-success' : 'bg-warning text-dark' }} rounded-0 font-monospace" style="font-size: 10px;">
-                            {{ $totalKelasAmpu }} MK
+                        <h3 class="fw-bold font-monospace text-dark mb-0">{{ $totalSkBkd }} <small class="fs-6">SKS</small></h3>
+                        <a href="{{ route('dosen.tridharma.index') }}" class="badge {{ ($totalSkBkd >= 12 && $totalSkBkd <= 16) ? 'bg-success' : 'bg-warning text-dark' }} rounded-0 font-monospace text-decoration-none" style="font-size: 10px;">
+                             PENGAJARAN: {{ $totalSksAmpu }} SKS
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
+                <div class="card-body p-3">
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">2. KELENGKAPAN RPS OBE</span>
+                    <div class="d-flex align-items-baseline justify-content-between mt-1">
+                        <h3 class="fw-bold font-monospace {{ $persenRps == 100 ? 'text-success' : 'text-danger' }} mb-0">{{ $persenRps }}%</h3>
+                        <span class="badge {{ $mkBelumRps == 0 ? 'bg-success' : 'bg-danger' }} rounded-0 font-monospace" style="font-size: 10px;">
+                            {{ $mkBelumRps == 0 ? 'LENGKAP' : $mkBelumRps . ' MK BELUM RPS' }}
                         </span>
                     </div>
                 </div>
@@ -73,26 +89,17 @@
         <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">KELENGKAPAN RPS</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">3. BIMBINGAN TUTORSHIP</span>
                     <div class="d-flex align-items-baseline justify-content-between mt-1">
-                        <h3 class="fw-bold font-monospace {{ $persenRps == 100 ? 'text-success' : 'text-danger' }} mb-0">{{ $persenRps }}%</h3>
-                        <span class="text-muted font-monospace small">{{ $totalRpsTerisi }}/{{ $totalKelasAmpu }} RPS</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
-                <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">MAHASISWA WALI</span>
-                    <div class="d-flex align-items-baseline justify-content-between mt-1">
-                        <h3 class="fw-bold font-monospace text-primary mb-0">{{ $jumlahMahasiswaWali }}</h3>
+                        <h3 class="fw-bold font-monospace text-primary mb-0">{{ $jumlahMahasiswaWali }} <small class="fs-6">MHS</small></h3>
                         @if(($krsWaliMenunggu ?? 0) > 0)
                             <a href="{{ route('perwalian.index') }}" class="badge bg-warning text-dark rounded-0 font-monospace text-decoration-none" style="font-size: 10px;">
                                 {{ $krsWaliMenunggu }} ANTRE KRS
                             </a>
                         @else
-                            <span class="badge bg-light text-dark border rounded-0 font-monospace" style="font-size: 10px;">TERKENDALI</span>
+                            <a href="{{ route('perwalian.index') }}" class="badge bg-light text-dark border rounded-0 font-monospace text-decoration-none" style="font-size: 10px;">
+                                TERKENDALI
+                            </a>
                         @endif
                     </div>
                 </div>
@@ -101,10 +108,12 @@
         <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PORTOFOLIO SK</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">4. PROGRES BUKU NILAI</span>
                     <div class="d-flex align-items-baseline justify-content-between mt-1">
-                        <h3 class="fw-bold font-monospace text-dark mb-0">{{ $suratKeputusans->total() }}</h3>
-                        <span class="badge bg-dark text-white rounded-0 font-monospace" style="font-size: 10px;">DOKUMEN SK</span>
+                        <h3 class="fw-bold font-monospace {{ ($persenNilaiTerisi ?? 100) == 100 ? 'text-success' : 'text-primary' }} mb-0">{{ $persenNilaiTerisi ?? 100 }}%</h3>
+                        <span class="badge {{ ($mkBelumLengkapNilai ?? 0) == 0 ? 'bg-success' : 'bg-dark' }} rounded-0 font-monospace" style="font-size: 10px;">
+                            {{ ($mkBelumLengkapNilai ?? 0) == 0 ? 'TUNTAS' : ($mkBelumLengkapNilai ?? 0) . ' KELAS BELUM' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -127,10 +136,11 @@
                             <thead class="bg-light text-dark small uppercase fw-bold text-center">
                                 <tr>
                                     <th class="text-start ps-3">IDENTITAS MATA KULIAH</th>
-                                    <th style="width: 8%;">SKS</th>
+                                    <th style="width: 7%;">SKS</th>
                                     <th style="width: 14%;">PESERTA</th>
-                                    <th style="width: 15%;">DOKUMEN RPS</th>
-                                    <th style="width: 28%;">AKSI CEPAT</th>
+                                    <th style="width: 14%;">DOKUMEN RPS</th>
+                                    <th style="width: 14%;">PROGRES NILAI</th>
+                                    <th style="width: 25%;">AKSI CEPAT</th>
                                 </tr>
                             </thead>
                             <tbody class="small">
@@ -162,6 +172,15 @@
                                                 <span class="badge bg-warning text-dark rounded-0 font-monospace py-1 px-2">BELUM ADA</span>
                                             @endif
                                         </td>
+                                        <td class="text-center font-monospace">
+                                            @if(($mk->jml_peserta_disetujui ?? 0) > 0)
+                                                <span class="badge {{ $mk->jml_sudah_dinilai == $mk->jml_peserta_disetujui ? 'bg-success' : 'bg-light text-dark border' }} rounded-0">
+                                                    {{ $mk->jml_sudah_dinilai }}/{{ $mk->jml_peserta_disetujui }} DINILAI
+                                                </span>
+                                            @else
+                                                <span class="text-muted" style="font-size: 10px;">0 PESERTA</span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">
                                             <div class="btn-group rounded-0" role="group">
                                                 <a href="{{ route('dosen.cetak_absensi', $mk->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Cetak Daftar Hadir 16 Pertemuan">
@@ -170,14 +189,14 @@
                                                 <button type="button" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" data-bs-toggle="modal" data-bs-target="#uploadRpsModal-{{ $mk->id }}" title="Unggah / Perbarui RPS">
                                                     <i class="bi bi-upload me-1"></i>RPS
                                                 </button>
-                                                <a href="{{ route('nilai.show', $mk->id) }}" class="btn btn-sm btn-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Input Nilai Mahasiswa">
+                                                <a href="{{ route('nilai.show', $mk->id) }}" class="btn btn-sm btn-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Input Buku Nilai OBE">
                                                     <i class="bi bi-pencil-square me-1"></i>Nilai
                                                 </a>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="5" class="text-center py-5 text-muted small uppercase fw-bold">Tidak terdapat penugasan pengajaran pada periode ini.</td></tr>
+                                    <tr><td colspan="6" class="text-center py-5 text-muted small uppercase fw-bold">Tidak terdapat penugasan pengajaran pada periode ini.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -208,7 +227,7 @@
                                                         <tr>
                                                             <td class="text-center font-monospace">{{ $index + 1 }}</td>
                                                             <td class="text-center font-monospace fw-bold text-primary">{{ $mhs->nim }}</td>
-                                                            <td class="fw-bold uppercase text-dark">{{ $mhs->nama_lengkap }}</td>
+                                                            <td class="fw-bold uppercase text-dark ps-3">{{ $mhs->nama_lengkap }}</td>
                                                             <td class="text-center uppercase">{{ optional($mhs->programStudi)->nama_prodi ?? '-' }}</td>
                                                             <td class="text-center">
                                                                 <span class="badge {{ $mhs->status_krs == 'Disetujui' ? 'bg-success' : 'bg-warning text-dark' }} rounded-0 font-monospace" style="font-size: 10px;">
@@ -286,7 +305,6 @@
                                         {{ $jadwal->mataKuliah->nama_mk }}
                                         <span class="d-block text-muted font-monospace" style="font-size: 10px;">{{ $jadwal->mataKuliah->kode_mk }} ({{ $jadwal->mataKuliah->sks }} SKS)</span>
                                     </td>
-                                    {{-- [PERBAIKAN]: Menggunakan kolom ruang (bukan ruangan) --}}
                                     <td class="text-center font-monospace fw-bold text-primary">{{ $jadwal->ruang ?? 'TBA' }}</td>
                                 </tr>
                             @empty
@@ -350,16 +368,24 @@
         </div>
 
         <div class="col-lg-4">
-            {{-- PORTAL MULTI-PERAN --}}
+            {{-- PORTAL MULTI-PERAN & TRIDHARMA --}}
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4">
                 <div class="card-header bg-dark text-white py-3 rounded-0">
-                    <h6 class="fw-bold mb-0 uppercase small">Aksesibilitas Tugas & Peran</h6>
+                    <h6 class="fw-bold mb-0 uppercase small">Aksesibilitas Tugas & Karir Dosen</h6>
                 </div>
                 <div class="list-group list-group-flush">
+                    <a href="{{ route('dosen.tridharma.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center bg-light">
+                        <div>
+                            <span class="fw-bold small text-primary d-block uppercase"><i class="bi bi-award-fill me-1"></i>PORTOFOLIO TRIDHARMA & BKD (SISTER)</span>
+                            <small class="text-muted uppercase" style="font-size: 11px;">Penelitian, PkM, Kalkulator BKD & KUM Jafung</small>
+                        </div>
+                        <i class="bi bi-chevron-right text-primary"></i>
+                    </a>
+
                     <a href="{{ route('perwalian.index') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="fw-bold small text-dark d-block uppercase">Bimbingan Perwalian Akademik</span>
-                            <small class="text-muted uppercase" style="font-size: 11px;">Validasi KRS & pemantauan mahasiswa wali</small>
+                            <span class="fw-bold small text-dark d-block uppercase">Bimbingan Tutorship Akademik</span>
+                            <small class="text-muted uppercase" style="font-size: 11px;">Validasi KRS & pendampingan mahasiswa Tutorship</small>
                         </div>
                         <div class="text-end">
                             <span class="badge bg-dark rounded-0 px-2 font-monospace">{{ $jumlahMahasiswaWali }} MHS</span>
@@ -369,7 +395,6 @@
                         </div>
                     </a>
                     
-                    {{-- [PERBAIKAN]: Mendukung Kaprodi implisit (isKaprodi) maupun role kaprodi --}}
                     @if(Auth::user()->isKaprodi() || Auth::user()->hasRole('kaprodi'))
                         <a href="{{ route('kaprodi.dashboard') }}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
                             <div>
@@ -426,7 +451,6 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         @forelse($pengumumans as $p)
-                            {{-- [PERBAIKAN]: Mengirim objek $p (slug) agar tidak 404 jika publik, atau membuka modal jika internal --}}
                             @if($p->target_role === 'semua')
                                 <a href="{{ route('pengumuman.public.show', $p) }}" target="_blank" class="list-group-item list-group-item-action py-3 border-bottom">
                                     <div class="d-flex justify-content-between align-items-center mb-1">

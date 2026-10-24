@@ -36,8 +36,6 @@ class DosenDashboardController extends Controller
             ->pluck('mata_kuliah_id')
             ->toArray();
         
-        // Tampilkan seluruh mata kuliah yang diampu dosen (Utama maupun Team Teaching)
-        // pada kurikulum aktif atau yang memiliki peserta di semester aktif
         $mata_kuliahs = MataKuliah::where(function ($query) use ($dosen, $pivotMkIds) {
                 $query->where('dosen_id', $dosen->id)
                       ->orWhereIn('id', $pivotMkIds);
@@ -58,6 +56,31 @@ class DosenDashboardController extends Controller
             ->orderBy('semester')
             ->orderBy('kode_mk')
             ->get();
+
+        // Hitung progres input nilai per mata kuliah untuk Dosen Command Center
+        $totalPesertaSemuaMk = 0;
+        $totalSudahDinilaiSemuaMk = 0;
+        $mkBelumLengkapNilai = 0;
+
+        foreach ($mata_kuliahs as $mk) {
+            $pesertaDisetujui = $mk->mahasiswas->where('status_krs', 'Disetujui');
+            $jmlPeserta = $pesertaDisetujui->count();
+            $jmlDinilai = $pesertaDisetujui->filter(fn($m) => !empty($m->pivot->nilai))->count();
+
+            $mk->jml_peserta_disetujui = $jmlPeserta;
+            $mk->jml_sudah_dinilai = $jmlDinilai;
+
+            $totalPesertaSemuaMk += $jmlPeserta;
+            $totalSudahDinilaiSemuaMk += $jmlDinilai;
+
+            if ($jmlPeserta > 0 && $jmlDinilai < $jmlPeserta) {
+                $mkBelumLengkapNilai++;
+            }
+        }
+
+        $persenNilaiTerisi = $totalPesertaSemuaMk > 0
+            ? round(($totalSudahDinilaiSemuaMk / $totalPesertaSemuaMk) * 100)
+            : 100;
         
         $jadwalKuliah = collect();
         if ($mata_kuliahs->isNotEmpty()) {
@@ -71,10 +94,12 @@ class DosenDashboardController extends Controller
                 });
         }
 
-        $jumlahMahasiswaWali = $dosen->mahasiswaWali()->count();
+        // Hanya hitung mahasiswa Tutorship yang berstatus Aktif
+        $jumlahMahasiswaWali = $dosen->mahasiswaWali()->where('status_mahasiswa', 'Aktif')->count();
         $krsWaliMenunggu = 0;
         if ($tahunAkademik) {
             $krsWaliMenunggu = $dosen->mahasiswaWali()
+                ->where('status_mahasiswa', 'Aktif')
                 ->where('status_krs', 'Menunggu Persetujuan')
                 ->whereHas('mataKuliahs', fn($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademik->id))
                 ->count();
@@ -97,6 +122,8 @@ class DosenDashboardController extends Controller
             ];
         }
 
+        $ringkasanBkd = method_exists($dosen, 'hitungRingkasanBkd') ? $dosen->hitungRingkasanBkd() : null;
+
         $userRoles = $user->roles->pluck('name')->toArray();
         $userRoles[] = 'semua';
         $pengumumans = Pengumuman::whereIn('target_role', $userRoles)->latest()->take(5)->get();
@@ -112,8 +139,19 @@ class DosenDashboardController extends Controller
         $suratKeputusans = $query->latest()->paginate(5)->withQueryString();
 
         return view('dosen.dashboard', compact(
-            'dosen', 'mata_kuliahs', 'jadwalKuliah', 'jumlahMahasiswaWali', 'krsWaliMenunggu',
-            'prodiYangDikepalai', 'dataKaprodi', 'pengumumans', 'suratKeputusans', 'tahunAkademik'
+            'dosen',
+            'mata_kuliahs',
+            'jadwalKuliah',
+            'jumlahMahasiswaWali',
+            'krsWaliMenunggu',
+            'prodiYangDikepalai',
+            'dataKaprodi',
+            'pengumumans',
+            'suratKeputusans',
+            'tahunAkademik',
+            'persenNilaiTerisi',
+            'mkBelumLengkapNilai',
+            'ringkasanBkd'
         ));
     }
 

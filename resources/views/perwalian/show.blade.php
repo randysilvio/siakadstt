@@ -2,15 +2,25 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    {{-- BAGIAN HEADER UTAMA --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+    {{-- BAGIAN HEADER UTAMA & NAVIGASI CEPAT ANTREAN TUTORSHIP --}}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mt-3 gap-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Detail Rencana Studi & Konseling Perwalian</h3>
-            <span class="text-muted small uppercase">Pengawasan Akademik Mahasiswa Bimbingan & Validasi KRS</span>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Detail Rencana Studi & Bimbingan Tutorship</h3>
+            <span class="text-muted small uppercase">Pengawasan Akademik Mahasiswa Bimbingan & Validasi KRS oleh Dosen Tutor</span>
         </div>
-        <div>
+        <div class="d-flex flex-wrap gap-2">
+            @if(isset($prevMahasiswaId) && $prevMahasiswaId)
+                <a href="{{ route('perwalian.show', $prevMahasiswaId) }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
+                    <i class="bi bi-chevron-left me-1"></i> Sebelumnya
+                </a>
+            @endif
+            @if(isset($nextMahasiswaId) && $nextMahasiswaId)
+                <a href="{{ route('perwalian.show', $nextMahasiswaId) }}" class="btn btn-sm btn-primary rounded-0 px-3 uppercase fw-bold small shadow-sm">
+                    Mahasiswa Berikutnya <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            @endif
             <a href="{{ route('perwalian.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
-                <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Wali
+                <i class="bi bi-arrow-left me-1"></i> Daftar Tutorship
             </a>
         </div>
     </div>
@@ -31,7 +41,7 @@
 
     @if($ipkVal > 0 && $ipkVal < 2.00)
         <div class="alert alert-danger border-start border-danger border-5 rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
-            <i class="bi bi-exclamation-octagon-fill me-2"></i> PERINGATAN DINI AKADEMIK (EARLY WARNING SYSTEM): Mahasiswa ini memiliki IPK di bawah standar minimum ({{ number_format($ipkVal, 2) }}). Mohon berikan pendampingan khusus dalam pengambilan beban SKS semester ini.
+            <i class="bi bi-exclamation-octagon-fill me-2"></i> PERINGATAN DINI TUTORSHIP (EARLY WARNING SYSTEM): Mahasiswa ini memiliki IPK di bawah standar minimum ({{ number_format($ipkVal, 2) }}). Mohon berikan pendampingan khusus dalam pengambilan beban SKS semester ini.
         </div>
     @endif
 
@@ -41,7 +51,7 @@
         <div class="col-md-7">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-                    Informasi Portofolio Akademik Mahasiswa
+                    Informasi Portofolio Akademik Mahasiswa Tutorship
                 </div>
                 <div class="card-body p-4">
                     <table class="table table-borderless small uppercase text-dark mb-0">
@@ -80,11 +90,11 @@
             </div>
         </div>
         
-        {{-- Kolom Kanan: Aksi Eksekusi Dosen --}}
+        {{-- Kolom Kanan: Aksi Eksekusi Dosen Tutor (Stay-on-Page) --}}
         <div class="col-md-5">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
                 <div class="card-header bg-dark text-white py-3 border-bottom rounded-0 uppercase fw-bold small text-center">
-                    Keputusan & Catatan Dosen Wali
+                    Keputusan & Catatan Dosen Tutor
                 </div>
                 <div class="card-body p-4 d-flex flex-column justify-content-center">
                     @if($hasKrsThisSemester)
@@ -92,8 +102,8 @@
                             @csrf @method('PATCH')
                             
                             <div class="mb-3">
-                                <label class="form-label small fw-bold uppercase text-dark mb-1">Catatan Pembimbing / Alasan Revisi (Opsional)</label>
-                                <textarea name="catatan_kaprodi" rows="2" class="form-control rounded-0 small uppercase" placeholder="TULIS ARAHAN ATAU ALASAN PENOLAKAN KRS...">{{ old('catatan_kaprodi', $mahasiswa->catatan_kaprodi) }}</textarea>
+                                <label class="form-label small fw-bold uppercase text-dark mb-1">Catatan Bimbingan Tutorship / Alasan Revisi (Opsional)</label>
+                                <textarea name="catatan_kaprodi" rows="2" class="form-control rounded-0 small uppercase" placeholder="TULIS ARAHAN TUTORSHIP ATAU ALASAN PENOLAKAN KRS...">{{ old('catatan_kaprodi', $mahasiswa->catatan_kaprodi) }}</textarea>
                             </div>
 
                             <div class="d-grid gap-2">
@@ -149,7 +159,7 @@
                         @forelse($krs as $mk)
                             <tr>
                                 <td class="text-center font-monospace fw-bold text-primary">{{ $mk->kode_mk }}</td>
-                                <td class="text-start uppercase fw-bold text-dark">{{ $mk->nama_mk }}</td>
+                                <td class="text-start uppercase fw-bold text-dark ps-3">{{ $mk->nama_mk }}</td>
                                 <td class="text-center font-monospace">{{ $mk->sks }}</td>
                                 <td class="text-center font-monospace">{{ $mk->semester }}</td>
                                 <td class="text-start ps-3 font-monospace text-muted">
@@ -162,7 +172,7 @@
                                     @endforelse
                                 </td>
                                 <td class="text-center">
-                                    <form action="{{ route('perwalian.krs.destroy', ['mahasiswa' => $mahasiswa->id, 'mk' => $mk->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Koreksi paksa: Hapus mata kuliah ini dari borang pengisian KRS mahasiswa bersangkutan?');">
+                                    <form action="{{ route('perwalian.krs.destroy', ['mahasiswa' => $mahasiswa->id, 'mk' => $mk->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Koreksi Dosen Tutor: Hapus mata kuliah ini dari borang pengisian KRS mahasiswa bersangkutan?');">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Batalkan Pengambilan">
                                             <i class="bi bi-trash me-1"></i> Batalkan MK

@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
-use App\Models\EvaluasiSesi;
-use App\Models\EvaluasiJawaban;
 
 class TranskripController extends Controller
 {
@@ -21,42 +19,22 @@ class TranskripController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // --- INTERCEPTOR: Cek Kewajiban Mengisi EDOM ---
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-                                ->where('tanggal_mulai', '<=', now())
-                                ->where('tanggal_selesai', '>=', now())
-                                ->first();
-
-        if ($sesiAktif && $mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
-            $mataKuliahWajibEdom = $mahasiswa->mataKuliahs()
-                ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
-                ->pluck('mata_kuliahs.id')
-                ->toArray();
-
-            if (!empty($mataKuliahWajibEdom)) {
-                $evaluasiSelesai = EvaluasiJawaban::where('mahasiswa_id', $mahasiswa->id)
-                    ->where('evaluasi_sesi_id', $sesiAktif->id)
-                    ->distinct()
-                    ->pluck('mata_kuliah_id')
-                    ->toArray();
-
-                $belumDievaluasi = array_diff($mataKuliahWajibEdom, $evaluasiSelesai);
-
-                if (!empty($belumDievaluasi)) {
-                    return redirect()->route('evaluasi.index')
-                        ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mengakses halaman Transkrip Nilai.');
-                }
-            }
+        // 1. GATEKEEPER KHUSUS ALUMNI (STATUS LULUS): Wajib isi Tracer Study sebelum membuka Transkrip Nilai Akhir
+        if ($mahasiswa->status_mahasiswa === 'Lulus' && !$mahasiswa->sudah_isi_tracer) {
+            return redirect()->route('tracer.index')
+                ->with('error', 'Selamat atas kelulusan Anda! Mohon lengkapi kuesioner Tracer Study Alumni terlebih dahulu sebelum mengakses dan mengunduh Transkrip Nilai Akhir.');
         }
-        // ------------------------------------------------
 
-        // [PERBAIKAN LOGIKA TRANSKRIP]: 
-        // 1. Ambil semua mata kuliah yang SUDAH dinilai.
+        // 2. GATEKEEPER MAHASISWA AKTIF: Wajib menyelesaikan EDOM semester berjalan
+        if ($mahasiswa->status_mahasiswa !== 'Lulus' && $mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')
+                ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mengakses halaman Transkrip Nilai.');
+        }
+
         $semuaKrsSelesai = $mahasiswa->mataKuliahs()
                          ->wherePivotNotNull('nilai')
                          ->get();
 
-        // 2. Filter nilai TERBAIK untuk mata kuliah yang diulang.
         $bobot = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
         $matkulTerbaik = [];
 
@@ -64,29 +42,21 @@ class TranskripController extends Controller
             $nilaiSekarang = $mk->pivot->nilai;
             $bobotSekarang = $bobot[$nilaiSekarang] ?? 0;
 
-            // Jika mata kuliah ini sudah ada di array $matkulTerbaik
             if (isset($matkulTerbaik[$mk->id])) {
                 $nilaiTersimpan = $matkulTerbaik[$mk->id]->pivot->nilai;
                 $bobotTersimpan = $bobot[$nilaiTersimpan] ?? 0;
 
-                // Timpa hanya jika bobot nilai yang baru LEBIH BESAR dari yang lama
                 if ($bobotSekarang > $bobotTersimpan) {
                     $matkulTerbaik[$mk->id] = $mk;
                 }
             } else {
-                // Jika belum ada, masukkan
                 $matkulTerbaik[$mk->id] = $mk;
             }
         }
 
-        // 3. Ubah kembali array menjadi Collection dan kelompokkan berdasarkan semester aslinya
         $krsSelesaiUnik = collect(array_values($matkulTerbaik));
         $krs_per_semester = $krsSelesaiUnik->groupBy('semester');
-
-        // Gunakan method dari model untuk menghitung IPK (Pastikan model Mahasiswa Bapak juga menggunakan rumus nilai terbaik ini untuk `hitungIpk()`)
         $ipk = $mahasiswa->hitungIpk();
-        
-        // Total SKS di Transkrip hanya menghitung SKS dari nilai yang Unik (Terbaik)
         $total_sks = $krsSelesaiUnik->sum('sks');
 
         return view('transkrip.index', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));

@@ -1,120 +1,133 @@
-{{-- HEADER PRESENSI --}}
-<div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-dark border-2 pb-3">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 border-bottom border-dark border-2 pb-3 gap-3">
     <div class="d-flex align-items-center">
         <div class="bg-dark text-white rounded-0 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-            <i class="bi bi-calendar-check-fill fs-5"></i>
+            <i class="bi bi-person-check-fill fs-5"></i>
         </div>
         <div>
-            <h5 class="mb-0 fw-bold text-dark uppercase">Presensi Kehadiran Mahasiswa</h5>
-            <span class="text-muted small uppercase font-monospace">
-                WAKTU SERVER AKTIF: <strong class="text-dark">{{ now()->format('H:i') }}</strong> WIT
-            </span>
+            <h5 class="mb-0 fw-bold text-dark uppercase">Presensi & Jurnal Berita Acara Perkuliahan (BAP)</h5>
+            <span class="text-muted small uppercase font-monospace">Pencatatan Kehadiran Real-Time & Realisasi Materi RPS Harian</span>
         </div>
     </div>
     
-    {{-- Eksekusi Buka Presensi Dosen & Cetak Rekap --}}
     @if(Auth::user()->hasRole('dosen'))
-        <div class="d-flex gap-2">
-            <a href="{{ route('verum.presensi.cetak', $verum_kela->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small py-2 border-2">
-                <i class="bi bi-printer-fill me-1 align-middle"></i> Cetak Rekap
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('verum.presensi.cetakBap', $verum_kela->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-3 py-2 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-journal-text me-1"></i> Cetak BAP (Jurnal)
             </a>
-            
-            <button class="btn btn-sm btn-dark rounded-0 px-4 uppercase fw-bold small shadow-sm py-2" data-bs-toggle="modal" data-bs-target="#bukaPresensiModal">
-                <i class="bi bi-qr-code-scan me-2 text-white align-middle"></i> Buka Sesi
+            <a href="{{ route('verum.presensi.cetak', $verum_kela->id) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 px-3 py-2 uppercase fw-bold small shadow-sm">
+                <i class="bi bi-printer-fill me-1"></i> Cetak Matriks Absen
+            </a>
+            <button class="btn btn-sm btn-dark rounded-0 px-4 py-2 uppercase fw-bold small shadow-sm" data-bs-toggle="modal" data-bs-target="#bukaPresensiModal">
+                <i class="bi bi-plus-lg me-1 text-white"></i> Buka Sesi & BAP
             </button>
         </div>
     @endif
 </div>
 
-{{-- NOTIFIKASI STATUS --}}
-@if(session('error'))
-    <div class="alert alert-danger border rounded-0 p-3 mb-4 font-monospace small uppercase shadow-sm">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
-    </div>
-@endif
-@if(session('success'))
-    <div class="alert alert-success border rounded-0 p-3 mb-4 font-monospace small uppercase shadow-sm">
-        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-    </div>
-@endif
-
-{{-- DAFTAR SESI PERTEMUAN FLAT --}}
 @if($verum_kela->presensi->isEmpty())
     <div class="text-center py-5 bg-light border border-dark border-opacity-25 rounded-0 mb-5">
         <i class="bi bi-calendar-x fs-2 d-block mb-2 text-dark opacity-25"></i>
-        <p class="text-muted small uppercase fw-bold mb-0">Belum ada pencatatan jadwal pertemuan yang didaftarkan pada kelas ini.</p>
+        <p class="text-muted small uppercase fw-bold mb-0">Belum ada sesi presensi atau jurnal perkuliahan yang dibuka pada kelas ini.</p>
     </div>
 @else
-    <div class="d-grid gap-2 mb-5">
+    <div class="row g-3 mb-5">
         @foreach($verum_kela->presensi->sortByDesc('pertemuan_ke') as $sesi)
             @php
-                $sekarang = now();
-                $isBuka = $sekarang >= $sesi->waktu_buka;
-                $isTutup = $sesi->waktu_tutup && $sekarang > $sesi->waktu_tutup;
-                $sesiAktif = $isBuka && !$isTutup;
-
-                $sudahAbsen = false;
-                if(Auth::user()->hasRole('mahasiswa') && Auth::user()->mahasiswa) {
-                    $sudahAbsen = $sesi->kehadiran->where('mahasiswa_id', Auth::user()->mahasiswa->id)->isNotEmpty();
+                $isOpen = now()->between($sesi->waktu_buka, $sesi->waktu_tutup);
+                $sudahHadir = false;
+                if (Auth::user()->hasRole('mahasiswa') && Auth::user()->mahasiswa) {
+                    $sudahHadir = $sesi->kehadiran->where('mahasiswa_id', Auth::user()->mahasiswa->id)->isNotEmpty();
                 }
             @endphp
-            
-            {{-- Blok Baris Pertemuan Bersudut Siku --}}
-            <div class="card border border-dark border-opacity-25 rounded-0 shadow-none {{ $sesiAktif ? 'border-start border-success border-5 bg-success bg-opacity-10' : 'bg-white' }}">
-                <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                    <div class="mb-3 mb-md-0">
-                        <div class="d-flex align-items-center mb-1">
-                            <h6 class="mb-0 fw-bold text-dark uppercase fs-6">
-                                {{-- [PERBAIKAN ERROR] Mengganti pemanggilan fungsi dengan tag span HTML langsung --}}
-                                PERTEMUAN KE-<span class="font-monospace">{{ $sesi->pertemuan_ke }}</span>
-                            </h6>
-                            @if($sesiAktif)
-                                <span class="badge bg-danger text-white rounded-0 font-monospace uppercase fw-bold ms-3 px-2 py-1 blink" style="font-size: 10px;">LIVE SESSION</span>
-                            @endif
-                        </div>
-                        <p class="text-dark small uppercase fw-bold mb-1">
-                            {{ $sesi->judul_pertemuan }}
-                        </p>
-                        <span class="text-muted font-monospace uppercase d-block" style="font-size: 11px;">
-                            ALOKASI WAKTU: {{ $sesi->waktu_buka->format('H:i') }} - {{ $sesi->waktu_tutup ? $sesi->waktu_tutup->format('H:i') : 'SELESAI' }} WIT
-                        </span>
-                    </div>
-
-                    {{-- Komponen Aksi Mandiri / Laporan Dosen --}}
-                    <div class="text-start text-md-end w-100 w-md-auto border-top border-md-top-0 pt-3 pt-md-0 mt-2 mt-md-0">
-                        @if(Auth::user()->hasRole('dosen'))
-                            <span class="badge {{ $sesiAktif ? 'bg-success text-white' : 'border border-dark text-muted' }} rounded-0 font-monospace uppercase fw-bold px-3 py-1 d-block d-md-inline-block mb-2 text-center" style="font-size: 10px;">
-                                {{ $sesiAktif ? 'SESI BERLANGSUNG' : 'DITUTUP PERMANEN' }}
-                            </span>
-                            <div class="font-monospace text-dark fw-bold fs-6">
-                                TOTAL KEHADIRAN: <strong class="text-primary">{{ $sesi->kehadiran->count() }}</strong> MHS
+            <div class="col-12">
+                <div class="card border border-dark border-opacity-25 rounded-0 shadow-none bg-white border-start border-4 {{ $isOpen ? 'border-start-success' : 'border-start-dark' }}">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <span class="badge bg-dark text-white rounded-0 font-monospace">PERTEMUAN KE-{{ $sesi->pertemuan_ke }}</span>
+                                    <span class="badge bg-light text-dark border rounded-0 font-monospace">{{ strtoupper($sesi->metode_pembelajaran ?? 'TATAP MUKA / DISKUSI') }}</span>
+                                    @if($isOpen)
+                                        <span class="badge bg-success text-white rounded-0 font-monospace">SESI SEDANG DIBUKA</span>
+                                    @else
+                                        <span class="badge bg-secondary text-white rounded-0 font-monospace">SESI DITUTUP</span>
+                                    @endif
+                                </div>
+                                <h6 class="fw-bold text-dark uppercase mb-1">{{ $sesi->judul_pertemuan }}</h6>
+                                @if($sesi->materi_aktual)
+                                    <p class="text-muted small mb-2"><strong>Realisasi Materi / Sub-CPMK:</strong> {{ $sesi->materi_aktual }}</p>
+                                @endif
+                                <div class="text-muted font-monospace" style="font-size: 11px;">
+                                    <i class="bi bi-clock me-1"></i> {{ $sesi->waktu_buka->translatedFormat('d M Y, H:i') }} s/d {{ $sesi->waktu_tutup->format('H:i') }} WIT |
+                                    <strong class="text-dark">HADIR: {{ $sesi->kehadiran->count() }} MAHASISWA</strong>
+                                </div>
                             </div>
-                        @else
-                            @if($sudahAbsen)
-                                <button class="btn btn-success rounded-0 py-2 px-4 uppercase fw-bold small text-white w-100 w-md-auto disabled shadow-none" style="cursor: default;">
-                                    <i class="bi bi-check-lg me-2 align-middle"></i> Terverifikasi Hadir
-                                </button>
-                            @elseif($sesiAktif)
-                                <form action="{{ route('verum.presensi.hadir', $sesi->id) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-primary rounded-0 py-2 px-5 uppercase fw-bold small shadow-sm w-100 w-md-auto text-center">
-                                        <i class="bi bi-hand-index-thumb-fill me-2 align-middle text-white"></i> Konfirmasi Kehadiran
+
+                            <div class="text-md-end">
+                                @if(Auth::user()->hasRole('mahasiswa'))
+                                    @if($sudahHadir)
+                                        <span class="btn btn-sm btn-success rounded-0 px-4 py-2 uppercase fw-bold small disabled">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Kehadiran Tercatat
+                                        </span>
+                                    @elseif($isOpen)
+                                        <form action="{{ route('verum.presensi.hadir', $sesi->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 py-2 uppercase fw-bold small shadow-sm">
+                                                <i class="bi bi-hand-index-thumb-fill me-1"></i> Konfirmasi Hadir Sekarang
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="badge bg-danger rounded-0 px-3 py-2 font-monospace uppercase">TIDAK HADIR / SESI TUTUP</span>
+                                    @endif
+                                @elseif(Auth::user()->hasRole('dosen'))
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-0 px-3 py-1 uppercase fw-bold small" data-bs-toggle="modal" data-bs-target="#editBapModal-{{ $sesi->id }}">
+                                        <i class="bi bi-pencil-square me-1"></i> Edit Jurnal BAP
                                     </button>
-                                </form>
-                            @else
-                                <span class="badge bg-secondary text-white rounded-0 font-monospace uppercase fw-bold px-4 py-2 w-100 w-md-auto text-center d-block" style="font-size: 11px;">
-                                    SESI DITUTUP
-                                </span>
-                            @endif
-                        @endif
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            @if(Auth::user()->hasRole('dosen'))
+                <div class="modal fade" id="editBapModal-{{ $sesi->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content rounded-0 border-0 border-top border-dark border-4">
+                            <form action="{{ route('verum.presensi.updateJurnal', $sesi->id) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <div class="modal-header bg-dark text-white rounded-0 py-3">
+                                    <h6 class="modal-title fw-bold uppercase small">Edit Jurnal BAP Pertemuan Ke-{{ $sesi->pertemuan_ke }}</h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold uppercase text-dark">Topik / Pokok Bahasan <span class="text-danger">*</span></label>
+                                        <input type="text" name="judul_pertemuan" class="form-control rounded-0" value="{{ $sesi->judul_pertemuan }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold uppercase text-dark">Metode Pembelajaran</label>
+                                        <select name="metode_pembelajaran" class="form-select rounded-0 uppercase small fw-bold">
+                                            @foreach(['Tatap Muka / Ceramah & Diskusi', 'Daring Sinkronus (Live Video)', 'Diskusi Kelompok / Studi Kasus', ' Seminar / Presentasi Mahasiswa', 'Praktikum / Lapangan'] as $mtd)
+                                                <option value="{{ $mtd }}" {{ ($sesi->metode_pembelajaran ?? '') == $mtd ? 'selected' : '' }}>{{ $mtd }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label small fw-bold uppercase text-dark">Uraian Materi Aktual & Capaian Sub-CPMK</label>
+                                        <textarea name="materi_aktual" rows="3" class="form-control rounded-0" placeholder="Catat ringkasan materi yang disampaikan dan situasi kelas...">{{ $sesi->materi_aktual }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer bg-light border-top rounded-0">
+                                    <button type="button" class="btn btn-sm btn-outline-dark rounded-0 uppercase fw-bold small" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">Simpan Jurnal BAP</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endif
         @endforeach
     </div>
 @endif
-
-<style>
-    @keyframes blink { 50% { opacity: 0; } }
-    .blink { animation: blink 1.5s linear infinite; }
-</style>

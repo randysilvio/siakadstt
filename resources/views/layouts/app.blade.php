@@ -35,6 +35,8 @@
         @keyframes pulse-dot { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         .online-dot { animation: pulse-dot 2s infinite ease-in-out; }
         .bg-light-new { background-color: #e9ecef !important; }
+        .cmd-item:hover { background-color: #212529 !important; color: #ffffff !important; }
+        .cmd-item:hover .text-muted, .cmd-item:hover .text-dark { color: #e9ecef !important; }
     </style>
 
     @if(request()->routeIs('berita.index') || request()->routeIs('dosen.public.*') || request()->routeIs('pengumuman.public.*'))
@@ -92,7 +94,7 @@
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/tahun-akademik*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/tahun-akademik*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*', 'bimbingan-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-mortarboard-fill"></i>Akademik
                                 </a>
                                 <ul class="dropdown-menu">
@@ -104,6 +106,7 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Operasional</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.nilai.index') }}">Input Nilai Manual</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Event Kalender</a></li>
                                 </ul>
                             </li>
@@ -141,7 +144,7 @@
 
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/tracer-study*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-gear-wide-connected"></i>Pengaturan
                                 </a>
                                 <ul class="dropdown-menu">
@@ -149,6 +152,7 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.evaluasi-sesi.index') }}">Sesi Evaluasi Dosen</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.evaluasi-pertanyaan.index') }}">Bank Pertanyaan</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.evaluasi-hasil.index') }}">Laporan Hasil Evaluasi</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.tracer.index') }}">Rekap Tracer Study Alumni</a></li>
                                     @if(Auth::user()->hasRole('admin'))
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Konfigurasi Global</h6></li>
@@ -173,13 +177,16 @@
 
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('administrasi_umum'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('administrasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('administrasi*', 'admin/layanan-surat-mahasiswa*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-envelope-paper"></i>Administrasi
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><h6 class="dropdown-header">E-Office & Persuratan</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('administrasi.surat-keputusan.create') }}">Buat Surat / SK Baru</a></li>
                                     <li><a class="dropdown-item" href="{{ route('administrasi.surat-keputusan.index') }}">Arsip Dokumen SK</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">Layanan Akademik</h6></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.surat-mandiri.index') }}">Layanan Surat Mahasiswa</a></li>
                                 </ul>
                             </li>
                         @endif
@@ -194,12 +201,14 @@
 
                         @if(Auth::user()->hasRole('dosen') && !Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('perwalian*', 'kaprodi*', 'dosen*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('perwalian*', 'kaprodi*', 'dosen*', 'bimbingan-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-person-video3"></i>Dosen
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ route('dosen.dashboard') }}">Dashboard Dosen</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">Perwalian Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('dosen.tridharma.index') }}">Portofolio Tridharma (BKD)</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">Tutorship Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
                                     @if(Auth::user()->isKaprodi() || Auth::user()->hasRole('kaprodi'))
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Kaprodi Area</h6></li>
@@ -212,7 +221,7 @@
                         @if(Auth::user()->hasRole('mahasiswa'))
                             @if(optional(Auth::user()->mahasiswa)->status_mahasiswa === 'Lulus')
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->is('transkrip*', 'pembayaran*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('transkrip*', 'pembayaran*', 'tracer-study*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                         <i class="bi bi-award-fill"></i>Alumni
                                     </a>
                                     <ul class="dropdown-menu">
@@ -221,22 +230,24 @@
                                         <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Pusat Karir</h6></li>
-                                        <li><a class="dropdown-item text-primary" href="#">Tracer Study</a></li>
+                                        <li><a class="dropdown-item text-primary fw-bold" href="{{ route('tracer.index') }}">Tracer Study Alumni</a></li>
                                     </ul>
                                 </li>
                             @else
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*', 'bimbingan-akademik*', 'layanan-surat*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                         <i class="bi bi-mortarboard"></i>Akademik
                                     </a>
                                     <ul class="dropdown-menu">
-                                        <li><h6 class="dropdown-header">Studi</h6></li>
+                                        <li><h6 class="dropdown-header">Studi & Tugas Akhir</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('krs.index') }}">KRS Studi</a></li>
                                         <li><a class="dropdown-item" href="{{ route('khs.index') }}">KHS Hasil</a></li>
                                         <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Administrasi</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('surat-mandiri.index') }}">Pengajuan Surat Mandiri</a></li>
                                         <li><a class="dropdown-item" href="{{ route('evaluasi.index') }}">Evaluasi Dosen</a></li>
                                     </ul>
                                 </li>
@@ -268,6 +279,16 @@
 
                 <ul class="navbar-nav ms-auto align-items-center gap-1 ps-lg-3">
                     @auth
+                        @if(!Auth::user()->hasRole('mahasiswa') && !Auth::user()->hasRole('camaba'))
+                            <li class="nav-item me-1">
+                                <button type="button" class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1 d-flex align-items-center gap-2 font-monospace fw-bold" style="font-size: 0.72rem;" data-bs-toggle="modal" data-bs-target="#globalSearchModal" title="Pencarian Kilat Lintas Modul (Ctrl + K)">
+                                    <i class="bi bi-search"></i>
+                                    <span class="d-none d-xxl-inline">CARI</span>
+                                    <span class="badge bg-dark text-white rounded-0" style="font-size: 0.6rem;">CTRL+K</span>
+                                </button>
+                            </li>
+                        @endif
+
                         <li class="nav-item me-1 d-none d-lg-block">
                             <div class="bg-light border border-dark rounded-0 px-2 py-1 d-flex align-items-center shadow-none" title="Jumlah Pengguna Daring Saat Ini">
                                 <i class="bi bi-circle-fill text-success online-dot me-2" style="font-size: 0.55rem;"></i>
@@ -378,6 +399,35 @@
 
     @include('partials.chatbot')
 
+    {{-- MODAL GLOBAL QUICK SEARCH (COMMAND PALETTE CTRL + K) --}}
+    @auth
+    <div class="modal fade" id="globalSearchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content rounded-0 border-0 border-top border-dark border-4 shadow-lg">
+                <div class="modal-header bg-dark text-white rounded-0 py-2 px-3">
+                    <span class="fw-bold uppercase small font-monospace"><i class="bi bi-terminal-fill me-2"></i>Pencarian Kilat SIAKAD (Command Palette)</span>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3 bg-light">
+                    <div class="input-group input-group-lg mb-2">
+                        <span class="input-group-text bg-white rounded-0 border-dark"><i class="bi bi-search text-dark"></i></span>
+                        <input type="text" id="globalSearchInput" class="form-control rounded-0 border-dark font-monospace uppercase" placeholder="KETIK NIM, NAMA MAHASISWA, DOSEN, KODE MK, ATAU NOMOR SK..." autocomplete="off">
+                    </div>
+                    <div id="globalSearchResults" class="list-group rounded-0 border-0" style="max-height: 380px; overflow-y: auto;">
+                        <div class="text-center py-4 text-muted small font-monospace uppercase">
+                            Ketik minimal 2 karakter untuk mencari cepat lintas modul...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white py-2 px-3 border-top rounded-0 d-flex justify-content-between small font-monospace text-muted" style="font-size: 11px;">
+                    <span>PINTASAN KEYBOARD: <strong>CTRL + K</strong></span>
+                    <span>TEKAN <strong>ESC</strong> UNTUK MENUTUP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endauth
+
     {{-- WADAH CUSTOM PUSH NOTIFICATION (BOOTSTRAP TOAST) --}}
     <div class="toast-container position-fixed top-0 end-0 p-4" style="z-index: 1090; margin-top: 60px;">
         <div id="fcmToast" class="toast align-items-center text-bg-dark border-start border-success border-5 shadow-lg rounded-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -404,10 +454,9 @@
         })
     </script>
 
-    {{-- SCRIPT GLOBAL ANTI-SILENT ERROR PADA FORM MULTI-TAB (BOOTSTRAP TABS) --}}
+    {{-- SCRIPT GLOBAL ANTI-SILENT ERROR PADA FORM MULTI-TAB & COMMAND PALETTE (CTRL+K) --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // 1. Jika ada field yang gagal validasi server (.is-invalid) di dalam Tab, otomatis buka Tab tersebut
             const firstInvalid = document.querySelector('.tab-pane .is-invalid');
             if (firstInvalid) {
                 const pane = firstInvalid.closest('.tab-pane');
@@ -420,7 +469,6 @@
                 firstInvalid.focus();
             }
 
-            // 2. Jika ada field required HTML5 yang belum diisi di Tab yang tersembunyi, otomatis pindah ke Tab tersebut saat klik Submit
             document.querySelectorAll('form').forEach(function (form) {
                 form.querySelectorAll('input, select, textarea').forEach(function (input) {
                     input.addEventListener('invalid', function () {
@@ -434,6 +482,87 @@
                     });
                 });
             });
+
+            const searchModalEl = document.getElementById('globalSearchModal');
+            const searchInput = document.getElementById('globalSearchInput');
+            const searchResults = document.getElementById('globalSearchResults');
+            let searchTimeout = null;
+
+            if (searchModalEl && searchInput) {
+                const bsSearchModal = new bootstrap.Modal(searchModalEl);
+
+                document.addEventListener('keydown', function (e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                        e.preventDefault();
+                        bsSearchModal.show();
+                    }
+                });
+
+                searchModalEl.addEventListener('shown.bs.modal', function () {
+                    searchInput.focus();
+                    searchInput.select();
+                });
+
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(searchTimeout);
+                    const q = this.value.trim();
+                    if (q.length < 2) {
+                        searchResults.innerHTML = '<div class="text-center py-4 text-muted small font-monospace uppercase">Ketik minimal 2 karakter untuk mencari cepat lintas modul...</div>';
+                        return;
+                    }
+
+                    searchResults.innerHTML = '<div class="text-center py-4 text-muted small font-monospace uppercase">Mencari data...</div>';
+
+                    searchTimeout = setTimeout(function () {
+                        fetch('{{ route("global.search") }}?q=' + encodeURIComponent(q), {
+                            headers: { 'Accept': 'application/json' }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            searchResults.innerHTML = '';
+                            if (!data.results || data.results.length === 0) {
+                                searchResults.innerHTML = '<div class="text-center py-4 text-muted small font-monospace uppercase">Tidak ditemukan hasil yang cocok.</div>';
+                                return;
+                            }
+
+                            data.results.forEach(item => {
+                                const a = document.createElement('a');
+                                a.href = item.url;
+                                a.className = 'list-group-item list-group-item-action rounded-0 border-bottom py-2 px-3 cmd-item d-flex align-items-center justify-content-between';
+
+                                const left = document.createElement('div');
+                                const badge = document.createElement('span');
+                                badge.className = 'badge bg-dark text-white rounded-0 font-monospace me-2';
+                                badge.style.fontSize = '9px';
+                                badge.textContent = item.category;
+
+                                const title = document.createElement('strong');
+                                title.className = 'text-dark uppercase small';
+                                title.textContent = item.title;
+
+                                const sub = document.createElement('div');
+                                sub.className = 'text-muted font-monospace mt-1';
+                                sub.style.fontSize = '10px';
+                                sub.textContent = item.subtitle;
+
+                                left.appendChild(badge);
+                                left.appendChild(title);
+                                left.appendChild(sub);
+
+                                const right = document.createElement('i');
+                                right.className = 'bi bi-arrow-return-left text-muted';
+
+                                a.appendChild(left);
+                                a.appendChild(right);
+                                searchResults.appendChild(a);
+                            });
+                        })
+                        .catch(() => {
+                            searchResults.innerHTML = '<div class="text-center py-4 text-danger small font-monospace uppercase">Gagal memuat hasil pencarian.</div>';
+                        });
+                    }, 220);
+                });
+            }
         });
     </script>
     
@@ -523,19 +652,11 @@
         notifSound.preload = 'auto';
 
         onMessage(messaging, (payload) => {
-            console.log('Pesan masuk: ', payload);
-
-            // 1. Putar Suara Lonceng
             try {
                 notifSound.currentTime = 0; 
-                notifSound.play().catch(function(error) {
-                    console.log('Suara diblokir oleh browser (Anda belum mengklik layar web):', error);
-                });
-            } catch (err) {
-                console.log('Gagal memutar suara:', err);
-            }
+                notifSound.play().catch(function() {});
+            } catch (err) {}
 
-            // 2. Munculkan Toast
             const toastEl = document.getElementById('fcmToast');
             if (toastEl && payload.notification) {
                 document.getElementById('fcmToastTitle').textContent = payload.notification.title || 'Pesan Baru';
@@ -543,7 +664,6 @@
                 new bootstrap.Toast(toastEl, { delay: 6000 }).show();
             }
 
-            // 3. Tambah angka di Lonceng Merah (Badge) otomatis
             const badge = document.getElementById('notifBadge');
             if (badge) {
                 let currentCount = parseInt(badge.innerText) || 0;
@@ -551,7 +671,6 @@
                 badge.classList.remove('d-none'); 
             }
 
-            // 4. Sisipkan Pesan ke Dropdown List menggunakan DOM API aman (Anti-XSS)
             const notifHeader = document.getElementById('notifHeader');
             if (notifHeader && payload.notification) {
                 const rawUrl = payload.data?.url || '#';
@@ -583,6 +702,7 @@
                 const bodyDiv = document.createElement('div');
                 bodyDiv.className = 'text-muted';
                 bodyDiv.style.fontSize = '0.8rem';
+                bodyDiv.style.color = '#6c757d';
                 bodyDiv.textContent = body;
 
                 const timeDiv = document.createElement('div');
