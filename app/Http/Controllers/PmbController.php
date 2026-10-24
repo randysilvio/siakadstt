@@ -13,15 +13,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\PmbExport;
 
 class PmbController extends Controller
 {
-    // ====================================================================
-    // FUNGSI UNTUK ADMIN PMB (BACKEND)
-    // ====================================================================
-
     public function index(Request $request)
     {
         $query = Camaba::with(['user', 'prodi1', 'period'])->latest();
@@ -94,7 +91,8 @@ class PmbController extends Controller
 
     public function exportExcel(Request $request)
     {
-        return Excel::download(new PmbExport($request->all()), 'Laporan_Pendaftar_PMB.xlsx');
+        $filters = $request->only(['status', 'pmb_period_id', 'pilihan_prodi_1_id']);
+        return Excel::download(new PmbExport($filters), 'Laporan_Pendaftar_PMB.xlsx');
     }
 
     public function exportPdf(Request $request)
@@ -108,10 +106,6 @@ class PmbController extends Controller
         $pendaftars = $query->get();
         return view('admin.pmb.cetak_pdf', compact('pendaftars'));
     }
-
-    // ====================================================================
-    // FUNGSI UNTUK CAMABA (FRONTEND) & CETAK KARTU UJIAN
-    // ====================================================================
 
     public function showPaymentForm()
     {
@@ -234,9 +228,6 @@ class PmbController extends Controller
         }
     }
 
-    /**
-     * [FITUR BARU FASE 8]: Cetak Kartu Tanda Peserta Ujian Seleksi PMB Berfoto (PDF).
-     */
     public function cetakKartuUjian(Request $request)
     {
         $user = Auth::user();
@@ -272,7 +263,10 @@ class PmbController extends Controller
             }
         }
 
-        $pdf = Pdf::loadView('pmb.pdf_kartu_ujian', compact('camaba', 'pasFotoBase64'))
+        // Otomatis mendeteksi apakah file view diletakkan di resources/views/pmb/ atau resources/views/admin/pmb/
+        $viewName = View::exists('pmb.pdf_kartu_ujian') ? 'pmb.pdf_kartu_ujian' : 'admin.pmb.pdf_kartu_ujian';
+
+        $pdf = Pdf::loadView($viewName, compact('camaba', 'pasFotoBase64'))
             ->setPaper('a4', 'portrait');
 
         return $pdf->stream('Kartu_Peserta_Ujian_PMB_' . $camaba->no_pendaftaran . '.pdf');

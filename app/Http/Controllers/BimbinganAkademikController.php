@@ -10,17 +10,18 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class BimbinganAkademikController extends Controller
 {
-    /**
-     * Halaman Utama Modul Bimbingan Skripsi & PPL (Menyesuaikan Role: Mahasiswa, Dosen, Kaprodi, Admin).
-     */
     public function index(Request $request): View
     {
         $user = Auth::user();
+
+        if (!$user->hasRole('admin') && !$user->hasRole('dosen') && !$user->isKaprodi() && !$user->hasRole('mahasiswa')) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $dosens = Dosen::orderBy('nama_lengkap')->get();
 
         // 1. JIKA MAHASISWA: Tampilkan Bimbingan Miliknya & Form Pengajuan
@@ -37,7 +38,10 @@ class BimbinganAkademikController extends Controller
         // 2. JIKA DOSEN / KAPRODI / ADMIN: Tampilkan Daftar Bimbingan Mahasiswa
         $query = BimbinganTugasAkhir::with(['mahasiswa.programStudi', 'pembimbing1', 'pembimbing2', 'logs'])->latest();
 
-        if (!$user->hasRole('admin') && $user->dosen) {
+        if (!$user->hasRole('admin')) {
+            if (!$user->dosen) {
+                abort(403, 'Profil dosen tidak ditemukan.');
+            }
             $dosenId = $user->dosen->id;
             $prodiKaprodiIds = ProgramStudi::where('kaprodi_dosen_id', $dosenId)->pluck('id')->toArray();
 
@@ -70,9 +74,6 @@ class BimbinganAkademikController extends Controller
         return view('bimbingan.index', compact('bimbingans', 'dosens'));
     }
 
-    /**
-     * Mahasiswa mengajukan Judul Skripsi / Tugas Akhir atau lokasi PPL / Vikariat.
-     */
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
@@ -103,9 +104,6 @@ class BimbinganAkademikController extends Controller
         return back()->with('success', 'Proposal ' . $validated['jenis_bimbingan'] . ' berhasil diajukan ke Program Studi.');
     }
 
-    /**
-     * Halaman Detail Bimbingan & Logbook Pertemuan.
-     */
     public function show(BimbinganTugasAkhir $bimbingan): View
     {
         $user = Auth::user();
@@ -117,9 +115,6 @@ class BimbinganAkademikController extends Controller
         return view('bimbingan.show', compact('bimbingan', 'dosens'));
     }
 
-    /**
-     * Kaprodi / Admin / Dosen Pembimbing memperbarui status, penetapan pembimbing, jadwal sidang, atau nilai (Stay-on-Page).
-     */
     public function updateStatus(Request $request, BimbinganTugasAkhir $bimbingan): RedirectResponse
     {
         $user = Auth::user();
@@ -155,9 +150,6 @@ class BimbinganAkademikController extends Controller
         return back()->with('success', 'Status dan parameter bimbingan mahasiswa berhasil diperbarui.');
     }
 
-    /**
-     * Mahasiswa menambahkan catatan pertemuan baru ke Logbook Bimbingan.
-     */
     public function storeLog(Request $request, BimbinganTugasAkhir $bimbingan): RedirectResponse
     {
         $user = Auth::user();
@@ -188,9 +180,6 @@ class BimbinganAkademikController extends Controller
         return back()->with('success', 'Catatan sesi konsultasi berhasil ditambahkan ke Logbook Bimbingan.');
     }
 
-    /**
-     * Dosen Pembimbing memberikan arahan revisi & paraf persetujuan pada Logbook (Stay-on-Page).
-     */
     public function validasiLog(Request $request, BimbinganLog $log): RedirectResponse
     {
         $user = Auth::user();
@@ -213,9 +202,6 @@ class BimbinganAkademikController extends Controller
         return back()->with('success', 'Paraf dan arahan bimbingan berhasil disimpan.');
     }
 
-    /**
-     * Cetak Kartu Kendali Bimbingan Skripsi / PPL Resmi (PDF).
-     */
     public function cetakKartu(BimbinganTugasAkhir $bimbingan)
     {
         $user = Auth::user();

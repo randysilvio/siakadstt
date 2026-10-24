@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Mahasiswa;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -9,28 +10,35 @@ class KrsValidated extends Notification
 {
     use Queueable;
 
-    protected $status;
-    protected $catatan;
+    protected string $status;
+    protected ?string $catatan;
 
-    public function __construct($status, $catatan)
+    /**
+     * Mendukung pemanggilan new KrsValidated($mahasiswa, $status) maupun new KrsValidated($status, $catatan)
+     */
+    public function __construct($arg1, $arg2 = null, $arg3 = null)
     {
-        $this->status = $status;
-        $this->catatan = $catatan;
+        if ($arg1 instanceof Mahasiswa) {
+            $this->status  = (string) ($arg2 ?? $arg1->status_krs ?? 'Diperbarui');
+            $this->catatan = $arg3 ?? $arg1->catatan_kaprodi;
+        } else {
+            $this->status  = (string) $arg1;
+            $this->catatan = is_string($arg2) ? $arg2 : null;
+        }
     }
 
-    public function via($notifiable)
+    public function via($notifiable): array
     {
-        return ['database']; // Menyimpan notifikasi ke dalam tabel database
+        return ['database'];
     }
 
-    public function toArray($notifiable)
+    public function toArray($notifiable): array
     {
-        // Data ini yang akan dibaca oleh ikon lonceng di app.blade.php
         return [
-            'title' => 'KRS Anda ' . $this->status,
-            'message' => 'Status pengajuan KRS Anda saat ini adalah ' . $this->status . '. ' . ($this->catatan ? 'Catatan Kaprodi: ' . $this->catatan : ''),
-            'url' => route('krs.index'), // Jika notifikasi diklik, arahkan ke halaman KRS
-            'icon' => $this->status == 'Disetujui' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'
+            'title'   => 'Status KRS: ' . $this->status,
+            'message' => 'Status pengajuan KRS Anda saat ini adalah ' . strtoupper($this->status) . '.' . ($this->catatan ? ' Catatan Dosen Tutor / Kaprodi: ' . $this->catatan : ''),
+            'url'     => route('krs.index'),
+            'icon'    => $this->status === 'Disetujui' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger',
         ];
     }
 }

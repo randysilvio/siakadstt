@@ -16,11 +16,13 @@ class TracerStudy extends Model
         'tahun_lulus',
         'status_pekerjaan',
         'waktu_tunggu_bulan',
-        'nama_instansi_jemaat',
-        'jabatan_pelayanan',
+        'nama_instansi_gereja',
+        'jabatan_pekerjaan',
         'kesesuaian_bidang',
-        'rentang_penghasilan',
-        'kontak_atasan',
+        'kisaran_pendapatan',
+        'kontak_atasan_nama',
+        'kontak_atasan_jabatan',
+        'kontak_atasan_hp',
         'saran_kurikulum',
     ];
 

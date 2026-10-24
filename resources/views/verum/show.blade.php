@@ -101,7 +101,7 @@
                 </li>
                 <li class="nav-item flex-sm-fill text-center" role="presentation">
                     <button class="nav-link rounded-0 fw-bold py-3 uppercase small w-100 border-0 text-white" id="presensi-tab" data-bs-toggle="tab" data-bs-target="#presensi" type="button" role="tab">
-                        <i class="bi bi-calendar-check-fill me-2"></i>Presensi
+                        <i class="bi bi-calendar-check-fill me-2"></i>Presensi & BAP
                     </button>
                 </li>
             </ul>
@@ -200,35 +200,49 @@
         </div>
     </div>
 
-    {{-- MODAL BUKA PRESENSI --}}
+    {{-- MODAL BUKA PRESENSI & JURNAL BAP --}}
     <div class="modal fade" id="bukaPresensiModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog rounded-0">
             <div class="modal-content rounded-0 border-dark border-2">
                 <div class="modal-header bg-dark text-white rounded-0 py-3">
-                    <h6 class="modal-title uppercase fw-bold small text-white">Buka Sesi Presensi Kehadiran</h6>
+                    <h6 class="modal-title uppercase fw-bold small text-white">Buka Sesi Presensi & Jurnal BAP</h6>
                     <button type="button" class="btn-close btn-close-white rounded-0" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="{{ route('verum.presensi.store', $verum_kela) }}" method="POST">
                     @csrf
                     <div class="modal-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold uppercase text-dark">Judul Pertemuan <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control rounded-0 uppercase" name="judul_pertemuan" placeholder="CONTOH: PEMBAHASAN BAB 1" required>
-                        </div>
-                        <div class="row g-3 mb-2">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase text-dark">Pertemuan Ke- <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control rounded-0 font-monospace text-center" name="pertemuan_ke" min="1" required>
+                                <input type="number" class="form-control rounded-0 font-monospace text-center fw-bold" name="pertemuan_ke" min="1" max="32" value="{{ $verum_kela->presensi->count() + 1 }}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold uppercase text-dark">Durasi Sesi (Menit) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control rounded-0 font-monospace text-center" name="durasi" min="1" value="15" required>
+                                <input type="number" class="form-control rounded-0 font-monospace text-center fw-bold" name="durasi" min="1" value="30" required>
                             </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold uppercase text-dark">Topik / Pokok Bahasan Pertemuan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-0 uppercase" name="judul_pertemuan" placeholder="CONTOH: PENGANTAR HERMENEUTIKA PERJANJIAN LAMA" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold uppercase text-dark">Metode Pembelajaran</label>
+                            <select name="metode_pembelajaran" class="form-select rounded-0 uppercase small fw-bold">
+                                <option value="Tatap Muka / Ceramah & Diskusi">Tatap Muka / Ceramah & Diskusi</option>
+                                <option value="Daring Sinkronus (Live Video)">Daring Sinkronus (Live Video)</option>
+                                <option value="Diskusi Kelompok / Studi Kasus">Diskusi Kelompok / Studi Kasus</option>
+                                <option value="Seminar / Presentasi Mahasiswa">Seminar / Presentasi Mahasiswa</option>
+                                <option value="Praktikum / Lapangan">Praktikum / Lapangan</option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small fw-bold uppercase text-dark">Uraian Realisasi Materi / Sub-CPMK (Untuk BAP)</label>
+                            <textarea name="materi_aktual" rows="3" class="form-control rounded-0" placeholder="Catat ringkasan materi aktual yang dibahas pada pertemuan ini..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer bg-light rounded-0">
                         <button type="button" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">Buka Sesi Aktif</button>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">Buka Sesi & Simpan BAP</button>
                     </div>
                 </form>
             </div>
@@ -236,15 +250,12 @@
     </div>
 @endif
 
-{{-- [BARU] SCRIPT PENGINGAT TAB (LOCAL STORAGE) --}}
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Gunakan ID unik per kelas agar tab tidak bentrok antar kelas
         let storageKey = 'verum_tab_active_' + {{ $verum_kela->id }};
         let activeTabTarget = localStorage.getItem(storageKey);
 
         if (activeTabTarget) {
-            // Gunakan API bawaan Bootstrap 5 untuk membuka tab yang disimpan
             let triggerEl = document.querySelector('button[data-bs-target="' + activeTabTarget + '"]');
             if (triggerEl) {
                 let tabInstance = new bootstrap.Tab(triggerEl);
@@ -252,7 +263,6 @@
             }
         }
 
-        // Event listener untuk menyimpan posisi tab setiap kali diklik
         let tabElements = document.querySelectorAll('button[data-bs-toggle="tab"]');
         tabElements.forEach(function(el) {
             el.addEventListener('shown.bs.tab', function (event) {
