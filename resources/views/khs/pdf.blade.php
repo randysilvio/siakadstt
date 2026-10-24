@@ -25,12 +25,12 @@
         .summary-table { width: 100%; border-collapse: collapse; text-transform: uppercase; font-size: 10pt; font-weight: bold; }
         .summary-table td { padding: 3px 0; border: none; }
         
-        .calculation-note { margin-top: 20px; padding-top: 8px; border-top: 1px dashed #000; font-size: 8.5pt; line-height: 1.4; page-break-inside: avoid; }
+        .calculation-note { margin-top: 15px; padding-top: 8px; border-top: 1px dashed #000; font-size: 8.5pt; line-height: 1.4; page-break-inside: avoid; }
         .calculation-note h5 { margin: 0 0 4px 0; font-size: 9pt; text-transform: uppercase; font-weight: bold; }
         .calculation-note ul { padding-left: 15px; margin: 0; }
         .calculation-note li { margin-bottom: 2px; }
 
-        .footer-sign { width: 100%; margin-top: 30px; page-break-inside: avoid; border-collapse: collapse; }
+        .footer-sign { width: 100%; margin-top: 25px; page-break-inside: avoid; border-collapse: collapse; }
         .footer-sign td { text-align: center; width: 50%; vertical-align: bottom; font-size: 10pt; border: none; }
     </style>
 </head>
@@ -131,6 +131,8 @@
                 </td>
             </tr>
         </table>
+
+        @include('partials._qr_verifikasi', ['jenisDoc' => 'KHS', 'idEntitas' => $mahasiswa->id])
     </main>
 </body>
 </html>

@@ -196,21 +196,33 @@ class KrsController extends Controller
             throw ValidationException::withMessages(['mata_kuliahs' => $ruleErrors]);
         }
         
+        // Backup seluruh nilai huruf maupun komponen OBE agar tidak hilang saat revisi KRS
         $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
         $gradesToKeep = [];
         foreach ($existingKrs as $existingMk) {
-            if (!is_null($existingMk->pivot->nilai)) {
-                $gradesToKeep[$existingMk->id] = $existingMk->pivot->nilai;
-            }
+            $gradesToKeep[$existingMk->id] = [
+                'nilai'             => $existingMk->pivot->nilai,
+                'nilai_kehadiran'   => $existingMk->pivot->nilai_kehadiran,
+                'nilai_tugas'       => $existingMk->pivot->nilai_tugas,
+                'nilai_uts'         => $existingMk->pivot->nilai_uts,
+                'nilai_uas'         => $existingMk->pivot->nilai_uas,
+                'nilai_akhir_angka' => $existingMk->pivot->nilai_akhir_angka,
+            ];
         }
 
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
         
         $attachData = [];
         foreach ($mata_kuliah_ids as $mk_id) {
+            $saved = $gradesToKeep[$mk_id] ?? [];
             $attachData[$mk_id] = [
                 'tahun_akademik_id' => $periodeAktif->id,
-                'nilai' => $gradesToKeep[$mk_id] ?? null,
+                'nilai'             => $saved['nilai'] ?? null,
+                'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
+                'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
+                'nilai_uts'         => $saved['nilai_uts'] ?? null,
+                'nilai_uas'         => $saved['nilai_uas'] ?? null,
+                'nilai_akhir_angka' => $saved['nilai_akhir_angka'] ?? null,
             ];
         }
 
@@ -239,7 +251,7 @@ class KrsController extends Controller
         
         $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
         if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
-            return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Wali / Kaprodi.');
+            return redirect()->back()->with('error', 'Tidak dapat menghapus. KRS sudah divalidasi oleh Dosen Tutor / Kaprodi.');
         }
         
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($id);
@@ -421,18 +433,29 @@ class KrsController extends Controller
         $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
         $gradesToKeep = [];
         foreach ($existingKrs as $existingMk) {
-            if (!is_null($existingMk->pivot->nilai)) {
-                $gradesToKeep[$existingMk->id] = $existingMk->pivot->nilai;
-            }
+            $gradesToKeep[$existingMk->id] = [
+                'nilai'             => $existingMk->pivot->nilai,
+                'nilai_kehadiran'   => $existingMk->pivot->nilai_kehadiran,
+                'nilai_tugas'       => $existingMk->pivot->nilai_tugas,
+                'nilai_uts'         => $existingMk->pivot->nilai_uts,
+                'nilai_uas'         => $existingMk->pivot->nilai_uas,
+                'nilai_akhir_angka' => $existingMk->pivot->nilai_akhir_angka,
+            ];
         }
 
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
         
         $attachData = [];
         foreach ($mata_kuliah_ids as $mk_id) {
+            $saved = $gradesToKeep[$mk_id] ?? [];
             $attachData[$mk_id] = [
                 'tahun_akademik_id' => $periodeAktif->id,
-                'nilai' => $gradesToKeep[$mk_id] ?? null
+                'nilai'             => $saved['nilai'] ?? null,
+                'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
+                'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
+                'nilai_uts'         => $saved['nilai_uts'] ?? null,
+                'nilai_uas'         => $saved['nilai_uas'] ?? null,
+                'nilai_akhir_angka' => $saved['nilai_akhir_angka'] ?? null,
             ];
         }
 

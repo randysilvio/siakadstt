@@ -107,7 +107,8 @@ class MahasiswaController extends Controller
                 
                 $user->roles()->attach(\App\Models\Role::where('name', 'mahasiswa')->first());
 
-                $mahasiswaData = $request->except(['email', 'password', 'password_confirmation', '_token']);
+                $allowedFields = (new Mahasiswa())->getFillable();
+                $mahasiswaData = $request->only($allowedFields);
                 $mahasiswaData['user_id'] = $user->id;
                 $mahasiswaData['status_mahasiswa'] = 'Aktif';
 
@@ -136,7 +137,6 @@ class MahasiswaController extends Controller
 
     public function update(Request $request, Mahasiswa $mahasiswa): RedirectResponse
     {
-        // [PERBAIKAN]: Validasi password ditempatkan di luar blok try-catch
         $rules = [
             'nim' => 'required|max:20|unique:mahasiswas,nim,' . $mahasiswa->id,
             'nik' => 'required|digits:16|unique:mahasiswas,nik,' . $mahasiswa->id,
@@ -159,8 +159,11 @@ class MahasiswaController extends Controller
     
         try {
             DB::transaction(function () use ($request, $mahasiswa) {
-                $data = $request->except(['email', 'password', 'password_confirmation', '_token', '_method']);
-                if ($data['status_mahasiswa'] !== 'Lulus') {
+                $allowedFields = $mahasiswa->getFillable();
+                $data = $request->only($allowedFields);
+                unset($data['user_id'], $data['status_krs']);
+
+                if (($data['status_mahasiswa'] ?? '') !== 'Lulus') {
                     $data['tanggal_lulus'] = null;
                 }
 
@@ -245,6 +248,7 @@ class MahasiswaController extends Controller
         }
 
         $query = Mahasiswa::with('programStudi')
+            ->where('status_mahasiswa', 'Aktif')
             ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
                 $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
             });

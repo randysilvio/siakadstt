@@ -62,7 +62,7 @@ class GlobalSearchController extends Controller
                     $url = route('admin.mahasiswa.edit', $mhs->id);
                     $aksiLabel = 'Edit Master Mahasiswa';
                 } elseif ($user->hasRole('keuangan')) {
-                    $url = route('pembayaran.index', ['search' => $mhs->nim]);
+                    $url = route('pembayaran.index', ['q' => $mhs->nim]);
                     $aksiLabel = 'Cek Tagihan Keuangan';
                 } elseif ($dosen) {
                     if ((int) $mhs->dosen_wali_id === (int) $dosen->id) {

@@ -21,9 +21,9 @@
         .text-center { text-align: center; }
         .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         
-        .signature-table { width: 100%; margin-top: 25px; border-collapse: collapse; page-break-inside: avoid; }
+        .signature-table { width: 100%; margin-top: 20px; border-collapse: collapse; page-break-inside: avoid; }
         .signature-table td { border: none; text-align: center; padding: 5px; vertical-align: bottom; font-size: 10pt; }
-        .signature-space { height: 60px; }
+        .signature-space { height: 55px; }
     </style>
 </head>
 <body>
@@ -97,7 +97,7 @@
             </td>
         </tr>
         <tr>
-            <td colspan="2" style="padding-top: 25px;">
+            <td colspan="2" style="padding-top: 20px;">
                 Mengetahui / Mengesahkan,<br>
                 Ketua Program Studi {{ optional($mahasiswa->programStudi)->nama_prodi }}<br>
                 <div class="signature-space"></div>
@@ -106,5 +106,7 @@
             </td>
         </tr>
     </table>
+
+    @include('partials._qr_verifikasi', ['jenisDoc' => 'KRS', 'idEntitas' => $mahasiswa->id])
 </body>
 </html>
