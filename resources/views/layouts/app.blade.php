@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Sistem Informasi Akademik - STT GPI Papua</title>
+    @php
+        $globalCfg   = \App\Models\Pengaturan::allCached();
+        $themeColors = \App\Models\Pengaturan::themeColors();
+        $logoUrl     = \App\Models\Pengaturan::logoUrl();
+        $faviconUrl  = !empty($globalCfg['favicon_path']) ? asset('storage/' . $globalCfg['favicon_path']) : $logoUrl;
+        $namaBrand   = $globalCfg['singkatan_kampus'] ?? 'STT GPI PAPUA';
+        $namaLengkap = $globalCfg['nama_kampus'] ?? 'Sistem Informasi Akademik';
+        $istilahPerwalian = $globalCfg['istilah_perwalian'] ?? 'Tutorship';
+    @endphp
+    <title>SIAKAD - {{ $namaBrand }}</title>
     
-    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/png">
+    <link rel="icon" href="{{ $faviconUrl }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
@@ -15,27 +24,38 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|raleway:700,800&display=swap" rel="stylesheet" />
 
     <style>
+        :root {
+            --siakad-primary: {{ $themeColors['primary'] }};
+            --siakad-accent: {{ $themeColors['accent'] }};
+            --siakad-radius: {{ $themeColors['radius'] }};
+        }
         body { font-family: 'Figtree', sans-serif; background-color: #f8fafc; color: #212529; }
-        .navbar-custom { background-color: #ffffff; border-bottom: 2px solid #212529; padding-top: 0.8rem; padding-bottom: 0.8rem; }
-        .brand-text { font-family: 'Raleway', sans-serif; font-weight: 800; color: #212529; letter-spacing: -0.01em; line-height: 1; }
+        .navbar-custom { background-color: #ffffff; border-bottom: 2px solid var(--siakad-primary); padding-top: 0.8rem; padding-bottom: 0.8rem; }
+        .brand-text { font-family: 'Raleway', sans-serif; font-weight: 800; color: var(--siakad-primary); letter-spacing: -0.01em; line-height: 1; }
         .brand-sub { font-size: 0.7rem; font-weight: 700; color: #495057; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; display: block; }
-        .navbar-nav .nav-link { color: #495057; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 0.65rem !important; transition: all 0.2s; border-radius: 0 !important; }
-        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active, .navbar-nav .show > .nav-link { color: #ffffff; background-color: #212529; }
+        .navbar-nav .nav-link { color: #495057; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; padding: 0.5rem 0.65rem !important; transition: all 0.2s; border-radius: var(--siakad-radius) !important; }
+        .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active, .navbar-nav .show > .nav-link { color: #ffffff; background-color: var(--siakad-primary); }
         .navbar-nav .nav-link i { margin-right: 5px; color: inherit; }
         .dropdown-toggle::after { display: none !important; }
-        .dropdown-menu { border: 1px solid #212529; box-shadow: none; border-radius: 0; padding: 0; margin-top: 0; }
+        .dropdown-menu { border: 1px solid var(--siakad-primary); box-shadow: none; border-radius: var(--siakad-radius); padding: 0; margin-top: 0; }
         .dropdown-item { font-size: 0.85rem; text-transform: uppercase; color: #212529; padding: 0.6rem 1rem; border-radius: 0; font-weight: 600; border-bottom: 1px solid #e9ecef; }
         .dropdown-item:last-child { border-bottom: none; }
-        .dropdown-item:hover { background-color: #212529; color: #ffffff; }
+        .dropdown-item:hover { background-color: var(--siakad-primary); color: #ffffff; }
         .dropdown-header { color: #6c757d; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; padding: 0.6rem 1rem; background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; margin: 0; }
-        .dropdown-divider { border-color: #212529; margin: 0; }
-        .user-avatar { width: 32px; height: 32px; background-color: #212529; color: #ffffff; border-radius: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 1rem; }
+        .dropdown-divider { border-color: var(--siakad-primary); margin: 0; }
+        .user-avatar { width: 32px; height: 32px; background-color: var(--siakad-primary); color: #ffffff; border-radius: var(--siakad-radius); display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 1rem; }
         .user-name-truncate { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
-        .footer { background-color: #ffffff; border-top: 2px solid #212529; color: #212529; }
+        .footer { background-color: #ffffff; border-top: 2px solid var(--siakad-primary); color: #212529; }
+        .bg-dark { background-color: var(--siakad-primary) !important; }
+        .btn-dark { background-color: var(--siakad-primary) !important; border-color: var(--siakad-primary) !important; }
+        .border-dark { border-color: var(--siakad-primary) !important; }
+        @if($themeColors['radius'] !== '0px')
+        .rounded-0 { border-radius: var(--siakad-radius) !important; }
+        @endif
         @keyframes pulse-dot { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
         .online-dot { animation: pulse-dot 2s infinite ease-in-out; }
         .bg-light-new { background-color: #e9ecef !important; }
-        .cmd-item:hover { background-color: #212529 !important; color: #ffffff !important; }
+        .cmd-item:hover { background-color: var(--siakad-primary) !important; color: #ffffff !important; }
         .cmd-item:hover .text-muted, .cmd-item:hover .text-dark { color: #e9ecef !important; }
     </style>
 
@@ -59,9 +79,9 @@
     <nav class="navbar navbar-expand-xl navbar-light navbar-custom sticky-top shadow-sm">
         <div class="container-fluid px-3 px-xl-5">
             <a class="navbar-brand d-flex align-items-center gap-3" href="{{ auth()->check() ? route('dashboard') : '/' }}">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" width="42" height="42" class="d-inline-block">
+                <img src="{{ $logoUrl }}" alt="Logo" width="42" height="42" class="d-inline-block" style="object-fit: contain;">
                 <div class="d-flex flex-column justify-content-center">
-                    <span class="brand-text fs-5">STT GPI PAPUA</span>
+                    <span class="brand-text fs-5">{{ $namaBrand }}</span>
                     <span class="brand-sub">Sistem Informasi Akademik</span>
                 </div>
             </a>
@@ -156,7 +176,7 @@
                                     @if(Auth::user()->hasRole('admin'))
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Konfigurasi Global</h6></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                        <li><a class="dropdown-item fw-bold text-primary" href="{{ route('admin.pengaturan.index') }}">Pusat Kendali Sistem & Tema</a></li>
                                     @endif
                                 </ul>
                             </li>
@@ -207,7 +227,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ route('dosen.dashboard') }}">Dashboard Dosen</a></li>
                                     <li><a class="dropdown-item" href="{{ route('dosen.tridharma.index') }}">Portofolio Tridharma (BKD)</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">Tutorship Mahasiswa</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">{{ $istilahPerwalian }} Mahasiswa</a></li>
                                     <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
                                     @if(Auth::user()->isKaprodi() || Auth::user()->hasRole('kaprodi'))
                                         <li><hr class="dropdown-divider"></li>
@@ -298,7 +318,6 @@
                             </div>
                         </li>
 
-                        {{-- Dropdown dan Badge Notifikasi --}}
                         <li class="nav-item dropdown mx-1">
                             <a class="nav-link position-relative px-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell fs-5 text-secondary"></i>
@@ -393,13 +412,12 @@
 
     <footer class="footer mt-auto py-4">
         <div class="container text-center">
-            <p class="mb-0 small uppercase">&copy; {{ date('Y') }} <strong>STT GPI Papua</strong>. Sistem Informasi Akademik.</p>
+            <p class="mb-0 small uppercase">&copy; {{ date('Y') }} <strong>{{ $namaBrand }}</strong> — {{ $namaLengkap }}.</p>
         </div>
     </footer>
 
     @include('partials.chatbot')
 
-    {{-- MODAL GLOBAL QUICK SEARCH (COMMAND PALETTE CTRL + K) --}}
     @auth
     <div class="modal fade" id="globalSearchModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -428,7 +446,6 @@
     </div>
     @endauth
 
-    {{-- WADAH CUSTOM PUSH NOTIFICATION (BOOTSTRAP TOAST) --}}
     <div class="toast-container position-fixed top-0 end-0 p-4" style="z-index: 1090; margin-top: 60px;">
         <div id="fcmToast" class="toast align-items-center text-bg-dark border-start border-success border-5 shadow-lg rounded-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header bg-dark text-white border-bottom border-secondary rounded-0 p-3">
@@ -454,7 +471,6 @@
         })
     </script>
 
-    {{-- SCRIPT GLOBAL ANTI-SILENT ERROR PADA FORM MULTI-TAB & COMMAND PALETTE (CTRL+K) --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const firstInvalid = document.querySelector('.tab-pane .is-invalid');
@@ -599,7 +615,6 @@
     </script>
 
     @auth
-    <!-- FIREBASE PUSH NOTIFICATION SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
@@ -625,9 +640,7 @@
                         if (currentToken) {
                             kirimTokenKeLaravel(currentToken);
                         }
-                    }).catch((err) => {
-                        console.log('Error saat mengambil token: ', err);
-                    });
+                    }).catch(() => {});
                 }
             });
         }
@@ -640,10 +653,7 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify({ token: token })
-            })
-            .then(response => response.json())
-            .then(data => console.log('Response Simpan Token:', data))
-            .catch(error => console.error('Error simpan token:', error));
+            }).catch(() => {});
         }
 
         requestPermission();

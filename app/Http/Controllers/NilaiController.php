@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
 use App\Models\VerumKelas;
-use App\Models\VerumPengumpulan;
+use App\Services\AcademicRuleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +14,13 @@ use Illuminate\View\View;
 
 class NilaiController extends Controller
 {
-    /**
-     * Helper untuk mengecek apakah user berhak mengelola nilai suatu mata kuliah.
-     */
+    protected AcademicRuleService $academicService;
+
+    public function __construct(AcademicRuleService $academicService)
+    {
+        $this->academicService = $academicService;
+    }
+
     private function canManageNilai($user, MataKuliah $mataKuliah): bool
     {
         if ($user->hasRole('admin')) {
@@ -37,16 +41,9 @@ class NilaiController extends Controller
         return false;
     }
 
-    /**
-     * Konversi nilai angka (0 - 100) ke huruf mutu resmi (A, B, C, D, E).
-     */
     public static function konversiAngkaKeHuruf(float $angka): string
     {
-        if ($angka >= 80) return 'A';
-        if ($angka >= 70) return 'B';
-        if ($angka >= 60) return 'C';
-        if ($angka >= 50) return 'D';
-        return 'E';
+        return app(AcademicRuleService::class)->konversiAngkaKeHuruf($angka);
     }
 
     public function index(): View
@@ -54,7 +51,7 @@ class NilaiController extends Controller
         $user = Auth::user();
 
         if (!$user->hasRole('admin') && (!$user->hasRole('dosen') || !$user->dosen)) {
-            abort(403, 'Akses ditolak. Halaman ini hanya untuk Administrator atau Dosen Pengampu.');
+            abort(403, 'Akses ditolak.');
         }
         
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
@@ -62,10 +59,10 @@ class NilaiController extends Controller
         $mkAktifSaatIniIds = [];
         if ($tahunAkademikAktif) {
             $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
-                                   ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-                                   ->distinct()
-                                   ->pluck('mata_kuliah_id')
-                                   ->toArray();
+                ->where('tahun_akademik_id', $tahunAkademikAktif->id)
+                ->distinct()
+                ->pluck('mata_kuliah_id')
+                ->toArray();
         }
 
         if ($user->hasRole('admin')) {
@@ -80,20 +77,25 @@ class NilaiController extends Controller
                 ->pluck('mata_kuliah_id')
                 ->toArray();
 
-            $mata_kuliahs = MataKuliah::with('dosen')
-                ->where(function ($query) use ($user, $pivotMkIds) {
-                    $query->where('dosen_id', $user->dosen->id)
-                          ->orWhereIn('id', $pivotMkIds);
+            $mata_kuliahs = MataKuliah::where(function ($q) use ($user, $pivotMkIds) {
+                    $q->where('dosen_id', $user->dosen->id)
+                      ->orWhereIn('id', $pivotMkIds);
                 })
                 ->where(function ($q) use ($mkAktifSaatIniIds) {
-                    $q->whereIn('id', $mkAktifSaatIniIds)
-                      ->orWhereHas('kurikulum', fn($k) => $k->where('is_active', true));
+                    $q->whereHas('kurikulum', fn($k) => $k->where('is_active', true));
+                    if (!empty($mkAktifSaatIniIds)) {
+                        $q->orWhereIn('id', $mkAktifSaatIniIds);
+                    }
                 })
                 ->orderBy('semester')
+                ->orderBy('kode_mk')
                 ->get();
         }
-        
-        return view('nilai.index', compact('mata_kuliahs'));
+
+        return view('nilai.index', [
+            'mata_kuliahs' => $mata_kuliahs,
+            'tahunAkademikAktif' => $tahunAkademikAktif
+        ]);
     }
 
     public function show(MataKuliah $mataKuliah): View
@@ -101,37 +103,30 @@ class NilaiController extends Controller
         $user = Auth::user();
 
         if (!$this->canManageNilai($user, $mataKuliah)) {
-            abort(403, 'Anda tidak berhak menginput nilai untuk mata kuliah ini.');
-        }
-
-        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
-        $hasVerumKelas = false;
-
-        if (!$tahunAkademikAktif) {
-            $mataKuliah->setRelation('mahasiswas', collect());
-            session()->flash('error', 'Tidak ada Tahun Akademik yang aktif.');
-        } else {
-            $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
-                $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
-                      ->where('mahasiswas.status_krs', 'Disetujui') 
-                      ->orderBy('nama_lengkap', 'asc');
-            }]);
-
-            $hasVerumKelas = VerumKelas::where('mata_kuliah_id', $mataKuliah->id)
-                ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-                ->exists();
+            abort(403, 'Anda tidak memiliki akses untuk mengisi nilai mata kuliah ini.');
         }
         
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+
+        $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
+            $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
+                  ->where('mahasiswas.status_krs', 'Disetujui')
+                  ->orderBy('nama_lengkap', 'asc');
+        }]);
+
+        $hasVerumKelas = VerumKelas::where('mata_kuliah_id', $mataKuliah->id)
+            ->where('tahun_akademik_id', $tahunAkademikAktif->id)
+            ->exists();
+
         return view('nilai.show', compact('mataKuliah', 'tahunAkademikAktif', 'hasVerumKelas'));
     }
 
-    /**
-     * Menyimpan nilai komponen OBE (Kehadiran, Tugas, UTS, UAS) dan/atau Nilai Huruf Akhir.
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'mata_kuliah_id'    => 'required|exists:mata_kuliahs,id',
+            'nilai'             => 'nullable|array',
+            'nilai.*'           => 'nullable|string|in:A,B,C,D,E',
             'nilai_kehadiran'   => 'nullable|array',
             'nilai_kehadiran.*' => 'nullable|numeric|min:0|max:100',
             'nilai_tugas'       => 'nullable|array',
@@ -140,175 +135,93 @@ class NilaiController extends Controller
             'nilai_uts.*'       => 'nullable|numeric|min:0|max:100',
             'nilai_uas'         => 'nullable|array',
             'nilai_uas.*'       => 'nullable|numeric|min:0|max:100',
-            'nilai'             => 'nullable|array',
-            'nilai.*'           => 'nullable|string|max:2|in:A,B,C,D,E,a,b,c,d,e',
         ]);
-    
-        $mataKuliah = MataKuliah::findOrFail($request->mata_kuliah_id);
+
+        $mataKuliah = MataKuliah::findOrFail($request->input('mata_kuliah_id'));
         $user = Auth::user();
 
         if (!$this->canManageNilai($user, $mataKuliah)) {
-            abort(403, 'Akses ditolak. Validasi pengampu mata kuliah gagal.');
+            abort(403, 'Anda tidak berhak menyimpan nilai untuk mata kuliah ini.');
         }
 
-        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+        $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
+        if (!$tahunAkademikAktif) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif.');
+        }
 
-        $validMahasiswaIds = $mataKuliah->mahasiswas()
+        $enrolledMahasiswaIds = $mataKuliah->mahasiswas()
             ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
             ->where('mahasiswas.status_krs', 'Disetujui')
             ->pluck('mahasiswas.id')
             ->toArray();
 
-        $kehadiranArr = $request->input('nilai_kehadiran', []);
-        $tugasArr     = $request->input('nilai_tugas', []);
-        $utsArr       = $request->input('nilai_uts', []);
-        $uasArr       = $request->input('nilai_uas', []);
-        $hurufArr     = $request->input('nilai', []);
+        $inputHuruf = $request->input('nilai', []);
+        $inputHadir = $request->input('nilai_kehadiran', []);
+        $inputTugas = $request->input('nilai_tugas', []);
+        $inputUts   = $request->input('nilai_uts', []);
+        $inputUas   = $request->input('nilai_uas', []);
 
-        DB::transaction(function () use ($mataKuliah, $tahunAkademikAktif, $validMahasiswaIds, $kehadiranArr, $tugasArr, $utsArr, $uasArr, $hurufArr) {
-            foreach ($validMahasiswaIds as $mhsId) {
-                $k = isset($kehadiranArr[$mhsId]) && $kehadiranArr[$mhsId] !== '' ? (float) $kehadiranArr[$mhsId] : null;
-                $t = isset($tugasArr[$mhsId]) && $tugasArr[$mhsId] !== '' ? (float) $tugasArr[$mhsId] : null;
-                $uts = isset($utsArr[$mhsId]) && $utsArr[$mhsId] !== '' ? (float) $utsArr[$mhsId] : null;
-                $uas = isset($uasArr[$mhsId]) && $uasArr[$mhsId] !== '' ? (float) $uasArr[$mhsId] : null;
-                $hurufManual = isset($hurufArr[$mhsId]) && $hurufArr[$mhsId] !== '' ? strtoupper(trim($hurufArr[$mhsId])) : null;
+        DB::transaction(function () use ($enrolledMahasiswaIds, $mataKuliah, $tahunAkademikAktif, $inputHuruf, $inputHadir, $inputTugas, $inputUts, $inputUas) {
+            foreach ($enrolledMahasiswaIds as $mhsId) {
+                $hadir = isset($inputHadir[$mhsId]) && $inputHadir[$mhsId] !== '' ? (float) $inputHadir[$mhsId] : null;
+                $tugas = isset($inputTugas[$mhsId]) && $inputTugas[$mhsId] !== '' ? (float) $inputTugas[$mhsId] : null;
+                $uts   = isset($inputUts[$mhsId])   && $inputUts[$mhsId] !== ''   ? (float) $inputUts[$mhsId]   : null;
+                $uas   = isset($inputUas[$mhsId])   && $inputUas[$mhsId] !== ''   ? (float) $inputUas[$mhsId]   : null;
+                $hurufManual = !empty($inputHuruf[$mhsId]) ? strtoupper(trim($inputHuruf[$mhsId])) : null;
 
-                $hasAnyComponent = ($k !== null || $t !== null || $uts !== null || $uas !== null);
-                $nilaiAkhirAngka = null;
-                $nilaiHurufFinal = $hurufManual;
+                $adaKomponen = ($hadir !== null || $tugas !== null || $uts !== null || $uas !== null);
 
-                if ($hasAnyComponent) {
-                    // Rumus Bobot Standar OBE: Kehadiran 10% + Tugas 20% + UTS 30% + UAS 40%
-                    $nilaiAkhirAngka = round(
-                        (($k ?? 0) * 0.10) +
-                        (($t ?? 0) * 0.20) +
-                        (($uts ?? 0) * 0.30) +
-                        (($uas ?? 0) * 0.40),
-                        2
+                $akhirAngka = null;
+                $hurufFinal = $hurufManual;
+
+                if ($adaKomponen) {
+                    $akhirAngka = $this->academicService->hitungNilaiAkhir(
+                        $hadir ?? 0,
+                        $tugas ?? 0,
+                        $uts ?? 0,
+                        $uas ?? 0
                     );
-                    // Jika seluruh komponen utama terisi atau huruf tidak dipilih manual, konversi otomatis dari Nilai Akhir Angka
-                    $nilaiHurufFinal = self::konversiAngkaKeHuruf($nilaiAkhirAngka);
+                    $hurufFinal = $this->academicService->konversiAngkaKeHuruf($akhirAngka);
                 }
 
-                $mataKuliah->mahasiswas()
-                    ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-                    ->updateExistingPivot($mhsId, [
-                        'nilai_kehadiran'   => $k,
-                        'nilai_tugas'       => $t,
+                DB::table('mahasiswa_mata_kuliah')
+                    ->where('mahasiswa_id', $mhsId)
+                    ->where('mata_kuliah_id', $mataKuliah->id)
+                    ->where('tahun_akademik_id', $tahunAkademikAktif->id)
+                    ->update([
+                        'nilai_kehadiran'   => $hadir,
+                        'nilai_tugas'       => $tugas,
                         'nilai_uts'         => $uts,
                         'nilai_uas'         => $uas,
-                        'nilai_akhir_angka' => $nilaiAkhirAngka,
-                        'nilai'             => $nilaiHurufFinal,
+                        'nilai_akhir_angka' => $akhirAngka,
+                        'nilai'             => $hurufFinal,
+                        'updated_at'        => now(),
                     ]);
             }
         });
 
-        return redirect()->route('nilai.show', $mataKuliah->id)->with('success', 'Data nilai komponen OBE dan huruf mutu mahasiswa berhasil disimpan!');
+        return redirect()->route('nilai.show', $mataKuliah->id)
+            ->with('success', 'Nilai mahasiswa berhasil disimpan.');
     }
 
-    /**
-     * [FITUR BARU]: One-Click Sync Kehadiran & Nilai Tugas dari Kelas E-Learning Verum.
-     */
     public function syncVerum(MataKuliah $mataKuliah): RedirectResponse
     {
         $user = Auth::user();
+
         if (!$this->canManageNilai($user, $mataKuliah)) {
             abort(403, 'Akses ditolak.');
         }
 
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        $verumKelasList = VerumKelas::with(['presensi.kehadiran', 'tugas'])
-            ->where('mata_kuliah_id', $mataKuliah->id)
-            ->where('tahun_akademik_id', $tahunAkademikAktif->id)
-            ->get();
+        $updatedCount = $this->academicService->syncNilaiVerumKeKrs($mataKuliah, $tahunAkademikAktif);
 
-        if ($verumKelasList->isEmpty()) {
-            return back()->with('error', 'Belum ada kelas E-Learning Verum untuk mata kuliah ini pada semester berjalan.');
+        if ($updatedCount === 0) {
+            return redirect()->route('nilai.show', $mataKuliah->id)
+                ->with('error', 'Belum ditemukan ruang kelas Verum atau peserta aktif untuk mata kuliah ini.');
         }
 
-        $mahasiswas = $mataKuliah->mahasiswas()
-            ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
-            ->get();
-
-        // Kumpulkan seluruh sesi presensi dan ID tugas dari kelas Verum mata kuliah ini
-        $allPresensis = $verumKelasList->flatMap->presensi;
-        $totalPertemuan = $allPresensis->count();
-        $allTugasIds = $verumKelasList->flatMap->tugas->pluck('id')->toArray();
-        $totalTugas = count($allTugasIds);
-
-        $countUpdated = 0;
-
-        DB::transaction(function () use ($mataKuliah, $tahunAkademikAktif, $mahasiswas, $allPresensis, $totalPertemuan, $allTugasIds, $totalTugas, &$countUpdated) {
-            foreach ($mahasiswas as $mhs) {
-                $skorKehadiran = $mhs->pivot->nilai_kehadiran;
-                $skorTugas = $mhs->pivot->nilai_tugas;
-
-                // 1. Hitung Persentase Kehadiran (0 - 100) jika ada sesi presensi di Verum
-                if ($totalPertemuan > 0) {
-                    $hadirCount = 0;
-                    foreach ($allPresensis as $sesi) {
-                        $isHadir = $sesi->kehadiran
-                            ->where('mahasiswa_id', $mhs->id)
-                            ->whereIn('status', ['Hadir', 'hadir', 'Izin', 'izin', 'Sakit', 'sakit'])
-                            ->isNotEmpty();
-                        if ($isHadir) {
-                            $hadirCount++;
-                        }
-                    }
-                    $skorKehadiran = round(($hadirCount / $totalPertemuan) * 100, 2);
-                }
-
-                // 2. Hitung Rata-rata Nilai Tugas Verum (0 - 100) jika ada tugas di Verum
-                if ($totalTugas > 0) {
-                    $totalSkorTugas = VerumPengumpulan::whereIn('tugas_id', $allTugasIds)
-                        ->where('mahasiswa_id', $mhs->id)
-                        ->whereNotNull('nilai')
-                        ->sum('nilai');
-
-                    $adaNilaiTugas = VerumPengumpulan::whereIn('tugas_id', $allTugasIds)
-                        ->where('mahasiswa_id', $mhs->id)
-                        ->whereNotNull('nilai')
-                        ->exists();
-
-                    if ($adaNilaiTugas) {
-                        $skorTugas = round($totalSkorTugas / $totalTugas, 2);
-                    }
-                }
-
-                // 3. Hitung ulang Nilai Akhir Angka & Huruf jika ada komponen
-                $uts = $mhs->pivot->nilai_uts !== null ? (float) $mhs->pivot->nilai_uts : null;
-                $uas = $mhs->pivot->nilai_uas !== null ? (float) $mhs->pivot->nilai_uas : null;
-
-                $nilaiAkhirAngka = null;
-                $nilaiHurufFinal = $mhs->pivot->nilai;
-
-                if ($skorKehadiran !== null || $skorTugas !== null || $uts !== null || $uas !== null) {
-                    $nilaiAkhirAngka = round(
-                        (($skorKehadiran ?? 0) * 0.10) +
-                        (($skorTugas ?? 0) * 0.20) +
-                        (($uts ?? 0) * 0.30) +
-                        (($uas ?? 0) * 0.40),
-                        2
-                    );
-                    $nilaiHurufFinal = self::konversiAngkaKeHuruf($nilaiAkhirAngka);
-                }
-
-                $mataKuliah->mahasiswas()
-                    ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-                    ->updateExistingPivot($mhs->id, [
-                        'nilai_kehadiran'   => $skorKehadiran,
-                        'nilai_tugas'       => $skorTugas,
-                        'nilai_akhir_angka' => $nilaiAkhirAngka,
-                        'nilai'             => $nilaiHurufFinal,
-                    ]);
-
-                $countUpdated++;
-            }
-        });
-
         return redirect()->route('nilai.show', $mataKuliah->id)
-            ->with('success', "Sinkronisasi E-Learning Verum berhasil! Data kehadiran ({$totalPertemuan} sesi) dan tugas ({$totalTugas} tugas) untuk {$countUpdated} mahasiswa telah ditarik ke buku nilai.");
+            ->with('success', "Data kehadiran dan tugas dari kelas Verum berhasil disinkronkan untuk {$updatedCount} mahasiswa.");
     }
 }

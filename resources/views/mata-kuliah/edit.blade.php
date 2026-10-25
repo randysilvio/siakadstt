@@ -2,29 +2,21 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    {{-- BAGIAN HEADER UTAMA --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Edit Mata Kuliah</h3>
-            <span class="text-muted small uppercase">Pembaruan Master Data & Alokasi Prasyarat</span>
+            <span class="text-muted small uppercase">Perbarui Data Mata Kuliah & Jadwal Kelas</span>
         </div>
-        <div>
-            <a href="{{ route('admin.mata-kuliah.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">
-                Kembali
-            </a>
-        </div>
+        <a href="{{ route('admin.mata-kuliah.index') }}" class="btn btn-sm btn-outline-dark rounded-0 px-3 uppercase fw-bold small">Kembali</a>
     </div>
 
     <form action="{{ route('admin.mata-kuliah.update', $mataKuliah->id) }}" method="POST">
-        @csrf
-        @method('PUT')
+        @csrf @method('PUT')
         <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
             <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-                Formulir Parameter Mata Kuliah
+                Data Mata Kuliah
             </div>
             <div class="card-body p-4">
-                
-                {{-- Pemilihan Kurikulum --}}
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="kurikulum_id" class="form-label small fw-bold uppercase text-dark">Kurikulum <span class="text-danger">*</span></label>
@@ -40,7 +32,6 @@
                     </div>
                 </div>
 
-                {{-- Kode & Nama MK --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label for="kode_mk" class="form-label small fw-bold uppercase text-dark">Kode Mata Kuliah <span class="text-danger">*</span></label>
@@ -54,7 +45,6 @@
                     </div>
                 </div>
 
-                {{-- SKS & Semester --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label for="sks" class="form-label small fw-bold uppercase text-dark">Jumlah SKS <span class="text-danger">*</span></label>
@@ -68,66 +58,55 @@
                     </div>
                 </div>
 
-                {{-- Dosen Pengampu Utama --}}
                 <div class="mb-3">
-                    <label for="dosen_id" class="form-label small fw-bold uppercase text-dark">Dosen Pengampu Utama (Penanggung Jawab) <span class="text-danger">*</span></label>
+                    <label for="dosen_id" class="form-label small fw-bold uppercase text-dark">Dosen Pengampu Utama <span class="text-danger">*</span></label>
                     <select class="form-select rounded-0 uppercase @error('dosen_id') is-invalid @enderror" id="dosen_id" name="dosen_id" required>
-                        <option value="" selected disabled>-- PILIH DOSEN UTAMA --</option>
                         @foreach ($dosens as $dosen)
                             <option value="{{ $dosen->id }}" {{ old('dosen_id', $mataKuliah->dosen_id) == $dosen->id ? 'selected' : '' }}>
-                                {{ $dosen->nama_lengkap }} ({{ $dosen->jenis_pengajar ?? 'Dosen Tetap' }})
+                                {{ $dosen->nama_lengkap }}
                             </option>
                         @endforeach
                     </select>
-                    @error('dosen_id')<div class="invalid-feedback font-monospace small">{{ $message }}</div>@enderror
                 </div>
 
-                {{-- [TAMBAHAN BARU] Multi-Select Dosen Anggota / Asisten Terpilih --}}
                 <div class="mb-3">
-                    <label for="team_dosen_ids" class="form-label small fw-bold uppercase text-dark">Dosen Anggota / Asisten (Team Teaching)</label>
+                    <label for="team_dosen_ids" class="form-label small fw-bold uppercase text-dark">Dosen Anggota (Team Teaching)</label>
                     <select class="form-control rounded-0 uppercase" id="team_dosen_ids" name="team_dosen_ids[]" multiple>
-                        @php
-                            $existingTeamIds = $mataKuliah->teamDosens->where('pivot.is_utama', false)->pluck('id')->toArray();
-                        @endphp
+                        @php $existingTeamIds = $mataKuliah->teamDosens->where('pivot.is_utama', false)->pluck('id')->toArray(); @endphp
                         @foreach ($dosens as $dosen)
                             <option value="{{ $dosen->id }}" {{ in_array($dosen->id, old('team_dosen_ids', $existingTeamIds)) ? 'selected' : '' }}>
-                                {{ $dosen->nama_lengkap }} ({{ $dosen->jenis_pengajar ?? 'Dosen Tetap' }})
+                                {{ $dosen->nama_lengkap }}
                             </option>
                         @endforeach
                     </select>
-                    <div class="form-text text-muted small uppercase mt-1">* Kosongkan jika tidak ada tim dosen pendamping.</div>
                 </div>
                 
-                {{-- Prasyarat --}}
                 <div class="mb-4">
                     <label for="prasyarat_id" class="form-label small fw-bold uppercase text-dark">Mata Kuliah Prasyarat</label>
                     <select multiple class="form-control rounded-0 uppercase" id="prasyarat_id" name="prasyarat_id[]">
-                        @php
-                            $prasyaratIds = $mataKuliah->prasyarats->pluck('id')->toArray();
-                        @endphp
+                        @php $prasyaratIds = $mataKuliah->prasyarats->pluck('id')->toArray(); @endphp
                         @foreach ($mata_kuliahs_options as $mk)
                             <option value="{{ $mk->id }}" {{ in_array($mk->id, $prasyaratIds) ? 'selected' : '' }}>
                                 {{ $mk->kode_mk }} - {{ $mk->nama_mk }} (SEM {{ $mk->semester }})
                             </option>
                         @endforeach
                     </select>
-                    <div class="form-text text-muted small uppercase mt-1">
-                        * Opsi prasyarat akan otomatis terfilter saat Anda mengubah semester.
-                    </div>
                 </div>
                 
-                <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2 mt-5">Alokasi Jadwal Kuliah</h6>
+                <h6 class="uppercase fw-bold small text-dark mb-3 border-bottom pb-2 mt-4">Jadwal & Pembagian Kelas (Rombel)</h6>
                 <div id="jadwal-container">
                     @forelse ($mataKuliah->jadwals as $index => $jadwal)
                         <div class="row g-2 jadwal-item mb-3 align-items-end">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Kelas</label>@endif
+                                <input type="text" name="jadwals[{{$index}}][nama_kelas]" class="form-control rounded-0 font-monospace text-center uppercase fw-bold" value="{{ $jadwal->nama_kelas ?? 'A' }}">
+                            </div>
+                            <div class="col-md-2">
                                 @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Hari</label>@endif
                                 <select name="jadwals[{{$index}}][hari]" class="form-select rounded-0 uppercase fw-bold">
-                                    <option value="Senin" {{ $jadwal->hari == 'Senin' ? 'selected' : '' }}>Senin</option>
-                                    <option value="Selasa" {{ $jadwal->hari == 'Selasa' ? 'selected' : '' }}>Selasa</option>
-                                    <option value="Rabu" {{ $jadwal->hari == 'Rabu' ? 'selected' : '' }}>Rabu</option>
-                                    <option value="Kamis" {{ $jadwal->hari == 'Kamis' ? 'selected' : '' }}>Kamis</option>
-                                    <option value="Jumat" {{ $jadwal->hari == 'Jumat' ? 'selected' : '' }}>Jumat</option>
+                                    @foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as $hr)
+                                        <option value="{{ $hr }}" {{ $jadwal->hari == $hr ? 'selected' : '' }}>{{ $hr }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -138,26 +117,30 @@
                                 @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Jam Selesai</label>@endif
                                 <input type="time" name="jadwals[{{$index}}][jam_selesai]" class="form-control rounded-0 font-monospace text-center" value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}">
                             </div>
-                            <div class="col-md-3">
-                                @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Ruang</label>@endif
-                                <input type="text" name="jadwals[{{$index}}][ruang]" class="form-control rounded-0 font-monospace text-center" value="{{ $jadwal->ruang }}" placeholder="R.101">
-                            </div>
                             <div class="col-md-2">
-                                <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
+                                @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Ruang</label>@endif
+                                <input type="text" name="jadwals[{{$index}}][ruang]" class="form-control rounded-0 font-monospace text-center" value="{{ $jadwal->ruang }}">
+                            </div>
+                            <div class="col-md-1">
+                                @if($loop->first)<label class="form-label small fw-bold uppercase text-dark">Kuota</label>@endif
+                                <input type="number" name="jadwals[{{$index}}][kuota]" class="form-control rounded-0 font-monospace text-center" value="{{ $jadwal->kuota ?? 40 }}" min="1">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn">X</button>
                             </div>
                         </div>
                     @empty
                         <div class="row g-2 jadwal-item mb-3 align-items-end">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold uppercase text-dark">Kelas</label>
+                                <input type="text" name="jadwals[0][nama_kelas]" class="form-control rounded-0 font-monospace text-center uppercase fw-bold" value="A">
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold uppercase text-dark">Hari</label>
                                 <select name="jadwals[0][hari]" class="form-select rounded-0 uppercase fw-bold">
-                                    <option value="Senin">Senin</option>
-                                    <option value="Selasa">Selasa</option>
-                                    <option value="Rabu">Rabu</option>
-                                    <option value="Kamis">Kamis</option>
-                                    <option value="Jumat">Jumat</option>
+                                    @foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as $hr)
+                                        <option value="{{ $hr }}">{{ $hr }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -168,28 +151,28 @@
                                 <label class="form-label small fw-bold uppercase text-dark">Jam Selesai</label>
                                 <input type="time" name="jadwals[0][jam_selesai]" class="form-control rounded-0 font-monospace text-center">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label small fw-bold uppercase text-dark">Ruang</label>
                                 <input type="text" name="jadwals[0][ruang]" class="form-control rounded-0 font-monospace text-center" placeholder="R.101">
                             </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn" style="display: none;">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
+                            <div class="col-md-1">
+                                <label class="form-label small fw-bold uppercase text-dark">Kuota</label>
+                                <input type="number" name="jadwals[0][kuota]" class="form-control rounded-0 font-monospace text-center" value="40" min="1">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-danger rounded-0 w-100 uppercase fw-bold small py-2 remove-jadwal-btn" style="display: none;">X</button>
                             </div>
                         </div>
                     @endforelse
                 </div>
                 
                 <button type="button" id="add-jadwal-btn" class="btn btn-dark rounded-0 btn-sm uppercase fw-bold px-3 mt-1">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Slot Jadwal
+                    Tambah Kelas / Jadwal
                 </button>
 
                 <div class="d-flex justify-content-end pt-4 mt-4 border-top">
                     <a href="{{ route('admin.mata-kuliah.index') }}" class="btn btn-outline-dark rounded-0 px-4 uppercase fw-bold small me-2">Batal</a>
-                    <button type="submit" class="btn btn-primary rounded-0 px-5 uppercase fw-bold small shadow-sm">
-                        <i class="bi bi-save me-1"></i> Simpan Perubahan
-                    </button>
+                    <button type="submit" class="btn btn-primary rounded-0 px-5 uppercase fw-bold small">Simpan Perubahan</button>
                 </div>
             </div>
         </div>
@@ -200,44 +183,9 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        $('#prasyarat_id').select2({
-            theme: "bootstrap-5",
-            placeholder: '-- PILIH MATA KULIAH PRASYARAT --',
-            width: '100%'
-        });
+        $('#prasyarat_id').select2({ theme: "bootstrap-5", placeholder: '-- PILIH MATA KULIAH PRASYARAT --', width: '100%' });
+        $('#team_dosen_ids').select2({ theme: "bootstrap-5", placeholder: '-- PILIH TIM DOSEN --', width: '100%' });
 
-        // [TAMBAHAN BARU] Inisialisasi Select2 untuk Team Teaching Edit
-        $('#team_dosen_ids').select2({
-            theme: "bootstrap-5",
-            placeholder: '-- PILIH TIM DOSEN / ASISTEN --',
-            width: '100%'
-        });
-
-        const semesterInput = $('#semester');
-        const prasyaratSelect = $('#prasyarat_id');
-        let allCourses = @json($mata_kuliahs_options);
-
-        function filterPrasyarat() {
-            const currentSemester = parseInt(semesterInput.val(), 10);
-            const selectedValues = prasyaratSelect.val();
-            
-            prasyaratSelect.empty();
-
-            if (!isNaN(currentSemester) && currentSemester > 1) {
-                const filteredCourses = allCourses.filter(course => course.semester < currentSemester);
-                
-                filteredCourses.forEach(course => {
-                    const option = new Option(`${course.kode_mk} - ${course.nama_mk} (SEM ${course.semester})`, course.id, false, false);
-                    prasyaratSelect.append(option);
-                });
-                
-                prasyaratSelect.val(selectedValues);
-            }
-            prasyaratSelect.trigger('change');
-        }
-
-        semesterInput.on('input', filterPrasyarat);
-        
         let jadwalIndex = {{ $mataKuliah->jadwals->count() > 0 ? $mataKuliah->jadwals->count() : 1 }};
 
         function addRemoveListener(button) {
@@ -248,19 +196,18 @@
             });
         }
         
-        $('.remove-jadwal-btn').each(function() {
-            addRemoveListener(this);
-        });
+        $('.remove-jadwal-btn').each(function() { addRemoveListener(this); });
 
         $('#add-jadwal-btn').on('click', function () {
             const container = $('#jadwal-container');
             const newJadwal = container.find('.jadwal-item:first').clone();
-            
+            newJadwal.find('label').remove();
+            newJadwal.find('input[type="text"]').eq(0).attr('name', `jadwals[${jadwalIndex}][nama_kelas]`).val('B');
             newJadwal.find('select').attr('name', `jadwals[${jadwalIndex}][hari]`).val('Senin');
             newJadwal.find('input[type="time"]').eq(0).attr('name', `jadwals[${jadwalIndex}][jam_mulai]`).val('');
             newJadwal.find('input[type="time"]').eq(1).attr('name', `jadwals[${jadwalIndex}][jam_selesai]`).val('');
-            newJadwal.find('input[type="text"]').attr('name', `jadwals[${jadwalIndex}][ruang]`).val('');
-            newJadwal.find('label').remove(); 
+            newJadwal.find('input[type="text"]').eq(1).attr('name', `jadwals[${jadwalIndex}][ruang]`).val('');
+            newJadwal.find('input[type="number"]').attr('name', `jadwals[${jadwalIndex}][kuota]`).val('40');
             
             const removeBtn = newJadwal.find('.remove-jadwal-btn').show();
             addRemoveListener(removeBtn);

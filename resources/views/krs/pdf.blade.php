@@ -4,31 +4,36 @@
     <meta charset="UTF-8">
     <title>KRS - {{ $mahasiswa->nama_lengkap }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; line-height: 1.35; color: #000; margin: 0; padding: 0; }
-        @page { size: A4 portrait; margin: 1.5cm; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 9.5pt; line-height: 1.25; color: #000; margin: 0; padding: 0; }
+        @page { size: A4 portrait; margin: 1.0cm 1.2cm; }
 
-        .document-title { text-align: center; font-weight: bold; font-size: 13pt; text-decoration: underline; text-transform: uppercase; margin: 10px 0 18px 0; }
+        .document-title { text-align: center; font-weight: bold; font-size: 12pt; text-decoration: underline; text-transform: uppercase; margin: 6px 0 10px 0; }
         
-        .student-info { margin-bottom: 15px; width: 100%; }
+        .student-info { margin-bottom: 8px; width: 100%; }
         .student-info table { width: 100%; border-collapse: collapse; }
-        .student-info td { padding: 3px 0; vertical-align: top; text-transform: uppercase; font-size: 10pt; border: none; }
-        .student-info .label { font-weight: bold; width: 140px; }
+        .student-info td { padding: 2px 0; vertical-align: top; text-transform: uppercase; font-size: 9pt; border: none; }
+        .student-info .label { font-weight: bold; width: 125px; }
         
-        table.main-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .main-table th, .main-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
-        .main-table th { background-color: #212529; color: #ffffff; text-transform: uppercase; font-size: 9pt; text-align: center; font-weight: bold; }
-        .main-table td { font-size: 9.5pt; }
+        table.main-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .main-table th, .main-table td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; }
+        .main-table th { background-color: #212529; color: #ffffff; text-transform: uppercase; font-size: 8.5pt; text-align: center; font-weight: bold; }
+        .main-table td { font-size: 8.8pt; }
         .text-center { text-align: center; }
         .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         
-        .signature-table { width: 100%; margin-top: 20px; border-collapse: collapse; page-break-inside: avoid; }
-        .signature-table td { border: none; text-align: center; padding: 5px; vertical-align: bottom; font-size: 10pt; }
-        .signature-space { height: 55px; }
+        .signature-table { width: 100%; margin-top: 10px; border-collapse: collapse; page-break-inside: avoid; }
+        .signature-table td { border: none; text-align: center; padding: 2px; vertical-align: top; font-size: 9pt; width: 33.33%; }
+        .signature-space { height: 42px; }
     </style>
 </head>
 <body>
 
     @include('partials._kop')
+
+    @php
+        $kotaTtd = \App\Models\Pengaturan::get('kota_domisili', 'Fakfak');
+        $istilahPembimbing = \App\Models\Pengaturan::get('istilah_pembimbing', 'Dosen Tutor');
+    @endphp
 
     <div class="document-title">KARTU RENCANA STUDI (KRS)</div>
     
@@ -52,11 +57,11 @@
     <table class="main-table">
         <thead>
             <tr>
-                <th style="width: 8%;">NO</th>
-                <th style="width: 17%;">KODE MK</th>
+                <th style="width: 7%;">NO</th>
+                <th style="width: 16%;">KODE MK</th>
                 <th>NAMA MATA KULIAH</th>
                 <th style="width: 10%;">SMT</th>
-                <th style="width: 12%;">SKS</th>
+                <th style="width: 10%;">SKS</th>
             </tr>
         </thead>
         <tbody>
@@ -71,38 +76,37 @@
                 </tr>
                 @php $totalSks += $mk->sks; @endphp
             @empty
-                <tr><td colspan="5" class="text-center" style="padding: 15px; text-transform: uppercase;">Belum ada mata kuliah yang diambil.</td></tr>
+                <tr><td colspan="5" class="text-center" style="padding: 10px; text-transform: uppercase;">Belum ada mata kuliah yang diambil.</td></tr>
             @endforelse
             <tr style="background-color: #f2f2f2;">
-                <td colspan="4" style="text-align: right; font-weight: bold; padding-right: 12px;">TOTAL BEBAN SKS DIAMBIL</td>
-                <td class="text-center font-monospace" style="font-size: 10.5pt;">{{ $totalSks }}</td>
+                <td colspan="4" style="text-align: right; font-weight: bold; padding-right: 10px;">TOTAL BEBAN SKS DIAMBIL</td>
+                <td class="text-center font-monospace" style="font-size: 9.5pt;">{{ $totalSks }}</td>
             </tr>
         </tbody>
     </table>
 
     <table class="signature-table">
         <tr>
-            <td style="width: 50%;">
-                Mahasiswa,<br>
-                <div class="signature-space"></div>
-                <strong style="text-transform: uppercase; text-decoration: underline;">{{ $mahasiswa->nama_lengkap }}</strong><br>
-                <span class="font-monospace" style="font-size: 9pt;">NIM. {{ $mahasiswa->nim }}</span>
-            </td>
-            <td style="width: 50%;">
-                Fakfak, {{ now()->translatedFormat('d F Y') }}<br>
-                Dosen Tutor (Pembimbing Tutorship),<br>
-                <div class="signature-space"></div>
-                <strong style="text-transform: uppercase; text-decoration: underline;">{{ $mahasiswa->dosenWali->nama_lengkap ?? '........................................' }}</strong><br>
-                <span class="font-monospace" style="font-size: 9pt;">NIDN. {{ $mahasiswa->dosenWali->nidn ?? '-' }}</span>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" style="padding-top: 20px;">
-                Mengetahui / Mengesahkan,<br>
-                Ketua Program Studi {{ optional($mahasiswa->programStudi)->nama_prodi }}<br>
+            <td>
+                Mengetahui,<br>
+                Ketua Program Studi<br>
                 <div class="signature-space"></div>
                 <strong style="text-transform: uppercase; text-decoration: underline;">{{ optional(optional($mahasiswa->programStudi)->kaprodi)->nama_lengkap ?? '........................................' }}</strong><br>
-                <span class="font-monospace" style="font-size: 9pt;">NIDN. {{ optional(optional($mahasiswa->programStudi)->kaprodi)->nidn ?? '-' }}</span>
+                <span class="font-monospace" style="font-size: 8pt;">NIDN. {{ optional(optional($mahasiswa->programStudi)->kaprodi)->nidn ?? '-' }}</span>
+            </td>
+            <td>
+                Menyetujui,<br>
+                {{ $istilahPembimbing }}<br>
+                <div class="signature-space"></div>
+                <strong style="text-transform: uppercase; text-decoration: underline;">{{ $mahasiswa->dosenWali->nama_lengkap ?? '........................................' }}</strong><br>
+                <span class="font-monospace" style="font-size: 8pt;">NIDN. {{ $mahasiswa->dosenWali->nidn ?? '-' }}</span>
+            </td>
+            <td>
+                {{ $kotaTtd }}, {{ now()->translatedFormat('d F Y') }}<br>
+                Mahasiswa Yang Bersangkutan,<br>
+                <div class="signature-space"></div>
+                <strong style="text-transform: uppercase; text-decoration: underline;">{{ $mahasiswa->nama_lengkap }}</strong><br>
+                <span class="font-monospace" style="font-size: 8pt;">NIM. {{ $mahasiswa->nim }}</span>
             </td>
         </tr>
     </table>

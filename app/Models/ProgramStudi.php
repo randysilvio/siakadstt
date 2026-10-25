@@ -10,10 +10,17 @@ class ProgramStudi extends Model
     use HasFactory;
 
     protected $fillable = [
+        'fakultas_id',
         'kode_prodi',
         'nama_prodi',
+        'jenjang',
         'kaprodi_dosen_id',
     ];
+
+    public function fakultas()
+    {
+        return $this->belongsTo(Fakultas::class, 'fakultas_id');
+    }
 
     public function mahasiswas()
     {

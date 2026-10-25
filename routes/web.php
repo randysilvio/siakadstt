@@ -5,6 +5,7 @@ use App\Http\Controllers\PublicController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MahasiswaController;
+use App\Http\Controllers\FakultasController;
 use App\Http\Controllers\ProgramStudiController;
 use App\Http\Controllers\MataKuliahController;
 use App\Http\Controllers\KrsController;
@@ -61,7 +62,13 @@ use App\Http\Controllers\VerifikasiDokumenController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController; 
 use App\Http\Controllers\NotificationController;
 
+// =========================================================================
+// RUTE PORTAL PUBLIK & ADMISI PMB
+// =========================================================================
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
+Route::get('/profil-kampus', [PublicController::class, 'profilKampus'])->name('publik.profil');
+Route::get('/riset-dan-pengabdian', [PublicController::class, 'risetPublikasi'])->name('publik.riset');
+Route::get('/katalog-perpustakaan', [PublicController::class, 'katalogPerpustakaan'])->name('publik.perpustakaan');
 Route::get('/dokumen-publik', [PublicController::class, 'dokumenPublik'])->name('dokumen.publik');
 Route::get('/berita', [PublicController::class, 'semuaBerita'])->name('berita.index');
 Route::get('/direktori-dosen', [DosenProfileController::class, 'index'])->name('dosen.public.index');
@@ -100,7 +107,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'tandaiSemuaDibaca'])->name('notifikasi.baca-semua');
 
-    // Cetak Kartu Peserta Ujian PMB (Bisa diakses Camaba maupun Admin PMB)
     Route::get('/pmb/kartu-ujian/cetak', [PmbController::class, 'cetakKartuUjian'])->name('pmb.kartu-ujian.cetak');
 
     Route::middleware('role:camaba')->prefix('pmb')->name('pmb.')->group(function () {
@@ -211,7 +217,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // =========================================================================
-    // BLOK RUTE DOSEN, TRIDHARMA (BKD/SISTER), & TUTORSHIP
+    // BLOK RUTE DOSEN, TRIDHARMA, & TUTORSHIP
     // =========================================================================
     Route::middleware('role:dosen')->group(function () {
         Route::get('/dosen/dashboard', [DosenDashboardController::class, 'index'])->name('dosen.dashboard');
@@ -261,7 +267,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // =========================================================================
-    // BLOK RUTE BUKU NILAI OBE & SINKRONISASI VERUM
+    // BLOK RUTE BUKU NILAI & SINKRONISASI VERUM
     // =========================================================================
     Route::get('/nilai/{mataKuliah}', [NilaiController::class, 'show'])->name('nilai.show');
     Route::post('/nilai', [NilaiController::class, 'store'])->name('nilai.store');
@@ -358,6 +364,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('pmb-periods', PmbPeriodController::class);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
 
+        Route::resource('fakultas', FakultasController::class)->except(['create', 'show', 'edit']);
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('kurikulum', KurikulumController::class)->except(['show']);
