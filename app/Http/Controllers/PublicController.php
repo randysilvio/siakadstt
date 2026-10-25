@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProgramStudi;
+use App\Models\Kurikulum;
+use App\Models\MataKuliah;
 use App\Models\Pengumuman;
 use App\Models\Mahasiswa;
 use App\Models\Dosen;
@@ -20,14 +22,10 @@ use Illuminate\View\View;
 
 class PublicController extends Controller
 {
-    /**
-     * Menampilkan halaman publik utama (welcome) gaya UKSW Enterprise.
-     */
     public function index(): View
     {
         $cfg = Pengaturan::allCached();
 
-        // 1. Berita & Pengumuman Publik
         $beritaTerbaru = Pengumuman::where('target_role', 'semua')
             ->latest()
             ->take(4)
@@ -35,27 +33,23 @@ class PublicController extends Controller
         $beritaUtama = $beritaTerbaru->first();
         $beritaLainnya = $beritaTerbaru->skip(1);
 
-        // 2. Slideshow & Program Studi (beserta Kaprodi, jumlah mahasiswa aktif, & mata kuliah)
         $slides = Slideshow::where('is_aktif', true)->orderBy('urutan')->get();
         $programStudi = ProgramStudi::with(['kaprodi'])
             ->withCount(['mahasiswas' => fn($q) => $q->where('status_mahasiswa', 'Aktif')])
             ->orderBy('nama_prodi')
             ->get();
 
-        // 3. Statistik Impact Kampus
         $totalMahasiswa = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
         $totalAlumni    = Mahasiswa::where('status_mahasiswa', 'Lulus')->count();
         $totalDosen     = Dosen::count();
         $totalKoleksi   = Koleksi::count();
 
-        // 4. Gelombang PMB yang sedang aktif
         $today = Carbon::today();
         $periodePmbAktif = PmbPeriod::where('is_active', true)
             ->whereDate('tanggal_buka', '<=', $today)
             ->whereDate('tanggal_tutup', '>=', $today)
             ->first();
 
-        // 5. Sorotan Riset, Publikasi Ilmiah & Pengabdian Masyarakat Dosen (Tridharma)
         $risetTerbaru = DosenTridharma::with('dosen.programStudi')
             ->whereIn('unsur', ['penelitian', 'pengabdian'])
             ->orderBy('tahun', 'desc')
@@ -63,17 +57,13 @@ class PublicController extends Controller
             ->take(4)
             ->get();
 
-        // 6. Koleksi Buku Perpustakaan Terbaru (OPAC Preview)
         $koleksiTerbaru = Koleksi::latest()->take(4)->get();
-
-        // 7. Dokumen Publik & Agenda Kegiatan Terdekat
         $dokumen = DokumenPublik::latest()->take(5)->get();
         $kegiatanTerdekat = KegiatanAkademik::where('tanggal_mulai', '>=', now()->subDays(7))
             ->orderBy('tanggal_mulai', 'asc')
             ->take(4)
             ->get();
 
-        // 8. Ringkasan Tracer Study Alumni
         $totalTracer = TracerStudy::count();
         $persenSerapanAlumni = $totalTracer > 0
             ? round((TracerStudy::where('status_pekerjaan', '!=', 'Belum Bekerja')->count() / $totalTracer) * 100)
@@ -99,8 +89,56 @@ class PublicController extends Controller
     }
 
     /**
-     * Halaman Publik: Profil Institusi, Sejarah, Visi-Misi, & Struktur Organisasi (Sinode/Yayasan, Senat, Kampus, & Prodi).
+     * Halaman Publik: Detail Program Studi, Dosen Homebase, & Kurikulum Semester 1-8.
      */
+    public function showProdi(ProgramStudi $programStudi): View
+    {
+        $cfg = Pengaturan::allCached();
+        $programStudi->load(['kaprodi', 'fakultas', 'dosens']);
+        $jumlahMahasiswaAktif = $programStudi->mahasiswas()->where('status_mahasiswa', 'Aktif')->count();
+        $jumlahAlumni = $programStudi->mahasiswas()->where('status_mahasiswa', 'Lulus')->count();
+
+        // Cari kurikulum aktif milik prodi ini atau kurikulum aktif global
+        $kurikulum = Kurikulum::where('program_studi_id', $programStudi->id)
+            ->orderBy('is_active', 'desc')
+            ->orderBy('tahun', 'desc')
+            ->first();
+
+        if (!$kurikulum) {
+            $kurikulum = Kurikulum::where('is_active', true)->orderBy('tahun', 'desc')->first();
+        }
+
+        $mataKuliahsPerSemester = collect();
+        if ($kurikulum) {
+            $mataKuliahsPerSemester = MataKuliah::with('dosen')
+                ->where('kurikulum_id', $kurikulum->id)
+                ->orderBy('semester')
+                ->orderBy('kode_mk')
+                ->get()
+                ->groupBy('semester');
+        }
+
+        if ($mataKuliahsPerSemester->isEmpty()) {
+            $mataKuliahsPerSemester = MataKuliah::with('dosen')
+                ->orderBy('semester')
+                ->orderBy('kode_mk')
+                ->get()
+                ->groupBy('semester');
+        }
+
+        $semuaProdi = ProgramStudi::orderBy('nama_prodi')->get();
+
+        return view('public.prodi_show', compact(
+            'cfg',
+            'programStudi',
+            'jumlahMahasiswaAktif',
+            'jumlahAlumni',
+            'kurikulum',
+            'mataKuliahsPerSemester',
+            'semuaProdi'
+        ));
+    }
+
     public function profilKampus(): View
     {
         $cfg = Pengaturan::allCached();
@@ -114,9 +152,6 @@ class PublicController extends Controller
         return view('public.profil_kampus', compact('cfg', 'programStudis', 'totalDosen', 'totalMahasiswa'));
     }
 
-    /**
-     * Halaman Publik: Etalase Riset, Publikasi Ilmiah & Pengabdian Masyarakat (Tridharma Dosen).
-     */
     public function risetPublikasi(Request $request): View
     {
         $cfg = Pengaturan::allCached();
@@ -157,9 +192,6 @@ class PublicController extends Controller
         ));
     }
 
-    /**
-     * Halaman Publik: Katalog Perpustakaan Digital (OPAC - Online Public Access Catalog).
-     */
     public function katalogPerpustakaan(Request $request): View
     {
         $cfg = Pengaturan::allCached();
@@ -187,9 +219,6 @@ class PublicController extends Controller
         return view('public.katalog_perpustakaan', compact('cfg', 'koleksis', 'totalJudul', 'totalEksemplar'));
     }
 
-    /**
-     * Menampilkan halaman daftar semua berita/pengumuman.
-     */
     public function semuaBerita(): View
     {
         $semuaBerita = Pengumuman::where('target_role', 'semua')
@@ -198,9 +227,6 @@ class PublicController extends Controller
         return view('berita', compact('semuaBerita'));
     }
 
-    /**
-     * Menampilkan detail satu pengumuman untuk publik.
-     */
     public function showPengumuman(Pengumuman $pengumuman): View
     {
         if ($pengumuman->target_role !== 'semua') {
@@ -219,22 +245,12 @@ class PublicController extends Controller
         ]);
     }
 
-    /**
-     * Menampilkan halaman daftar semua dokumen publik.
-     */
     public function dokumenPublik(Request $request): View
     {
-        $query = DokumenPublik::latest();
+        $semuaDokumen = DokumenPublik::latest()->get();
+        $dokumenPerKategori = $semuaDokumen->groupBy(fn($item) => $item->kategori ?: 'Umum');
+        $kategoris = $dokumenPerKategori->keys();
 
-        if ($request->filled('kategori')) {
-            $query->where('kategori', $request->kategori);
-        }
-
-        if ($request->filled('search')) {
-            $query->where('judul', 'like', '%' . $request->search . '%');
-        }
-
-        $dokumens = $query->paginate(12)->withQueryString();
-        return view('dokumen_publik', compact('dokumens'));
+        return view('dokumen_publik', compact('kategoris', 'dokumenPerKategori'));
     }
 }

@@ -26,7 +26,6 @@ class PmbRegisterController extends Controller
     {
         $today = Carbon::today();
 
-        // Cari Gelombang PMB yang sedang aktif dan berada dalam periode tanggal buka/tutup
         $periodeAktif = PmbPeriod::where('is_active', true)
             ->whereDate('tanggal_buka', '<=', $today)
             ->whereDate('tanggal_tutup', '>=', $today)
@@ -43,16 +42,15 @@ class PmbRegisterController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'no_hp' => 'required|string|max:15',
-            'password' => 'required|string|min:8|confirmed',
-            'pmb_period_id' => 'required|exists:pmb_periods,id',
+            'name'               => 'required|string|max:255',
+            'email'              => 'required|string|email|max:255|unique:users',
+            'no_hp'              => 'required|string|max:15',
+            'password'           => 'required|string|min:8|confirmed',
+            'pmb_period_id'      => 'required|exists:pmb_periods,id',
             'pilihan_prodi_1_id' => 'required|exists:program_studis,id',
         ]);
 
         $today = Carbon::today();
-        // [PERBAIKAN KEAMANAN FASE 4]: Validasi bahwa gelombang PMB benar-benar aktif & belum tutup
         $periode = PmbPeriod::where('id', $request->pmb_period_id)
             ->where('is_active', true)
             ->whereDate('tanggal_buka', '<=', $today)
@@ -67,39 +65,39 @@ class PmbRegisterController extends Controller
         try {
             // 1. Buat User Baru
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
+                'name'     => $request->name,
+                'email'    => $request->email,
                 'password' => Hash::make($request->password),
             ]);
 
-            // 2. Berikan Role Camaba
-            $roleCamaba = Role::where('name', 'camaba')->first();
-            if ($roleCamaba) {
-                $user->roles()->attach($roleCamaba->id);
-            }
+            // 2. Pastikan Role Camaba selalu tersedia di database & pasangkan ke User
+            $roleCamaba = Role::firstOrCreate(
+                ['name' => 'camaba'],
+                ['display_name' => 'Calon Mahasiswa Baru (PMB)']
+            );
+            $user->roles()->syncWithoutDetaching([$roleCamaba->id]);
 
             // 3. Buat Data Camaba
-            $noPendaftaran = 'REG-' . date('Y') . '-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
+            $noPendaftaran = 'REG-' . date('Y') . '-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
 
             Camaba::create([
-                'user_id' => $user->id,
-                'pmb_period_id' => $periode->id,
-                'no_pendaftaran' => $noPendaftaran,
-                'no_hp' => $request->no_hp,
+                'user_id'            => $user->id,
+                'pmb_period_id'      => $periode->id,
+                'no_pendaftaran'     => $noPendaftaran,
+                'no_hp'              => $request->no_hp,
                 'pilihan_prodi_1_id' => $request->pilihan_prodi_1_id,
                 'status_pendaftaran' => 'draft', 
             ]);
 
             // 4. Otomatis Buat Tagihan Pembayaran Formulir
-            // [PERBAIKAN BUG FASE 4]: Standarisasi status menjadi 'belum_lunas'
             Pembayaran::create([
-                'user_id' => $user->id,          
-                'mahasiswa_id' => null,          
+                'user_id'          => $user->id,          
+                'mahasiswa_id'     => null,          
                 'jenis_pembayaran' => 'formulir_pmb',
-                'jumlah' => $periode->biaya_pendaftaran ?? 250000,
-                'status' => 'belum_lunas',
-                'semester' => 'PMB',             
-                'keterangan' => 'Biaya Pendaftaran ' . $periode->nama_gelombang
+                'jumlah'           => $periode->biaya_pendaftaran ?? 250000,
+                'status'           => 'belum_lunas',
+                'semester'         => 'PMB',             
+                'keterangan'       => 'Biaya Pendaftaran ' . $periode->nama_gelombang
             ]);
 
             DB::commit();
@@ -111,10 +109,10 @@ class PmbRegisterController extends Controller
 
             if ($admins->isNotEmpty()) {
                 Notification::send($admins, new GeneralNotification(
-                    'Pendaftar PMB Baru!', 
+                    'Pendaftar PMB Baru', 
                     'Camaba baru atas nama ' . $user->name . ' telah mendaftar.', 
                     route('admin.pmb.index'), 
-                    'bi-person-badge-fill text-success'
+                    'bi-person-badge-fill text-dark'
                 ));
             }
 
@@ -124,7 +122,7 @@ class PmbRegisterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memproses pendaftaran. Silakan coba lagi.')->withInput();
+            return back()->with('error', 'Gagal memproses pendaftaran: ' . $e->getMessage())->withInput();
         }
     }
 }

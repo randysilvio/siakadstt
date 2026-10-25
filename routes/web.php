@@ -67,6 +67,7 @@ use App\Http\Controllers\NotificationController;
 // =========================================================================
 Route::get('/', [PublicController::class, 'index'])->name('welcome');
 Route::get('/profil-kampus', [PublicController::class, 'profilKampus'])->name('publik.profil');
+Route::get('/program-studi/{programStudi}', [PublicController::class, 'showProdi'])->name('publik.prodi.show');
 Route::get('/riset-dan-pengabdian', [PublicController::class, 'risetPublikasi'])->name('publik.riset');
 Route::get('/katalog-perpustakaan', [PublicController::class, 'katalogPerpustakaan'])->name('publik.perpustakaan');
 Route::get('/dokumen-publik', [PublicController::class, 'dokumenPublik'])->name('dokumen.publik');

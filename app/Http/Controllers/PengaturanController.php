@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Storage;
 
 class PengaturanController extends Controller
 {
-    /**
-     * Menampilkan halaman Pusat Kendali Pengaturan Sistem (7 Tab).
-     */
     public function index()
     {
         $cfg = Pengaturan::allCached();
@@ -19,23 +16,31 @@ class PengaturanController extends Controller
         return view('pengaturan.index', compact('cfg', 'pengaturans'));
     }
 
-    /**
-     * Menyimpan seluruh konfigurasi dari 7 Tab Pengaturan & Upload Berkas Visual.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'nama_kampus'          => 'required|string|max:255',
-            'singkatan_kampus'     => 'required|string|max:80',
-            'nama_rektor'          => 'required|string|max:255',
-            'logo_file'            => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
-            'favicon_file'         => 'nullable|image|mimes:png,ico,jpg,jpeg|max:1024',
-            'foto_pimpinan_file'   => 'nullable|image|mimes:png,jpg,jpeg,webp|max:3072',
-            'bagan_struktur_file'  => 'nullable|image|mimes:png,jpg,jpeg,webp|max:5120',
+            'nama_kampus'            => 'required|string|max:255',
+            'singkatan_kampus'       => 'required|string|max:80',
+            'nama_rektor'            => 'required|string|max:255',
+            'logo_file'              => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'logo_event_file'        => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'favicon_file'           => 'nullable|image|mimes:png,ico,jpg,jpeg,webp|max:1024',
+            'foto_pimpinan_file'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
+            'watermark_card_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'watermark_section_file' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
+            'bagan_struktur_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp|max:5120',
         ]);
 
         $allowedKeys = array_keys(Pengaturan::defaults());
-        $fileKeys = ['logo_path', 'favicon_path', 'foto_pimpinan_path', 'bagan_struktur_path'];
+        $fileKeys = [
+            'logo_path',
+            'logo_event_path',
+            'favicon_path',
+            'foto_pimpinan_path',
+            'watermark_card_path',
+            'watermark_section_path',
+            'bagan_struktur_path',
+        ];
 
         foreach ($allowedKeys as $key) {
             if (in_array($key, $fileKeys, true)) {
@@ -50,48 +55,45 @@ class PengaturanController extends Controller
             }
         }
 
-        // Handle Upload Logo Utama Kampus
-        if ($request->hasFile('logo_file')) {
-            $old = Pengaturan::get('logo_path');
-            if ($old && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
+        $uploadMapping = [
+            'logo_file'              => 'logo_path',
+            'logo_event_file'        => 'logo_event_path',
+            'favicon_file'           => 'favicon_path',
+            'foto_pimpinan_file'     => 'foto_pimpinan_path',
+            'watermark_card_file'    => 'watermark_card_path',
+            'watermark_section_file' => 'watermark_section_path',
+            'bagan_struktur_file'    => 'bagan_struktur_path',
+        ];
+
+        foreach ($uploadMapping as $inputName => $settingKey) {
+            if ($request->hasFile($inputName)) {
+                $old = Pengaturan::get($inputName === 'logo_file' ? 'logo_path' : $settingKey);
+                if ($old && Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
+                }
+                $path = $request->file($inputName)->store('branding', 'public');
+                Pengaturan::updateOrCreate(['key' => $settingKey], ['value' => $path]);
             }
-            $path = $request->file('logo_file')->store('branding', 'public');
-            Pengaturan::updateOrCreate(['key' => 'logo_path'], ['value' => $path]);
         }
 
-        // Handle Upload Favicon
-        if ($request->hasFile('favicon_file')) {
-            $old = Pengaturan::get('favicon_path');
-            if ($old && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
-            }
-            $path = $request->file('favicon_file')->store('branding', 'public');
-            Pengaturan::updateOrCreate(['key' => 'favicon_path'], ['value' => $path]);
-        }
+        $resetFlags = [
+            'hapus_logo_event'        => 'logo_event_path',
+            'hapus_watermark_card'    => 'watermark_card_path',
+            'hapus_watermark_section' => 'watermark_section_path',
+        ];
 
-        // Handle Upload Foto Pimpinan (Ketua / Rektor)
-        if ($request->hasFile('foto_pimpinan_file')) {
-            $old = Pengaturan::get('foto_pimpinan_path');
-            if ($old && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
+        foreach ($resetFlags as $flag => $key) {
+            if ($request->input($flag) === '1') {
+                $old = Pengaturan::get($key);
+                if ($old && Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
+                }
+                Pengaturan::updateOrCreate(['key' => $key], ['value' => '']);
             }
-            $path = $request->file('foto_pimpinan_file')->store('branding', 'public');
-            Pengaturan::updateOrCreate(['key' => 'foto_pimpinan_path'], ['value' => $path]);
-        }
-
-        // Handle Upload Gambar Bagan Struktur Organisasi
-        if ($request->hasFile('bagan_struktur_file')) {
-            $old = Pengaturan::get('bagan_struktur_path');
-            if ($old && Storage::disk('public')->exists($old)) {
-                Storage::disk('public')->delete($old);
-            }
-            $path = $request->file('bagan_struktur_file')->store('branding', 'public');
-            Pengaturan::updateOrCreate(['key' => 'bagan_struktur_path'], ['value' => $path]);
         }
 
         Pengaturan::clearCache();
 
-        return redirect()->back()->with('success', 'Seluruh konfigurasi Pusat Kendali Sistem, Tema Visual, Kop Surat, dan Struktur Organisasi berhasil diperbarui.');
+        return redirect()->back()->with('success', 'Konfigurasi sistem, logo kegiatan, dan tema berhasil disimpan.');
     }
 }

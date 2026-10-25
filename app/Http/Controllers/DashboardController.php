@@ -20,6 +20,7 @@ use App\Models\Peminjaman;
 use App\Models\SuratKeputusan;
 use App\Models\DokumenPublik;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\VerumKelas;
 use Carbon\Carbon;
 
@@ -30,18 +31,46 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // =========================================================
-        // Dashboard Khusus CAMABA (Calon Mahasiswa)
+        // AUTO-RECOVERY (SELF-HEALING) ROLE CAMABA / MAHASISWA / DOSEN
+        // Jika user punya profil camaba (dan belum dimigrasi jadi mahasiswa) tapi rolenya hilang, pulihkan otomatis!
         // =========================================================
-        if ($user->hasRole('camaba')) {
+        if (!$user->hasRole('camaba') && $user->camaba && !$user->camaba->is_migrated && !$user->mahasiswa) {
+            $roleCamaba = Role::firstOrCreate(
+                ['name' => 'camaba'],
+                ['display_name' => 'Calon Mahasiswa Baru (PMB)']
+            );
+            $user->roles()->syncWithoutDetaching([$roleCamaba->id]);
+            $user->load('roles');
+        } elseif (!$user->hasRole('mahasiswa') && $user->mahasiswa) {
+            $roleMhs = Role::firstOrCreate(
+                ['name' => 'mahasiswa'],
+                ['display_name' => 'Mahasiswa']
+            );
+            $user->roles()->syncWithoutDetaching([$roleMhs->id]);
+            $user->load('roles');
+        } elseif (!$user->hasRole('dosen') && $user->dosen) {
+            $roleDosen = Role::firstOrCreate(
+                ['name' => 'dosen'],
+                ['display_name' => 'Dosen']
+            );
+            $user->roles()->syncWithoutDetaching([$roleDosen->id]);
+            $user->load('roles');
+        }
+
+        // =========================================================
+        // Dashboard Khusus CAMABA (Calon Mahasiswa Baru)
+        // =========================================================
+        if ($user->hasRole('camaba') || ($user->camaba && !$user->camaba->is_migrated)) {
             $camaba = $user->camaba; 
             
             $tagihan = Pembayaran::where('user_id', $user->id)
-                            ->where('jenis_pembayaran', 'formulir_pmb')
-                            ->latest()
-                            ->first();
+                ->where('jenis_pembayaran', 'formulir_pmb')
+                ->latest()
+                ->first();
             
             return view('dashboard.camaba', compact('camaba', 'tagihan'));
         }
@@ -60,17 +89,15 @@ class DashboardController extends Controller
         // Dashboard Khusus ADMIN
         // =========================================================
         if ($user->hasRole('admin')) {
-            // Hanya hitung mahasiswa berstatus Aktif untuk grafik populasi aktif per Prodi
             $prodiData = ProgramStudi::withCount(['mahasiswas' => function ($q) {
                 $q->where('status_mahasiswa', 'Aktif');
             }])->get();
 
             $dataGrafikProdi = [
                 'labels' => $prodiData->pluck('nama_prodi'),
-                'data' => $prodiData->pluck('mahasiswas_count'),
+                'data'   => $prodiData->pluck('mahasiswas_count'),
             ];
 
-            // 1. DATA LOG PENGGUNA TERAKHIR
             $onlineUsersMap = Cache::get('siakad-online-users-list', []);
             $onlineUserIds = array_keys($onlineUsersMap);
             $onlineUserIds = array_diff($onlineUserIds, [$user->id]); 
@@ -93,7 +120,6 @@ class DashboardController extends Controller
                     ->get();
             }
 
-            // 2. DATA PROGRES SEMESTER (HANYA MAHASISWA AKTIF - TIDAK TERPENGARUH LULUS/DO/CUTI)
             $matkulBelumDiplot = 0;
             $persenKrs = 0;
             
@@ -110,9 +136,7 @@ class DashboardController extends Controller
                 $matkulBelumDiplot = MataKuliah::whereNull('dosen_id')->count();
             }
 
-            // 3. PANTAUAN KELAS VIRTUAL/ONLINE HARI INI
             $jadwalHariIni = collect();
-            
             $mapHari = [
                 'Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa',
                 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
@@ -121,16 +145,16 @@ class DashboardController extends Controller
 
             if ($periodeAktif) {
                 $mkAktifSaatIniIds = DB::table('mahasiswa_mata_kuliah')
-                                       ->where('tahun_akademik_id', $periodeAktif->id)
-                                       ->distinct()
-                                       ->pluck('mata_kuliah_id')
-                                       ->toArray();
+                    ->where('tahun_akademik_id', $periodeAktif->id)
+                    ->distinct()
+                    ->pluck('mata_kuliah_id')
+                    ->toArray();
 
                 if (!empty($mkAktifSaatIniIds)) {
                     $verumKelasMap = VerumKelas::where('tahun_akademik_id', $periodeAktif->id)
-                                               ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
-                                               ->get()
-                                               ->keyBy('mata_kuliah_id');
+                        ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
+                        ->get()
+                        ->keyBy('mata_kuliah_id');
 
                     $jadwalHariIni = Jadwal::with(['mataKuliah.dosen'])
                         ->whereIn('mata_kuliah_id', $mkAktifSaatIniIds)
@@ -160,10 +184,10 @@ class DashboardController extends Controller
                                     $jadwal->ikon_status = 'bi-broadcast text-primary pulse-badge'; 
                                     $jadwal->tooltip_status = 'Sesi Online Sedang Berjalan';
                                 } elseif ($now->lt($mulai)) {
-                                    $jadwal->ikon_status = 'bi-clock-history text-warning';
+                                    $jadwal->ikon_status = 'bi-clock-history text-secondary';
                                     $jadwal->tooltip_status = 'Menunggu Jadwal';
                                 } else {
-                                    $jadwal->ikon_status = 'bi-check2-circle text-success';
+                                    $jadwal->ikon_status = 'bi-check2-circle text-dark';
                                     $jadwal->tooltip_status = 'Selesai';
                                 }
                             } catch (\Exception $e) {
@@ -176,18 +200,18 @@ class DashboardController extends Controller
             }
 
             return view('dashboard.admin', [
-                'totalMahasiswa' => Mahasiswa::where('status_mahasiswa', 'Aktif')->count(),
-                'totalDosen' => Dosen::count(),
-                'totalProdi' => ProgramStudi::count(),
-                'totalMatkul' => MataKuliah::count(),
-                'pengumumans' => $pengumumans,
-                'dataGrafikProdi' => $dataGrafikProdi,
-                'periodeAktif' => $periodeAktif,
-                'logPengguna' => $logPengguna,
-                'persenKrs' => $persenKrs,
+                'totalMahasiswa'    => Mahasiswa::where('status_mahasiswa', 'Aktif')->count(),
+                'totalDosen'        => Dosen::count(),
+                'totalProdi'        => ProgramStudi::count(),
+                'totalMatkul'       => MataKuliah::count(),
+                'pengumumans'       => $pengumumans,
+                'dataGrafikProdi'   => $dataGrafikProdi,
+                'periodeAktif'      => $periodeAktif,
+                'logPengguna'       => $logPengguna,
+                'persenKrs'         => $persenKrs,
                 'matkulBelumDiplot' => $matkulBelumDiplot,
-                'jadwalHariIni' => $jadwalHariIni, 
-                'namaHariIni' => $hariIniTxt,
+                'jadwalHariIni'     => $jadwalHariIni, 
+                'namaHariIni'       => $hariIniTxt,
             ]);
         }
         // =========================================================
@@ -222,12 +246,12 @@ class DashboardController extends Controller
             }
 
             return view('dashboard.mahasiswa', [
-                'mahasiswa' => $mahasiswa,
-                'ipk' => $mahasiswa->hitungIpk(),
-                'total_sks' => $mahasiswa->totalSksLulus(),
+                'mahasiswa'        => $mahasiswa,
+                'ipk'              => $mahasiswa->hitungIpk(),
+                'total_sks'        => $mahasiswa->totalSksLulus(),
                 'memiliki_tagihan' => $mahasiswa->pembayarans()->whereIn('status', ['belum_lunas', 'belum_bayar'])->exists(),
-                'pengumumans' => $pengumumans,
-                'jadwalKuliah' => $jadwalKuliahMahasiswa,
+                'pengumumans'      => $pengumumans,
+                'jadwalKuliah'     => $jadwalKuliahMahasiswa,
             ]);
         }
         // =========================================================
@@ -247,12 +271,12 @@ class DashboardController extends Controller
                 ->get();
 
             return view('pembayaran.dashboard', [
-                'totalTagihan' => Pembayaran::count(),
-                'totalLunas' => Pembayaran::where('status', 'lunas')->count(),
-                'totalBelumLunas' => Pembayaran::whereIn('status', ['belum_lunas', 'belum_bayar'])->count(),
-                'pengumumans' => $pengumumans,
+                'totalTagihan'      => Pembayaran::count(),
+                'totalLunas'        => Pembayaran::where('status', 'lunas')->count(),
+                'totalBelumLunas'   => Pembayaran::whereIn('status', ['belum_lunas', 'belum_bayar'])->count(),
+                'pengumumans'       => $pengumumans,
                 'pembayaranTerbaru' => $pembayaranTerbaru,
-                'tagihanTerlama' => $tagihanTerlama
+                'tagihanTerlama'    => $tagihanTerlama
             ]);
         }
         // =========================================================
@@ -267,13 +291,13 @@ class DashboardController extends Controller
                 ->get();
 
             return view('perpustakaan.dashboard', [
-                'totalJudul' => Koleksi::count(),
-                'totalEksemplar' => Koleksi::sum('jumlah_stok'),
-                'peminjamanAktif' => Peminjaman::where('status', 'Dipinjam')->count(),
-                'terlambatCount' => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(),
+                'totalJudul'        => Koleksi::count(),
+                'totalEksemplar'    => Koleksi::sum('jumlah_stok'),
+                'peminjamanAktif'   => Peminjaman::where('status', 'Dipinjam')->count(),
+                'terlambatCount'    => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(),
                 'aktivitasTerakhir' => Peminjaman::with(['user', 'koleksi'])->latest()->take(5)->get(),
-                'koleksiPopuler' => $koleksiPopuler,
-                'pengumumans' => $pengumumans
+                'koleksiPopuler'    => $koleksiPopuler,
+                'pengumumans'       => $pengumumans
             ]);
         }
         // =========================================================
@@ -289,13 +313,13 @@ class DashboardController extends Controller
             $dokumenTerbaru = DokumenPublik::latest()->take(5)->get();
 
             return view('administrasi.dashboard', [
-                'suratSelesai' => $suratSelesai,
-                'suratMenunggu' => $suratMenunggu,
-                'suratDraf' => $suratDraf,
-                'totalDokumen' => $totalDokumen,
-                'suratTerbaru' => $suratTerbaru,
+                'suratSelesai'   => $suratSelesai,
+                'suratMenunggu'  => $suratMenunggu,
+                'suratDraf'      => $suratDraf,
+                'totalDokumen'   => $totalDokumen,
+                'suratTerbaru'   => $suratTerbaru,
                 'dokumenTerbaru' => $dokumenTerbaru,
-                'pengumumans' => $pengumumans
+                'pengumumans'    => $pengumumans
             ]);
         }
         elseif ($user->hasRole('rektorat')) {
@@ -309,9 +333,6 @@ class DashboardController extends Controller
         return redirect('/login')->with('error', 'Peran Anda tidak dikenali atau belum diatur. Silakan hubungi administrator.');
     }
 
-    /**
-     * Endpoint JSON untuk Grafik / Statistik Jumlah Mahasiswa Aktif per Program Studi (Web & Mobile API).
-     */
     public function mahasiswaPerProdi()
     {
         $prodiData = ProgramStudi::withCount(['mahasiswas' => function ($q) {

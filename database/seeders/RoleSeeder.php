@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Role;
 
@@ -14,22 +13,19 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            ['name' => 'admin', 'display_name' => 'Administrator'],
-            ['name' => 'dosen', 'display_name' => 'Dosen'],
-            ['name' => 'mahasiswa', 'display_name' => 'Mahasiswa'],
-            ['name' => 'kaprodi', 'display_name' => 'Kepala Program Studi'],
-            ['name' => 'keuangan', 'display_name' => 'Staf Keuangan'],
-            ['name' => 'pustakawan', 'display_name' => 'Pustakawan'],
-            ['name' => 'rektorat', 'display_name' => 'Pimpinan / Rektorat'],
-            ['name' => 'penjaminan_mutu', 'display_name' => 'Penjaminan Mutu'],
-            
-            // [FITUR BARU] Role untuk Sarpras, SK, dan Administrasi
+            ['name' => 'admin',             'display_name' => 'Administrator'],
+            ['name' => 'dosen',             'display_name' => 'Dosen'],
+            ['name' => 'mahasiswa',         'display_name' => 'Mahasiswa'],
+            ['name' => 'camaba',            'display_name' => 'Calon Mahasiswa Baru (PMB)'],
+            ['name' => 'kaprodi',           'display_name' => 'Ketua Program Studi'],
+            ['name' => 'keuangan',          'display_name' => 'Staf Keuangan'],
+            ['name' => 'pustakawan',        'display_name' => 'Pustakawan'],
+            ['name' => 'rektorat',          'display_name' => 'Pimpinan / Rektorat'],
+            ['name' => 'penjaminan_mutu',   'display_name' => 'Penjaminan Mutu'],
             ['name' => 'administrasi_umum', 'display_name' => 'Administrasi Umum & Sarpras'],
         ];
 
         foreach ($roles as $role) {
-            // Ganti 'create' menjadi 'firstOrCreate'
-            // Ini akan mencari role berdasarkan 'name'. Jika tidak ada, baru akan dibuat.
             Role::firstOrCreate(['name' => $role['name']], $role);
         }
     }

@@ -1,102 +1,86 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4">
-    {{-- 1. HEADER & STATUS UTAMA --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+<div class="container-fluid px-3 px-md-4">
+    {{-- 1. HEADER & TOMBOL PUSAT LAPORAN --}}
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 mt-2 gap-2">
         <div>
             <h3 class="fw-bold text-dark mb-0 uppercase">Dashboard Penjaminan Mutu</h3>
             <span class="text-muted small uppercase">Monitoring Indikator Kinerja Utama & Kesiapan Akreditasi</span>
         </div>
-        <div class="d-flex align-items-center">
-            <span class="badge bg-success text-white rounded-0 uppercase fw-bold font-monospace px-3 py-2 me-2" style="font-size: 11px;">
-                <i class="bi bi-check-circle-fill me-1"></i> Sistem Aktif
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border uppercase fw-bold font-monospace px-3 py-2" style="font-size: 11px;">
+                Sistem Aktif
             </span>
-            
-            {{-- TOMBOL KE PUSAT LAPORAN --}}
-            <a href="{{ route('mutu.laporan.index') }}" class="btn btn-sm btn-dark rounded-0 px-3 uppercase fw-bold small shadow-sm">
+            <a href="{{ route('mutu.laporan.index') }}" class="btn btn-sm btn-dark px-3 py-2 uppercase fw-bold small shadow-sm">
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Pusat Laporan Akreditasi
             </a>
         </div>
     </div>
 
-    {{-- 2. KARTU INDIKATOR KINERJA UTAMA (KPI) --}}
-    <div class="row g-4 mb-5">
-        {{-- Total Mahasiswa --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
-                <div class="card-body p-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2">Total Mahasiswa</h6>
-                    <h2 class="fw-bold text-dark mb-1 font-monospace">{{ number_format($jumlahMahasiswaAktif) }}</h2>
-                    <span class="small text-muted uppercase font-monospace" style="font-size: 11px;">
-                        <i class="bi bi-person-check-fill me-1"></i> Status Aktif
-                    </span>
+    {{-- 2. KARTU INDIKATOR KINERJA UTAMA (KPI) LENGKAP --}}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card wm-card-exclusive hover-lift border-0 shadow-sm bg-dark text-white h-100">
+                <div class="card-body p-3 p-md-4">
+                    <h6 class="uppercase fw-bold small text-white-50 mb-2" style="font-size: 11px;">Total Mahasiswa</h6>
+                    <h2 class="fw-bold text-white mb-1 font-monospace">{{ number_format($jumlahMahasiswaAktif) }}</h2>
+                    <span class="small text-white-50 uppercase font-monospace" style="font-size: 10px;">Status Aktif</span>
                 </div>
             </div>
         </div>
 
-        {{-- Total Dosen --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
-                <div class="card-body p-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2">Total Dosen Tetap</h6>
+        <div class="col-6 col-md-3">
+            <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Total Dosen Tetap</h6>
                     <h2 class="fw-bold text-dark mb-1 font-monospace">{{ number_format($jumlahDosen) }}</h2>
-                    <span class="small text-muted uppercase font-monospace" style="font-size: 11px;">
-                        <i class="bi bi-person-workspace me-1"></i> NIDN Terdaftar
-                    </span>
+                    <span class="small text-muted uppercase font-monospace" style="font-size: 10px;">NIDN Terdaftar</span>
                 </div>
             </div>
         </div>
 
-        {{-- Rasio Dosen --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
-                <div class="card-body p-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2">Rasio Dosen : Mhs</h6>
+        <div class="col-6 col-md-3">
+            <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rasio Dosen : Mhs</h6>
                     <h2 class="fw-bold text-dark mb-1 font-monospace">{{ $rasioDosenMahasiswa }}</h2>
-                    <span class="small text-muted uppercase font-monospace" style="font-size: 11px;">
-                        <i class="bi bi-graph-up-arrow me-1"></i> Indikator Borang
-                    </span>
+                    <span class="small text-muted uppercase font-monospace" style="font-size: 10px;">Indikator Borang</span>
                 </div>
             </div>
         </div>
 
-        {{-- Rata-rata IPK --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-light">
-                <div class="card-body p-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2">Rata-rata IPK</h6>
+        <div class="col-6 col-md-3">
+            <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rata-rata IPK</h6>
                     <h2 class="fw-bold text-dark mb-1 font-monospace">{{ number_format($rataIPK, 2) }}</h2>
-                    <span class="small text-muted uppercase font-monospace" style="font-size: 11px;">
-                        <i class="bi bi-award-fill me-1"></i> Prestasi Institusi
-                    </span>
+                    <span class="small text-muted uppercase font-monospace" style="font-size: 10px;">Capaian Akademik</span>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- 3. VISUALISASI DATA & ANALISIS --}}
-    <div class="row g-4 mb-5">
-        {{-- Grafik Tren Mahasiswa --}}
+    {{-- 3. VISUALISASI DATA & ANALISIS (2 GRAFIK DIKEMBALIKAN PENUH) --}}
+    <div class="row g-4 mb-4">
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100">
-                <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-                    Tren Pertumbuhan Mahasiswa
+            <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-header bg-white py-3 border-bottom uppercase fw-bold small text-dark">
+                    Tren Pertumbuhan Mahasiswa per Angkatan
                 </div>
                 <div class="card-body p-4">
-                    <canvas id="trenMahasiswaChart" height="300"></canvas>
+                    <canvas id="trenMahasiswaChart" height="280"></canvas>
                 </div>
             </div>
         </div>
 
-        {{-- Grafik Status Mahasiswa --}}
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100">
-                <div class="card-header bg-white py-3 border-bottom rounded-0 uppercase fw-bold small text-dark">
-                    Distribusi Status
+            <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-header bg-white py-3 border-bottom uppercase fw-bold small text-dark">
+                    Distribusi Status Mahasiswa
                 </div>
                 <div class="card-body p-4 d-flex align-items-center justify-content-center">
-                    <div style="width: 100%; max-width: 300px;">
+                    <div style="width: 100%; max-width: 280px;">
                         <canvas id="distribusiStatusChart"></canvas>
                     </div>
                 </div>
@@ -106,15 +90,12 @@
 
     {{-- 4. LAPORAN EVALUASI DOSEN & DATA LULUSAN --}}
     <div class="row g-4 mb-5">
-        {{-- Tabel EDOM --}}
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-0 h-100">
-                <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
-                    <span class="uppercase fw-bold small">
-                        Kinerja Dosen Terbaik (EDOM)
-                    </span>
+            <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                    <span class="uppercase fw-bold small">Kinerja Dosen (Hasil EDOM)</span>
                     @if($sesiEdomAktif)
-                        <span class="badge bg-light text-dark rounded-0 uppercase font-monospace fw-bold" style="font-size: 10px;">
+                        <span class="badge bg-light text-dark uppercase font-monospace fw-bold" style="font-size: 10px;">
                             Periode: {{ $sesiEdomAktif->nama_sesi }}
                         </span>
                     @endif
@@ -122,39 +103,35 @@
                 <div class="card-body p-0">
                     @if($sesiEdomAktif && $hasilEdom->count() > 0)
                         <div class="table-responsive">
-                            <table class="table table-bordered align-middle mb-0">
-                                <thead class="bg-light text-dark small uppercase text-center fw-bold">
+                            <table class="table table-bordered align-middle mb-0 small">
+                                <thead class="bg-light text-dark uppercase text-center fw-bold">
                                     <tr>
-                                        <th style="width: 8%;">RANK</th>
+                                        <th style="width: 8%;">NO</th>
                                         <th class="text-start" style="width: 37%;">NAMA DOSEN</th>
                                         <th style="width: 20%;">SKOR RATA-RATA</th>
                                         <th style="width: 20%;">KATEGORI</th>
                                         <th style="width: 15%;">AKSI</th>
                                     </tr>
                                 </thead>
-                                <tbody class="small text-dark">
+                                <tbody>
                                     @foreach($hasilEdom as $index => $hasil)
                                         @php
                                             $skor = $hasil->rata_rata_skor;
                                             $kategori = $skor >= 3.5 ? 'SANGAT BAIK' : ($skor >= 2.5 ? 'BAIK' : 'PERLU EVALUASI');
                                         @endphp
                                         <tr>
+                                            <td class="text-center font-monospace fw-bold text-dark">{{ $index + 1 }}</td>
+                                            <td class="text-start uppercase fw-bold text-dark ps-3">{{ $hasil->nama_lengkap }}</td>
                                             <td class="text-center font-monospace fw-bold text-dark">
-                                                {{ $index + 1 }}
-                                            </td>
-                                            <td class="text-start uppercase fw-bold text-dark ps-3">
-                                                {{ $hasil->nama_lengkap }}
-                                            </td>
-                                            <td class="text-center font-monospace fw-bold text-dark">
-                                                {{ number_format($skor, 2) }} <span class="text-muted small font-monospace">/ 4.00</span>
+                                                {{ number_format($skor, 2) }} <span class="text-muted small">/ 4.00</span>
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge bg-dark text-white rounded-0 uppercase fw-bold font-monospace px-2 py-1" style="font-size: 10px;">
+                                                <span class="badge bg-dark text-white uppercase fw-bold font-monospace px-2 py-1" style="font-size: 10px;">
                                                     {{ $kategori }}
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <a href="{{ route('admin.evaluasi-hasil.show', ['sesi' => $sesiEdomAktif->id, 'dosen' => $hasil->dosen_id]) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-3 uppercase fw-bold small">
+                                                <a href="{{ route('admin.evaluasi-hasil.show', ['sesi' => $sesiEdomAktif->id, 'dosen' => $hasil->dosen_id]) }}" class="btn btn-sm btn-outline-dark py-1 px-3 uppercase fw-bold small">
                                                     Detail
                                                 </a>
                                             </td>
@@ -164,8 +141,7 @@
                             </table>
                         </div>
                     @else
-                        <div class="text-center py-5 uppercase fw-bold text-muted">
-                            <i class="bi bi-trophy fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                        <div class="text-center py-5 uppercase fw-bold text-muted small">
                             Data evaluasi belum tersedia untuk periode aktif ini.
                         </div>
                     @endif
@@ -173,48 +149,40 @@
             </div>
         </div>
 
-        {{-- Tabel Profil Lulusan --}}
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-0 h-100">
-                <div class="card-header bg-white py-3 border-bottom border-top border-dark border-4">
+            <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
+                <div class="card-header bg-white py-3 border-bottom">
                     <h6 class="fw-bold mb-0 text-dark uppercase small">Profil Kinerja Lulusan (Akreditasi)</h6>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-muted small uppercase text-center fw-bold">
-                            <tr>
-                                <th class="text-start ps-4" style="width: 25%;">TAHUN</th>
-                                <th style="width: 25%;">LULUSAN</th>
-                                <th style="width: 25%;">IPK RATA2</th>
-                                <th style="width: 25%;">MASA STUDI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($dataLulusan as $lulusan)
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="bg-light text-muted uppercase text-center fw-bold">
                                 <tr>
-                                    <td class="ps-4">
-                                        <span class="fw-bold fs-6 font-monospace">{{ $lulusan->tahun_lulus }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-dark rounded-0 px-3 py-2 font-monospace">{{ $lulusan->jumlah }} ORANG</span>
-                                    </td>
-                                    <td class="text-center font-monospace fw-bold text-success">
-                                        {{ number_format($lulusan->rata_ipk, 2) }}
-                                    </td>
-                                    <td class="text-center font-monospace text-muted">
-                                        {{ $lulusan->rata_masa_studi }} TAHUN
-                                    </td>
+                                    <th class="text-start ps-3">TAHUN</th>
+                                    <th>LULUSAN</th>
+                                    <th>IPK RATA2</th>
+                                    <th>MASA STUDI</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted small uppercase fw-bold">
-                                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                                        Belum Ada Data Lulusan Tercatat
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($dataLulusan as $lulusan)
+                                    <tr>
+                                        <td class="ps-3 fw-bold font-monospace">{{ $lulusan->tahun_lulus }}</td>
+                                        <td class="text-center"><span class="badge bg-dark px-2 py-1 font-monospace">{{ $lulusan->jumlah }} ORANG</span></td>
+                                        <td class="text-center font-monospace fw-bold text-dark">{{ number_format($lulusan->rata_ipk, 2) }}</td>
+                                        <td class="text-center font-monospace text-muted">{{ $lulusan->rata_masa_studi }} TAHUN</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-muted small uppercase fw-bold">
+                                            Belum Ada Data Lulusan Tercatat
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -231,10 +199,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const distribusiStatusLabels = @json($distribusiStatusLabels);
     const distribusiStatusTotals = @json($distribusiStatusTotals);
 
-    // Tetapkan Font Monospace Formal secara global untuk Chart
-    Chart.defaults.font.family = "'font-monospace', monospace";
+    Chart.defaults.font.family = "'Inter', sans-serif";
 
-    // Grafik Tren Mahasiswa (Baris Sudut Tajam 0px, Latar Gelap Tegas)
     new Chart(document.getElementById('trenMahasiswaChart').getContext('2d'), {
         type: 'bar',
         data: {
@@ -242,11 +208,10 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 label: 'JUMLAH MAHASISWA AKTIF',
                 data: trenMahasiswaTotals,
-                backgroundColor: '#212529', // bg-dark
-                borderColor: '#000000',
+                backgroundColor: '#1e293b',
+                borderColor: '#0f172a',
                 borderWidth: 1,
-                borderRadius: 0, // Sudut presisi tajam 0px
-                barThickness: 40
+                barThickness: 38
             }]
         },
         options: {
@@ -260,30 +225,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Grafik Distribusi Status (Kombinasi Warna Solid/Kaku)
     new Chart(document.getElementById('distribusiStatusChart').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: distribusiStatusLabels,
             datasets: [{
                 data: distribusiStatusTotals,
-                backgroundColor: ['#212529', '#0d6efd', '#dc3545', '#ffc107', '#6c757d'],
+                backgroundColor: ['#1e293b', '#475569', '#64748b', '#94a3b8', '#cbd5e1'],
                 borderWidth: 1,
-                borderColor: '#ffffff',
-                borderRadius: 0,
-                hoverOffset: 0
+                borderColor: '#ffffff'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { 
-                    position: 'bottom', 
-                    labels: { boxWidth: 12, font: { weight: 'bold' } } 
-                }
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { weight: 'bold' } } }
             },
-            cutout: '70%'
+            cutout: '68%'
         }
     });
 });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Role;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,8 +12,6 @@ class CheckRoleMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
@@ -26,11 +25,20 @@ class CheckRoleMiddleware
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
+        // Auto-recovery jika user adalah Camaba tetapi rolenya sempat terlepas
+        if (in_array('camaba', $roles, true) && !$user->hasRole('camaba') && $user->camaba && !$user->camaba->is_migrated) {
+            $roleCamaba = Role::firstOrCreate(
+                ['name' => 'camaba'],
+                ['display_name' => 'Calon Mahasiswa Baru (PMB)']
+            );
+            $user->roles()->syncWithoutDetaching([$roleCamaba->id]);
+            return $next($request);
+        }
+
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return $next($request);
             }
-            // Dukungan otomatis untuk dosen yang menjabat sebagai Kaprodi
             if ($role === 'kaprodi' && method_exists($user, 'isKaprodi') && $user->isKaprodi()) {
                 return $next($request);
             }
@@ -38,7 +46,7 @@ class CheckRoleMiddleware
 
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Akses ditolak. Anda tidak memiliki otorisasi untuk fitur ini.'
             ], 403);
         }
