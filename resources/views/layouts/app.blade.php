@@ -272,13 +272,6 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-xl-center gap-1">
                     @auth
-                        {{-- Menu Dashboard dihapus dari sini karena Logo & Nama Kampus sudah mengarah ke Dashboard --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('kalender.*') ? 'active' : '' }}" href="{{ route('kalender.halaman') }}">
-                                Kalender
-                            </a>
-                        </li>
-
                         @if(Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle {{ request()->is('admin/pmb*', 'admin/mahasiswa*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
@@ -294,7 +287,7 @@
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/tahun-akademik*', 'admin/fakultas*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*', 'bimbingan-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/tahun-akademik*', 'admin/fakultas*', 'admin/program-studi*', 'admin/mata-kuliah*', 'admin/kurikulum*', 'admin/nilai*', 'admin/kalender*', 'kalender-akademik*', 'bimbingan-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     Akademik
                                 </a>
                                 <ul class="dropdown-menu">
@@ -307,10 +300,11 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.kurikulum.index') }}">Kurikulum</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.mata-kuliah.index') }}">Mata Kuliah</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header">Perkuliahan</h6></li>
+                                    <li><h6 class="dropdown-header">Perkuliahan & Kalender</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.nilai.index') }}">Input Nilai</a></li>
                                     <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Agenda Kalender</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Kelola Agenda Kalender</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
@@ -395,14 +389,15 @@
 
                         @if(Auth::user()->hasRole('dosen') && !Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('perwalian*', 'kaprodi*', 'dosen*', 'bimbingan-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
-                                    Dosen
+                                <a class="nav-link dropdown-toggle {{ request()->is('perwalian*', 'kaprodi*', 'dosen*', 'bimbingan-akademik*', 'kalender-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    Akademik & Dosen
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ route('dosen.dashboard') }}">Ruang Kerja Dosen</a></li>
                                     <li><a class="dropdown-item" href="{{ route('dosen.tridharma.index') }}">Data Tridharma</a></li>
                                     <li><a class="dropdown-item" href="{{ route('perwalian.index') }}">{{ $istilahPerwalian }} Mahasiswa</a></li>
                                     <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                                     @if(Auth::user()->isKaprodi() || Auth::user()->hasRole('kaprodi'))
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{{ route('kaprodi.dashboard') }}">Panel Kaprodi</a></li>
@@ -426,7 +421,7 @@
                                 </li>
                             @else
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*', 'bimbingan-akademik*', 'layanan-surat*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                    <a class="nav-link dropdown-toggle {{ request()->is('krs*', 'khs*', 'transkrip*', 'pembayaran*', 'evaluasi*', 'bimbingan-akademik*', 'layanan-surat*', 'kalender-akademik*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                         Akademik
                                     </a>
                                     <ul class="dropdown-menu">
@@ -434,6 +429,7 @@
                                         <li><a class="dropdown-item" href="{{ route('khs.index') }}">Kartu Hasil Studi (KHS)</a></li>
                                         <li><a class="dropdown-item" href="{{ route('transkrip.index') }}">Transkrip Nilai</a></li>
                                         <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item" href="{{ route('pembayaran.riwayat') }}">Riwayat Pembayaran</a></li>
                                         <li><a class="dropdown-item" href="{{ route('surat-mandiri.index') }}">Permohonan Surat</a></li>
@@ -459,6 +455,15 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->is('pembayaran*') ? 'active' : '' }}" href="{{ route('pembayaran.index') }}">
                                     Tagihan & Pembayaran
+                                </a>
+                            </li>
+                        @endif
+
+                        {{-- Untuk peran lain (Rektorat, Mutu, Keuangan, Pustakawan, Administrasi Umum) yang tidak punya dropdown Akademik --}}
+                        @if(!Auth::user()->hasRole('admin') && !Auth::user()->hasRole('dosen') && !Auth::user()->hasRole('mahasiswa') && !Auth::user()->hasRole('camaba'))
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('kalender.*') ? 'active' : '' }}" href="{{ route('kalender.halaman') }}">
+                                    Kalender Akademik
                                 </a>
                             </li>
                         @endif

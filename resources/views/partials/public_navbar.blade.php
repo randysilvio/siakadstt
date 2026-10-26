@@ -122,7 +122,8 @@
 {{-- MAIN STICKY NAVBAR --}}
 <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
     <nav class="container mx-auto px-4 lg:px-8 py-3.5 flex justify-between items-center max-w-7xl">
-        <a href="{{ url('/') }}" class="flex items-center gap-4 group">
+        {{-- KLIK LOGO & NAMA KAMPUS LANGSUNG KE BERANDA UTAMA --}}
+        <a href="{{ url('/') }}" class="flex items-center gap-4 group" title="Halaman Utama {{ $singkatanPt }}">
             <img src="{{ $pubLogo }}" alt="Logo {{ $singkatanPt }}" class="h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105 shrink-0">
             @if($eventLogo)
                 <div class="h-8 w-px bg-slate-200"></div>
@@ -137,10 +138,7 @@
         </a>
 
         <div class="hidden lg:flex items-center space-x-6">
-            <a href="{{ url('/') }}" class="text-xs uppercase tracking-wider {{ request()->routeIs('welcome') ? 'font-extrabold text-pub-primary border-b-2 border-pub-primary pb-1' : 'font-semibold text-slate-600 hover:text-slate-950' }} transition">
-                Beranda
-            </a>
-
+            {{-- Menu Beranda dihapus karena klik Logo & Nama Kampus sudah mengarah ke Beranda --}}
             <div class="relative group">
                 <button type="button" class="text-xs uppercase tracking-wider {{ request()->routeIs('publik.profil') || request()->routeIs('dosen.public.*') ? 'font-extrabold text-pub-primary' : 'font-semibold text-slate-600 group-hover:text-slate-950' }} flex items-center gap-1 py-2">
                     Tentang Kampus <i class="fa-solid fa-chevron-down text-[9px] opacity-60 transition-transform duration-200 group-hover:rotate-180"></i>
@@ -203,7 +201,6 @@
     </nav>
 
     <div id="mobile-menu" class="hidden lg:hidden bg-white border-t border-slate-200 px-6 py-4 space-y-2 shadow-lg">
-        <a href="{{ url('/') }}" class="block py-1.5 text-xs font-bold uppercase text-slate-800 border-b border-slate-100">Beranda</a>
         <a href="{{ route('publik.profil') }}" class="block py-1.5 text-xs font-bold uppercase text-slate-800 border-b border-slate-100">Profil & Struktur Organisasi</a>
         @foreach($pubProdis as $pr)
             <a href="{{ route('publik.prodi.show', $pr->id) }}" class="block py-1.5 pl-3 text-xs font-semibold text-slate-600 border-b border-slate-100">&bull; Prodi {{ $pr->nama_prodi }}</a>
