@@ -12,9 +12,6 @@ use App\Models\Jadwal;
 
 class CetakController extends Controller
 {
-    /**
-     * Generate PDF untuk Kartu Hasil Studi (KHS).
-     */
     public function cetakKhs(Request $request)
     {
         /** @var \App\Models\User $user */
@@ -38,7 +35,7 @@ class CetakController extends Controller
         
         $krsSelected = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $selectedTaId)
-            ->withPivot('nilai')
+            ->withPivot('nilai', 'nama_kelas')
             ->get();
             
         $ipsData = $mahasiswa->hitungIps($selectedTaId);
@@ -54,9 +51,6 @@ class CetakController extends Controller
         return $pdf->stream($namaFile);
     }
 
-    /**
-     * Generate PDF untuk Transkrip Nilai.
-     */
     public function cetakTranskrip()
     {
         /** @var \App\Models\User $user */
@@ -66,21 +60,19 @@ class CetakController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // 1. Gatekeeper Alumni: Wajib isi Tracer Study sebelum cetak PDF Transkrip Nilai Akhir
         if ($mahasiswa->status_mahasiswa === 'Lulus' && !$mahasiswa->sudah_isi_tracer) {
             return redirect()->route('tracer.index')
                 ->with('error', 'Selamat atas kelulusan Anda! Mohon lengkapi kuesioner Tracer Study Alumni terlebih dahulu sebelum mencetak Transkrip Nilai Akhir.');
         }
 
-        // 2. Gatekeeper Mahasiswa Aktif: Wajib isi EDOM sebelum cetak Transkrip Sementara
         if ($mahasiswa->status_mahasiswa !== 'Lulus' && $mahasiswa->status_evaluasi === 'belum_isi') {
             return redirect()->route('evaluasi.index')
                 ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mencetak Transkrip Nilai.');
         }
 
         $semuaKrsSelesai = $mahasiswa->mataKuliahs()
-                         ->wherePivotNotNull('nilai')
-                         ->get();
+            ->wherePivotNotNull('nilai')
+            ->get();
 
         $bobot = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
         $matkulTerbaik = [];
@@ -110,9 +102,6 @@ class CetakController extends Controller
         return $pdf->download('Transkrip_' . $mahasiswa->nim . '.pdf');
     }
 
-    /**
-     * Generate PDF untuk Kartu Rencana Studi (KRS).
-     */
     public function cetakKrs()
     {
         /** @var \App\Models\User $user */
@@ -131,12 +120,9 @@ class CetakController extends Controller
         $rektor = Pengaturan::where('key', 'nama_rektor')->first();
 
         $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor', 'tahunAkademik'));
-        return $pdf->download('KRS_' . $mahasiswa->nim . '_' . $tahunAkademik->tahun . '.pdf');
+        return $pdf->download('KRS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunAkademik->tahun) . '.pdf');
     }
 
-    /**
-     * Generate PDF Jadwal Kuliah Semester Ini.
-     */
     public function cetakJadwal()
     {
         /** @var \App\Models\User $user */
@@ -148,17 +134,30 @@ class CetakController extends Controller
         
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        $mataKuliahIds = $mahasiswa->mataKuliahs()
+        $krsdiambil = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
-            ->pluck('mata_kuliahs.id');
+            ->get();
 
-        $jadwals = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
-            ->with(['mataKuliah', 'mataKuliah.dosen'])
-            ->get()
-            ->sortBy(function ($jadwal) {
-                $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                return $hariOrder[$jadwal->hari] ?? 99;
-            });
+        $mataKuliahIds = $krsdiambil->pluck('id')->toArray();
+        $kelasMap = [];
+        foreach ($krsdiambil as $mk) {
+            $kelasMap[$mk->id] = strtoupper($mk->pivot->nama_kelas ?? 'A');
+        }
+
+        $jadwals = collect();
+        if (!empty($mataKuliahIds)) {
+            $jadwals = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
+                ->with(['mataKuliah', 'mataKuliah.dosen'])
+                ->get()
+                ->filter(function ($j) use ($kelasMap) {
+                    $klsMhs = $kelasMap[$j->mata_kuliah_id] ?? 'A';
+                    return strtoupper($j->nama_kelas ?? 'A') === $klsMhs;
+                })
+                ->sortBy(function ($jadwal) {
+                    $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
+                    return $hariOrder[$jadwal->hari] ?? 99;
+                });
+        }
 
         $pdf = Pdf::loadView('mahasiswa.cetak_jadwal', compact('mahasiswa', 'jadwals', 'tahunAkademik'));
         return $pdf->stream('Jadwal_Kuliah_' . $mahasiswa->nim . '.pdf');

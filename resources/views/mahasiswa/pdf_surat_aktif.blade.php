@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <title>Surat Keterangan Aktif - {{ $mahasiswa->nim }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; margin: 0; padding: 0; line-height: 1.45; }
-        @page { size: A4 portrait; margin: 1.5cm; }
-        .title-container { text-align: center; margin: 15px 0 20px 0; }
-        .title { font-weight: bold; font-size: 13pt; text-decoration: underline; text-transform: uppercase; margin-bottom: 3px; }
-        .nomor-surat { font-size: 11pt; font-weight: bold; }
-        .content { margin-top: 10px; text-align: justify; }
-        .content p { margin: 10px 0; }
-        table.data-table { width: 92%; margin: 6px 0 12px 30px; border-collapse: collapse; }
-        .data-table td { padding: 3px 0; vertical-align: top; border: none; }
-        .data-table .label { width: 160px; }
-        .footer-sign { width: 100%; margin-top: 25px; page-break-inside: avoid; border-collapse: collapse; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; color: #000; margin: 0; padding: 0; line-height: 1.4; }
+        @page { size: A4 portrait; margin: 1.2cm 1.5cm; }
+        .title-container { text-align: center; margin: 10px 0 16px 0; }
+        .title { font-weight: bold; font-size: 12.5pt; text-decoration: underline; text-transform: uppercase; margin-bottom: 2px; }
+        .nomor-surat { font-size: 10.5pt; font-weight: bold; }
+        .content { margin-top: 8px; text-align: justify; }
+        .content p { margin: 8px 0; }
+        table.data-table { width: 92%; margin: 4px 0 10px 25px; border-collapse: collapse; }
+        .data-table td { padding: 2.5px 0; vertical-align: top; border: none; }
+        .data-table .label { width: 165px; }
+        .footer-sign { width: 100%; margin-top: 18px; page-break-inside: avoid; border-collapse: collapse; }
         .footer-sign td { width: 50%; text-align: center; vertical-align: bottom; border: none; }
-        .sign-space { height: 65px; }
+        .sign-space { height: 55px; }
     </style>
 </head>
 <body>
@@ -24,12 +24,19 @@
     @include('partials._kop')
 
     @php
-        $namaKetua = \App\Models\Pengaturan::where('key', 'nama_rektor')->value('value') ?: 'Wensly Peniel Raprap, S.Th., M.Pd';
+        $cfg = \App\Models\Pengaturan::allCached();
+        $namaKampus = $cfg['nama_kampus'] ?? 'Sekolah Tinggi Teologi Gereja Protestan Indonesia Papua';
+        $singkatanPt = $cfg['singkatan_kampus'] ?? 'STT GPI PAPUA';
+        $sebutanPimpinan = $cfg['sebutan_pimpinan'] ?? 'Ketua';
+        $namaPimpinan = $cfg['nama_rektor'] ?? 'Wensly Peniel Raprap, S.Th., M.Pd';
+        $labelIdPimpinan = $cfg['label_id_rektor'] ?? 'NUPTK';
+        $nidnPimpinan = $cfg['nidn_rektor'] ?? '8935756657130152';
+        $kotaTtd = $cfg['kota_domisili'] ?? 'Fakfak';
     @endphp
 
     <div class="title-container">
         <div class="title">SURAT KETERANGAN AKTIF KULIAH</div>
-        <div class="nomor-surat">Nomor: {{ $nomorSurat }}/STT-GPI/AK/{{ \Carbon\Carbon::now()->format('Y') }}</div>
+        <div class="nomor-surat">Nomor: {{ $nomorSurat }}/{{ strtoupper(str_replace(' ', '-', $singkatanPt)) }}/AK/{{ \Carbon\Carbon::now()->format('Y') }}</div>
     </div>
 
     <div class="content">
@@ -38,15 +45,15 @@
         <table class="data-table">
             <tr>
                 <td class="label">Nama</td>
-                <td>: <strong>{{ $namaKetua }}</strong></td>
+                <td>: <strong>{{ $namaPimpinan }}</strong></td>
             </tr>
             <tr>
-                <td class="label">NUPTK</td>
-                <td>: 8935756657130152</td>
+                <td class="label">{{ $labelIdPimpinan }}</td>
+                <td>: {{ $nidnPimpinan }}</td>
             </tr>
             <tr>
                 <td class="label">Jabatan</td>
-                <td>: Ketua STT GPI Papua</td>
+                <td>: {{ $sebutanPimpinan }} {{ $singkatanPt }}</td>
             </tr>
         </table>
 
@@ -71,7 +78,7 @@
             </tr>
         </table>
 
-        <p>Adalah benar terdaftar sebagai mahasiswa <strong>AKTIF</strong> pada Sekolah Tinggi Teologi (STT) Gereja Protestan Indonesia (GPI) Papua pada semester dan tahun akademik tersebut di atas.</p>
+        <p>Adalah benar terdaftar sebagai mahasiswa <strong>AKTIF</strong> pada {{ $namaKampus }} ({{ $singkatanPt }}) pada semester dan tahun akademik tersebut di atas.</p>
 
         <p>Surat keterangan ini diberikan untuk keperluan: <strong>{{ $keperluan }}</strong></p>
 
@@ -82,11 +89,11 @@
         <tr>
             <td></td>
             <td>
-                Fakfak, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
-                Ketua STT GPI Papua,<br>
+                {{ $kotaTtd }}, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                {{ $sebutanPimpinan }} {{ $singkatanPt }},<br>
                 <div class="sign-space"></div>
-                <strong><u>{{ $namaKetua }}</u></strong><br>
-                NUPTK: 8935756657130152
+                <strong><u>{{ $namaPimpinan }}</u></strong><br>
+                {{ $labelIdPimpinan }}: {{ $nidnPimpinan }}
             </td>
         </tr>
     </table>

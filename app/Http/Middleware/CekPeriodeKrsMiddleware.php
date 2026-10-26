@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Pengaturan;
 use App\Models\TahunAkademik;
 use Closure;
 use Illuminate\Http\Request;
@@ -18,16 +19,35 @@ class CekPeriodeKrsMiddleware
         
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
-        // 1. Cek Gembok Waktu/Periode KRS
-        if (
-            !$periodeAktif ||
-            !$periodeAktif->tanggal_mulai_krs ||
-            !$periodeAktif->tanggal_selesai_krs ||
-            !Carbon::now()->between(
+        // 0. Cek Saklar Global Status KRS di Pengaturan Sistem
+        $statusKrsGlobal = strtolower((string) Pengaturan::get('status_krs', 'buka'));
+        if ($statusKrsGlobal === 'tutup' && !$request->isMethod('GET')) {
+            $pesan = 'Periode pengisian KRS saat ini sedang ditutup oleh Administrator.';
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['status' => 'error', 'message' => $pesan], 403);
+            }
+            return redirect()->route('dashboard')->with('error', $pesan);
+        }
+
+        // 1. Cek Rentang Tanggal KRS pada Tahun Akademik Aktif
+        if (!$periodeAktif) {
+            $pesan = 'Belum ada Tahun Akademik yang aktif.';
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['status' => 'error', 'message' => $pesan], 403);
+            }
+            return redirect()->route('dashboard')->with('error', $pesan);
+        }
+
+        $isOutsideDate = false;
+        if ($periodeAktif->tanggal_mulai_krs && $periodeAktif->tanggal_selesai_krs) {
+            $isOutsideDate = !Carbon::now()->between(
                 Carbon::parse($periodeAktif->tanggal_mulai_krs)->startOfDay(),
                 Carbon::parse($periodeAktif->tanggal_selesai_krs)->endOfDay()
-            )
-        ) {
+            );
+        }
+
+        // Jika di luar tanggal KRS (atau saklar ditutup) dan mahasiswa belum punya KRS yang disetujui, tolak akses
+        if (($isOutsideDate || $statusKrsGlobal === 'tutup') && !$request->isMethod('GET')) {
             $pesan = 'Periode pengisian KRS tidak aktif atau telah berakhir.';
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json(['status' => 'error', 'message' => $pesan], 403);
@@ -35,20 +55,28 @@ class CekPeriodeKrsMiddleware
             return redirect()->route('dashboard')->with('error', $pesan);
         }
 
-        // 2. Cek Gembok Status KRS Mahasiswa
+        // 2. Cek Gembok Status KRS Mahasiswa (Hanya blokir aksi perubahan POST/DELETE jika sudah Disetujui, biarkan GET tetap terbuka untuk cetak KRS)
         if ($user && $user->hasRole('mahasiswa') && $user->mahasiswa) {
             $mahasiswa = $user->mahasiswa;
 
             $krsSemesterIni = $mahasiswa->mataKuliahs()
-                                        ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                                        ->exists();
+                ->wherePivot('tahun_akademik_id', $periodeAktif->id)
+                ->exists();
 
-            if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
-                $pesan = 'KRS Anda telah disetujui dan tidak dapat diubah lagi.';
+            if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni && !$request->isMethod('GET')) {
+                $pesan = 'KRS Anda telah disetujui dan dikunci.';
                 if ($request->expectsJson() || $request->is('api/*')) {
                     return response()->json(['status' => 'error', 'message' => $pesan], 403);
                 }
-                return redirect()->route('dashboard')->with('warning', $pesan);
+                return redirect()->route('krs.index')->with('error', $pesan);
+            }
+
+            if (($isOutsideDate || $statusKrsGlobal === 'tutup') && !$krsSemesterIni) {
+                $pesan = 'Periode pengisian KRS tidak aktif atau telah berakhir.';
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json(['status' => 'error', 'message' => $pesan], 403);
+                }
+                return redirect()->route('dashboard')->with('error', $pesan);
             }
         }
 

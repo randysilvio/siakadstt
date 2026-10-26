@@ -4,14 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
 use App\Models\PengajuanSurat;
+use App\Models\Pengaturan;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class VerifikasiDokumenController extends Controller
 {
-    /**
-     * Membuat token tanda tangan digital terenkripsi untuk dokumen PDF mahasiswa.
-     */
     public static function buatTokenDokumen(string $jenis, int $idEntitas): string
     {
         $payload = strtoupper($jenis) . '-' . $idEntitas;
@@ -19,15 +17,12 @@ class VerifikasiDokumenController extends Controller
         return $payload . '-' . strtoupper($hmac);
     }
 
-    /**
-     * Memverifikasi token dokumen yang dipindai dari QR-Code.
-     */
     public function verify(string $token): View
     {
         $isValid = false;
         $dataDokumen = null;
+        $singkatanPt = Pengaturan::get('singkatan_kampus', 'STT GPI PAPUA');
 
-        // 1. Cek apakah token berasal dari tabel pengajuan_surats (kode_verifikasi)
         $suratMandiri = PengajuanSurat::with('mahasiswa.programStudi')
             ->where('kode_verifikasi', $token)
             ->where('status', 'Disetujui')
@@ -37,7 +32,7 @@ class VerifikasiDokumenController extends Controller
             $isValid = true;
             $dataDokumen = [
                 'jenis_dokumen' => strtoupper($suratMandiri->jenis_surat),
-                'nomor_dokumen' => $suratMandiri->nomor_surat . '/STT-GPI/AK/' . $suratMandiri->created_at->format('Y'),
+                'nomor_dokumen' => ($suratMandiri->nomor_surat ?: str_pad((string) $suratMandiri->id, 3, '0', STR_PAD_LEFT)) . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $suratMandiri->created_at->format('Y'),
                 'nama_pemilik'  => $suratMandiri->mahasiswa->nama_lengkap ?? '-',
                 'nim_identitas' => $suratMandiri->mahasiswa->nim ?? '-',
                 'program_studi' => optional(optional($suratMandiri->mahasiswa)->programStudi)->nama_prodi ?? '-',
@@ -46,7 +41,6 @@ class VerifikasiDokumenController extends Controller
                 'kode_hash'     => strtoupper($token),
             ];
         } else {
-            // 2. Cek apakah token berformat JENIS-ID-HMAC (KHS, KRS, TRANSKRIP, SURATAKTIF)
             $parts = explode('-', strtoupper($token));
             if (count($parts) === 3) {
                 [$jenis, $idStr, $hmacInput] = $parts;
@@ -62,6 +56,7 @@ class VerifikasiDokumenController extends Controller
                             'KHS'        => 'KARTU HASIL STUDI (KHS) SEMESTER',
                             'TRANSKRIP'  => 'TRANSKRIP NILAI AKADEMIK RESMI',
                             'SURATAKTIF' => 'SURAT KETERANGAN AKTIF KULIAH',
+                            'AKTIF'      => 'KARTU TANDA MAHASISWA DIGITAL (E-KTM)',
                         ];
                         $dataDokumen = [
                             'jenis_dokumen' => $mapJudul[$jenis] ?? 'DOKUMEN AKADEMIK RESMI',

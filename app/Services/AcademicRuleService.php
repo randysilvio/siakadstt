@@ -37,9 +37,9 @@ class AcademicRuleService
     }
 
     /**
-     * Memvalidasi aturan pengajuan KRS (Semester Ganjil/Genap, Batas SKS, Prasyarat Lulus, & Bentrok Jadwal).
+     * Memvalidasi aturan pengajuan KRS (Semester, Batas SKS, Prasyarat, Kuota Kursi Kelas Paralel, & Bentrok Jadwal Rombel).
      */
-    public function validateKrsRules(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, array $mataKuliahIds, int $maxSks): array
+    public function validateKrsRules(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, array $mataKuliahIds, int $maxSks, array $pilihanKelas = []): array
     {
         if (empty($mataKuliahIds)) {
             return [];
@@ -81,26 +81,52 @@ class AcademicRuleService
             return $errorPrasyarat;
         }
 
-        // Deteksi jadwal bentrok pada kelas utama (Kelas A / Default)
+        // Deteksi kuota kursi dan jadwal bentrok sesuai Rombel Kelas (nama_kelas) yang dipilih mahasiswa
         $jadwalTerpilih = [];
         foreach ($mkDipilih as $mk) {
-            $slotUtama = $mk->jadwals->first();
-            if ($slotUtama) {
+            $klsPilihan = isset($pilihanKelas[$mk->id]) ? strtoupper(trim((string) $pilihanKelas[$mk->id])) : null;
+
+            $slotDipilih = null;
+            if ($klsPilihan) {
+                $slotDipilih = $mk->jadwals->first(fn($j) => strtoupper($j->nama_kelas ?? 'A') === $klsPilihan);
+            }
+            if (!$slotDipilih) {
+                $slotDipilih = $mk->jadwals->first();
+            }
+
+            if ($slotDipilih) {
+                $namaKlsAktual = strtoupper($slotDipilih->nama_kelas ?? 'A');
+                $kuotaMaks = (int) ($slotDipilih->kuota ?? 40);
+
+                // Cek apakah kapasitas kelas paralel masih tersedia (kecuali mahasiswa ini memang sudah terdaftar di kelas tersebut)
+                $terisiSaatIni = DB::table('mahasiswa_mata_kuliah')
+                    ->where('mata_kuliah_id', $mk->id)
+                    ->where('tahun_akademik_id', $periodeAktif->id)
+                    ->where('nama_kelas', $namaKlsAktual)
+                    ->where('mahasiswa_id', '!=', $mahasiswa->id)
+                    ->count();
+
+                if ($kuotaMaks > 0 && $terisiSaatIni >= $kuotaMaks) {
+                    return ["Kapasitas Kelas {$namaKlsAktual} untuk mata kuliah {$mk->nama_mk} sudah penuh ({$terisiSaatIni}/{$kuotaMaks}). Silakan pilih kelas paralel lain."];
+                }
+
                 foreach ($jadwalTerpilih as $j) {
                     if (
-                        $slotUtama->hari === $j['hari'] &&
-                        $slotUtama->jam_mulai < $j['jam_selesai'] &&
-                        $slotUtama->jam_selesai > $j['jam_mulai']
+                        $slotDipilih->hari === $j['hari'] &&
+                        $slotDipilih->jam_mulai < $j['jam_selesai'] &&
+                        $slotDipilih->jam_selesai > $j['jam_mulai']
                     ) {
-                        return ["Jadwal bentrok pada hari {$slotUtama->hari}: {$mk->nama_mk} vs {$j['nama_mk']}."];
+                        return ["Jadwal bentrok pada hari {$slotDipilih->hari}: {$mk->nama_mk} (Kelas {$namaKlsAktual}) vs {$j['nama_mk']} (Kelas {$j['kelas']})."];
                     }
                 }
+
                 $jadwalTerpilih[] = [
-                    'hari'        => $slotUtama->hari,
-                    'jam_mulai'   => $slotUtama->jam_mulai,
-                    'jam_selesai' => $slotUtama->jam_selesai,
+                    'hari'        => $slotDipilih->hari,
+                    'jam_mulai'   => $slotDipilih->jam_mulai,
+                    'jam_selesai' => $slotDipilih->jam_selesai,
                     'mk_id'       => $mk->id,
                     'nama_mk'     => $mk->nama_mk,
+                    'kelas'       => $namaKlsAktual,
                 ];
             }
         }
@@ -108,9 +134,6 @@ class AcademicRuleService
         return [];
     }
 
-    /**
-     * Mengambil komposisi persentase bobot nilai dari Pengaturan Sistem (Default: 10, 20, 30, 40).
-     */
     public function bobotPenilaian(): array
     {
         $hadir = (float) Pengaturan::get('bobot_hadir_default', 10);
@@ -131,9 +154,6 @@ class AcademicRuleService
         ];
     }
 
-    /**
-     * Menghitung nilai akhir angka (0-100) dari 4 komponen nilai.
-     */
     public function hitungNilaiAkhir(float $hadir, float $tugas, float $uts, float $uas): float
     {
         $bobot = $this->bobotPenilaian();
@@ -146,9 +166,6 @@ class AcademicRuleService
         );
     }
 
-    /**
-     * Konversi nilai angka (0 - 100) ke huruf mutu resmi (A, B, C, D, E).
-     */
     public function konversiAngkaKeHuruf(float $angka): string
     {
         if ($angka >= 80) return 'A';
@@ -158,9 +175,6 @@ class AcademicRuleService
         return 'E';
     }
 
-    /**
-     * Menarik otomatis nilai kehadiran dan rata-rata tugas dari kelas E-Learning Verum ke tabel KRS/Nilai.
-     */
     public function syncNilaiVerumKeKrs(MataKuliah $mataKuliah, TahunAkademik $tahunAkademik): int
     {
         $verumKelasIds = VerumKelas::where('mata_kuliah_id', $mataKuliah->id)

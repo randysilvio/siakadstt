@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <title>{{ $pengajuanSurat->jenis_surat }} - {{ $mahasiswa->nim }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; margin: 0; padding: 0; line-height: 1.45; }
-        @page { size: A4 portrait; margin: 1.5cm; }
-        .title-container { text-align: center; margin: 15px 0 20px 0; }
-        .title { font-weight: bold; font-size: 13pt; text-decoration: underline; text-transform: uppercase; margin-bottom: 3px; }
-        .nomor-surat { font-size: 11pt; font-weight: bold; }
-        .content { margin-top: 10px; text-align: justify; }
-        .content p { margin: 10px 0; }
-        table.data-table { width: 92%; margin: 6px 0 12px 30px; border-collapse: collapse; }
-        .data-table td { padding: 3px 0; vertical-align: top; border: none; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 10.5pt; color: #000; margin: 0; padding: 0; line-height: 1.4; }
+        @page { size: A4 portrait; margin: 1.2cm 1.5cm; }
+        .title-container { text-align: center; margin: 10px 0 16px 0; }
+        .title { font-weight: bold; font-size: 12.5pt; text-decoration: underline; text-transform: uppercase; margin-bottom: 2px; }
+        .nomor-surat { font-size: 10.5pt; font-weight: bold; }
+        .content { margin-top: 8px; text-align: justify; }
+        .content p { margin: 8px 0; }
+        table.data-table { width: 92%; margin: 4px 0 10px 25px; border-collapse: collapse; }
+        .data-table td { padding: 2.5px 0; vertical-align: top; border: none; }
         .data-table .label { width: 170px; }
-        .footer-sign { width: 100%; margin-top: 25px; page-break-inside: avoid; border-collapse: collapse; }
+        .footer-sign { width: 100%; margin-top: 18px; page-break-inside: avoid; border-collapse: collapse; }
         .footer-sign td { width: 50%; text-align: center; vertical-align: bottom; border: none; }
-        .sign-space { height: 65px; }
+        .sign-space { height: 55px; }
     </style>
 </head>
 <body>
@@ -24,8 +24,15 @@
     @include('partials._kop')
 
     @php
-        $namaKetua = \App\Models\Pengaturan::where('key', 'nama_rektor')->value('value') ?: 'Wensly Peniel Raprap, S.Th., M.Pd';
-        $noSuratFormatted = ($pengajuanSurat->nomor_surat ?: str_pad((string)$pengajuanSurat->id, 3, '0', STR_PAD_LEFT)) . '/STT-GPI/AK/' . $pengajuanSurat->created_at->format('Y');
+        $cfg = \App\Models\Pengaturan::allCached();
+        $namaKampus = $cfg['nama_kampus'] ?? 'Sekolah Tinggi Teologi Gereja Protestan Indonesia Papua';
+        $singkatanPt = $cfg['singkatan_kampus'] ?? 'STT GPI PAPUA';
+        $sebutanPimpinan = $cfg['sebutan_pimpinan'] ?? 'Ketua';
+        $namaPimpinan = $cfg['nama_rektor'] ?? 'Wensly Peniel Raprap, S.Th., M.Pd';
+        $labelIdPimpinan = $cfg['label_id_rektor'] ?? 'NUPTK';
+        $nidnPimpinan = $cfg['nidn_rektor'] ?? '8935756657130152';
+        $kotaTtd = $cfg['kota_domisili'] ?? 'Fakfak';
+        $noSuratFormatted = ($pengajuanSurat->nomor_surat ?: str_pad((string)$pengajuanSurat->id, 3, '0', STR_PAD_LEFT)) . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $pengajuanSurat->created_at->format('Y');
     @endphp
 
     <div class="title-container">
@@ -34,7 +41,7 @@
     </div>
 
     <div class="content">
-        <p>Pimpinan Sekolah Tinggi Teologi (STT) Gereja Protestan Indonesia (GPI) Papua di Fakfak menerangkan dengan sesungguhnya bahwa:</p>
+        <p>Pimpinan {{ $namaKampus }} ({{ $singkatanPt }}) di {{ $kotaTtd }} menerangkan dengan sesungguhnya bahwa:</p>
 
         <table class="data-table">
             <tr>
@@ -65,7 +72,7 @@
             @endif
         </table>
 
-        <p>Adalah benar terdaftar sebagai mahasiswa pada Sekolah Tinggi Teologi (STT) Gereja Protestan Indonesia (GPI) Papua. Surat resmi ini diterbitkan guna memenuhi keperluan: <strong>{{ $pengajuanSurat->keperluan }}</strong>.</p>
+        <p>Adalah benar terdaftar sebagai mahasiswa pada {{ $namaKampus }} ({{ $singkatanPt }}). Surat resmi ini diterbitkan guna memenuhi keperluan: <strong>{{ $pengajuanSurat->keperluan }}</strong>.</p>
 
         <p>Demikian surat ini diterbitkan untuk dapat dipergunakan sebagaimana mestinya.</p>
     </div>
@@ -74,11 +81,11 @@
         <tr>
             <td></td>
             <td>
-                Fakfak, {{ ($pengajuanSurat->tanggal_disetujui ?? now())->translatedFormat('d F Y') }}<br>
-                Ketua STT GPI Papua,<br>
+                {{ $kotaTtd }}, {{ ($pengajuanSurat->tanggal_disetujui ?? now())->translatedFormat('d F Y') }}<br>
+                {{ $sebutanPimpinan }} {{ $singkatanPt }},<br>
                 <div class="sign-space"></div>
-                <strong><u>{{ $namaKetua }}</u></strong><br>
-                NUPTK: 8935756657130152
+                <strong><u>{{ $namaPimpinan }}</u></strong><br>
+                {{ $labelIdPimpinan }}: {{ $nidnPimpinan }}
             </td>
         </tr>
     </table>

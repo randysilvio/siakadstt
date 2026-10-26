@@ -57,6 +57,7 @@ class MataKuliah extends Model
     {
         return $this->belongsToMany(Mahasiswa::class, 'mahasiswa_mata_kuliah')
                     ->withPivot(
+                        'nama_kelas',
                         'nilai',
                         'tahun_akademik_id',
                         'nilai_kehadiran',

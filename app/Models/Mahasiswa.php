@@ -46,6 +46,7 @@ class Mahasiswa extends Model
     {
         return $this->belongsToMany(MataKuliah::class, 'mahasiswa_mata_kuliah')
                     ->withPivot(
+                        'nama_kelas',
                         'nilai',
                         'tahun_akademik_id',
                         'nilai_kehadiran',
@@ -92,7 +93,6 @@ class Mahasiswa extends Model
 
     public function getStatusEvaluasiAttribute(): string
     {
-        // Alumni (Lulus) tidak terkena kewajiban EDOM semester berjalan
         if ($this->status_mahasiswa === 'Lulus') {
             return 'sudah_isi';
         }

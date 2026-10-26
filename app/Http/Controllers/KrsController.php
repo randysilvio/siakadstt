@@ -70,7 +70,6 @@ class KrsController extends Controller
             ->orderBy('kode_mk')
             ->get();
 
-        // Hitung jumlah terisi per mata_kuliah_id dan nama_kelas pada semester aktif
         $terisiMap = DB::table('mahasiswa_mata_kuliah')
             ->select('mata_kuliah_id', 'nama_kelas', DB::raw('COUNT(*) as total'))
             ->where('tahun_akademik_id', $periodeAktif->id)
@@ -128,12 +127,11 @@ class KrsController extends Controller
         $pilihanKelas    = $request->input('nama_kelas', []);
         $batas           = $this->academicService->hitungBatasSks($mahasiswa);
 
-        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks']);
+        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks'], $pilihanKelas);
         if (!empty($ruleErrors)) {
             throw ValidationException::withMessages(['mata_kuliahs' => $ruleErrors]);
         }
         
-        // Backup seluruh nilai huruf maupun komponen OBE agar tidak hilang saat revisi KRS
         $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
         $gradesToKeep = [];
         foreach ($existingKrs as $existingMk) {
@@ -198,10 +196,6 @@ class KrsController extends Controller
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
     }
 
-    // =========================================================================
-    // FUNGSI API UNTUK MOBILE (DOSEN & MAHASISWA)
-    // =========================================================================
-
     public function getPerluValidasiApi(Request $request)
     {
         $user = $request->user();
@@ -237,9 +231,9 @@ class KrsController extends Controller
             return [
                 'id' => $mhs->id,
                 'mahasiswa' => [
-                    'name' => $mhs->nama_lengkap,
+                    'name'         => $mhs->nama_lengkap,
                     'nama_lengkap' => $mhs->nama_lengkap,
-                    'nim' => $mhs->nim,
+                    'nim'          => $mhs->nim,
                 ]
             ];
         });
@@ -264,7 +258,7 @@ class KrsController extends Controller
 
             if (!$isDosenWali && !$isKaprodiProdi) {
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => 'Anda tidak memiliki wewenang untuk memvalidasi KRS mahasiswa ini.'
                 ], 403);
             }
@@ -274,7 +268,7 @@ class KrsController extends Controller
         $mahasiswa->save();
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs
         ]);
     }
@@ -314,11 +308,11 @@ class KrsController extends Controller
             ->toArray();
 
         return response()->json([
-            'ipk' => $batas['ipk'],
-            'max_sks' => $batas['max_sks'],
+            'ipk'            => $batas['ipk'],
+            'max_sks'        => $batas['max_sks'],
             'mk_diambil_ids' => $mk_diambil_ids,
-            'mata_kuliahs' => $mata_kuliahs,
-            'status_krs' => $mahasiswa->status_krs
+            'mata_kuliahs'   => $mata_kuliahs,
+            'status_krs'     => $mahasiswa->status_krs
         ]);
     }
 
@@ -344,19 +338,21 @@ class KrsController extends Controller
         }
 
         $request->validate([
-            'mata_kuliahs' => 'nullable|array',
+            'mata_kuliahs'   => 'nullable|array',
             'mata_kuliahs.*' => 'integer|exists:mata_kuliahs,id',
+            'nama_kelas'     => 'nullable|array',
         ]);
 
         $mata_kuliah_ids = array_values(array_unique($request->input('mata_kuliahs', [])));
-        $batas = $this->academicService->hitungBatasSks($mahasiswa);
+        $pilihanKelas    = $request->input('nama_kelas', []);
+        $batas           = $this->academicService->hitungBatasSks($mahasiswa);
 
-        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks']);
+        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks'], $pilihanKelas);
         if (!empty($ruleErrors)) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => implode(' ', $ruleErrors),
-                'errors' => ['mata_kuliahs' => $ruleErrors]
+                'errors'  => ['mata_kuliahs' => $ruleErrors]
             ], 422);
         }
 
@@ -379,9 +375,10 @@ class KrsController extends Controller
         $attachData = [];
         foreach ($mata_kuliah_ids as $mk_id) {
             $saved = $gradesToKeep[$mk_id] ?? [];
+            $kelasDipilih = !empty($pilihanKelas[$mk_id]) ? strtoupper(trim($pilihanKelas[$mk_id])) : ($saved['nama_kelas'] ?? 'A');
             $attachData[$mk_id] = [
                 'tahun_akademik_id' => $periodeAktif->id,
-                'nama_kelas'        => $saved['nama_kelas'] ?? 'A',
+                'nama_kelas'        => $kelasDipilih,
                 'nilai'             => $saved['nilai'] ?? null,
                 'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
                 'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
