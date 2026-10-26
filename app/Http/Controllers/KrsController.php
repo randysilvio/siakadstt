@@ -21,6 +21,37 @@ class KrsController extends Controller
         $this->academicService = $academicService;
     }
 
+    /**
+     * Mengambil daftar Mata Kuliah yang ditawarkan sesuai Program Studi mahasiswa & semester aktif.
+     */
+    private function getOfferedMataKuliahs(Mahasiswa $mahasiswa, array $allowedSemesters)
+    {
+        $query = MataKuliah::with(['prasyarats', 'jadwals'])
+            ->whereIn('semester', $allowedSemesters);
+
+        // Filter berdasarkan kurikulum aktif milik prodi mahasiswa (jika tersedia)
+        $hasProdiKurikulum = MataKuliah::whereIn('semester', $allowedSemesters)
+            ->whereHas('kurikulum', function ($q) use ($mahasiswa) {
+                $q->where('is_active', true)
+                  ->where(function ($sub) use ($mahasiswa) {
+                      $sub->where('program_studi_id', $mahasiswa->program_studi_id)
+                          ->orWhereNull('program_studi_id');
+                  });
+            })->exists();
+
+        if ($hasProdiKurikulum) {
+            $query->whereHas('kurikulum', function ($q) use ($mahasiswa) {
+                $q->where('is_active', true)
+                  ->where(function ($sub) use ($mahasiswa) {
+                      $sub->where('program_studi_id', $mahasiswa->program_studi_id)
+                          ->orWhereNull('program_studi_id');
+                  });
+            });
+        }
+
+        return $query->orderBy('semester')->orderBy('kode_mk')->get();
+    }
+
     public function index()
     {
         $mahasiswa = Auth::user()->mahasiswa;
@@ -64,11 +95,7 @@ class KrsController extends Controller
 
         $allowedSemesters = in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
 
-        $mata_kuliahs = MataKuliah::with(['prasyarats', 'jadwals'])
-            ->whereIn('semester', $allowedSemesters)
-            ->orderBy('semester')
-            ->orderBy('kode_mk')
-            ->get();
+        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $allowedSemesters);
 
         $terisiMap = DB::table('mahasiswa_mata_kuliah')
             ->select('mata_kuliah_id', 'nama_kelas', DB::raw('COUNT(*) as total'))
@@ -298,9 +325,7 @@ class KrsController extends Controller
         $batas = $this->academicService->hitungBatasSks($mahasiswa);
         $allowedSemesters = in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
         
-        $mata_kuliahs = MataKuliah::with(['jadwals' => function ($q) {
-            $q->select('mata_kuliah_id', 'nama_kelas', 'hari', 'jam_mulai', 'jam_selesai', 'ruang', 'kuota');
-        }])->whereIn('semester', $allowedSemesters)->orderBy('semester')->orderBy('kode_mk')->get();
+        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $allowedSemesters);
 
         $mk_diambil_ids = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $periodeAktif->id)

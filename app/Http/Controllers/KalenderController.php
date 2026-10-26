@@ -35,18 +35,18 @@ class KalenderController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'judul_kegiatan' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'tanggal_mulai' => 'required|date',
+            'judul_kegiatan'  => 'required|string|max:255',
+            'deskripsi'       => 'nullable|string',
+            'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'target_roles' => 'required|array',
-            'target_roles.*' => 'exists:roles,id',
+            'target_roles'    => 'required|array',
+            'target_roles.*'  => 'exists:roles,id',
         ]);
 
         $kegiatan = KegiatanAkademik::create([
-            'judul_kegiatan' => $validated['judul_kegiatan'],
-            'deskripsi' => $validated['deskripsi'] ?? null,
-            'tanggal_mulai' => $validated['tanggal_mulai'],
+            'judul_kegiatan'  => $validated['judul_kegiatan'],
+            'deskripsi'       => $validated['deskripsi'] ?? null,
+            'tanggal_mulai'   => $validated['tanggal_mulai'],
             'tanggal_selesai' => $validated['tanggal_selesai'],
         ]);
         $kegiatan->roles()->sync($validated['target_roles']);
@@ -61,7 +61,7 @@ class KalenderController extends Controller
                 'Agenda Akademik Baru',
                 $kegiatan->judul_kegiatan . ' dijadwalkan pada ' . Carbon::parse($kegiatan->tanggal_mulai)->translatedFormat('d F Y'),
                 route('kalender.halaman'),
-                'bi-calendar-event-fill text-warning'
+                'bi-calendar-event-fill text-dark'
             ));
         }
 
@@ -78,18 +78,18 @@ class KalenderController extends Controller
     public function update(Request $request, KegiatanAkademik $kalender): RedirectResponse
     {
         $validated = $request->validate([
-            'judul_kegiatan' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'tanggal_mulai' => 'required|date',
+            'judul_kegiatan'  => 'required|string|max:255',
+            'deskripsi'       => 'nullable|string',
+            'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'target_roles' => 'required|array',
-            'target_roles.*' => 'exists:roles,id',
+            'target_roles'    => 'required|array',
+            'target_roles.*'  => 'exists:roles,id',
         ]);
 
         $kalender->update([
-            'judul_kegiatan' => $validated['judul_kegiatan'],
-            'deskripsi' => $validated['deskripsi'] ?? null,
-            'tanggal_mulai' => $validated['tanggal_mulai'],
+            'judul_kegiatan'  => $validated['judul_kegiatan'],
+            'deskripsi'       => $validated['deskripsi'] ?? null,
+            'tanggal_mulai'   => $validated['tanggal_mulai'],
             'tanggal_selesai' => $validated['tanggal_selesai'],
         ]);
         $kalender->roles()->sync($validated['target_roles']);
@@ -154,9 +154,6 @@ class KalenderController extends Controller
         return response()->json($kegiatans);
     }
 
-    /**
-     * [API MOBILE] Jadwal Kuliah Hari Ini.
-     */
     public function jadwalHariIni(Request $request): JsonResponse
     {
         $mapHari = [
@@ -177,9 +174,6 @@ class KalenderController extends Controller
         return response()->json($jadwalHariIni);
     }
 
-    /**
-     * [API MOBILE] Jadwal Kuliah Seluruhnya (Semester Ini - Mendukung Team Teaching Dosen).
-     */
     public function jadwalKuliahUser(Request $request): JsonResponse
     {
         try {
@@ -193,10 +187,15 @@ class KalenderController extends Controller
                     $periodeAktif = TahunAkademik::where('is_active', true)->first();
                     
                     if ($periodeAktif) {
-                        $mkIds = $mahasiswa->mataKuliahs()
+                        $krsDiambil = $mahasiswa->mataKuliahs()
                             ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                            ->pluck('mata_kuliahs.id')
-                            ->toArray();
+                            ->get();
+
+                        $mkIds = $krsDiambil->pluck('id')->toArray();
+                        $kelasMap = [];
+                        foreach ($krsDiambil as $mkItem) {
+                            $kelasMap[$mkItem->id] = strtoupper($mkItem->pivot->nama_kelas ?? 'A');
+                        }
 
                         $jadwal = Jadwal::query()
                             ->whereIn('mata_kuliah_id', $mkIds)
@@ -204,16 +203,22 @@ class KalenderController extends Controller
                             ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
                             ->orderBy('jam_mulai')
                             ->get()
+                            ->filter(function ($item) use ($kelasMap) {
+                                $klsMhs = $kelasMap[$item->mata_kuliah_id] ?? 'A';
+                                return strtoupper($item->nama_kelas ?? 'A') === $klsMhs;
+                            })
+                            ->values()
                             ->map(function ($item) {
                                 return [
-                                    'id' => $item->id,
-                                    'hari' => $item->hari,
+                                    'id'          => $item->id,
+                                    'hari'        => $item->hari,
+                                    'nama_kelas'  => $item->nama_kelas ?? 'A',
                                     'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
-                                    'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
-                                    'jam_mulai' => $item->jam_mulai,
+                                    'kode_mk'     => $item->mataKuliah->kode_mk ?? '-',
+                                    'jam_mulai'   => $item->jam_mulai,
                                     'jam_selesai' => $item->jam_selesai,
-                                    'ruang' => $item->ruang ?? 'TBA', 
-                                    'dosen' => $item->mataKuliah->dosen->nama_lengkap ?? '-'
+                                    'ruang'       => $item->ruang ?? 'TBA', 
+                                    'dosen'       => $item->mataKuliah->dosen->nama_lengkap ?? '-'
                                 ];
                             });
                     }
@@ -239,14 +244,15 @@ class KalenderController extends Controller
                         ->get()
                         ->map(function ($item) {
                             return [
-                                'id' => $item->id,
-                                'hari' => $item->hari,
+                                'id'          => $item->id,
+                                'hari'        => $item->hari,
+                                'nama_kelas'  => $item->nama_kelas ?? 'A',
                                 'mata_kuliah' => $item->mataKuliah->nama_mk ?? 'Mata Kuliah',
-                                'kode_mk' => $item->mataKuliah->kode_mk ?? '-',
-                                'jam_mulai' => $item->jam_mulai,
+                                'kode_mk'     => $item->mataKuliah->kode_mk ?? '-',
+                                'jam_mulai'   => $item->jam_mulai,
                                 'jam_selesai' => $item->jam_selesai,
-                                'ruang' => $item->ruang ?? 'TBA',
-                                'dosen' => 'Anda Sendiri'
+                                'ruang'       => $item->ruang ?? 'TBA',
+                                'dosen'       => 'Anda Sendiri'
                             ];
                         });
                 }

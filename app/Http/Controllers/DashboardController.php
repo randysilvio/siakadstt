@@ -36,7 +36,6 @@ class DashboardController extends Controller
 
         // =========================================================
         // AUTO-RECOVERY (SELF-HEALING) ROLE CAMABA / MAHASISWA / DOSEN
-        // Jika user punya profil camaba (dan belum dimigrasi jadi mahasiswa) tapi rolenya hilang, pulihkan otomatis!
         // =========================================================
         if (!$user->hasRole('camaba') && $user->camaba && !$user->camaba->is_migrated && !$user->mahasiswa) {
             $roleCamaba = Role::firstOrCreate(
@@ -233,15 +232,26 @@ class DashboardController extends Controller
             if ($mahasiswa->status_mahasiswa === 'Aktif' && $mahasiswa->status_krs === 'Disetujui' && $periodeAktif) {
                 $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
                 
-                $mataKuliahIds = $mahasiswa->mataKuliahs()
+                $krsDiambil = $mahasiswa->mataKuliahs()
                     ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                    ->pluck('mata_kuliahs.id');
+                    ->get();
 
-                if ($mataKuliahIds->isNotEmpty()) {
+                $mataKuliahIds = $krsDiambil->pluck('id')->toArray();
+                $kelasMap = [];
+                foreach ($krsDiambil as $mkItem) {
+                    $kelasMap[$mkItem->id] = strtoupper($mkItem->pivot->nama_kelas ?? 'A');
+                }
+
+                if (!empty($mataKuliahIds)) {
                     $jadwalKuliahMahasiswa = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
                         ->with('mataKuliah.dosen')
                         ->get()
-                        ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99);
+                        ->filter(function ($jadwal) use ($kelasMap) {
+                            $klsMhs = $kelasMap[$jadwal->mata_kuliah_id] ?? 'A';
+                            return strtoupper($jadwal->nama_kelas ?? 'A') === $klsMhs;
+                        })
+                        ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99)
+                        ->values();
                 }
             }
 

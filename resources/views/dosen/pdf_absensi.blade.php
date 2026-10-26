@@ -17,7 +17,7 @@
         .data-table th { background-color: #212529; color: #ffffff; text-transform: uppercase; font-size: 8pt; text-align: center; font-weight: bold; }
         .data-table td { font-size: 8.5pt; }
         
-        .kolom-pertemuan { width: 3.4%; text-align: center; }
+        .kolom-pertemuan { width: 3.3%; text-align: center; }
         .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         
         .footer-sign { width: 100%; margin-top: 15px; page-break-inside: avoid; border-collapse: collapse; }
@@ -27,6 +27,10 @@
 <body>
 
     @include('partials._kop')
+
+    @php
+        $kotaTtd = \App\Models\Pengaturan::get('kota_domisili', 'Fakfak');
+    @endphp
 
     <div class="title">DAFTAR HADIR PERKULIAHAN MAHASISWA (TATAP MUKA)</div>
 
@@ -49,11 +53,12 @@
         <thead>
             <tr>
                 <th rowspan="2" style="width: 3%;">NO</th>
-                <th rowspan="2" style="width: 10%;">NIM</th>
-                <th rowspan="2" style="width: 22%;">NAMA MAHASISWA</th>
+                <th rowspan="2" style="width: 9%;">NIM</th>
+                <th rowspan="2" style="width: 20%;">NAMA MAHASISWA</th>
+                <th rowspan="2" style="width: 5%;">KLS</th>
                 <th rowspan="2" style="width: 3%;">L/P</th>
                 <th colspan="16">PERTEMUAN KE- / PARAF</th>
-                <th rowspan="2" style="width: 7%;">KET</th>
+                <th rowspan="2" style="width: 6%;">KET</th>
             </tr>
             <tr>
                 @for($i = 1; $i <= 16; $i++)
@@ -67,6 +72,7 @@
                     <td style="text-align: center;" class="font-monospace">{{ $index + 1 }}</td>
                     <td style="text-align: center;" class="font-monospace">{{ $mhs->nim }}</td>
                     <td style="font-weight: bold; text-transform: uppercase;">{{ $mhs->nama_lengkap }}</td>
+                    <td style="text-align: center;" class="font-monospace">{{ $mhs->pivot->nama_kelas ?? 'A' }}</td>
                     <td style="text-align: center;">{{ $mhs->jenis_kelamin }}</td>
                     @for($i = 1; $i <= 16; $i++)
                         <td></td>
@@ -75,7 +81,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="21" style="text-align: center; padding: 15px;">TIDAK ADA DATA MAHASISWA YANG TERDAFTAR</td>
+                    <td colspan="22" style="text-align: center; padding: 15px;">TIDAK ADA DATA MAHASISWA YANG TERDAFTAR</td>
                 </tr>
             @endforelse
         </tbody>
@@ -90,7 +96,7 @@
             </td>
             <td></td>
             <td>
-                Fakfak, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                {{ $kotaTtd }}, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
                 Dosen Pengampu,<br><br><br><br>
                 <strong><u>{{ $dosen->nama_lengkap }}</u></strong><br>
                 <span class="font-monospace">NIDN. {{ $dosen->nidn ?? '-' }}</span>

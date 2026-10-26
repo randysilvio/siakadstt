@@ -57,11 +57,12 @@
     <table class="main-table">
         <thead>
             <tr>
-                <th style="width: 7%;">NO</th>
-                <th style="width: 16%;">KODE MK</th>
+                <th style="width: 6%;">NO</th>
+                <th style="width: 15%;">KODE MK</th>
                 <th>NAMA MATA KULIAH</th>
-                <th style="width: 10%;">SMT</th>
-                <th style="width: 10%;">SKS</th>
+                <th style="width: 9%;">KELAS</th>
+                <th style="width: 8%;">SMT</th>
+                <th style="width: 8%;">SKS</th>
             </tr>
         </thead>
         <tbody>
@@ -71,15 +72,16 @@
                     <td class="text-center font-monospace">{{ $index + 1 }}</td>
                     <td class="text-center font-monospace">{{ $mk->kode_mk }}</td>
                     <td style="text-transform: uppercase; font-weight: bold;">{{ $mk->nama_mk }}</td>
+                    <td class="text-center font-monospace">{{ $mk->pivot->nama_kelas ?? 'A' }}</td>
                     <td class="text-center font-monospace">{{ $mk->semester }}</td>
                     <td class="text-center font-monospace">{{ $mk->sks }}</td>
                 </tr>
                 @php $totalSks += $mk->sks; @endphp
             @empty
-                <tr><td colspan="5" class="text-center" style="padding: 10px; text-transform: uppercase;">Belum ada mata kuliah yang diambil.</td></tr>
+                <tr><td colspan="6" class="text-center" style="padding: 10px; text-transform: uppercase;">Belum ada mata kuliah yang diambil.</td></tr>
             @endforelse
             <tr style="background-color: #f2f2f2;">
-                <td colspan="4" style="text-align: right; font-weight: bold; padding-right: 10px;">TOTAL BEBAN SKS DIAMBIL</td>
+                <td colspan="5" style="text-align: right; font-weight: bold; padding-right: 10px;">TOTAL BEBAN SKS DIAMBIL</td>
                 <td class="text-center font-monospace" style="font-size: 9.5pt;">{{ $totalSks }}</td>
             </tr>
         </tbody>

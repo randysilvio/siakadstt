@@ -178,7 +178,7 @@
                                     <td class="text-center font-monospace">{{ $mk->semester }}</td>
                                     <td class="ps-2 ps-md-3">
                                         @if($mk->jadwals->count() > 1)
-                                            <select name="nama_kelas[{{ $mk->id }}]" class="form-select form-select-sm font-monospace fw-bold mb-1" {{ $isLocked ? 'disabled' : '' }}>
+                                            <select name="nama_kelas[{{ $mk->id }}]" class="form-select form-select-sm font-monospace fw-bold mb-1 krs-kelas-select" {{ $isLocked ? 'disabled' : '' }}>
                                                 @foreach($mk->jadwals as $jadwal)
                                                     @php
                                                         $kls = $jadwal->nama_kelas ?? 'A';
@@ -197,13 +197,13 @@
                                                 $jmlTerisi = isset($mkTerisiRows[$kls]) ? $mkTerisiRows[$kls]->total : 0;
                                                 $kuota = $jadwal->kuota ?? 40;
                                             @endphp
-                                            <input type="hidden" name="nama_kelas[{{ $mk->id }}]" value="{{ $kls }}">
+                                            <input type="hidden" name="nama_kelas[{{ $mk->id }}]" class="krs-kelas-select" value="{{ $kls }}">
                                             <div class="font-monospace text-dark" style="font-size: 11px;">
                                                 <strong>KELAS {{ $kls }}</strong> | {{ strtoupper($jadwal->hari) }}, {{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}-{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }} ({{ $jadwal->ruang ?? '-' }})
                                                 <span class="text-muted">[{{ $jmlTerisi }}/{{ $kuota }}]</span>
                                             </div>
                                         @else
-                                            <input type="hidden" name="nama_kelas[{{ $mk->id }}]" value="A">
+                                            <input type="hidden" name="nama_kelas[{{ $mk->id }}]" class="krs-kelas-select" value="A">
                                             <span class="text-muted font-monospace" style="font-size: 11px;">KELAS A (JADWAL MENYUSUL)</span>
                                         @endif
                                     </td>
@@ -229,7 +229,6 @@
         </div>
 
         @if(!$isLocked)
-            {{-- TOMBOL SIMPAN STICKY (NYAMAN DI LAYAR HP MAUPUN DESKTOP) --}}
             <div class="card border-dark shadow-sm mb-5 position-sticky" style="bottom: 68px; z-index: 1020;">
                 <div class="card-body p-2.5 p-md-3 bg-white d-flex justify-content-between align-items-center">
                     <div class="font-monospace small">
@@ -257,6 +256,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const allCheckboxes = document.querySelectorAll('.krs-checkbox');
+    const allKelasSelects = document.querySelectorAll('.krs-kelas-select');
     const totalSksElement = document.getElementById('total-sks');
     const totalSksBottom  = document.getElementById('total-sks-bottom');
     const simpanButton = document.getElementById('simpan-krs');
@@ -264,13 +264,26 @@ document.addEventListener('DOMContentLoaded', function () {
     const isLocked = {{ $isLocked ? 'true' : 'false' }};
 
     function isTimeOverlap(jadwalA, jadwalB) {
-        if (jadwalA.hari !== jadwalB.hari) return false;
+        if (!jadwalA || !jadwalB || jadwalA.hari !== jadwalB.hari) return false;
         const dummyDate = '1970-01-01T';
         const startA = new Date(dummyDate + jadwalA.jam_mulai);
         const endA = new Date(dummyDate + jadwalA.jam_selesai);
         const startB = new Date(dummyDate + jadwalB.jam_mulai);
         const endB = new Date(dummyDate + jadwalB.jam_selesai);
         return startA < endB && endA > startB;
+    }
+
+    // Mengambil objek jadwal yang sesuai dengan pilihan Rombel Kelas (A/B) pada baris tersebut
+    function getSelectedJadwalForRow(cb) {
+        const jadwals = JSON.parse(cb.dataset.jadwal || '[]');
+        if (jadwals.length === 0) return null;
+
+        const tr = cb.closest('.krs-row');
+        const selectEl = tr ? tr.querySelector('.krs-kelas-select') : null;
+        const selectedKelas = selectEl ? String(selectEl.value || 'A').toUpperCase() : 'A';
+
+        const found = jadwals.find(j => String(j.nama_kelas || 'A').toUpperCase() === selectedKelas);
+        return found || jadwals[0];
     }
 
     function validateKRS() {
@@ -281,9 +294,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const tr = cb.closest('.krs-row');
             if (cb.checked) {
                 currentSks += parseInt(cb.dataset.sks);
-                const jadwals = JSON.parse(cb.dataset.jadwal || '[]');
-                if (jadwals.length > 0) {
-                    checkedSchedules.push(jadwals[0]);
+                const activeSlot = getSelectedJadwalForRow(cb);
+                if (activeSlot) {
+                    checkedSchedules.push({ mkId: cb.value, slot: activeSlot });
                 }
                 if (tr) tr.classList.add('bg-light');
             } else {
@@ -294,39 +307,49 @@ document.addEventListener('DOMContentLoaded', function () {
         if (totalSksElement) totalSksElement.textContent = currentSks;
         if (totalSksBottom) totalSksBottom.textContent = currentSks;
 
-        const isSksExceeded = currentSks > maxSks;
-        if (simpanButton) simpanButton.disabled = isSksExceeded;
+        let hasAnyClashAmongChecked = false;
 
         if (!isLocked) {
             allCheckboxes.forEach(cb => {
                 const tr = cb.closest('.krs-row');
                 const clashMsg = tr ? tr.querySelector('.jadwal-clash-msg') : null;
                 if (cb.dataset.prasyaratOk === 'true') {
-                    if (!cb.checked) {
-                        const jadwalMK = JSON.parse(cb.dataset.jadwal || '[]');
-                        let isClashing = false;
-                        if (jadwalMK.length > 0) {
-                            const slotUtama = jadwalMK[0];
-                            for (const checkedJadwal of checkedSchedules) {
-                                if (isTimeOverlap(slotUtama, checkedJadwal)) {
-                                    isClashing = true;
-                                    break;
-                                }
+                    const rowSlot = getSelectedJadwalForRow(cb);
+                    let isClashing = false;
+
+                    if (rowSlot) {
+                        for (const item of checkedSchedules) {
+                            if (String(item.mkId) !== String(cb.value) && isTimeOverlap(rowSlot, item.slot)) {
+                                isClashing = true;
+                                break;
                             }
                         }
+                    }
+
+                    if (!cb.checked) {
                         cb.disabled = isClashing;
                         if (clashMsg) clashMsg.classList.toggle('d-none', !isClashing);
                     } else {
                         cb.disabled = false;
-                        if (clashMsg) clashMsg.classList.add('d-none');
+                        if (clashMsg) clashMsg.classList.toggle('d-none', !isClashing);
+                        if (isClashing) hasAnyClashAmongChecked = true;
                     }
                 }
             });
+        }
+
+        const isSksExceeded = currentSks > maxSks;
+        if (simpanButton) {
+            simpanButton.disabled = isSksExceeded || hasAnyClashAmongChecked;
         }
     }
 
     allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', validateKRS);
+    });
+
+    allKelasSelects.forEach(sel => {
+        sel.addEventListener('change', validateKRS);
     });
 
     validateKRS();
