@@ -340,7 +340,7 @@
 
                         @if(Auth::user()->hasRole('admin') || Auth::user()->hasRole('penjaminan_mutu'))
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/tracer-study*', 'admin/pengaturan*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->is('admin/evaluasi*', 'admin/tracer-study*', 'admin/pengaturan*', 'admin/feeder*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                                     Pengaturan
                                 </a>
                                 <ul class="dropdown-menu">
@@ -351,7 +351,9 @@
                                     <li><a class="dropdown-item" href="{{ route('admin.tracer.index') }}">Data Tracer Study</a></li>
                                     @if(Auth::user()->hasRole('admin'))
                                         <li><hr class="dropdown-divider"></li>
+                                        <li><h6 class="dropdown-header">Sistem & PDDIKTI</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.feeder.index') }}">Sinkronisasi Feeder & Backup</a></li>
                                     @endif
                                 </ul>
                             </li>
@@ -459,7 +461,6 @@
                             </li>
                         @endif
 
-                        {{-- Untuk peran lain (Rektorat, Mutu, Keuangan, Pustakawan, Administrasi Umum) yang tidak punya dropdown Akademik --}}
                         @if(!Auth::user()->hasRole('admin') && !Auth::user()->hasRole('dosen') && !Auth::user()->hasRole('mahasiswa') && !Auth::user()->hasRole('camaba'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('kalender.*') ? 'active' : '' }}" href="{{ route('kalender.halaman') }}">
@@ -636,6 +637,10 @@
                 <a href="{{ route('admin.mata-kuliah.index') }}" class="{{ request()->is('admin/mata-kuliah*') ? 'active' : '' }}">
                     <i class="bi bi-book"></i>
                     <span>Matkul</span>
+                </a>
+                <a href="{{ route('admin.feeder.index') }}" class="{{ request()->is('admin/feeder*') ? 'active' : '' }}">
+                    <i class="bi bi-database-down"></i>
+                    <span>Feeder</span>
                 </a>
                 <a href="{{ route('admin.pengaturan.index') }}" class="{{ request()->is('admin/pengaturan*') ? 'active' : '' }}">
                     <i class="bi bi-sliders"></i>

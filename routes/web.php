@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Admin\PengaturanAbsensiController;
 use App\Http\Controllers\Admin\PmbAdminController; 
 use App\Http\Controllers\Admin\PmbPeriodController;
+use App\Http\Controllers\Admin\FeederExportController;
 use App\Http\Controllers\Auth\PmbRegisterController;
 use App\Http\Controllers\PmbController;
 use App\Http\Controllers\Public\DosenProfileController;
@@ -380,6 +381,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
+
+        // =========================================================================
+        // RUTE PUSAT SINKRONISASI NEO FEEDER PDDIKTI & BACKUP DATABASE SQL
+        // =========================================================================
+        Route::get('/feeder', [FeederExportController::class, 'index'])->name('feeder.index');
+        Route::get('/feeder/export/{kategori}', [FeederExportController::class, 'exportCsv'])->name('feeder.export');
+        Route::get('/feeder/backup-sql', [FeederExportController::class, 'backupDatabaseSql'])->name('feeder.backup-sql');
+
         Route::patch('/tahun-akademik/{tahunAkademik}/set-active', [TahunAkademikController::class, 'setActive'])->name('tahun-akademik.set-active');
     });
 });
