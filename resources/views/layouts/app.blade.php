@@ -31,6 +31,10 @@
             --siakad-radius: {{ $themeColors['radius'] ?? '10px' }};
             --siakad-wm-opacity: {{ $themeColors['watermark_opacity'] ?? '0.06' }};
         }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
@@ -40,14 +44,14 @@
         .navbar-custom {
             background-color: #ffffff;
             border-bottom: 2px solid var(--siakad-primary);
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
+            padding-top: 0.65rem;
+            padding-bottom: 0.65rem;
         }
         .brand-logo-img {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             object-fit: contain;
-            margin-right: 14px;
+            margin-right: 12px;
             flex-shrink: 0;
         }
         .brand-text {
@@ -56,24 +60,27 @@
             color: var(--siakad-primary);
             letter-spacing: 0.01em;
             line-height: 1.15;
+            white-space: nowrap;
         }
         .brand-sub {
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 700;
             color: #475569;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.06em;
             margin-top: 2px;
             display: block;
+            white-space: nowrap;
         }
         .navbar-nav .nav-link {
             color: #334155;
             font-weight: 700;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             text-transform: uppercase;
-            padding: 0.5rem 0.7rem !important;
+            padding: 0.45rem 0.65rem !important;
             transition: all 0.2s;
             border-radius: var(--siakad-radius) !important;
+            white-space: nowrap;
         }
         .navbar-nav .nav-link:hover, .navbar-nav .nav-link.active, .navbar-nav .show > .nav-link {
             color: #ffffff;
@@ -110,8 +117,9 @@
             font-weight: bold;
             font-family: monospace;
             font-size: 0.95rem;
+            flex-shrink: 0;
         }
-        .user-name-truncate { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
+        .user-name-truncate { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: middle; }
         .footer { background-color: #ffffff; border-top: 2px solid var(--siakad-primary); color: #1e293b; }
 
         /* Override Warna Tema Dinamis */
@@ -238,11 +246,11 @@
     @endif
 
     <nav class="navbar navbar-expand-xl navbar-light navbar-custom sticky-top shadow-2xs">
-        <div class="container-fluid px-3 px-xl-5">
-            {{-- KLIK LOGO & NAMA KAMPUS LANGSUNG KE DASHBOARD --}}
-            <a class="navbar-brand d-flex align-items-center me-4" href="{{ auth()->check() ? route('dashboard') : '/' }}" title="Kembali ke Dashboard Utama">
+        <div class="container-fluid px-3 px-lg-4">
+            {{-- KLIK LOGO & NAMA KAMPUS LANGSUNG KE DASHBOARD (TIDAK TERPOTONG) --}}
+            <a class="navbar-brand d-flex align-items-center me-2 me-xl-3 flex-shrink-0" href="{{ auth()->check() ? route('dashboard') : '/' }}" title="Kembali ke Dashboard Utama">
                 <img src="{{ $logoUrl }}" alt="Logo" class="brand-logo-img">
-                <div class="d-flex flex-column justify-content-center ps-1">
+                <div class="d-flex flex-column justify-content-center">
                     <span class="brand-text fs-5">{{ $namaBrand }}</span>
                     <span class="brand-sub">Sistem Informasi Akademik</span>
                 </div>
@@ -270,7 +278,7 @@
             </div>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-xl-center gap-1">
+                <ul class="navbar-nav mx-xl-auto align-items-xl-center gap-1">
                     @auth
                         @if(Auth::user()->hasRole('admin'))
                             <li class="nav-item dropdown">
@@ -471,7 +479,7 @@
                     @endauth
                 </ul>
 
-                <ul class="navbar-nav ms-auto align-items-xl-center gap-1 ps-xl-3 mt-2 mt-xl-0 border-top border-xl-0 pt-2 pt-xl-0">
+                <ul class="navbar-nav ms-xl-auto align-items-xl-center gap-1 mt-2 mt-xl-0 border-top border-xl-0 pt-2 pt-xl-0 flex-shrink-0">
                     @auth
                         @if(!Auth::user()->hasRole('mahasiswa') && !Auth::user()->hasRole('camaba'))
                             <li class="nav-item me-1 d-none d-xl-block">
@@ -513,8 +521,11 @@
                                 </li>
                                 
                                 @forelse(Auth::user()->unreadNotifications->take(5) as $notification)
+                                    @php
+                                        \App\Http\Controllers\NotificationController::sanitizeNotificationRecord($notification);
+                                    @endphp
                                     <li>
-                                        <a class="dropdown-item py-2.5 border-bottom text-wrap" href="{{ route('notifikasi.baca', $notification->id) }}" style="white-space: normal;">
+                                        <a class="dropdown-item py-2.5 border-bottom text-wrap" href="{{ route('notifikasi.baca', $notification->id) }}" style="white-space: normal; word-break: break-word;">
                                             <div class="fw-bold uppercase" style="font-size: 0.8rem;">{{ $notification->data['title'] ?? 'Notifikasi' }}</div>
                                             <div class="text-muted" style="font-size: 0.75rem;">{{ $notification->data['message'] ?? '' }}</div>
                                             <div class="text-muted font-monospace mt-1" style="font-size: 0.68rem;">{{ $notification->created_at->diffForHumans() }}</div>
@@ -541,7 +552,7 @@
                                 <div class="user-avatar">
                                     {{ substr(Auth::user()->name, 0, 1) }}
                                 </div>
-                                <span class="fw-bold uppercase user-name-truncate" style="font-size: 0.82rem;">{{ Auth::user()->name }}</span>
+                                <span class="fw-bold uppercase user-name-truncate" style="font-size: 0.8rem;">{{ Auth::user()->name }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                 <li>

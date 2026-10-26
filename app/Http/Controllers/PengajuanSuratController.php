@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PengajuanSurat;
 use App\Models\TahunAkademik;
+use App\Notifications\GeneralNotification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,9 +14,6 @@ use Illuminate\View\View;
 
 class PengajuanSuratController extends Controller
 {
-    /**
-     * Halaman Daftar Pengajuan Surat Mandiri (Untuk Mahasiswa).
-     */
     public function mahasiswaIndex(): View
     {
         $user = Auth::user();
@@ -31,9 +29,6 @@ class PengajuanSuratController extends Controller
         return view('pengajuan_surat.mahasiswa_index', compact('mahasiswa', 'pengajuans'));
     }
 
-    /**
-     * Mahasiswa mengirim permohonan surat baru.
-     */
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
@@ -61,9 +56,6 @@ class PengajuanSuratController extends Controller
         return back()->with('success', 'Permohonan surat berhasil dikirim ke Biro Administrasi Akademik (BAAK).');
     }
 
-    /**
-     * Halaman Manajemen Ticketing Permohonan Surat Mahasiswa (Untuk Admin & Administrasi Umum).
-     */
     public function adminIndex(Request $request): View
     {
         $query = PengajuanSurat::with(['mahasiswa.programStudi'])->latest();
@@ -84,9 +76,6 @@ class PengajuanSuratController extends Controller
         return view('pengajuan_surat.admin_index', compact('pengajuans'));
     }
 
-    /**
-     * Admin / BAAK memvalidasi permohonan surat dan menerbitkan Nomor Surat (Stay-on-Page).
-     */
     public function updateStatus(Request $request, PengajuanSurat $pengajuanSurat): RedirectResponse
     {
         $validated = $request->validate([
@@ -97,42 +86,55 @@ class PengajuanSuratController extends Controller
 
         $nomorSurat = $validated['nomor_surat'] ?? $pengajuanSurat->nomor_surat;
         if ($validated['status'] === 'Disetujui' && empty($nomorSurat)) {
-            $nomorSurat = str_pad((string) $pengajuanSurat->id, 3, '0', STR_PAD_LEFT);
+            $urutan = str_pad((string) $pengajuanSurat->id, 3, '0', STR_PAD_LEFT);
+            $nomorSurat = "{$urutan}/BAAK-SRT/STT-GPI/" . date('m/Y');
         }
 
         $pengajuanSurat->update([
-            'status'            => $validated['status'],
-            'nomor_surat'       => $nomorSurat,
-            'catatan_admin'     => isset($validated['catatan_admin']) ? strip_tags($validated['catatan_admin']) : null,
-            'tanggal_disetujui' => $validated['status'] === 'Disetujui' ? now() : null,
+            'status'         => $validated['status'],
+            'nomor_surat'    => $nomorSurat,
+            'catatan_admin'  => isset($validated['catatan_admin']) ? strip_tags($validated['catatan_admin']) : null,
+            'disetujui_oleh' => Auth::id(),
+            'tanggal_terbit' => $validated['status'] === 'Disetujui' ? now() : null,
         ]);
+
+        // Kirim notifikasi ke mahasiswa terkait
+        if ($pengajuanSurat->mahasiswa && $pengajuanSurat->mahasiswa->user && in_array($validated['status'], ['Disetujui', 'Ditolak'])) {
+            $icon = $validated['status'] === 'Disetujui' ? 'bi-envelope-check-fill text-success' : 'bi-envelope-x-fill text-danger';
+            $pesan = 'Permohonan ' . $pengajuanSurat->jenis_surat . ' Anda telah ' . strtoupper($validated['status']) . '.'
+                . ($pengajuanSurat->catatan_admin ? ' Catatan BAAK: ' . $pengajuanSurat->catatan_admin : '');
+
+            $pengajuanSurat->mahasiswa->user->notify(new GeneralNotification(
+                'Status Surat: ' . $validated['status'],
+                $pesan,
+                route('surat-mandiri.index'),
+                $icon
+            ));
+        }
 
         return back()->with('success', 'Status permohonan surat mahasiswa ' . ($pengajuanSurat->mahasiswa->nama_lengkap ?? '') . ' berhasil diperbarui.');
     }
 
-    /**
-     * Cetak PDF Surat Keterangan Resmi hasil pengajuan mandiri yang telah disetujui (Dilengkapi QR-Code Verifikasi).
-     */
     public function cetakPdf(PengajuanSurat $pengajuanSurat)
     {
         $user = Auth::user();
-        $isOwner = $user->mahasiswa && (int) $user->mahasiswa->id === (int) $pengajuanSurat->mahasiswa_id;
-        $isStaff = $user->hasRole('admin') || $user->hasRole('administrasi_umum');
+        $isAdminOrStaf = $user->hasRole('admin') || $user->hasRole('administrasi_umum');
+        $isPemilik = $user->mahasiswa && ((int) $user->mahasiswa->id === (int) $pengajuanSurat->mahasiswa_id);
 
-        if (!$isOwner && !$isStaff) {
-            abort(403, 'Akses ditolak.');
+        if (!$isAdminOrStaf && !$isPemilik) {
+            abort(403, 'Anda tidak berhak mencetak dokumen surat ini.');
         }
 
         if ($pengajuanSurat->status !== 'Disetujui') {
-            return back()->with('error', 'Surat ini belum disetujui oleh bagian Administrasi Akademik.');
+            return back()->with('error', 'Dokumen surat belum dapat dicetak karena masih berstatus: ' . $pengajuanSurat->status);
         }
 
-        $mahasiswa = $pengajuanSurat->mahasiswa->load('programStudi');
+        $mahasiswa = $pengajuanSurat->mahasiswa()->with('programStudi.kaprodi')->firstOrFail();
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
-        $pdf = Pdf::loadView('pengajuan_surat.pdf_surat', compact('pengajuanSurat', 'mahasiswa', 'periodeAktif'))
-            ->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('pengajuan_surat.pdf_surat', compact('pengajuanSurat', 'mahasiswa', 'periodeAktif'));
+        $pdf->setPaper('A4', 'portrait');
 
-        return $pdf->stream('Surat_Resmi_' . $mahasiswa->nim . '_' . $pengajuanSurat->id . '.pdf');
+        return $pdf->stream('Surat_' . Str::slug($pengajuanSurat->jenis_surat) . '_' . $mahasiswa->nim . '.pdf');
     }
 }

@@ -70,7 +70,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold uppercase small py-2 px-3 text-dark" data-bs-toggle="tab" data-bs-target="#tab-akademik" type="button" role="tab">
-                    6. Akademik & Saklar
+                    6. Akademik, OBE & Saklar
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -478,35 +478,64 @@
                 </div>
             </div>
 
-            {{-- TAB 6: AKADEMIK & SAKLAR --}}
+            {{-- TAB 6: AKADEMIK, BOBOT OBE & SAKLAR --}}
             <div class="tab-pane fade" id="tab-akademik" role="tabpanel">
                 <div class="card border-0 shadow-sm border-top border-dark border-4">
                     <div class="card-header bg-dark text-white py-3 uppercase fw-bold small">
-                        VI. Parameter Operasional Akademik & Saklar Skala Kampus
+                        VI. Parameter Operasional Akademik, Bobot Penilaian OBE, & Saklar Skala Kampus
                     </div>
                     <div class="card-body p-4">
-                        <div class="row g-3">
-                            <div class="col-md-4">
+                        <h6 class="fw-bold text-dark uppercase small border-bottom pb-2 mb-3">A. Saklar Operasional KRS, Struktur Fakultas, & Istilah Pembimbing</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
                                 <label class="form-label small fw-bold uppercase text-dark">Status Periode Pengisian KRS</label>
                                 <select name="status_krs" class="form-select uppercase small fw-bold">
                                     <option value="buka" {{ $c['status_krs'] == 'buka' ? 'selected' : '' }}>BUKA (MAHASISWA BISA ISI KRS)</option>
                                     <option value="tutup" {{ $c['status_krs'] == 'tutup' ? 'selected' : '' }}>TUTUP (KUNCI PENGISIAN KRS)</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label small fw-bold uppercase text-dark">Mode Struktur Fakultas</label>
                                 <select name="fitur_fakultas_aktif" class="form-select uppercase small fw-bold">
-                                    <option value="0" {{ $c['fitur_fakultas_aktif'] == '0' ? 'selected' : '' }}>Sekolah Tinggi (Langsung Program Studi)</option>
-                                    <option value="1" {{ $c['fitur_fakultas_aktif'] == '1' ? 'selected' : '' }}>Universitas / Institut (Aktifkan Multi-Fakultas)</option>
+                                    <option value="0" {{ $c['fitur_fakultas_aktif'] == '0' ? 'selected' : '' }}>Sekolah Tinggi (Langsung Prodi)</option>
+                                    <option value="1" {{ $c['fitur_fakultas_aktif'] == '1' ? 'selected' : '' }}>Universitas (Multi-Fakultas)</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label small fw-bold uppercase text-dark">Sebutan Pembimbing Akademik</label>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Sebutan Jabatan Pembimbing</label>
                                 <select name="istilah_pembimbing" class="form-select uppercase small fw-bold">
-                                    <option value="Dosen Tutor" {{ $c['istilah_pembimbing'] == 'Dosen Tutor' ? 'selected' : '' }}>Dosen Tutor (Tutorship)</option>
-                                    <option value="Dosen Wali" {{ $c['istilah_pembimbing'] == 'Dosen Wali' ? 'selected' : '' }}>Dosen Wali (Perwalian)</option>
+                                    <option value="Dosen Tutor" {{ $c['istilah_pembimbing'] == 'Dosen Tutor' ? 'selected' : '' }}>Dosen Tutor</option>
+                                    <option value="Dosen Wali" {{ $c['istilah_pembimbing'] == 'Dosen Wali' ? 'selected' : '' }}>Dosen Wali</option>
                                     <option value="Pembimbing Akademik" {{ $c['istilah_pembimbing'] == 'Pembimbing Akademik' ? 'selected' : '' }}>Pembimbing Akademik (PA)</option>
                                 </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Sebutan Menu Bimbingan KRS</label>
+                                <select name="istilah_perwalian" class="form-select uppercase small fw-bold">
+                                    <option value="Tutorship" {{ ($c['istilah_perwalian'] ?? 'Tutorship') == 'Tutorship' ? 'selected' : '' }}>Tutorship</option>
+                                    <option value="Perwalian" {{ ($c['istilah_perwalian'] ?? '') == 'Perwalian' ? 'selected' : '' }}>Perwalian</option>
+                                    <option value="Bimbingan PA" {{ ($c['istilah_perwalian'] ?? '') == 'Bimbingan PA' ? 'selected' : '' }}>Bimbingan PA</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-dark uppercase small border-bottom pb-2 mb-3">B. Bobot Persentase Default Komponen Buku Nilai OBE (Total Disarankan 100%)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Bobot Kehadiran (%)</label>
+                                <input type="number" name="bobot_hadir_default" min="0" max="100" class="form-control font-monospace fw-bold" value="{{ $c['bobot_hadir_default'] ?? 10 }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Bobot Tugas Terstruktur (%)</label>
+                                <input type="number" name="bobot_tugas_default" min="0" max="100" class="form-control font-monospace fw-bold" value="{{ $c['bobot_tugas_default'] ?? 20 }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Bobot Ujian Tengah Semester / UTS (%)</label>
+                                <input type="number" name="bobot_uts_default" min="0" max="100" class="form-control font-monospace fw-bold" value="{{ $c['bobot_uts_default'] ?? 30 }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold uppercase text-dark">Bobot Ujian Akhir Semester / UAS (%)</label>
+                                <input type="number" name="bobot_uas_default" min="0" max="100" class="form-control font-monospace fw-bold" value="{{ $c['bobot_uas_default'] ?? 40 }}">
                             </div>
                         </div>
                     </div>

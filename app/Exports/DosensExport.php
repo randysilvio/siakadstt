@@ -81,7 +81,7 @@ class DosensExport implements FromCollection, WithHeadings, ShouldAutoSize, With
 
     public function styles(Worksheet $sheet)
     {
-        $hexColor = 'FF' . strtoupper(ltrim(Pengaturan::get('warna_primer', '#1e293b'), '#'));
+        $hexColor = 'FF' . strtoupper(ltrim(Pengaturan::themeColors()['primary'] ?? '#1e293b', '#'));
         return [
             5 => ['font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $hexColor]], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]],
             1 => ['font' => ['bold' => true, 'size' => 16], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],

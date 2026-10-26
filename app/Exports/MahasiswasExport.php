@@ -120,7 +120,7 @@ class MahasiswasExport implements FromCollection, WithHeadings, WithMapping, Sho
 
     public function styles(Worksheet $sheet)
     {
-        $hexColor = 'FF' . strtoupper(ltrim(Pengaturan::get('warna_primer', '#1e293b'), '#'));
+        $hexColor = 'FF' . strtoupper(ltrim(Pengaturan::themeColors()['primary'] ?? '#1e293b', '#'));
         return [
             5 => [
                 'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Pembayaran;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use App\Notifications\GeneralNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -266,12 +267,21 @@ class PembayaranController extends Controller
             'status'        => 'lunas',
             'tanggal_bayar' => $pembayaran->tanggal_bayar ?? now(),
         ]);
+
+        $targetUser = $pembayaran->user ?? optional($pembayaran->mahasiswa)->user;
+        if ($targetUser) {
+            $targetUrl = $pembayaran->mahasiswa_id ? route('pembayaran.riwayat') : route('dashboard');
+            $targetUser->notify(new GeneralNotification(
+                'Pembayaran Diverifikasi Lunas',
+                'Tagihan ' . strtoupper(str_replace('_', ' ', $pembayaran->jenis_pembayaran ?? 'Kuliah')) . ' (' . $pembayaran->semester . ') telah diverifikasi LUNAS oleh Bagian Keuangan.',
+                $targetUrl,
+                'bi-check-circle-fill text-success'
+            ));
+        }
+
         return back()->with('success', 'Pembayaran berhasil diverifikasi LUNAS.');
     }
 
-    /**
-     * [FITUR BARU FASE 7]: Memberikan status Dispensasi / Cicilan agar mahasiswa diizinkan mengisi KRS.
-     */
     public function tandaiDispensasi(Pembayaran $pembayaran): RedirectResponse
     {
         $catatan = $pembayaran->keterangan;
@@ -283,6 +293,16 @@ class PembayaranController extends Controller
             'status'     => 'dispensasi',
             'keterangan' => $catatan,
         ]);
+
+        $targetUser = $pembayaran->user ?? optional($pembayaran->mahasiswa)->user;
+        if ($targetUser) {
+            $targetUser->notify(new GeneralNotification(
+                'Dispensasi Pembayaran KRS Aktif',
+                'Tagihan semester ' . $pembayaran->semester . ' telah diberikan status DISPENSASI CICILAN. Anda kini dapat mengakses pengisian KRS.',
+                route('krs.index'),
+                'bi-unlock-fill text-primary'
+            ));
+        }
 
         return back()->with('success', 'Status tagihan diubah menjadi DISPENSASI / CICILAN. Kunci KRS mahasiswa telah dibuka.');
     }
