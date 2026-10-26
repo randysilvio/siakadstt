@@ -29,6 +29,10 @@
     .hover-bg-pub-primary:hover { background-color: var(--pub-primary) !important; color: #ffffff !important; }
     .hover-border-pub-primary:hover { border-color: var(--pub-primary) !important; }
     .pub-radius { border-radius: var(--pub-radius) !important; }
+    .shadow-2xs { box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04); }
+    @media (min-width: 768px) {
+        .items-md-center { align-items: center !important; }
+    }
 
     /* Kartu Standar Publik: Bersih, Radius Proporsional, & Hover Halus */
     .wm-card {
@@ -135,15 +139,15 @@
 {{-- MAIN STICKY NAVBAR --}}
 <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
     <nav class="container mx-auto px-4 lg:px-8 py-3.5 flex justify-between items-center max-w-7xl">
-        <a href="{{ url('/') }}" class="flex items-center gap-4 group" title="Halaman Utama {{ $singkatanPt }}">
+        <a href="{{ url('/') }}" class="flex items-center gap-4 group min-w-0" title="Halaman Utama {{ $singkatanPt }}">
             <img src="{{ $pubLogo }}" alt="Logo {{ $singkatanPt }}" class="h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105 shrink-0">
             @if($eventLogo)
-                <div class="h-8 w-px bg-slate-200"></div>
+                <div class="h-8 w-px bg-slate-200 shrink-0"></div>
                 <img src="{{ $eventLogo }}" alt="{{ $eventLabel ?: 'Logo Kegiatan' }}" title="{{ $eventLabel }}" class="h-11 w-auto max-w-[90px] object-contain transition-transform duration-300 group-hover:scale-105 shrink-0">
             @endif
-            <div class="pl-0.5">
-                <span class="font-bold text-lg text-slate-900 tracking-tight block leading-none uppercase">{{ $singkatanPt }}</span>
-                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mt-1.5 max-w-[240px] truncate">
+            <div class="pl-0.5 min-w-0">
+                <span class="font-bold text-base sm:text-lg text-slate-900 tracking-tight block leading-none uppercase truncate">{{ $singkatanPt }}</span>
+                <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mt-1.5 max-w-[200px] sm:max-w-[260px] truncate">
                     {{ !empty($eventLabel) ? $eventLabel : $namaPt }}
                 </span>
             </div>
@@ -204,7 +208,7 @@
             @endauth
         </div>
 
-        <div class="lg:hidden">
+        <div class="lg:hidden shrink-0">
             <button id="mobile-menu-button" type="button" class="text-slate-800 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold uppercase">
                 Menu
             </button>

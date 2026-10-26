@@ -2,28 +2,31 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Keuangan - SIAKAD</title>
+    @php
+        $singkatanPt = \App\Models\Pengaturan::get('singkatan_kampus', 'STT GPI PAPUA');
+    @endphp
+    <title>Laporan Keuangan - SIAKAD {{ $singkatanPt }}</title>
     <style>
-        /* CSS STANDAR ENTERPRISE (CETAKAN FORMAL 0PX) */
-        body { font-family: Arial, sans-serif; font-size: 11px; background-color: #fff; color: #000; }
+        body { font-family: Arial, sans-serif; font-size: 10.5px; background-color: #fff; color: #000; }
+        @page { size: A4 landscape; margin: 1.2cm; }
         
         .report-title {
             text-align: center;
             margin-top: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
             text-decoration: underline;
         }
 
-        .meta-info { margin-bottom: 15px; font-size: 11px; text-transform: uppercase; }
+        .meta-info { margin-bottom: 12px; font-size: 10.5px; text-transform: uppercase; }
         .meta-table { width: auto; border: none; }
-        .meta-table td { border: none; padding: 3px 10px 3px 0; vertical-align: top; }
+        .meta-table td { border: none; padding: 2px 10px 2px 0; vertical-align: top; }
 
-        table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.data-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         table.data-table th, 
-        table.data-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; font-size: 11px; }
+        table.data-table td { border: 1px solid #000; padding: 5px 7px; vertical-align: middle; font-size: 10.5px; }
         table.data-table th { background-color: #212529; color: #ffffff; font-weight: bold; text-align: center; text-transform: uppercase; }
         
         .text-right { text-align: right; }
@@ -31,59 +34,53 @@
         .text-start { text-align: left; }
         .font-monospace { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         .uppercase { text-transform: uppercase; }
+        .fw-bold { font-weight: bold; }
         
-        .badge-lunas { font-weight: bold; text-transform: uppercase; }
-        .badge-belum { font-weight: bold; text-transform: uppercase; }
-        .badge-cek { font-weight: bold; text-transform: uppercase; }
+        .badge-lunas { font-weight: bold; text-transform: uppercase; color: #065f46; }
+        .badge-dispensasi { font-weight: bold; text-transform: uppercase; color: #1e40af; }
+        .badge-belum { font-weight: bold; text-transform: uppercase; color: #991b1b; }
+        .badge-cek { font-weight: bold; text-transform: uppercase; color: #92400e; }
         .badge-camaba { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         
-        .footer { position: fixed; bottom: 0; width: 100%; text-align: right; font-size: 10px; font-family: 'Courier New', Courier, monospace; text-transform: uppercase; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: right; font-size: 9.5px; font-family: 'Courier New', Courier, monospace; text-transform: uppercase; }
     </style>
 </head>
-<body onload="window.print()">
+<body>
 
-    {{-- 1. INCLUDE KOP SURAT --}}
     @include('partials._kop')
 
-    {{-- 2. JUDUL LAPORAN --}}
-    <div class="report-title">Laporan Status Pembayaran</div>
+    <div class="report-title">LAPORAN REKAPITULASI TAGIHAN & PEMBAYARAN</div>
 
-    {{-- 3. INFORMASI FILTER --}}
     <div class="meta-info">
         <table class="meta-table">
             <tr>
                 <td><strong>Periode Semester</strong></td>
                 <td class="font-monospace">: {{ $filterInfo['semester'] ?? '-' }}</td>
+                <td style="padding-left: 25px;"><strong>Dicetak Oleh</strong></td>
+                <td class="uppercase fw-bold">: {{ $filterInfo['pencetak'] ?? '-' }}</td>
             </tr>
             <tr>
                 <td><strong>Status Filter</strong></td>
                 <td class="uppercase fw-bold">: {{ $filterInfo['status'] ?? '-' }}</td>
+                <td style="padding-left: 25px;"><strong>Tanggal Cetak</strong></td>
+                <td class="font-monospace">: {{ $filterInfo['tanggal_cetak'] ?? date('d M Y') }}</td>
             </tr>
             <tr>
                 <td><strong>Tipe User</strong></td>
-                <td class="uppercase fw-bold">: {{ $filterInfo['tipe_user'] ?? 'Semua' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Dicetak Oleh</strong></td>
-                <td class="uppercase fw-bold">: {{ $filterInfo['pencetak'] ?? '-' }}</td>
-            </tr>
-            <tr>
-                <td><strong>Tanggal Cetak</strong></td>
-                <td class="font-monospace">: {{ $filterInfo['tanggal_cetak'] ?? date('d M Y') }}</td>
+                <td class="uppercase fw-bold" colspan="3">: {{ $filterInfo['tipe_user'] ?? 'Semua' }}</td>
             </tr>
         </table>
     </div>
 
-    {{-- 4. TABEL DATA --}}
     <table class="data-table">
         <thead>
             <tr>
                 <th style="width: 5%;">NO</th>
-                <th style="width: 15%;">NIM / ID</th>
-                <th class="text-start" style="width: 25%;">NAMA PEMBAYAR</th>
-                <th class="text-start" style="width: 20%;">KETERANGAN</th>
-                <th style="width: 15%;">JUMLAH</th>
-                <th style="width: 10%;">STATUS</th>
+                <th style="width: 14%;">NIM / ID</th>
+                <th class="text-start" style="width: 24%;">NAMA PEMBAYAR</th>
+                <th class="text-start" style="width: 22%;">KETERANGAN TAGIHAN</th>
+                <th style="width: 14%;">JUMLAH</th>
+                <th style="width: 11%;">STATUS</th>
                 <th style="width: 10%;">TGL BAYAR</th>
             </tr>
         </thead>
@@ -92,7 +89,6 @@
             <tr>
                 <td class="text-center font-monospace">{{ $index + 1 }}</td>
                 
-                {{-- KOLOM NIM --}}
                 <td class="text-center font-monospace">
                     @if($p->mahasiswa)
                         {{ $p->mahasiswa->nim }}
@@ -101,7 +97,6 @@
                     @endif
                 </td>
 
-                {{-- KOLOM NAMA --}}
                 <td class="uppercase fw-bold">
                     @if($p->mahasiswa)
                         {{ $p->mahasiswa->nama_lengkap }}
@@ -112,7 +107,6 @@
                     @endif
                 </td>
 
-                {{-- KOLOM KETERANGAN --}}
                 <td class="uppercase">
                     <strong class="font-monospace">{{ $p->semester }}</strong>
                     @if($p->jenis_pembayaran != 'spp')
@@ -125,6 +119,8 @@
                 <td class="text-center">
                     @if($p->status == 'lunas')
                         <span class="badge-lunas">LUNAS</span>
+                    @elseif($p->status == 'dispensasi')
+                        <span class="badge-dispensasi">DISPENSASI</span>
                     @elseif($p->status == 'menunggu_konfirmasi')
                         <span class="badge-cek">CEK BUKTI</span>
                     @else
@@ -145,7 +141,6 @@
             @endforelse
         </tbody>
         
-        {{-- FOOTER TABEL (REKAPITULASI) --}}
         <tfoot>
             <tr>
                 <td colspan="4" class="text-right uppercase"><strong>TOTAL PENERIMAAN (SUDAH LUNAS)</strong></td>
@@ -155,12 +150,12 @@
                 <td colspan="2"></td>
             </tr>
             <tr>
-                <td colspan="4" class="text-right uppercase"><strong>TOTAL TUNGGAKAN (BELUM LUNAS)</strong></td>
+                <td colspan="4" class="text-right uppercase"><strong>TOTAL TUNGGAKAN / BELUM LUNAS</strong></td>
                 <td class="text-right font-monospace">
                     <strong>Rp {{ number_format($pembayarans->where('status', '!=', 'lunas')->sum('jumlah'), 0, ',', '.') }}</strong>
                 </td>
                 <td colspan="2" class="uppercase" style="font-size: 9px;">
-                    *TERMASUK MENUNGGU KONFIRMASI
+                    *TERMASUK DISPENSASI & VERIFIKASI
                 </td>
             </tr>
             <tr>
@@ -175,9 +170,8 @@
         </tfoot>
     </table>
 
-    {{-- 5. FOOTER HALAMAN --}}
     <div class="footer">
-        DICETAK MELALUI SISTEM INFORMASI AKADEMIK (SIAKAD) STT GPI PAPUA
+        DICETAK MELALUI SISTEM INFORMASI AKADEMIK (SIAKAD) {{ strtoupper($singkatanPt) }}
     </div>
 
 </body>

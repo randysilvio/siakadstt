@@ -32,7 +32,16 @@
         $labelIdPimpinan = $cfg['label_id_rektor'] ?? 'NUPTK';
         $nidnPimpinan = $cfg['nidn_rektor'] ?? '8935756657130152';
         $kotaTtd = $cfg['kota_domisili'] ?? 'Fakfak';
-        $noSuratFormatted = ($pengajuanSurat->nomor_surat ?: str_pad((string)$pengajuanSurat->id, 3, '0', STR_PAD_LEFT)) . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $pengajuanSurat->created_at->format('Y');
+
+        $rawNomor = trim((string) $pengajuanSurat->nomor_surat);
+        if (!empty($rawNomor) && str_contains($rawNomor, '/')) {
+            $noSuratFormatted = $rawNomor;
+        } else {
+            $urut = !empty($rawNomor) ? $rawNomor : str_pad((string) $pengajuanSurat->id, 3, '0', STR_PAD_LEFT);
+            $noSuratFormatted = $urut . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $pengajuanSurat->created_at->format('Y');
+        }
+
+        $tglSurat = $pengajuanSurat->tanggal_terbit ?? $pengajuanSurat->updated_at ?? now();
     @endphp
 
     <div class="title-container">
@@ -54,7 +63,7 @@
             </tr>
             <tr>
                 <td class="label">Tempat, Tanggal Lahir</td>
-                <td>: {{ $mahasiswa->tempat_lahir ?? '-' }}, {{ $mahasiswa->tanggal_lahir ? $mahasiswa->tanggal_lahir->translatedFormat('d F Y') : '-' }}</td>
+                <td>: {{ $mahasiswa->tempat_lahir ?? '-' }}, {{ $mahasiswa->tanggal_lahir ? \Carbon\Carbon::parse($mahasiswa->tanggal_lahir)->translatedFormat('d F Y') : '-' }}</td>
             </tr>
             <tr>
                 <td class="label">Program Studi</td>
@@ -81,7 +90,7 @@
         <tr>
             <td></td>
             <td>
-                {{ $kotaTtd }}, {{ ($pengajuanSurat->tanggal_disetujui ?? now())->translatedFormat('d F Y') }}<br>
+                {{ $kotaTtd }}, {{ \Carbon\Carbon::parse($tglSurat)->translatedFormat('d F Y') }}<br>
                 {{ $sebutanPimpinan }} {{ $singkatanPt }},<br>
                 <div class="sign-space"></div>
                 <strong><u>{{ $namaPimpinan }}</u></strong><br>

@@ -41,6 +41,25 @@
             color: #1e293b;
             -webkit-tap-highlight-color: transparent;
         }
+
+        /* Compatibility Utility Classes untuk Seluruh Blade Internal */
+        .uppercase { text-transform: uppercase !important; }
+        .flex-grow { flex-grow: 1 !important; }
+        .font-bold { font-weight: 700 !important; }
+        .text-sm { font-size: 0.875rem !important; }
+        .tracking-widest { letter-spacing: 0.08em !important; }
+        .shadow-2xs { box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05) !important; }
+        .py-0\.5 { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
+        .py-1\.5 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+        .py-2\.5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+        .px-2\.5 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+        .me-1\.5 { margin-right: 0.375rem !important; }
+        .top-25 { top: 22% !important; }
+        .start-75 { left: 75% !important; }
+        @media (min-width: 768px) {
+            .items-md-center { align-items: center !important; }
+        }
+
         .navbar-custom {
             background-color: #ffffff;
             border-bottom: 2px solid var(--siakad-primary);
@@ -836,11 +855,11 @@
                 }, idleDuration);
             }
             window.onload = resetTimer;
-            document.onmousemove = resetTimer;
-            document.onmousedown = resetTimer;
-            document.ontouchstart = resetTimer;
-            document.onclick = resetTimer;
-            document.onkeydown = resetTimer;
+            window.onmousemove = resetTimer;
+            window.onmousedown = resetTimer;
+            window.ontouchstart = resetTimer;
+            window.onclick = resetTimer;
+            window.onkeydown = resetTimer;
         })();
     </script>
 </body>
