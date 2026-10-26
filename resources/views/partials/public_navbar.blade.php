@@ -21,12 +21,24 @@
     .bg-pub-primary { background-color: var(--pub-primary) !important; }
     .text-pub-primary { color: var(--pub-primary) !important; }
     .border-pub-primary { border-color: var(--pub-primary) !important; }
+    .border-t-pub-primary { border-top-color: var(--pub-primary) !important; }
+    .border-l-pub-primary { border-left-color: var(--pub-primary) !important; }
     .bg-pub-accent { background-color: var(--pub-accent) !important; }
     .text-pub-accent { color: var(--pub-accent) !important; }
     .border-pub-accent { border-color: var(--pub-accent) !important; }
     .hover-bg-pub-primary:hover { background-color: var(--pub-primary) !important; color: #ffffff !important; }
     .hover-border-pub-primary:hover { border-color: var(--pub-primary) !important; }
     .pub-radius { border-radius: var(--pub-radius) !important; }
+
+    /* Kartu Standar Publik: Bersih, Radius Proporsional, & Hover Halus */
+    .wm-card {
+        border-radius: var(--pub-radius);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .wm-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.08);
+    }
 
     .hover-lift {
         transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
@@ -44,12 +56,13 @@
         animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    .wm-featured {
+    /* Watermark Eksklusif Hanya pada Kartu Highlight Utama (.wm-featured & .wm-card-dark) */
+    .wm-featured, .wm-card-dark {
         position: relative;
         overflow: hidden;
         border-radius: var(--pub-radius);
     }
-    .wm-featured::after {
+    .wm-featured::after, .wm-card-dark::after {
         content: "";
         position: absolute;
         right: -20px;
@@ -65,11 +78,11 @@
         pointer-events: none;
         z-index: 0;
     }
-    .wm-featured-dark::after {
+    .wm-featured-dark::after, .wm-card-dark::after {
         filter: grayscale(100%) invert(100%) brightness(200%);
         opacity: 0.08;
     }
-    .wm-featured > * {
+    .wm-featured > *, .wm-card-dark > * {
         position: relative;
         z-index: 1;
     }
@@ -122,7 +135,6 @@
 {{-- MAIN STICKY NAVBAR --}}
 <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
     <nav class="container mx-auto px-4 lg:px-8 py-3.5 flex justify-between items-center max-w-7xl">
-        {{-- KLIK LOGO & NAMA KAMPUS LANGSUNG KE BERANDA UTAMA --}}
         <a href="{{ url('/') }}" class="flex items-center gap-4 group" title="Halaman Utama {{ $singkatanPt }}">
             <img src="{{ $pubLogo }}" alt="Logo {{ $singkatanPt }}" class="h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105 shrink-0">
             @if($eventLogo)
@@ -138,7 +150,6 @@
         </a>
 
         <div class="hidden lg:flex items-center space-x-6">
-            {{-- Menu Beranda dihapus karena klik Logo & Nama Kampus sudah mengarah ke Beranda --}}
             <div class="relative group">
                 <button type="button" class="text-xs uppercase tracking-wider {{ request()->routeIs('publik.profil') || request()->routeIs('dosen.public.*') ? 'font-extrabold text-pub-primary' : 'font-semibold text-slate-600 group-hover:text-slate-950' }} flex items-center gap-1 py-2">
                     Tentang Kampus <i class="fa-solid fa-chevron-down text-[9px] opacity-60 transition-transform duration-200 group-hover:rotate-180"></i>

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Mahasiswa;
+use App\Models\Pengaturan;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -26,9 +27,6 @@ class MahasiswasExport implements FromCollection, WithHeadings, WithMapping, Sho
         $this->program_studi_id = $program_studi_id;
     }
 
-    /**
-     * Sanitasi sel terhadap CSV / Excel Formula Injection.
-     */
     private function safeCell($value): string
     {
         $str = (string) ($value ?? '');
@@ -98,13 +96,17 @@ class MahasiswasExport implements FromCollection, WithHeadings, WithMapping, Sho
 
     public function headings(): array
     {
+        $namaKampus = strtoupper(Pengaturan::get('nama_kampus', 'SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA'));
+        $alamatKampus = Pengaturan::get('kop_alamat', 'Jl. Jenderal Sudirman, Fakfak, Papua Barat');
+        $istilahPembimbing = Pengaturan::get('istilah_pembimbing', 'Dosen Tutor');
+
         return [
-            ['SEKOLAH TINGGI TEOLOGI (STT) GPI PAPUA'],
-            ['Jl. Jenderal Sudirman, Fakfak, Papua Barat'],
+            [$namaKampus],
+            [$alamatKampus],
             ['LAPORAN DATA MAHASISWA'],
             [''],
             [
-                'NIM', 'Nama Lengkap', 'Program Studi', 'Angkatan', 'Status Mahasiswa', 'Dosen Wali',
+                'NIM', 'Nama Lengkap', 'Program Studi', 'Angkatan', 'Status Mahasiswa', $istilahPembimbing,
                 'NIK', 'NISN', 'Jalur Pendaftaran', 'Email', 'No HP',
                 'Tempat Lahir', 'Tanggal Lahir', 'Jenis Kelamin', 'Agama',
                 'Alamat', 'Dusun', 'RT', 'RW', 'Kelurahan', 'Kecamatan', 'Kode Pos',
@@ -118,15 +120,16 @@ class MahasiswasExport implements FromCollection, WithHeadings, WithMapping, Sho
 
     public function styles(Worksheet $sheet)
     {
+        $hexColor = 'FF' . strtoupper(ltrim(Pengaturan::get('warna_primer', '#1e293b'), '#'));
         return [
             5 => [
                 'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF0d9488']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $hexColor]],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             ],
             1 => ['font' => ['bold' => true, 'size' => 16], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            2 => ['font' => ['size' => 12], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
-            3 => ['font' => ['bold' => true, 'size' => 14, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            2 => ['font' => ['size' => 11], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
+            3 => ['font' => ['bold' => true, 'size' => 13, 'underline' => true], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]],
         ];
     }
 
