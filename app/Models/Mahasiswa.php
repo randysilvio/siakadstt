@@ -109,6 +109,11 @@ class Mahasiswa extends Model
 
     public function getStatusEvaluasiAttribute(): string
     {
+        return $this->statusEvaluasiCache ??= $this->hitungStatusEvaluasi();
+    }
+
+    private function hitungStatusEvaluasi(): string
+    {
         if ($this->status_mahasiswa === 'Lulus') {
             return 'sudah_isi';
         }
@@ -147,67 +152,54 @@ class Mahasiswa extends Model
         return !empty($belumDievaluasi) ? 'belum_isi' : 'sudah_isi';
     }
 
-    public function hitungIpk(): float
+    /** Rekap IPK & SKS yang sudah dihitung (per instance), agar tidak dihitung ulang dalam satu request. */
+    protected ?array $rekapNilaiCache = null;
+
+    /** Hasil EDOM yang sudah dihitung (per instance). */
+    protected ?string $statusEvaluasiCache = null;
+
+    /**
+     * Mengisi rekap dari perhitungan massal (RekapNilaiService::rekapBanyak) untuk menghindari N+1 query.
+     */
+    public function setRekapNilai(array $rekap): static
     {
-        $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
-
-        if ($krs_selesai->isEmpty()) {
-            return 0.00;
-        }
-
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-        $matkulTerbaik = [];
-
-        foreach ($krs_selesai as $mk) {
-            $bobotSekarang = $bobot_nilai[$mk->pivot->nilai] ?? 0;
-            if (isset($matkulTerbaik[$mk->id])) {
-                $bobotTersimpan = $bobot_nilai[$matkulTerbaik[$mk->id]['nilai']] ?? 0;
-                if ($bobotSekarang > $bobotTersimpan) {
-                    $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
-                }
-            } else {
-                $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
-            }
-        }
-
-        $total_sks_diambil = 0;
-        $total_bobot_sks = 0;
-
-        foreach ($matkulTerbaik as $mk) {
-            $total_sks_diambil += $mk['sks'];
-            $bobot = $bobot_nilai[$mk['nilai']] ?? 0;
-            $total_bobot_sks += ($bobot * $mk['sks']);
-        }
-
-        return ($total_sks_diambil > 0) ? round($total_bobot_sks / $total_sks_diambil, 2) : 0.00;
+        $this->rekapNilaiCache = $rekap;
+        return $this;
     }
 
+    /**
+     * Mengisi rekap IPK/SKS untuk sekumpulan mahasiswa dengan satu query (hindari N+1 di laporan & daftar).
+     */
+    public static function isiRekapNilai(\Illuminate\Support\Collection $mahasiswas): \Illuminate\Support\Collection
+    {
+        $rekap = app(\App\Services\RekapNilaiService::class)->rekapBanyak($mahasiswas->pluck('id'));
+        foreach ($mahasiswas as $mhs) {
+            $mhs->setRekapNilai($rekap[$mhs->id]);
+        }
+        return $mahasiswas;
+    }
+
+    public function rekapNilai(): array
+    {
+        return $this->rekapNilaiCache ??= app(\App\Services\RekapNilaiService::class)->rekap($this->id);
+    }
+
+    /** IPK kumulatif (nilai terbaik untuk mata kuliah yang diulang). */
+    public function hitungIpk(): float
+    {
+        return (float) $this->rekapNilai()['ipk'];
+    }
+
+    /** Total SKS lulus (nilai terbaik A–D). */
     public function totalSksLulus(): int
     {
-        $krs_selesai = $this->mataKuliahs()->wherePivotNotNull('nilai')->get();
-        $bobot_nilai = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-        $matkulTerbaik = [];
+        return (int) $this->rekapNilai()['sks_lulus'];
+    }
 
-        foreach ($krs_selesai as $mk) {
-            $bobotSekarang = $bobot_nilai[$mk->pivot->nilai] ?? -1;
-            if (isset($matkulTerbaik[$mk->id])) {
-                $bobotTersimpan = $bobot_nilai[$matkulTerbaik[$mk->id]['nilai']] ?? -1;
-                if ($bobotSekarang > $bobotTersimpan) {
-                    $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
-                }
-            } else {
-                $matkulTerbaik[$mk->id] = ['sks' => $mk->sks, 'nilai' => $mk->pivot->nilai];
-            }
-        }
-
-        $total_lulus = 0;
-        foreach ($matkulTerbaik as $mk) {
-            if (in_array($mk['nilai'], ['A', 'B', 'C', 'D'])) {
-                $total_lulus += $mk['sks'];
-            }
-        }
-        
-        return $total_lulus;
+    /** Apakah mahasiswa sudah memiliki minimal satu nilai (untuk EWS & batas SKS mahasiswa baru). */
+    public function sudahPunyaNilai(): bool
+    {
+        return $this->rekapNilai()['sks_bernilai'] > 0;
     }
 
     public function hitungIps($tahun_akademik_id)
@@ -280,6 +272,12 @@ class Mahasiswa extends Model
      */
     public function statusKrsPada(int $tahunAkademikId): string
     {
+        // Pakai relasi yang sudah di-eager-load (daftar mahasiswa) agar tidak satu query per baris
+        if ($this->relationLoaded('krsPersetujuans')) {
+            return optional($this->krsPersetujuans->firstWhere('tahun_akademik_id', $tahunAkademikId))->status
+                ?? KrsPersetujuan::BELUM;
+        }
+
         return $this->krsPersetujuans()->where('tahun_akademik_id', $tahunAkademikId)->value('status')
             ?? KrsPersetujuan::BELUM;
     }
@@ -311,6 +309,9 @@ class Mahasiswa extends Model
                 'divalidasi_pada' => $isValidasi ? now() : null,
             ]
         );
+
+        $this->unsetRelation('krsPersetujuans');
+        $this->statusEvaluasiCache = null;
 
         $aktifId = TahunAkademik::where('is_active', true)->value('id');
         if ((int) $aktifId === $tahunAkademikId) {

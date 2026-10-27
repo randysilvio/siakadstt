@@ -44,7 +44,7 @@ class MutuReportController extends Controller
         $jumlahDosen = Dosen::count();
         $rasio = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
 
-        $mahasiswas = Mahasiswa::with('mataKuliahs')->where('status_mahasiswa', 'Aktif')->get();
+        $mahasiswas = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Aktif')->get());
         $totalIpk = 0;
         $count = 0;
         foreach ($mahasiswas as $mhs) {
@@ -75,9 +75,7 @@ class MutuReportController extends Controller
                 ->get();
         }
 
-        $dataLulusan = Mahasiswa::with('mataKuliahs')
-            ->where('status_mahasiswa', 'Lulus')
-            ->get()
+        $dataLulusan = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Lulus')->get())
             ->groupBy(function ($item) {
                 return $item->tanggal_lulus ? Carbon::parse($item->tanggal_lulus)->format('Y') : $item->updated_at->format('Y'); 
             })

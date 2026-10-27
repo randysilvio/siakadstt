@@ -24,9 +24,7 @@ class PenjaminanMutuController extends Controller
         $rasioDosenMahasiswa = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
 
         // 2. Hitung Rata-rata IPK Institusi (Real-time untuk Mahasiswa Aktif)
-        $mahasiswas = Mahasiswa::with('mataKuliahs')
-                        ->where('status_mahasiswa', 'Aktif')
-                        ->get();
+        $mahasiswas = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Aktif')->get());
 
         $totalIpkKumulatif = 0;
         $jumlahMhsTerhitung = 0;
@@ -74,9 +72,7 @@ class PenjaminanMutuController extends Controller
         }
 
         // 6. [LOGIKA BARU] Profil Kelulusan (Standar Akreditasi BAN-PT)
-        $dataLulusan = Mahasiswa::with('mataKuliahs')
-            ->where('status_mahasiswa', 'Lulus')
-            ->get()
+        $dataLulusan = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Lulus')->get())
             ->groupBy(function($item) {
                 // Fallback ke updated_at JIKA kolom tanggal lulus (baru) ada yang terlanjur kosong di masa lalu
                 return $item->tanggal_lulus ? Carbon::parse($item->tanggal_lulus)->format('Y') : $item->updated_at->format('Y'); 

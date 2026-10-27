@@ -12,6 +12,10 @@ use Illuminate\View\View;
 
 class KaprodiDashboardController extends Controller
 {
+    public function __construct(private \App\Services\RekapNilaiService $rekapNilai)
+    {
+    }
+
     public function index(Request $request): View
     {
         $user = Auth::user();
@@ -52,15 +56,21 @@ class KaprodiDashboardController extends Controller
             ->whereHas('mataKuliahs', fn ($q) => $q->whereNotNull('mahasiswa_mata_kuliah.nilai'))
             ->get();
 
-        $mahasiswaRawanDo = $semuaMhsAktifProdi->filter(function ($mhs) {
-            $ipk = $mhs->hitungIpk();
-            $mhs->ipk_hitung = $ipk;
-            $mhs->sks_lulus_hitung = $mhs->totalSksLulus();
-            return $ipk < 2.00;
+        // IPK seluruh mahasiswa prodi dihitung dalam satu query (bukan beberapa query per mahasiswa)
+        $rekapEws = $this->rekapNilai->rekapBanyak($semuaMhsAktifProdi->pluck('id'));
+        $mahasiswaRawanDo = $semuaMhsAktifProdi->filter(function ($mhs) use ($rekapEws) {
+            $rekap = $rekapEws[$mhs->id];
+            $mhs->setRekapNilai($rekap);
+            $mhs->ipk_hitung = $rekap['ipk'];
+            $mhs->sks_lulus_hitung = $rekap['sks_lulus'];
+            return $rekap['ipk'] < 2.00;
         })->values();
 
         // Query Tabel Utama
-        $query = $programStudi->mahasiswas()->with(['user', 'dosenWali', 'mataKuliahs'])->where('status_mahasiswa', 'Aktif');
+        $query = $programStudi->mahasiswas()
+            ->with(['user', 'dosenWali', 'krsPersetujuans' => fn ($q) => $q->where('tahun_akademik_id', $periodeId)])
+            ->withCount(['mataKuliahs as krs_semester_ini' => fn ($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeId)])
+            ->where('status_mahasiswa', 'Aktif');
 
         $query->when($request->filled('status'), function ($q) use ($request, $periodeId) {
             if ($request->status == 'Belum') {
@@ -85,16 +95,13 @@ class KaprodiDashboardController extends Controller
 
         $mahasiswas = $query->orderBy('nim', 'asc')->paginate(10)->withQueryString();
 
+        $rekapHalaman = $this->rekapNilai->rekapBanyak($mahasiswas->pluck('id'));
         foreach ($mahasiswas as $mhs) {
-            $hasKrsThisSemester = false;
-            if ($periodeAktif) {
-                $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-            }
-            $mhs->status_krs_display = $hasKrsThisSemester
-                ? $mhs->statusKrsPada($periodeAktif->id)
+            $mhs->status_krs_display = $mhs->krs_semester_ini > 0
+                ? $mhs->statusKrsPada($periodeId)
                 : 'Belum Mengajukan';
-            $mhs->ipk_hitung = $mhs->hitungIpk();
-            $mhs->sks_lulus_hitung = $mhs->totalSksLulus();
+            $mhs->ipk_hitung = $rekapHalaman[$mhs->id]['ipk'];
+            $mhs->sks_lulus_hitung = $rekapHalaman[$mhs->id]['sks_lulus'];
         }
 
         return view('kaprodi.dashboard', compact(

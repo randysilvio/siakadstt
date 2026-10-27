@@ -27,22 +27,21 @@ class PerwalianController extends Controller
         
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
+        $periodeId = $periodeAktif->id ?? 0;
         $mahasiswa_wali = Mahasiswa::where('dosen_wali_id', $dosen->id)
                             ->where('status_mahasiswa', 'Aktif')
-                            ->with(['programStudi', 'mataKuliahs'])
+                            ->with(['programStudi', 'krsPersetujuans' => fn ($q) => $q->where('tahun_akademik_id', $periodeId)])
+                            ->withCount(['mataKuliahs as krs_semester_ini' => fn ($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeId)])
                             ->orderBy('nama_lengkap')
                             ->get();
 
+        // IPK seluruh mahasiswa bimbingan dihitung dalam satu query
+        $rekap = app(\App\Services\RekapNilaiService::class)->rekapBanyak($mahasiswa_wali->pluck('id'));
         foreach ($mahasiswa_wali as $mhs) {
-            $hasKrsThisSemester = false;
-            if ($periodeAktif) {
-                $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-            }
-
-            $mhs->status_krs_display = ($hasKrsThisSemester && $periodeAktif)
+            $mhs->status_krs_display = ($mhs->krs_semester_ini > 0 && $periodeAktif)
                 ? $mhs->statusKrsPada($periodeAktif->id)
                 : 'Belum Mengajukan';
-            $mhs->ipk_hitung = $mhs->hitungIpk();
+            $mhs->ipk_hitung = $rekap[$mhs->id]['ipk'];
         }
 
         // Penetapan dosen wali hanya oleh Kaprodi (untuk prodinya) atau Admin (menu Data Mahasiswa).

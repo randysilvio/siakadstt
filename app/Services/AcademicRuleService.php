@@ -20,7 +20,7 @@ class AcademicRuleService
         $ipk = $mahasiswa->hitungIpk();
 
         $maxSks = 15;
-        if ($ipk == 0.00 && $mahasiswa->mataKuliahs()->wherePivotNotNull('nilai')->doesntExist()) {
+        if (!$mahasiswa->sudahPunyaNilai()) {
             $maxSks = 24;
         } elseif ($ipk >= 3.00) {
             $maxSks = 24;

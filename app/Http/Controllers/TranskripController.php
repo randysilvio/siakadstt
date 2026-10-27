@@ -31,33 +31,11 @@ class TranskripController extends Controller
                 ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) semester ini sebelum dapat mengakses halaman Transkrip Nilai.');
         }
 
-        $semuaKrsSelesai = $mahasiswa->mataKuliahs()
-                         ->wherePivotNotNull('nilai')
-                         ->get();
-
-        $bobot = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
-        $matkulTerbaik = [];
-
-        foreach ($semuaKrsSelesai as $mk) {
-            $nilaiSekarang = $mk->pivot->nilai;
-            $bobotSekarang = $bobot[$nilaiSekarang] ?? 0;
-
-            if (isset($matkulTerbaik[$mk->id])) {
-                $nilaiTersimpan = $matkulTerbaik[$mk->id]->pivot->nilai;
-                $bobotTersimpan = $bobot[$nilaiTersimpan] ?? 0;
-
-                if ($bobotSekarang > $bobotTersimpan) {
-                    $matkulTerbaik[$mk->id] = $mk;
-                }
-            } else {
-                $matkulTerbaik[$mk->id] = $mk;
-            }
-        }
-
-        $krsSelesaiUnik = collect(array_values($matkulTerbaik));
-        $krs_per_semester = $krsSelesaiUnik->groupBy('semester');
-        $ipk = $mahasiswa->hitungIpk();
-        $total_sks = $krsSelesaiUnik->sum('sks');
+        [
+            'krs_per_semester' => $krs_per_semester,
+            'total_sks'        => $total_sks,
+            'ipk'              => $ipk,
+        ] = app(\App\Services\RekapNilaiService::class)->transkrip($mahasiswa);
 
         return view('transkrip.index', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));
     }

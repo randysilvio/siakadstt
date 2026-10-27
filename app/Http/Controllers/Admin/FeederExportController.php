@@ -226,7 +226,7 @@ class FeederExportController extends Controller
                     'IPS', 'IPK', 'SKS Semester', 'Total SKS Kumulatif', 'Kode Prodi'
                 ]), ';');
 
-                $query = Mahasiswa::with(['programStudi', 'mataKuliahs'])->orderBy('nim');
+                $query = Mahasiswa::with(['programStudi'])->orderBy('nim');
                 if ($prodiId) {
                     $query->where('program_studi_id', $prodiId);
                 }
@@ -239,7 +239,7 @@ class FeederExportController extends Controller
                     'Drop Out'  => 'K',
                 ];
 
-                foreach ($query->get() as $mhs) {
+                foreach (Mahasiswa::isiRekapNilai($query->get()) as $mhs) {
                     $ipsData = $ta ? $mhs->hitungIps($ta->id) : ['ips' => 0.00, 'total_sks' => 0];
                     $ipk = $mhs->hitungIpk();
                     $totalSksKumulatif = $mhs->totalSksLulus();
