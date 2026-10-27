@@ -11,7 +11,7 @@ class KeuanganTendikMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->hasRole(['admin', 'keuangan'])) {
+        if (Auth::check() && Auth::user()->hasRole('keuangan')) {
             return $next($request);
         }
         return redirect('/dashboard')->with('error', 'Anda tidak memiliki akses ke halaman ini.');

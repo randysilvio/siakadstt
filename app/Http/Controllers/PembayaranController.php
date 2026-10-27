@@ -19,8 +19,9 @@ class PembayaranController extends Controller
 {
     public function __construct()
     {
-        // Mengizinkan Super Admin dan Staf Keuangan mengelola tagihan & verifikasi pembayaran
-        $this->middleware('role:admin,keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
+        // Hanya Staf Keuangan (termasuk dosen ber-otoritas keuangan) yang mengelola tagihan & verifikasi pembayaran.
+        // Super Admin sengaja tidak diberi akses ke modul ini.
+        $this->middleware('role:keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
     }
 
     public function index(Request $request): View

@@ -36,7 +36,8 @@ test('unggah bukti bayar tidak langsung membuka KRS', function () {
 
     $this->actingAs($d['mUser'])->get('/krs')->assertRedirect(route('pembayaran.riwayat'));
 
-    $this->actingAs($d['admin'])->patch(route('pembayaran.lunas', $tagihan));
+    $keu = $this->buatUser('Staf Keu', 'keu@x.test', ['keuangan']);
+    $this->actingAs($keu)->patch(route('pembayaran.lunas', $tagihan));
     $this->actingAs($d['mUser'])->get('/krs')->assertOk();
 });
 
@@ -48,7 +49,8 @@ test('keuangan dapat menolak bukti bayar', function () {
         'jenis_pembayaran' => 'spp', 'jumlah' => 1000000, 'status' => 'menunggu_konfirmasi',
     ]);
 
-    $this->actingAs($d['admin'])
+    $keu = $this->buatUser('Staf Keu', 'keu@x.test', ['keuangan']);
+    $this->actingAs($keu)
         ->patch(route('pembayaran.tolakBukti', $tagihan), ['alasan' => 'Nominal tidak sesuai'])
         ->assertSessionHas('success');
 

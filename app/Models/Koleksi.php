@@ -29,4 +29,12 @@ class Koleksi extends Model
     {
         return $this->hasMany(PerpustakaanEksemplar::class, 'koleksi_id');
     }
+
+    /**
+     * Riwayat peminjaman judul ini (dipakai dashboard perpustakaan: koleksi populer).
+     */
+    public function peminjamans()
+    {
+        return $this->hasMany(Peminjaman::class, 'koleksi_id');
+    }
 }

@@ -7,9 +7,14 @@
             <h3 class="mb-0 text-dark fw-bold uppercase">Manajemen Kalender Akademik</h3>
             <span class="text-muted small uppercase">Pengaturan Agenda & Jadwal Kegiatan Institusi</span>
         </div>
-        <a href="{{ route('admin.kalender.create') }}" class="btn btn-primary rounded-0 px-3 fw-bold uppercase small">
-            Tambah Agenda
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('kalender.halaman') }}" class="btn btn-outline-dark rounded-0 px-3 fw-bold uppercase small">
+                Lihat Kalender
+            </a>
+            <a href="{{ route('admin.kalender.create') }}" class="btn btn-primary rounded-0 px-3 fw-bold uppercase small">
+                Tambah Agenda
+            </a>
+        </div>
     </div>
 
     @if (session('success'))

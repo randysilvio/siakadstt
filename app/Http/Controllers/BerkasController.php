@@ -50,7 +50,9 @@ class BerkasController extends Controller
     private function buktiBayar(User $user, int $id): array
     {
         $p = Pembayaran::findOrFail($id);
-        $boleh = $user->hasRole(['admin', 'keuangan'])
+        $adminPmb = $p->jenis_pembayaran === 'formulir_pmb' && $user->hasRole('admin');
+        $boleh = $user->hasRole('keuangan')
+            || $adminPmb
             || (int) $p->user_id === (int) $user->id
             || ($user->mahasiswa && (int) $p->mahasiswa_id === (int) $user->mahasiswa->id);
         return [$p->bukti_bayar, $boleh];

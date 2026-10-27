@@ -183,7 +183,8 @@ Route::middleware('auth')->group(function () {
     // BLOK RUTE PERPUSTAKAAN (E-LIBRARY & SIRKULASI BARCODE)
     // =========================================================================
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function () {
-        Route::middleware('role:admin,pustakawan')->group(function () {
+        // Modul Perpustakaan khusus Pustakawan (Super Admin sengaja tidak diberi akses)
+        Route::middleware('role:pustakawan')->group(function () {
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
             Route::resource('koleksi', KoleksiController::class);
             Route::get('koleksi/{koleksi}/cetak-barcode', [KoleksiController::class, 'cetakBarcode'])->name('koleksi.cetak-barcode');
@@ -285,7 +286,8 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     // BLOK RUTE KEUANGAN (TERMASUK DISPENSASI CICILAN KRS & AKSES ADMIN)
     // =========================================================================
-    Route::middleware(['role:admin,keuangan'])->group(function () {
+    // Modul Keuangan khusus Bagian Keuangan (termasuk dosen ber-otoritas keuangan); Super Admin sengaja tidak diberi akses
+    Route::middleware(['role:keuangan'])->group(function () {
         Route::get('/pembayaran/generate', [PembayaranController::class, 'generate'])->name('pembayaran.generate');
         Route::post('/pembayaran/generate', [PembayaranController::class, 'storeGenerate'])->name('pembayaran.storeGenerate');
         Route::get('/pembayaran/cetak', [PembayaranController::class, 'cetakLaporan'])->name('pembayaran.cetak');

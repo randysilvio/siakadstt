@@ -333,8 +333,7 @@
                                     <li><h6 class="dropdown-header">Perkuliahan & Kalender</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.nilai.index') }}">Input Nilai</a></li>
                                     <li><a class="dropdown-item" href="{{ route('bimbingan.index') }}">Bimbingan Skripsi & PPL</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('kalender.halaman') }}">Kalender Akademik</a></li>
-                                    <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Kelola Agenda Kalender</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.kalender.index') }}">Kalender Akademik</a></li>
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">

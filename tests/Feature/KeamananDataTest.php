@@ -48,8 +48,10 @@ test('bukti bayar baru disimpan privat dan hanya bisa dibuka pemilik atau keuang
     Storage::disk('public')->assertMissing($path);
 
     $url = route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $tagihan->id]);
+    $keu = $this->buatUser('Staf Keu', 'keu@x.test', ['keuangan']);
     $this->actingAs($d['mUser'])->get($url)->assertOk();
-    $this->actingAs($d['admin'])->get($url)->assertOk();
+    $this->actingAs($keu)->get($url)->assertOk();
+    $this->actingAs($d['admin'])->get($url)->assertForbidden();   // Super Admin tidak mengakses modul Keuangan
     $this->actingAs($d['dUser'])->get($url)->assertForbidden();
 });
 
@@ -61,7 +63,8 @@ test('berkas lama di disk public tetap terbaca lalu dapat dipindahkan', function
     $tagihan = Pembayaran::create(['user_id' => $d['mUser']->id, 'mahasiswa_id' => $d['mhs']->id, 'semester' => 'X',
         'jenis_pembayaran' => 'spp', 'jumlah' => 100, 'status' => 'menunggu_konfirmasi', 'bukti_bayar' => 'bukti-bayar-spp/lama.jpg']);
 
-    $this->actingAs($d['admin'])->get(route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $tagihan->id]))->assertOk();
+    $keu = $this->buatUser('Staf Keu', 'keu@x.test', ['keuangan']);
+    $this->actingAs($keu)->get(route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $tagihan->id]))->assertOk();
 
     $this->artisan('siakad:amankan-berkas')->assertSuccessful();
 
