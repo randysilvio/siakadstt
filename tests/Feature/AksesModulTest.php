@@ -49,6 +49,9 @@ test('admin tetap dapat melihat bukti bayar formulir PMB untuk verifikasi pendaf
     \Illuminate\Support\Facades\Storage::disk('local')->put('private/bukti-bayar-pmb/a.jpg', 'isi');
     $formulir = Pembayaran::create(['user_id' => $camabaUser->id, 'jenis_pembayaran' => 'formulir_pmb', 'jumlah' => 100,
         'status' => 'menunggu_konfirmasi', 'semester' => 'PMB', 'bukti_bayar' => 'private/bukti-bayar-pmb/a.jpg']);
+    $periode = \App\Models\PmbPeriod::create(['nama_gelombang' => 'G1', 'tahun_pmb' => 2027, 'tanggal_buka' => now(), 'tanggal_tutup' => now()->addMonth(),
+        'biaya_pendaftaran' => 100, 'is_active' => true, 'jenis_ujian' => 'offline']);
+    \App\Models\Camaba::create(['user_id' => $camabaUser->id, 'pmb_period_id' => $periode->id, 'no_pendaftaran' => 'REG-X', 'status_pendaftaran' => 'draft']);
 
     $this->actingAs($d['admin'])->get(route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $formulir->id]))->assertOk();
 });

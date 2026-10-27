@@ -13,6 +13,7 @@ class PmbPeriod extends Model
 
     protected $fillable = [
         'nama_gelombang',
+        'tahun_pmb',
         'tanggal_buka',
         'tanggal_tutup',
         'biaya_pendaftaran',

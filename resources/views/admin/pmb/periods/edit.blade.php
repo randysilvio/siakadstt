@@ -38,11 +38,15 @@
                 <h6 class="text-dark fw-bold border-bottom pb-2 mb-3 uppercase small">1. Tahap Administrasi Registrasi</h6>
                 
                 <div class="row mb-3 g-3">
-                    <div class="col-md-7">
+                    <div class="col-md-5">
                         <label class="form-label text-dark small fw-bold uppercase">Nama Gelombang <span class="text-danger">*</span></label>
                         <input type="text" name="nama_gelombang" class="form-control rounded-0 uppercase" value="{{ old('nama_gelombang', $pmbPeriod->nama_gelombang) }}" required autofocus>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
+                        <label class="form-label text-dark small fw-bold uppercase">Tahun PMB (Angkatan) <span class="text-danger">*</span></label>
+                        <input type="number" name="tahun_pmb" class="form-control rounded-0 font-monospace fw-bold" value="{{ old('tahun_pmb', $pmbPeriod->tahun_pmb) }}" min="2000" max="2100" required>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label text-dark small fw-bold uppercase">Biaya Formulir (Rp) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light rounded-0 font-monospace">Rp</span>

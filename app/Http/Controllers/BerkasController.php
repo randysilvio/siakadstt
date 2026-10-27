@@ -50,7 +50,7 @@ class BerkasController extends Controller
     private function buktiBayar(User $user, int $id): array
     {
         $p = Pembayaran::findOrFail($id);
-        $adminPmb = $p->jenis_pembayaran === 'formulir_pmb' && $user->hasRole('admin');
+        $adminPmb = $p->jenis_pembayaran === 'formulir_pmb' && $this->bolehPmb($user, \App\Models\Camaba::with('period')->where('user_id', $p->user_id)->first());
         $boleh = $user->hasRole('keuangan')
             || $adminPmb
             || (int) $p->user_id === (int) $user->id
@@ -60,8 +60,8 @@ class BerkasController extends Controller
 
     private function dokumenPmb(User $user, int $id): array
     {
-        $doc = PmbDocument::with('camaba')->findOrFail($id);
-        $boleh = $user->hasRole('admin') || ($doc->camaba && (int) $doc->camaba->user_id === (int) $user->id);
+        $doc = PmbDocument::with('camaba.period')->findOrFail($id);
+        $boleh = $this->bolehPmb($user, $doc->camaba) || ($doc->camaba && (int) $doc->camaba->user_id === (int) $user->id);
         return [$doc->path_file, $boleh];
     }
 
@@ -95,5 +95,17 @@ class BerkasController extends Controller
         $absen = AbsensiPegawai::findOrFail($id);
         $boleh = $user->hasRole('admin') || (int) $absen->user_id === (int) $user->id;
         return [$sisi === 'pulang' ? $absen->foto_check_out : $absen->foto_check_in, $boleh];
+    }
+
+    /** Admin, atau Panitia PMB yang menangani tahun PMB pendaftar tersebut. */
+    private function bolehPmb(User $user, ?\App\Models\Camaba $camaba): bool
+    {
+        if (!$camaba) {
+            return false;
+        }
+        if (!$user->hasRole('admin') && !$user->isPanitiaPmb()) {
+            return false;
+        }
+        return app(\App\Services\PmbService::class)->bolehAksesCamaba($user, $camaba);
     }
 }

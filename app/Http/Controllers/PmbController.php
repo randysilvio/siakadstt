@@ -15,101 +15,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\PmbExport;
+use App\Services\PmbService;
 
 class PmbController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Camaba::with(['user', 'prodi1', 'period'])->latest();
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('user', function ($userQ) use ($search) {
-                    $userQ->where('name', 'like', "%{$search}%");
-                })->orWhere('no_pendaftaran', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status_pendaftaran', $request->status);
-        }
-
-        if ($request->filled('pmb_period_id')) {
-            $query->where('pmb_period_id', $request->pmb_period_id);
-        }
-
-        if ($request->filled('pilihan_prodi_1_id')) {
-            $query->where('pilihan_prodi_1_id', $request->pilihan_prodi_1_id);
-        }
-
-        $pendaftars = $query->paginate(15)->withQueryString();
-        $periods = PmbPeriod::orderBy('id', 'desc')->get();
-        $prodis = ProgramStudi::orderBy('nama_prodi')->get();
-
-        return view('admin.pmb.index', compact('pendaftars', 'periods', 'prodis'));
-    }
-
-    public function show($id)
-    {
-        $camaba = Camaba::with(['user', 'prodi1', 'prodi2', 'period', 'documents'])->findOrFail($id);
-        $tagihan = Pembayaran::where('user_id', $camaba->user_id)->where('jenis_pembayaran', 'formulir_pmb')->latest()->first();
-        
-        return view('admin.pmb.show', compact('camaba', 'tagihan'));
-    }
-
-    public function destroy($id)
-    {
-        DB::beginTransaction();
-        try {
-            $camaba = Camaba::findOrFail($id);
-            $userId = $camaba->user_id;
-
-            foreach ($camaba->documents as $doc) {
-                BerkasPrivat::hapus($doc->path_file);
-                $doc->delete();
-            }
-
-            Pembayaran::where('user_id', $userId)->where('jenis_pembayaran', 'formulir_pmb')->get()
-                ->each(function ($p) {
-                    BerkasPrivat::hapus($p->bukti_bayar);
-                    $p->delete();
-                });
-            $camaba->delete();
-
-            if ($user = User::find($userId)) {
-                $user->delete();
-            }
-
-            DB::commit();
-            return back()->with('success', 'Data pendaftar (termasuk dokumen dan tagihan) berhasil dihapus bersih.');
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
-        }
-    }
-
-    public function exportExcel(Request $request)
-    {
-        $filters = $request->only(['status', 'pmb_period_id', 'pilihan_prodi_1_id']);
-        return Excel::download(new PmbExport($filters), 'Laporan_Pendaftar_PMB.xlsx');
-    }
-
-    public function exportPdf(Request $request)
-    {
-        $query = Camaba::with(['user', 'prodi1', 'period'])->orderBy('created_at', 'desc');
-
-        if ($request->filled('status')) $query->where('status_pendaftaran', $request->status);
-        if ($request->filled('pmb_period_id')) $query->where('pmb_period_id', $request->pmb_period_id);
-        if ($request->filled('pilihan_prodi_1_id')) $query->where('pilihan_prodi_1_id', $request->pilihan_prodi_1_id);
-
-        $pendaftars = $query->get();
-        return view('admin.pmb.cetak_pdf', compact('pendaftars'));
-    }
-
     public function showPaymentForm()
     {
         $user = Auth::user();
@@ -233,8 +142,9 @@ class PmbController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->hasRole('admin') && $request->filled('camaba_id')) {
+        if ($request->filled('camaba_id') && ($user->hasRole('admin') || $user->isPanitiaPmb())) {
             $camaba = Camaba::with(['user', 'prodi1', 'prodi2', 'period', 'documents'])->findOrFail($request->camaba_id);
+            app(PmbService::class)->pastikanAkses($user, $camaba);
         } elseif ($user->camaba) {
             $camaba = $user->camaba->load(['user', 'prodi1', 'prodi2', 'period', 'documents']);
         } else {

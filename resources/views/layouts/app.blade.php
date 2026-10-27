@@ -311,6 +311,7 @@
                                     <li><h6 class="dropdown-header">Penerimaan Baru (PMB)</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.pmb.index') }}">Data Pendaftar</a></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.pmb-periods.index') }}">Gelombang PMB</a></li>
+                                    <li><a class="dropdown-item" href="{{ route('admin.pmb-panitia.index') }}">Panitia PMB</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><h6 class="dropdown-header">Data Mahasiswa</h6></li>
                                     <li><a class="dropdown-item" href="{{ route('admin.mahasiswa.index') }}">Data Mahasiswa</a></li>
@@ -479,6 +480,14 @@
                                     <li><a class="dropdown-item" href="{{ route('perpustakaan.koleksi.index') }}">Koleksi Buku</a></li>
                                     <li><a class="dropdown-item" href="{{ route('perpustakaan.peminjaman.index') }}">Sirkulasi Peminjaman</a></li>
                                 </ul>
+                            </li>
+                        @endif
+
+                        @if(!Auth::user()->hasRole('admin') && Auth::user()->isPanitiaPmb())
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->is('admin/pmb*') ? 'active' : '' }}" href="{{ route('admin.pmb.index') }}">
+                                    Panitia PMB
+                                </a>
                             </li>
                         @endif
 

@@ -330,6 +330,10 @@ class DashboardController extends Controller
         elseif ($user->hasRole('penjaminan_mutu')) {
             return redirect()->route('mutu.dashboard');
         }
+        // Akun khusus panitia PMB (tanpa peran lain) langsung diarahkan ke modul PMB
+        elseif ($user->isPanitiaPmb()) {
+            return redirect()->route('admin.pmb.index');
+        }
 
         Auth::logout();
         return redirect('/login')->with('error', 'Peran Anda tidak dikenali atau belum diatur. Silakan hubungi administrator.');

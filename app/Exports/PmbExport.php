@@ -41,6 +41,14 @@ class PmbExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
         if (!empty($this->filters['status'])) $query->where('status_pendaftaran', $this->filters['status']);
         if (!empty($this->filters['pmb_period_id'])) $query->where('pmb_period_id', $this->filters['pmb_period_id']);
         if (!empty($this->filters['pilihan_prodi_1_id'])) $query->where('pilihan_prodi_1_id', $this->filters['pilihan_prodi_1_id']);
+        if (!empty($this->filters['search'])) {
+            $search = $this->filters['search'];
+            $query->where(fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))->orWhere('no_pendaftaran', 'like', "%{$search}%"));
+        }
+        // Panitia hanya mengekspor pendaftar tahun kepanitiaannya (null = admin, tanpa batas)
+        if (isset($this->filters['tahun_pmb']) && is_array($this->filters['tahun_pmb'])) {
+            $query->tahunPmb($this->filters['tahun_pmb']);
+        }
 
         return $query->get();
     }

@@ -8,7 +8,12 @@
             <h3 class="mb-0 fw-bold text-dark uppercase">Panel Verifikasi Pendaftar PMB</h3>
             <span class="text-muted small uppercase">Tinjauan Dokumen Akademik & Otorisasi Penerimaan Mahasiswa Baru</span>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            @if($camaba->tempat_lahir && $camaba->pilihan_prodi_1_id && $tagihan && $tagihan->status == 'lunas')
+                <a href="{{ route('pmb.kartu-ujian.cetak', ['camaba_id' => $camaba->id]) }}" target="_blank" class="btn btn-dark btn-sm rounded-0 px-3 uppercase fw-bold small">
+                    <i class="bi bi-printer-fill me-1"></i> Kartu Ujian
+                </a>
+            @endif
             <a href="{{ route('admin.pmb.index') }}" class="btn btn-outline-dark btn-sm rounded-0 px-3 uppercase fw-bold small">
                 <i class="bi bi-arrow-left me-1"></i> Kembali
             </a>
@@ -163,6 +168,9 @@
                         @elseif($camaba->status_pendaftaran == 'tidak_lulus')
                             <span class="badge bg-danger text-white rounded-0 px-3 py-2 fs-6 uppercase fw-bold mb-2">DITOLAK</span>
                             <p class="text-muted small mb-0 uppercase">Kandidat tidak lolos kualifikasi seleksi.</p>
+                            @if($camaba->catatan_seleksi)
+                                <p class="text-dark small mt-2 mb-0 uppercase">Alasan: {{ $camaba->catatan_seleksi }}</p>
+                            @endif
                         @else
                             @if($tagihan && $tagihan->status == 'lunas')
                                 <span class="badge bg-primary text-white rounded-0 px-3 py-2 fs-6 uppercase fw-bold mb-2">MENUNGGU SELEKSI</span>
@@ -171,6 +179,18 @@
                                 <span class="badge bg-warning text-dark rounded-0 px-3 py-2 fs-6 uppercase fw-bold mb-2">MENUNGGU PEMBAYARAN</span>
                                 <p class="text-muted small mb-0 uppercase">Menunggu pelunasan biaya formulir pendaftaran.</p>
                             @endif
+                        @endif
+
+                        {{-- Jejak audit keputusan --}}
+                        @if($camaba->pemutus || ($tagihan && $tagihan->verifikator))
+                            <div class="border-top mt-3 pt-3 text-start font-monospace text-muted" style="font-size: 10px;">
+                                @if($tagihan && $tagihan->verifikator)
+                                    <div class="uppercase">BAYAR DIVERIFIKASI: {{ $tagihan->verifikator->name }} — {{ optional($tagihan->diverifikasi_pada)->translatedFormat('d M Y H:i') }}</div>
+                                @endif
+                                @if($camaba->pemutus)
+                                    <div class="uppercase">KEPUTUSAN SELEKSI: {{ $camaba->pemutus->name }} — {{ optional($camaba->diputuskan_pada)->translatedFormat('d M Y H:i') }}</div>
+                                @endif
+                            </div>
                         @endif
                     </div>
                 </div>

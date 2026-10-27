@@ -326,6 +326,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/tracer-study/cetak', [TracerStudyController::class, 'cetakPdf'])->name('tracer.cetak');
     });
 
+    // =========================================================================
+    // BLOK RUTE PMB: ADMIN & PANITIA PMB (panitia dibatasi pada tahun kepanitiaannya)
+    // =========================================================================
+    Route::middleware('role:admin,panitia_pmb')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/pmb', [PmbAdminController::class, 'index'])->name('pmb.index');
+        Route::get('/pmb-export-excel', [PmbAdminController::class, 'exportExcel'])->name('pmb.export.excel');
+        Route::get('/pmb-export-pdf', [PmbAdminController::class, 'exportPdf'])->name('pmb.export.pdf');
+        Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->whereNumber('camaba')->name('pmb.show');
+        Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
+        Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
+        Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
+    });
+
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/user/{id}/impersonate', [UserController::class, 'impersonate'])
              ->middleware(\App\Http\Middleware\PreventNestedImpersonation::class)
@@ -363,15 +376,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/pengaturan', [PengaturanAbsensiController::class, 'update'])->name('pengaturan.update');
         });
 
-        Route::get('/pmb', [PmbController::class, 'index'])->name('pmb.index');
-        Route::get('/pmb-export-excel', [PmbController::class, 'exportExcel'])->name('pmb.export.excel');
-        Route::get('/pmb-export-pdf', [PmbController::class, 'exportPdf'])->name('pmb.export.pdf');
-        Route::delete('/pmb/{id}/hapus', [PmbController::class, 'destroy'])->name('pmb.destroy');
+        // Penghapusan pendaftar, gelombang & biaya, serta penunjukan panitia: khusus Admin
+        Route::delete('/pmb/{id}/hapus', [PmbAdminController::class, 'destroy'])->name('pmb.destroy');
 
-        Route::get('/pmb/{camaba}', [PmbAdminController::class, 'show'])->name('pmb.show');
-        Route::post('/pmb/payment/{id}/approve', [PmbAdminController::class, 'approvePayment'])->name('pmb.payment.approve');
-        Route::put('/pmb/{camaba}/approve', [PmbAdminController::class, 'approve'])->name('pmb.approve');
-        Route::put('/pmb/{camaba}/reject', [PmbAdminController::class, 'reject'])->name('pmb.reject');
+        Route::get('/pmb-panitia', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'index'])->name('pmb-panitia.index');
+        Route::post('/pmb-panitia', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'store'])->name('pmb-panitia.store');
+        Route::patch('/pmb-panitia/{panitia}', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'update'])->name('pmb-panitia.update');
+        Route::delete('/pmb-panitia/{panitia}', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'destroy'])->name('pmb-panitia.destroy');
+        Route::post('/pmb-panitia/tutup', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'tutup'])->name('pmb-panitia.tutup');
+        Route::post('/pmb-panitia/buka', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'buka'])->name('pmb-panitia.buka');
 
         Route::resource('pmb-periods', PmbPeriodController::class);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');

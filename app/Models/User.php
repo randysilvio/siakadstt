@@ -118,6 +118,28 @@ class User extends Authenticatable
         return false;
     }
 
+    // --- KEPANITIAAN PMB ---
+
+    public function kepanitiaanPmb()
+    {
+        return $this->hasMany(PmbKepanitiaan::class);
+    }
+
+    /**
+     * Tahun PMB yang sedang ditangani pengguna sebagai panitia (kepanitiaan belum ditutup).
+     *
+     * @return array<int>
+     */
+    public function tahunPanitiaPmbAktif(): array
+    {
+        return $this->kepanitiaanPmb()->aktif()->pluck('tahun_pmb')->map(fn ($t) => (int) $t)->all();
+    }
+
+    public function isPanitiaPmb(): bool
+    {
+        return $this->kepanitiaanPmb()->aktif()->exists();
+    }
+
     // Relasi untuk fitur Absensi Pegawai
     public function absensiPegawai()
     {

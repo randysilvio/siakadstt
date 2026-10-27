@@ -18,12 +18,12 @@ use Illuminate\Support\Facades\Hash;
  */
 trait SeedAkademik
 {
-    protected function role(string $name): Role
+    public function role(string $name): Role
     {
         return Role::firstOrCreate(['name' => $name], ['display_name' => ucfirst($name)]);
     }
 
-    protected function buatUser(string $nama, string $email, array $roles): User
+    public function buatUser(string $nama, string $email, array $roles): User
     {
         $user = User::create(['name' => $nama, 'email' => $email, 'password' => Hash::make('password123')]);
         foreach ($roles as $r) {
@@ -32,7 +32,7 @@ trait SeedAkademik
         return $user;
     }
 
-    protected function seedAkademik(): array
+    public function seedAkademik(): array
     {
         $prodi = ProgramStudi::create(['nama_prodi' => 'Teologi', 'kode_prodi' => 'TH']);
         $prodiLain = ProgramStudi::create(['nama_prodi' => 'Pendidikan Agama Kristen', 'kode_prodi' => 'PK']);
@@ -68,7 +68,7 @@ trait SeedAkademik
     }
 
     /** Mahasiswa mengambil MK pada semester aktif dan KRS-nya disetujui. */
-    protected function ambilDanSetujui(array $d, ?MataKuliah $mk = null, string $kelas = 'A'): void
+    public function ambilDanSetujui(array $d, ?MataKuliah $mk = null, string $kelas = 'A'): void
     {
         $mk ??= $d['mk'];
         $d['mhs']->mataKuliahs()->attach($mk->id, ['tahun_akademik_id' => $d['ta']->id, 'nama_kelas' => $kelas]);

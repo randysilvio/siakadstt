@@ -52,6 +52,7 @@
                                 <td class="text-center font-monospace fw-bold text-muted">{{ $index + 1 }}</td>
                                 <td class="text-start ps-3 fw-bold text-dark uppercase">
                                     {{ $period->nama_gelombang }}
+                                    <div class="small text-muted font-monospace" style="font-size: 10px;">TAHUN PMB {{ $period->tahun_pmb ?? '-' }}</div>
                                 </td>
                                 <td class="text-center font-monospace small">
                                     {{ $period->tanggal_buka->format('d/m/Y') }} s/d {{ $period->tanggal_tutup->format('d/m/Y') }}

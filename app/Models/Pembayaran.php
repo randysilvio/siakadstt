@@ -18,6 +18,8 @@ class Pembayaran extends Model
         'jenis_pembayaran',
         'jumlah',
         'status',
+        'diverifikasi_oleh',
+        'diverifikasi_pada',
         'tanggal_bayar',
         'bukti_bayar',
         'keterangan',
@@ -28,6 +30,7 @@ class Pembayaran extends Model
      */
     protected $casts = [
         'tanggal_bayar' => 'datetime',
+        'diverifikasi_pada' => 'datetime',
     ];
 
     public function mahasiswa()
@@ -38,5 +41,10 @@ class Pembayaran extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function verifikator()
+    {
+        return $this->belongsTo(User::class, 'diverifikasi_oleh');
     }
 }

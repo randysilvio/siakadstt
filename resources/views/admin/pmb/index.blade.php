@@ -138,6 +138,7 @@
                                         <a href="{{ route('admin.pmb.show', $item->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Verifikasi Data">
                                             <i class="bi bi-eye me-1"></i> Buka
                                         </a>
+                                        @if(Auth::user()->hasRole('admin') && !$item->is_migrated)
                                         <form action="{{ route('admin.pmb.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Peringatan: Penghapusan akan menghilangkan seluruh histori dokumen dan tagihan registrasi pendaftar ini. Lanjutkan?')">
                                             @csrf
                                             @method('DELETE')
@@ -145,6 +146,7 @@
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

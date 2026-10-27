@@ -42,6 +42,10 @@ class CheckRoleMiddleware
             if ($role === 'kaprodi' && method_exists($user, 'isKaprodi') && $user->isKaprodi()) {
                 return $next($request);
             }
+            // Panitia PMB bukan peran tetap: berlaku selama kepanitiaan tahun PMB-nya belum ditutup
+            if ($role === 'panitia_pmb' && $user->isPanitiaPmb()) {
+                return $next($request);
+            }
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {

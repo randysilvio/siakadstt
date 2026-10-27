@@ -23,6 +23,7 @@ class PmbPeriodController extends Controller
     {
         $request->validate([
             'nama_gelombang' => 'required|string|max:255',
+            'tahun_pmb' => 'required|integer|min:2000|max:2100',
             'tanggal_buka' => 'required|date',
             'tanggal_tutup' => 'required|date|after_or_equal:tanggal_buka',
             'biaya_pendaftaran' => 'required|numeric|min:0',
@@ -40,6 +41,7 @@ class PmbPeriodController extends Controller
 
         PmbPeriod::create([
             'nama_gelombang' => $request->nama_gelombang,
+            'tahun_pmb' => $request->tahun_pmb,
             'tanggal_buka' => $request->tanggal_buka,
             'tanggal_tutup' => $request->tanggal_tutup,
             'biaya_pendaftaran' => $request->biaya_pendaftaran,
@@ -63,6 +65,7 @@ class PmbPeriodController extends Controller
     {
         $request->validate([
             'nama_gelombang' => 'required|string|max:255',
+            'tahun_pmb' => 'required|integer|min:2000|max:2100',
             'tanggal_buka' => 'required|date',
             'tanggal_tutup' => 'required|date|after_or_equal:tanggal_buka',
             'biaya_pendaftaran' => 'required|numeric|min:0',
@@ -80,6 +83,7 @@ class PmbPeriodController extends Controller
 
         $pmbPeriod->update([
             'nama_gelombang' => $request->nama_gelombang,
+            'tahun_pmb' => $request->tahun_pmb,
             'tanggal_buka' => $request->tanggal_buka,
             'tanggal_tutup' => $request->tanggal_tutup,
             'biaya_pendaftaran' => $request->biaya_pendaftaran,

@@ -28,6 +28,9 @@ class Camaba extends Model
         'tahun_lulus',
         'nilai_rata_rata_rapor',
         'status_pendaftaran',
+        'catatan_seleksi',
+        'diputuskan_oleh',
+        'diputuskan_pada',
         'is_migrated',
     ];
 
@@ -58,5 +61,20 @@ class Camaba extends Model
     public function documents()
     {
         return $this->hasMany(PmbDocument::class);
+    }
+
+    protected $casts = [
+        'diputuskan_pada' => 'datetime',
+    ];
+
+    public function pemutus()
+    {
+        return $this->belongsTo(User::class, 'diputuskan_oleh');
+    }
+
+    /** Membatasi pendaftar pada tahun PMB tertentu (dipakai untuk panitia). */
+    public function scopeTahunPmb($query, array $tahun)
+    {
+        return $query->whereHas('period', fn ($q) => $q->whereIn('tahun_pmb', $tahun));
     }
 }

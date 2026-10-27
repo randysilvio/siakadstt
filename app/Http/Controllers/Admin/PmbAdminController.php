@@ -2,189 +2,132 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\PmbExport;
 use App\Http\Controllers\Controller;
 use App\Models\Camaba;
-use App\Models\Mahasiswa;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\Pembayaran; 
+use App\Models\Pembayaran;
+use App\Models\PmbPeriod;
+use App\Models\ProgramStudi;
+use App\Services\PmbService;
+use DomainException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
+/**
+ * Pengelolaan pendaftar PMB oleh Admin dan Panitia PMB (panitia dibatasi pada tahun kepanitiaannya).
+ */
 class PmbAdminController extends Controller
 {
-    /**
-     * Menampilkan daftar pendaftar dengan fitur Paginasi dan Smart Search.
-     */
+    public function __construct(private PmbService $pmb)
+    {
+    }
+
+    private const FILTER = ['search', 'status', 'pmb_period_id', 'pilihan_prodi_1_id'];
+
     public function index(Request $request)
     {
-        $query = Camaba::with(['user', 'prodi1', 'period'])
-            ->orderBy('created_at', 'desc');
+        $user = Auth::user();
+        $pendaftars = $this->pmb->queryPendaftar($user, $request->only(self::FILTER))->paginate(15)->withQueryString();
 
-        if ($request->filled('status')) {
-            $query->where('status_pendaftaran', $request->status);
-        }
+        $tahun = $this->pmb->tahunDiizinkan($user);
+        $periods = PmbPeriod::when($tahun !== null, fn ($q) => $q->whereIn('tahun_pmb', $tahun))->orderBy('id', 'desc')->get();
+        $prodis = ProgramStudi::orderBy('nama_prodi')->get();
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('no_pendaftaran', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($userQuery) use ($search) {
-                      $userQuery->where('name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $pendaftars = $query->paginate(20)->withQueryString();
-
-        return view('admin.pmb.index', compact('pendaftars'));
+        return view('admin.pmb.index', compact('pendaftars', 'periods', 'prodis'));
     }
 
     public function show(Camaba $camaba)
     {
-        $camaba->load(['user', 'prodi1', 'prodi2', 'period', 'documents']);
-        $tagihan = Pembayaran::where('user_id', $camaba->user_id)
-            ->where('jenis_pembayaran', 'formulir_pmb')
-            ->latest()
-            ->first();
-            
+        $camaba->load(['user', 'prodi1', 'prodi2', 'period', 'documents', 'pemutus']);
+        $this->pmb->pastikanAkses(Auth::user(), $camaba);
+        $tagihan = $this->pmb->tagihanFormulir($camaba);
+
         return view('admin.pmb.show', compact('camaba', 'tagihan'));
     }
 
-    /**
-     * TAHAP 1: Verifikasi Pembayaran Formulir
-     */
+    public function exportExcel(Request $request)
+    {
+        $filters = $request->only(self::FILTER);
+        $filters['tahun_pmb'] = $this->pmb->tahunDiizinkan(Auth::user());
+
+        return Excel::download(new PmbExport($filters), 'Laporan_Pendaftar_PMB.xlsx');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $pendaftars = $this->pmb->queryPendaftar(Auth::user(), $request->only(self::FILTER))
+            ->reorder('created_at', 'desc')
+            ->get();
+
+        return view('admin.pmb.cetak_pdf', compact('pendaftars'));
+    }
+
+    /** TAHAP 1: Verifikasi Pembayaran Formulir */
     public function approvePayment($id)
     {
-        $pembayaran = Pembayaran::findOrFail($id);
-        
-        $pembayaran->update([
-            'status' => 'lunas',
-            'tanggal_bayar' => $pembayaran->tanggal_bayar ?? now(),
-            'keterangan' => 'Diverifikasi oleh Admin PMB',
-        ]);
+        $pembayaran = Pembayaran::where('jenis_pembayaran', 'formulir_pmb')->findOrFail($id);
+        $camaba = Camaba::with('period')->where('user_id', $pembayaran->user_id)->firstOrFail();
+        $this->pmb->pastikanAkses(Auth::user(), $camaba);
+
+        try {
+            $this->pmb->verifikasiPembayaran($pembayaran, Auth::user());
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Pembayaran divalidasi LUNAS. Camaba sekarang bisa mengisi biodata.');
     }
 
-    /**
-     * TAHAP 2: Finalisasi Kelulusan (Konversi ke Mahasiswa)
-     */
-    public function approve(Request $request, Camaba $camaba)
+    /** TAHAP 2: Finalisasi Kelulusan (Konversi ke Mahasiswa) */
+    public function approve(Camaba $camaba)
     {
-        if ($camaba->is_migrated || $camaba->status_pendaftaran === 'lulus') {
-            return back()->with('error', 'Camaba ini sudah menjadi mahasiswa aktif.');
-        }
+        $camaba->load(['user', 'prodi1', 'period']);
+        $this->pmb->pastikanAkses(Auth::user(), $camaba);
 
-        // [PERBAIKAN KEAMANAN FASE 4]: Pastikan pembayaran formulir PMB sudah lunas sebelum diluluskan
-        $lunas = Pembayaran::where('user_id', $camaba->user_id)
-            ->where('jenis_pembayaran', 'formulir_pmb')
-            ->where('status', 'lunas')
-            ->exists();
-
-        if (!$lunas) {
-            return back()->with('error', 'Gagal meluluskan: Tagihan formulir pendaftaran Camaba ini belum berstatus LUNAS.');
-        }
-
-        if (!$camaba->pilihan_prodi_1_id || !$camaba->tempat_lahir) {
-            return back()->with('error', 'Biodata belum lengkap. Camaba wajib melengkapi biodata terlebih dahulu.');
-        }
-
-        // Hanya pendaftar yang biodatanya sudah diserahkan & menunggu verifikasi yang dapat diluluskan.
-        if ($camaba->status_pendaftaran === 'tidak_lulus') {
-            return back()->with('error', 'Pendaftar ini sudah dinyatakan TIDAK LULUS. Ubah keputusan seleksi tidak dapat dilakukan dari tombol kelulusan.');
-        }
-        if ($camaba->status_pendaftaran !== 'menunggu_verifikasi') {
-            return back()->with('error', 'Pendaftar belum menyerahkan biodata untuk diverifikasi.');
-        }
-
-        DB::beginTransaction();
         try {
-            // 1. Generate NIM Otomatis dengan proteksi anti-bentrok (Lock & Loop Check)
-            // Kunci baris prodi sebagai mutex agar dua admin yang meluluskan bersamaan tidak mendapat NIM yang sama
-            DB::table('program_studis')->where('id', $camaba->pilihan_prodi_1_id)->lockForUpdate()->first();
-
-            $tahunMasuk = date('Y');
-            $kodeProdi = $camaba->prodi1->kode_prodi ?: str_pad((string) $camaba->pilihan_prodi_1_id, 2, '0', STR_PAD_LEFT);
-            $prefixNim = $tahunMasuk . $kodeProdi;
-
-            $lastMhs = Mahasiswa::where('nim', 'like', $prefixNim . '%')
-                ->lockForUpdate()
-                ->orderBy('nim', 'desc')
-                ->first();
-
-            $urutan = 1;
-            if ($lastMhs && !empty($lastMhs->nim)) {
-                $lastUrutan = (int) substr($lastMhs->nim, strlen($prefixNim));
-                $urutan = $lastUrutan + 1;
-            }
-
-            do {
-                $nimBaru = $prefixNim . str_pad((string) $urutan, 3, '0', STR_PAD_LEFT);
-                $urutan++;
-            } while (Mahasiswa::where('nim', $nimBaru)->exists());
-
-
-            // 2. Insert ke Tabel Mahasiswas
-            // [PERBAIKAN BUG FASE 4]: Menggunakan 'nomor_telepon' & menyertakan 'nisn' agar data tidak hilang
-            Mahasiswa::create([
-                'user_id' => $camaba->user_id,
-                'nim' => $nimBaru,
-                'nama_lengkap' => $camaba->user->name,
-                'program_studi_id' => $camaba->pilihan_prodi_1_id,
-                'tempat_lahir' => $camaba->tempat_lahir ?? 'Belum Diisi',
-                'tanggal_lahir' => $camaba->tanggal_lahir ?? now(),
-                'jenis_kelamin' => $camaba->jenis_kelamin ?? 'L',
-                'agama' => $camaba->agama ?? 'Kristen Protestan',
-                'nomor_telepon' => $camaba->no_hp ?? '-',
-                'nisn' => $camaba->nisn,
-                'alamat' => $camaba->alamat ?? 'Belum Diisi',
-                // NIK tidak lagi diisi angka buatan: dibiarkan kosong agar terdeteksi wajib dilengkapi sebelum sinkron Feeder.
-                'nik' => null,
-                'kewarganegaraan' => 'WNI',
-                'nama_ibu_kandung' => 'Belum Diisi',
-                'jalur_pendaftaran' => 'Mandiri (PMB)',
-                'tahun_masuk' => $tahunMasuk, 
-                'status_mahasiswa' => 'Aktif',
-            ]);
-
-            // 3. Update Status Camaba
-            $camaba->update([
-                'status_pendaftaran' => 'lulus',
-                'is_migrated' => true
-            ]);
-
-            // 4. Ganti Role User dari Camaba menjadi Mahasiswa
-            $user = User::find($camaba->user_id);
-            $roleCamaba = Role::where('name', 'camaba')->first();
-            $roleMhs = Role::where('name', 'mahasiswa')->first();
-
-            if ($user && $roleCamaba && $roleMhs) {
-                $user->roles()->detach($roleCamaba->id);
-                $user->roles()->syncWithoutDetaching([$roleMhs->id]);
-            }
-
-            DB::commit();
-
-            return redirect()->route('admin.pmb.index')
-                ->with('success', 'Berhasil! ' . $user->name . ' resmi menjadi Mahasiswa Aktif dengan NIM: ' . $nimBaru);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
-            
+            $nim = $this->pmb->luluskan($camaba, Auth::user());
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Gagal Approve PMB: ' . $e->getMessage());
             return back()->with('error', 'Gagal memproses kelulusan. Detail kesalahan telah dicatat di log sistem.');
         }
+
+        return redirect()->route('admin.pmb.index')
+            ->with('success', 'Berhasil! ' . $camaba->user->name . ' resmi menjadi Mahasiswa Aktif dengan NIM: ' . $nim);
     }
 
     public function reject(Request $request, Camaba $camaba)
     {
-        if ($camaba->is_migrated) {
-            return back()->with('error', 'Camaba yang sudah dimigrasikan menjadi mahasiswa tidak dapat ditolak.');
+        $request->validate(['alasan' => 'nullable|string|max:1000']);
+        $camaba->load(['user', 'period']);
+        $this->pmb->pastikanAkses(Auth::user(), $camaba);
+
+        try {
+            $this->pmb->tolak($camaba, $request->input('alasan'), Auth::user());
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        $camaba->update(['status_pendaftaran' => 'tidak_lulus']);
         return back()->with('success', 'Pendaftaran kandidat telah ditolak.');
+    }
+
+    /** Penghapusan pendaftar hanya oleh Admin (rute dibatasi role:admin). */
+    public function destroy($id)
+    {
+        $camaba = Camaba::findOrFail($id);
+
+        try {
+            $this->pmb->hapusPendaftar($camaba);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Gagal hapus pendaftar PMB: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data pendaftar.');
+        }
+
+        return back()->with('success', 'Data pendaftar (termasuk dokumen dan tagihan) berhasil dihapus bersih.');
     }
 }

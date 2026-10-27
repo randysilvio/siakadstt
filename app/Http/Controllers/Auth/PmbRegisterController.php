@@ -102,19 +102,10 @@ class PmbRegisterController extends Controller
 
             DB::commit();
 
-            // Kirim Notifikasi ke semua Admin
-            $admins = User::whereHas('roles', function ($q) {
-                $q->where('name', 'admin');
-            })->get();
-
-            if ($admins->isNotEmpty()) {
-                Notification::send($admins, new GeneralNotification(
-                    'Pendaftar PMB Baru', 
-                    'Camaba baru atas nama ' . $user->name . ' telah mendaftar.', 
-                    route('admin.pmb.index'), 
-                    'bi-person-badge-fill text-dark'
-                ));
-            }
+            // Kirim notifikasi ke Admin & Panitia PMB tahun gelombang ini
+            app(\App\Services\PmbService::class)->beritahuPendaftarBaru(
+                Camaba::with(['user', 'period'])->where('user_id', $user->id)->first()
+            );
 
             // 5. Auto Login & Redirect ke Dashboard Camaba
             Auth::login($user);
