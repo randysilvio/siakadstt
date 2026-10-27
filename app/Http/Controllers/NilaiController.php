@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use Illuminate\Http\Request;
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
@@ -19,26 +21,6 @@ class NilaiController extends Controller
     public function __construct(AcademicRuleService $academicService)
     {
         $this->academicService = $academicService;
-    }
-
-    private function canManageNilai($user, MataKuliah $mataKuliah): bool
-    {
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
-        if ($user->hasRole('dosen') && $user->dosen) {
-            if ((int) $user->dosen->id === (int) $mataKuliah->dosen_id) {
-                return true;
-            }
-
-            return DB::table('dosen_mata_kuliah')
-                ->where('mata_kuliah_id', $mataKuliah->id)
-                ->where('dosen_id', $user->dosen->id)
-                ->exists();
-        }
-
-        return false;
     }
 
     public static function konversiAngkaKeHuruf(float $angka): string
@@ -102,7 +84,7 @@ class NilaiController extends Controller
     {
         $user = Auth::user();
 
-        if (!$this->canManageNilai($user, $mataKuliah)) {
+        if (!Gate::forUser($user)->allows('kelolaNilai', $mataKuliah)) {
             abort(403, 'Anda tidak memiliki akses untuk mengisi nilai mata kuliah ini.');
         }
         
@@ -144,7 +126,7 @@ class NilaiController extends Controller
         $mataKuliah = MataKuliah::findOrFail($request->input('mata_kuliah_id'));
         $user = Auth::user();
 
-        if (!$this->canManageNilai($user, $mataKuliah)) {
+        if (!Gate::forUser($user)->allows('kelolaNilai', $mataKuliah)) {
             abort(403, 'Anda tidak berhak menyimpan nilai untuk mata kuliah ini.');
         }
 
@@ -210,7 +192,7 @@ class NilaiController extends Controller
     {
         $user = Auth::user();
 
-        if (!$this->canManageNilai($user, $mataKuliah)) {
+        if (!Gate::forUser($user)->allows('kelolaNilai', $mataKuliah)) {
             abort(403, 'Akses ditolak.');
         }
 

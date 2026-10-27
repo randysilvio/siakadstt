@@ -184,31 +184,9 @@ class KalenderController extends Controller
             if ($user->hasRole('mahasiswa')) {
                 $mahasiswa = $user->mahasiswa;
                 
-                if ($mahasiswa && $mahasiswa->status_krs === 'Disetujui') {
-                    $periodeAktif = TahunAkademik::where('is_active', true)->first();
-                    
-                    if ($periodeAktif) {
-                        $krsDiambil = $mahasiswa->mataKuliahs()
-                            ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                            ->get();
-
-                        $mkIds = $krsDiambil->pluck('id')->toArray();
-                        $kelasMap = [];
-                        foreach ($krsDiambil as $mkItem) {
-                            $kelasMap[$mkItem->id] = strtoupper($mkItem->pivot->nama_kelas ?? 'A');
-                        }
-
-                        $jadwal = Jadwal::query()
-                            ->whereIn('mata_kuliah_id', $mkIds)
-                            ->with(['mataKuliah.dosen'])
-                            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
-                            ->orderBy('jam_mulai')
-                            ->get()
-                            ->filter(function ($item) use ($kelasMap) {
-                                $klsMhs = $kelasMap[$item->mata_kuliah_id] ?? 'A';
-                                return strtoupper($item->nama_kelas ?? 'A') === $klsMhs;
-                            })
-                            ->values()
+                $periodeAktif = TahunAkademik::where('is_active', true)->first();
+                if ($mahasiswa && $periodeAktif && $mahasiswa->krsDisetujuiPada($periodeAktif->id)) {
+                        $jadwal = app(\App\Services\JadwalService::class)->jadwalMahasiswa($mahasiswa, $periodeAktif->id)
                             ->map(function ($item) {
                                 return [
                                     'id'          => $item->id,
@@ -222,7 +200,6 @@ class KalenderController extends Controller
                                     'dosen'       => $item->mataKuliah->dosen->nama_lengkap ?? '-'
                                 ];
                             });
-                    }
                 }
             } elseif ($user->hasRole('dosen')) {
                 $dosen = $user->dosen;
@@ -237,12 +214,9 @@ class KalenderController extends Controller
                         ->pluck('id')
                         ->toArray();
                     
-                    $jadwal = Jadwal::query()
-                        ->whereIn('mata_kuliah_id', $mkIds)
-                        ->with(['mataKuliah'])
-                        ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
-                        ->orderBy('jam_mulai')
-                        ->get()
+                    $jadwal = app(\App\Services\JadwalService::class)->urutkan(
+                            Jadwal::whereIn('mata_kuliah_id', $mkIds)->with('mataKuliah')->get()
+                        )
                         ->map(function ($item) {
                             return [
                                 'id'          => $item->id,

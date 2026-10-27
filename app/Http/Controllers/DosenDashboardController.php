@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -87,11 +89,8 @@ class DosenDashboardController extends Controller
             $mkIds = $mata_kuliahs->pluck('id');
             $jadwalKuliah = Jadwal::with('mataKuliah')
                 ->whereIn('mata_kuliah_id', $mkIds)
-                ->get()
-                ->sortBy(function ($jadwal) {
-                    $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                    return $hariOrder[$jadwal->hari] ?? 99;
-                });
+                ->get();
+            $jadwalKuliah = app(\App\Services\JadwalService::class)->urutkan($jadwalKuliah);
         }
 
         // Hanya hitung mahasiswa Tutorship yang berstatus Aktif
@@ -177,12 +176,8 @@ class DosenDashboardController extends Controller
 
         $jadwals = Jadwal::with(['mataKuliah', 'mataKuliah.kurikulum.programStudi'])
             ->whereIn('mata_kuliah_id', $mkIds)
-            ->get()
-            ->sortBy(function ($jadwal) {
-                // Urut per hari lalu per jam mulai
-                $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                return sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai);
-            });
+            ->get();
+        $jadwals = app(\App\Services\JadwalService::class)->urutkan($jadwals);
 
         $pdf = Pdf::loadView('dosen.cetak_jadwal', compact('dosen', 'jadwals', 'tahunAkademik'));
         return $pdf->stream('Jadwal_Mengajar_' . $dosen->nama_lengkap . '.pdf');
@@ -194,12 +189,7 @@ class DosenDashboardController extends Controller
         if (!$dosen) abort(403);
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        $isTeam = DB::table('dosen_mata_kuliah')
-            ->where('mata_kuliah_id', $mataKuliah->id)
-            ->where('dosen_id', $dosen->id)
-            ->exists();
-
-        if ((int) $mataKuliah->dosen_id !== (int) $dosen->id && !$isTeam) {
+        if (!Gate::allows('ampu', $mataKuliah)) {
             abort(403, 'Akses ditolak. Anda bukan pengajar kelas ini.');
         }
 
@@ -219,12 +209,7 @@ class DosenDashboardController extends Controller
         $dosen = Auth::user()->dosen;
         if (!$dosen) abort(403);
         
-        $isTeam = DB::table('dosen_mata_kuliah')
-            ->where('mata_kuliah_id', $mataKuliah->id)
-            ->where('dosen_id', $dosen->id)
-            ->exists();
-
-        if ((int) $mataKuliah->dosen_id !== (int) $dosen->id && !$isTeam) {
+        if (!Gate::allows('ampu', $mataKuliah)) {
             abort(403, 'Anda tidak berhak mengubah RPS mata kuliah ini.');
         }
 

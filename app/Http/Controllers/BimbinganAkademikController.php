@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use App\Support\BerkasPrivat;
 use App\Models\BimbinganTugasAkhir;
 use App\Models\BimbinganLog;
@@ -117,7 +119,7 @@ class BimbinganAkademikController extends Controller
     public function show(BimbinganTugasAkhir $bimbingan): View
     {
         $user = Auth::user();
-        $this->authorizeAccess($user, $bimbingan);
+        abort_unless(Gate::forUser($user)->allows('lihat', $bimbingan), 403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
 
         $bimbingan->load(['mahasiswa.programStudi', 'pembimbing1', 'pembimbing2', 'logs.dosen']);
         $dosens = Dosen::orderBy('nama_lengkap')->get();
@@ -131,7 +133,7 @@ class BimbinganAkademikController extends Controller
         if ($user->hasRole('mahasiswa')) {
             abort(403);
         }
-        $this->authorizeAccess($user, $bimbingan);
+        abort_unless(Gate::forUser($user)->allows('lihat', $bimbingan), 403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
 
         $validated = $request->validate([
             'judul'           => 'sometimes|required|string|max:350',
@@ -147,8 +149,7 @@ class BimbinganAkademikController extends Controller
 
         // Penetapan pembimbing, jadwal sidang, kelulusan & nilai TA adalah wewenang Kaprodi/Admin.
         // Dosen pembimbing hanya dapat mengubah status proses bimbingan dan judul.
-        $isKaprodiAtauAdmin = $user->hasRole('admin') || ($user->dosen && ProgramStudi::where('id', $bimbingan->mahasiswa->program_studi_id)
-            ->where('kaprodi_dosen_id', $user->dosen->id)->exists());
+        $isKaprodiAtauAdmin = Gate::forUser($user)->allows('putuskan', $bimbingan);
 
         if (!$isKaprodiAtauAdmin && $validated['status'] === 'Selesai / Lulus') {
             return back()->with('error', 'Status SELESAI / LULUS hanya dapat ditetapkan oleh Kaprodi atau Admin.');
@@ -184,7 +185,7 @@ class BimbinganAkademikController extends Controller
     public function storeLog(Request $request, BimbinganTugasAkhir $bimbingan): RedirectResponse
     {
         $user = Auth::user();
-        $this->authorizeAccess($user, $bimbingan);
+        abort_unless(Gate::forUser($user)->allows('lihat', $bimbingan), 403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
 
         $validated = $request->validate([
             'tanggal_bimbingan' => 'required|date',
@@ -217,7 +218,7 @@ class BimbinganAkademikController extends Controller
         if ($user->hasRole('mahasiswa')) {
             abort(403);
         }
-        $this->authorizeAccess($user, $log->bimbingan);
+        abort_unless(Gate::forUser($user)->allows('lihat', $log->bimbingan), 403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
 
         $validated = $request->validate([
             'arahan_dosen' => 'nullable|string|max:2000',
@@ -236,7 +237,7 @@ class BimbinganAkademikController extends Controller
     public function cetakKartu(BimbinganTugasAkhir $bimbingan)
     {
         $user = Auth::user();
-        $this->authorizeAccess($user, $bimbingan);
+        abort_unless(Gate::forUser($user)->allows('lihat', $bimbingan), 403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
 
         $bimbingan->load(['mahasiswa.programStudi.kaprodi', 'pembimbing1', 'pembimbing2', 'logs.dosen']);
 
@@ -244,26 +245,4 @@ class BimbinganAkademikController extends Controller
         return $pdf->stream('Kartu_Bimbingan_' . $bimbingan->mahasiswa->nim . '.pdf');
     }
 
-    private function authorizeAccess($user, BimbinganTugasAkhir $bimbingan): void
-    {
-        if ($user->hasRole('admin')) {
-            return;
-        }
-        if ($user->hasRole('mahasiswa') && $user->mahasiswa && (int) $bimbingan->mahasiswa_id === (int) $user->mahasiswa->id) {
-            return;
-        }
-        if ($user->dosen) {
-            $dosenId = (int) $user->dosen->id;
-            if ((int) $bimbingan->pembimbing_1_id === $dosenId || (int) $bimbingan->pembimbing_2_id === $dosenId) {
-                return;
-            }
-            $isKaprodi = ProgramStudi::where('id', $bimbingan->mahasiswa->program_studi_id)
-                ->where('kaprodi_dosen_id', $dosenId)
-                ->exists();
-            if ($isKaprodi) {
-                return;
-            }
-        }
-        abort(403, 'Akses ditolak. Anda tidak memiliki otoritas pada bimbingan ini.');
-    }
 }

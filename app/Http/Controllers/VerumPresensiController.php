@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use App\Models\VerumKelas;
 use App\Models\VerumPresensi;
 use App\Models\VerumKehadiran;
@@ -13,22 +15,12 @@ use Illuminate\View\View;
 
 class VerumPresensiController extends Controller
 {
-    private function isDosenPengampu($user, VerumKelas $kelas): bool
-    {
-        if (!$user || !$user->dosen) return false;
-        if ((int) $user->dosen->id === (int) $kelas->dosen_id) return true;
-        return DB::table('dosen_mata_kuliah')
-            ->where('mata_kuliah_id', $kelas->mata_kuliah_id)
-            ->where('dosen_id', $user->dosen->id)
-            ->exists();
-    }
-
     /**
      * Dosen membuka sesi presensi baru sekaligus mengisi Jurnal / BAP Pertemuan.
      */
     public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_kela)) {
             abort(403, 'Hanya dosen pengampu yang bisa membuka presensi.');
         }
 
@@ -57,7 +49,7 @@ class VerumPresensiController extends Controller
      */
     public function updateJurnal(Request $request, VerumPresensi $verum_presensi): RedirectResponse
     {
-        if (!$verum_presensi->kelas || !$this->isDosenPengampu(Auth::user(), $verum_presensi->kelas)) {
+        if (!$verum_presensi->kelas || !Gate::forUser(Auth::user())->allows('kelola', $verum_presensi->kelas)) {
             abort(403, 'Hanya dosen pengampu yang dapat mengubah Jurnal BAP.');
         }
 
@@ -120,7 +112,7 @@ class VerumPresensiController extends Controller
      */
     public function cetakRekap(VerumKelas $verum_kela): View
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_kela)) {
             abort(403, 'Hanya dosen pengampu yang bisa mencetak absensi.');
         }
 
@@ -140,7 +132,7 @@ class VerumPresensiController extends Controller
      */
     public function cetakBap(VerumKelas $verum_kela): View
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_kela)) {
             abort(403, 'Hanya dosen pengampu yang bisa mencetak BAP.');
         }
 

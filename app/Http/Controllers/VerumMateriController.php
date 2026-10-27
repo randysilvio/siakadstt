@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use App\Models\VerumKelas;
 use App\Models\VerumMateri;
 use Illuminate\Http\Request;
@@ -16,30 +18,12 @@ class VerumMateriController extends Controller
     {
         $this->middleware(['auth', 'role:dosen']);
     }
-
-    /**
-     * Helper untuk mengecek apakah dosen adalah pengampu utama atau anggota Team Teaching.
-     */
-    private function isDosenPengampu($user, VerumKelas $kelas): bool
-    {
-        if (!$user || !$user->dosen) {
-            return false;
-        }
-        if ((int) $user->dosen->id === (int) $kelas->dosen_id) {
-            return true;
-        }
-        return DB::table('dosen_mata_kuliah')
-            ->where('mata_kuliah_id', $kelas->mata_kuliah_id)
-            ->where('dosen_id', $user->dosen->id)
-            ->exists();
-    }
-
     /**
      * Menyimpan materi baru ke database dengan sanitasi input.
      */
     public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_kela)) {
             abort(403, 'Aksi ini hanya untuk dosen pengampu kelas.');
         }
 
@@ -77,7 +61,7 @@ class VerumMateriController extends Controller
      */
     public function destroy(VerumMateri $verum_materi): RedirectResponse
     {
-        if (!$verum_materi->kelas || !$this->isDosenPengampu(Auth::user(), $verum_materi->kelas)) {
+        if (!$verum_materi->kelas || !Gate::forUser(Auth::user())->allows('kelola', $verum_materi->kelas)) {
             abort(403, 'Anda tidak berhak menghapus materi ini.');
         }
 

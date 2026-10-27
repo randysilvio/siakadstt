@@ -215,30 +215,8 @@ class DashboardController extends Controller
             }
 
             $jadwalKuliahMahasiswa = collect();
-            if ($mahasiswa->status_mahasiswa === 'Aktif' && $mahasiswa->status_krs === 'Disetujui' && $periodeAktif) {
-                $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                
-                $krsDiambil = $mahasiswa->mataKuliahs()
-                    ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-                    ->get();
-
-                $mataKuliahIds = $krsDiambil->pluck('id')->toArray();
-                $kelasMap = [];
-                foreach ($krsDiambil as $mkItem) {
-                    $kelasMap[$mkItem->id] = strtoupper($mkItem->pivot->nama_kelas ?? 'A');
-                }
-
-                if (!empty($mataKuliahIds)) {
-                    $jadwalKuliahMahasiswa = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
-                        ->with('mataKuliah.dosen')
-                        ->get()
-                        ->filter(function ($jadwal) use ($kelasMap) {
-                            $klsMhs = $kelasMap[$jadwal->mata_kuliah_id] ?? 'A';
-                            return strtoupper($jadwal->nama_kelas ?? 'A') === $klsMhs;
-                        })
-                        ->sortBy(fn($jadwal) => sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai))
-                        ->values();
-                }
+            if ($mahasiswa->status_mahasiswa === 'Aktif' && $periodeAktif && $mahasiswa->krsDisetujuiPada($periodeAktif->id)) {
+                $jadwalKuliahMahasiswa = app(\App\Services\JadwalService::class)->jadwalMahasiswa($mahasiswa, $periodeAktif->id);
             }
 
             return view('dashboard.mahasiswa', [

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Gate;
+
 use App\Support\BerkasPrivat;
 use App\Models\VerumKelas;
 use App\Models\VerumTugas;
@@ -15,19 +17,9 @@ use Illuminate\View\View;
 
 class VerumTugasController extends Controller
 {
-    private function isDosenPengampu($user, VerumKelas $kelas): bool
-    {
-        if (!$user || !$user->dosen) return false;
-        if ((int) $user->dosen->id === (int) $kelas->dosen_id) return true;
-        return DB::table('dosen_mata_kuliah')
-            ->where('mata_kuliah_id', $kelas->mata_kuliah_id)
-            ->where('dosen_id', $user->dosen->id)
-            ->exists();
-    }
-
     public function store(Request $request, VerumKelas $verum_kela): RedirectResponse
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_kela)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_kela)) {
             abort(403, 'Aksi ini hanya untuk dosen pengampu kelas.');
         }
 
@@ -48,7 +40,7 @@ class VerumTugasController extends Controller
 
     public function destroy(VerumTugas $verum_tuga): RedirectResponse
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_tuga->kelas)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_tuga->kelas)) {
             abort(403, 'Anda tidak berhak menghapus tugas ini.');
         }
 
@@ -62,7 +54,7 @@ class VerumTugasController extends Controller
 
     public function rekap(VerumTugas $verum_tuga): View
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_tuga->kelas)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_tuga->kelas)) {
             abort(403, 'Akses ditolak. Anda bukan pengampu kelas ini.');
         }
 
@@ -82,7 +74,7 @@ class VerumTugasController extends Controller
      */
     public function simpanNilai(Request $request, VerumTugas $verum_tuga): RedirectResponse
     {
-        if (!$this->isDosenPengampu(Auth::user(), $verum_tuga->kelas)) {
+        if (!Gate::forUser(Auth::user())->allows('kelola', $verum_tuga->kelas)) {
             abort(403, 'Akses ditolak. Anda bukan pengampu kelas ini.');
         }
 

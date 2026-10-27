@@ -138,31 +138,7 @@ class CetakController extends Controller
         
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
-        $krsdiambil = $mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
-            ->get();
-
-        $mataKuliahIds = $krsdiambil->pluck('id')->toArray();
-        $kelasMap = [];
-        foreach ($krsdiambil as $mk) {
-            $kelasMap[$mk->id] = strtoupper($mk->pivot->nama_kelas ?? 'A');
-        }
-
-        $jadwals = collect();
-        if (!empty($mataKuliahIds)) {
-            $jadwals = Jadwal::whereIn('mata_kuliah_id', $mataKuliahIds)
-                ->with(['mataKuliah', 'mataKuliah.dosen'])
-                ->get()
-                ->filter(function ($j) use ($kelasMap) {
-                    $klsMhs = $kelasMap[$j->mata_kuliah_id] ?? 'A';
-                    return strtoupper($j->nama_kelas ?? 'A') === $klsMhs;
-                })
-                ->sortBy(function ($jadwal) {
-                    // Urut per hari lalu per jam mulai
-                    $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                    return sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai);
-                });
-        }
+        $jadwals = app(\App\Services\JadwalService::class)->jadwalMahasiswa($mahasiswa, $tahunAkademik->id, ['mataKuliah', 'mataKuliah.dosen']);
 
         $pdf = Pdf::loadView('mahasiswa.cetak_jadwal', compact('mahasiswa', 'jadwals', 'tahunAkademik'));
         return $pdf->stream('Jadwal_Kuliah_' . $mahasiswa->nim . '.pdf');
