@@ -44,7 +44,6 @@ use App\Http\Controllers\Admin\FeederExportController;
 use App\Http\Controllers\Auth\PmbRegisterController;
 use App\Http\Controllers\PmbController;
 use App\Http\Controllers\Public\DosenProfileController;
-use App\Http\Controllers\Perpustakaan\PeminjamanController;
 use App\Http\Middleware\CekStatusPembayaranMiddleware;
 use App\Http\Middleware\CekPeriodeKrsMiddleware;
 use App\Http\Middleware\KaprodiMiddleware;
@@ -173,10 +172,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // =========================================================================
-    // BLOK RUTE PERPUSTAKAAN (E-LIBRARY)
+    // BLOK RUTE PERPUSTAKAAN (E-LIBRARY & SIRKULASI BARCODE)
     // =========================================================================
     Route::prefix('perpustakaan')->name('perpustakaan.')->group(function () {
-        Route::middleware('role:pustakawan')->group(function () {
+        Route::middleware('role:admin,pustakawan')->group(function () {
             Route::get('/', [PerpustakaanController::class, 'dashboard'])->name('index');
             Route::resource('koleksi', KoleksiController::class);
             Route::get('koleksi/{koleksi}/cetak-barcode', [KoleksiController::class, 'cetakBarcode'])->name('koleksi.cetak-barcode');
@@ -252,7 +251,7 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     // BLOK RUTE PENJAMINAN MUTU & REKTORAT
     // =========================================================================
-    Route::middleware('role:penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
+    Route::middleware('role:admin,penjaminan_mutu')->prefix('penjaminan-mutu')->name('mutu.')->group(function () {
         Route::get('/dashboard', [PenjaminanMutuController::class, 'dashboard'])->name('dashboard');
         Route::get('/laporan', [MutuReportController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/cetak-ringkasan', [MutuReportController::class, 'cetakRingkasan'])->name('laporan.cetak-ringkasan');
@@ -263,7 +262,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/laporan/cetak-mahasiswa', [MutuReportController::class, 'cetakMahasiswa'])->name('laporan.cetak-mahasiswa');
     });
 
-    Route::middleware('role:rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
+    Route::middleware('role:admin,rektorat')->prefix('rektorat')->name('rektorat.')->group(function () {
         Route::get('/dashboard', [RektoratController::class, 'dashboard'])->name('dashboard');
         Route::get('/cetak', [RektoratController::class, 'cetakLaporan'])->name('cetak');
     });
@@ -276,9 +275,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/nilai/{mataKuliah}/sync-verum', [NilaiController::class, 'syncVerum'])->name('nilai.syncVerum');
 
     // =========================================================================
-    // BLOK RUTE KEUANGAN (TERMASUK DISPENSASI CICILAN KRS)
+    // BLOK RUTE KEUANGAN (TERMASUK DISPENSASI CICILAN KRS & AKSES ADMIN)
     // =========================================================================
-    Route::middleware(['role:keuangan'])->group(function () {
+    Route::middleware(['role:admin,keuangan'])->group(function () {
         Route::get('/pembayaran/generate', [PembayaranController::class, 'generate'])->name('pembayaran.generate');
         Route::post('/pembayaran/generate', [PembayaranController::class, 'storeGenerate'])->name('pembayaran.storeGenerate');
         Route::get('/pembayaran/cetak', [PembayaranController::class, 'cetakLaporan'])->name('pembayaran.cetak');

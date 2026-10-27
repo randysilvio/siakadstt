@@ -18,12 +18,14 @@ class PembayaranController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role:keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
+        // Mengizinkan Super Admin dan Staf Keuangan mengelola tagihan & verifikasi pembayaran
+        $this->middleware('role:admin,keuangan')->except(['riwayat', 'uploadBuktiMahasiswa']);
     }
 
     public function index(Request $request): View
     {
         $query = Pembayaran::with(['mahasiswa', 'user'])
+                    ->orderByRaw("CASE WHEN status = 'menunggu_konfirmasi' THEN 0 ELSE 1 END")
                     ->orderBy('created_at', 'desc');
 
         if ($request->filled('tipe_user')) {

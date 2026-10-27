@@ -35,10 +35,10 @@ class SuratKeputusanController extends Controller
         $suratKeputusans = $query->paginate(20)->withQueryString();
 
         $metrics = [
-            'total' => SuratKeputusan::count(),
-            'selesai' => SuratKeputusan::where('status', 'Selesai')->count(),
+            'total'    => SuratKeputusan::count(),
+            'selesai'  => SuratKeputusan::where('status', 'Selesai')->count(),
             'menunggu' => SuratKeputusan::where('status', 'Menunggu Tanda Tangan')->count(),
-            'draf' => SuratKeputusan::where('status', 'Draf')->count(),
+            'draf'     => SuratKeputusan::where('status', 'Draf')->count(),
         ];
 
         return view('administrasi.surat.index', compact('suratKeputusans', 'metrics'));
@@ -53,8 +53,8 @@ class SuratKeputusanController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'jenis_surat' => 'required|string',
-            'judul' => 'required|string',
+            'jenis_surat'    => 'required|string',
+            'judul'          => 'required|string',
             'tanggal_terbit' => 'nullable|date',
         ]);
 
@@ -64,7 +64,7 @@ class SuratKeputusanController extends Controller
                 foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
                     if (!empty($namaLain)) {
                         $panitiaLainnya[] = [
-                            'nama' => $namaLain,
+                            'nama'    => $namaLain,
                             'jabatan' => $request->panitia_lainnya_jabatan[$key] ?? 'Anggota'
                         ];
                     }
@@ -72,20 +72,20 @@ class SuratKeputusanController extends Controller
             }
 
             $surat = SuratKeputusan::create([
-                'jenis_surat' => $request->jenis_surat,
-                'nomor_surat' => $request->nomor_surat,
-                'judul' => $request->judul,
-                'tanggal_terbit' => $request->tanggal_terbit,
-                'menimbang' => array_filter($request->menimbang ?? []),
-                'mengingat' => array_filter($request->mengingat ?? []),
-                'memperhatikan' => array_filter($request->memperhatikan ?? []),
-                'menetapkan' => array_filter($request->menetapkan ?? []),
-                'isi_surat' => $request->isi_surat,
-                'tembusan' => array_filter($request->tembusan ?? []),
+                'jenis_surat'           => $request->jenis_surat,
+                'nomor_surat'           => $request->nomor_surat,
+                'judul'                 => $request->judul,
+                'tanggal_terbit'        => $request->tanggal_terbit,
+                'menimbang'             => array_filter($request->menimbang ?? []),
+                'mengingat'             => array_filter($request->mengingat ?? []),
+                'memperhatikan'         => array_filter($request->memperhatikan ?? []),
+                'menetapkan'            => array_filter($request->menetapkan ?? []),
+                'isi_surat'             => $request->isi_surat,
+                'tembusan'              => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
-                'penandatangan_nama' => $request->penandatangan_nama,
-                'panitia_lainnya' => $panitiaLainnya,
-                'status' => 'Menunggu Tanda Tangan'
+                'penandatangan_nama'    => $request->penandatangan_nama,
+                'panitia_lainnya'       => $panitiaLainnya,
+                'status'                => 'Menunggu Tanda Tangan'
             ]);
 
             if ($request->has('dosen_id')) {
@@ -119,8 +119,8 @@ class SuratKeputusanController extends Controller
     public function update(Request $request, SuratKeputusan $suratKeputusan)
     {
         $request->validate([
-            'jenis_surat' => 'required|string',
-            'judul' => 'required|string',
+            'jenis_surat'    => 'required|string',
+            'judul'          => 'required|string',
             'tanggal_terbit' => 'nullable|date',
         ]);
 
@@ -130,7 +130,7 @@ class SuratKeputusanController extends Controller
                 foreach ($request->panitia_lainnya_nama as $key => $namaLain) {
                     if (!empty($namaLain)) {
                         $panitiaLainnya[] = [
-                            'nama' => $namaLain,
+                            'nama'    => $namaLain,
                             'jabatan' => $request->panitia_lainnya_jabatan[$key] ?? 'Anggota'
                         ];
                     }
@@ -138,19 +138,19 @@ class SuratKeputusanController extends Controller
             }
 
             $suratKeputusan->update([
-                'jenis_surat' => $request->jenis_surat,
-                'nomor_surat' => $request->nomor_surat,
-                'judul' => $request->judul,
-                'tanggal_terbit' => $request->tanggal_terbit,
-                'menimbang' => array_filter($request->menimbang ?? []),
-                'mengingat' => array_filter($request->mengingat ?? []),
-                'memperhatikan' => array_filter($request->memperhatikan ?? []),
-                'menetapkan' => array_filter($request->menetapkan ?? []),
-                'isi_surat' => $request->isi_surat,
-                'tembusan' => array_filter($request->tembusan ?? []),
+                'jenis_surat'           => $request->jenis_surat,
+                'nomor_surat'           => $request->nomor_surat,
+                'judul'                 => $request->judul,
+                'tanggal_terbit'        => $request->tanggal_terbit,
+                'menimbang'             => array_filter($request->menimbang ?? []),
+                'mengingat'             => array_filter($request->mengingat ?? []),
+                'memperhatikan'         => array_filter($request->memperhatikan ?? []),
+                'menetapkan'            => array_filter($request->menetapkan ?? []),
+                'isi_surat'             => $request->isi_surat,
+                'tembusan'              => array_filter($request->tembusan ?? []),
                 'penandatangan_jabatan' => $request->penandatangan_jabatan,
-                'penandatangan_nama' => $request->penandatangan_nama,
-                'panitia_lainnya' => $panitiaLainnya,
+                'penandatangan_nama'    => $request->penandatangan_nama,
+                'panitia_lainnya'       => $panitiaLainnya,
             ]);
 
             if ($request->has('dosen_id')) {
@@ -173,16 +173,32 @@ class SuratKeputusanController extends Controller
 
     public function duplicate(SuratKeputusan $suratKeputusan)
     {
-        $newSurat = $suratKeputusan->replicate();
-        
-        $newSurat->nomor_surat = null; 
-        $newSurat->tanggal_terbit = null; 
-        $newSurat->status = 'Draf';
-        $newSurat->file_path = null;
-        $newSurat->save();
+        $suratKeputusan->load('dosens');
+
+        $newSurat = DB::transaction(function () use ($suratKeputusan) {
+            $clone = $suratKeputusan->replicate();
+            $clone->nomor_surat = null; 
+            $clone->tanggal_terbit = null; 
+            $clone->status = 'Draf';
+            $clone->file_path = null;
+            $clone->save();
+
+            // Salin juga relasi dosen panitia beserta jabatannya ke draf baru
+            $dosenSync = [];
+            foreach ($suratKeputusan->dosens as $dsn) {
+                $dosenSync[$dsn->id] = [
+                    'jabatan_dalam_surat' => $dsn->pivot->jabatan_dalam_surat ?? 'Anggota',
+                ];
+            }
+            if (!empty($dosenSync)) {
+                $clone->dosens()->sync($dosenSync);
+            }
+
+            return $clone;
+        });
         
         return redirect()->route('administrasi.surat-keputusan.edit', $newSurat->id)
-                         ->with('success', 'Template berhasil diduplikasi. Silakan lengkapi data tanggal dan susunan panitia yang baru.');
+                         ->with('success', 'Template beserta susunan panitia berhasil diduplikasi. Silakan lengkapi nomor surat dan tanggal terbit baru.');
     }
 
     public function uploadFinal(Request $request, SuratKeputusan $suratKeputusan)
@@ -198,7 +214,7 @@ class SuratKeputusanController extends Controller
             $path = $request->file('file_pdf')->store('dokumen_sk', 'public');
             $suratKeputusan->update([
                 'file_path' => $path,
-                'status' => 'Selesai'
+                'status'    => 'Selesai'
             ]);
         }
 
@@ -209,7 +225,6 @@ class SuratKeputusanController extends Controller
     {
         $user = Auth::user();
 
-        // [PERBAIKAN KEAMANAN FASE 6]: Otorisasi unduhan SK (Hanya Admin, Administrasi Umum, Rektorat, Mutu, atau Dosen yang tercantum di SK)
         $isAuthorizedStaff = $user->hasRole(['admin', 'administrasi_umum', 'rektorat', 'penjaminan_mutu']);
         $isTaggedDosen = false;
 

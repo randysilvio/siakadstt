@@ -269,21 +269,23 @@ class DashboardController extends Controller
         // =========================================================
         elseif ($user->hasRole('keuangan')) {
             $pembayaranTerbaru = Pembayaran::where('status', 'lunas')
-                ->with('mahasiswa')
+                ->with(['mahasiswa', 'user'])
                 ->latest('tanggal_bayar')
                 ->take(5)
                 ->get();
 
-            $tagihanTerlama = Pembayaran::whereIn('status', ['belum_lunas', 'belum_bayar'])
-                ->with('mahasiswa')
-                ->orderBy('created_at', 'asc')
-                ->take(5)
+            // Prioritaskan tagihan 'menunggu_konfirmasi' (mahasiswa baru upload bukti bayar) di urutan paling atas
+            $tagihanTerlama = Pembayaran::whereIn('status', ['menunggu_konfirmasi', 'belum_lunas', 'belum_bayar'])
+                ->with(['mahasiswa', 'user'])
+                ->orderByRaw("CASE WHEN status = 'menunggu_konfirmasi' THEN 0 ELSE 1 END")
+                ->orderBy('updated_at', 'desc')
+                ->take(8)
                 ->get();
 
             return view('pembayaran.dashboard', [
                 'totalTagihan'      => Pembayaran::count(),
                 'totalLunas'        => Pembayaran::where('status', 'lunas')->count(),
-                'totalBelumLunas'   => Pembayaran::whereIn('status', ['belum_lunas', 'belum_bayar'])->count(),
+                'totalBelumLunas'   => Pembayaran::whereIn('status', ['menunggu_konfirmasi', 'belum_lunas', 'belum_bayar'])->count(),
                 'pengumumans'       => $pengumumans,
                 'pembayaranTerbaru' => $pembayaranTerbaru,
                 'tagihanTerlama'    => $tagihanTerlama
@@ -293,21 +295,25 @@ class DashboardController extends Controller
         // Dashboard Khusus PUSTAKAWAN
         // =========================================================
         elseif ($user->hasRole('pustakawan')) {
-            $koleksiPopuler = Koleksi::query()
-                ->when(Schema::hasColumn('perpustakaan_koleksi', 'total_pinjam'), function ($query) {
-                    return $query->orderBy('total_pinjam', 'desc');
-                })
+            $peminjamanTerlambat = Peminjaman::with(['koleksi', 'user'])
+                ->where('status', 'Dipinjam')
+                ->whereDate('jatuh_tempo', '<', Carbon::today())
+                ->get();
+
+            $koleksiPopuler = Koleksi::withCount('peminjamans')
+                ->orderByDesc('peminjamans_count')
                 ->take(5)
                 ->get();
 
             return view('perpustakaan.dashboard', [
-                'totalJudul'        => Koleksi::count(),
-                'totalEksemplar'    => Koleksi::sum('jumlah_stok'),
-                'peminjamanAktif'   => Peminjaman::where('status', 'Dipinjam')->count(),
-                'terlambatCount'    => Peminjaman::where('status', 'Dipinjam')->where('jatuh_tempo', '<', now())->count(),
-                'aktivitasTerakhir' => Peminjaman::with(['user', 'koleksi'])->latest()->take(5)->get(),
-                'koleksiPopuler'    => $koleksiPopuler,
-                'pengumumans'       => $pengumumans
+                'totalJudul'          => Koleksi::count(),
+                'totalEksemplar'      => Koleksi::sum('jumlah_stok'),
+                'peminjamanAktif'     => Peminjaman::where('status', 'Dipinjam')->count(),
+                'terlambatCount'      => $peminjamanTerlambat->count(),
+                'peminjamanTerlambat' => $peminjamanTerlambat,
+                'aktivitasTerakhir'   => Peminjaman::with(['user', 'koleksi'])->latest()->take(5)->get(),
+                'koleksiPopuler'      => $koleksiPopuler,
+                'pengumumans'         => $pengumumans
             ]);
         }
         // =========================================================
