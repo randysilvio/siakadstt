@@ -91,12 +91,16 @@ class PerwalianController extends Controller
                          ->wherePivot('tahun_akademik_id', $periodeAktif->id)
                          ->with('jadwals')
                          ->get();
+
+        // Jika di semester aktif ini mahasiswa belum punya mata kuliah sama sekali, pastikan status_krs tidak nyangkut di Disetujui
+        if ($krs->isEmpty() && $mahasiswa->status_krs !== 'Belum Mengajukan') {
+            $mahasiswa->update(['status_krs' => 'Belum Mengajukan']);
+        }
                          
         $totalSks = $krs->sum('sks');
         $ipk = $mahasiswa->hitungIpk();
         $sksLulus = $mahasiswa->totalSksLulus();
 
-        // Navigasi Cepat Prev/Next Mahasiswa Bimbingan Tutorship
         $bimbinganIds = Mahasiswa::where('dosen_wali_id', $dosen->id)
             ->where('status_mahasiswa', 'Aktif')
             ->orderBy('nama_lengkap')
@@ -149,7 +153,7 @@ class PerwalianController extends Controller
         }
 
         $pesan = $request->status_krs == 'Disetujui'
-            ? 'KRS Mahasiswa ' . $mahasiswa->nama_lengkap . ' berhasil DISETUJUI oleh Dosen Tutor.'
+            ? 'KRS Mahasiswa ' . $mahasiswa->nama_lengkap . ' berhasil DISETUJUI.'
             : 'Status KRS mahasiswa berhasil diperbarui menjadi ' . strtoupper($request->status_krs) . '.';
 
         return redirect()->back()->with('success', $pesan);
@@ -173,7 +177,7 @@ class PerwalianController extends Controller
                      ->update(['dosen_wali_id' => $dosen->id]);
         }
 
-        return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil ditambahkan ke daftar bimbingan Tutorship Anda.');
+        return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil ditambahkan ke daftar bimbingan Anda.');
     }
 
     public function destroy(Mahasiswa $mahasiswa): RedirectResponse
@@ -184,7 +188,7 @@ class PerwalianController extends Controller
 
         if ((int) $mahasiswa->dosen_wali_id === (int) $dosen->id) {
             $mahasiswa->update(['dosen_wali_id' => null]);
-            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari bimbingan Tutorship.');
+            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari daftar bimbingan.');
         }
 
         return redirect()->route('perwalian.index')->with('error', 'Akses ditolak.');
@@ -203,6 +207,12 @@ class PerwalianController extends Controller
 
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($mk_id);
 
-        return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus (Koreksi Dosen Tutor).');
+        // Jika seluruh mata kuliah di semester ini habis dihapus, kembalikan status ke 'Belum Mengajukan'
+        $masihAda = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        if (!$masihAda) {
+            $mahasiswa->update(['status_krs' => 'Belum Mengajukan']);
+        }
+
+        return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS mahasiswa.');
     }
 }

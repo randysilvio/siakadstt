@@ -98,7 +98,6 @@ class AcademicRuleService
                 $namaKlsAktual = strtoupper($slotDipilih->nama_kelas ?? 'A');
                 $kuotaMaks = (int) ($slotDipilih->kuota ?? 40);
 
-                // Cek apakah kapasitas kelas paralel masih tersedia (kecuali mahasiswa ini memang sudah terdaftar di kelas tersebut)
                 $terisiSaatIni = DB::table('mahasiswa_mata_kuliah')
                     ->where('mata_kuliah_id', $mk->id)
                     ->where('tahun_akademik_id', $periodeAktif->id)
@@ -229,7 +228,9 @@ class AcademicRuleService
                 $akhirAngka = $mhs->pivot->nilai_akhir_angka;
                 $huruf      = $mhs->pivot->nilai;
 
-                if ($nilaiHadir !== null || $nilaiTugas !== null || $uts !== null || $uas !== null) {
+                // Hanya hitung ulang Nilai Akhir & Huruf jika nilai UTS atau UAS sudah ada,
+                // agar tarik data Verum di awal/tengah semester tidak menjatuhkan nilai huruf 'E' prematur.
+                if ($uts !== null || $uas !== null) {
                     $akhirAngka = $this->hitungNilaiAkhir(
                         (float) ($nilaiHadir ?? 0),
                         (float) ($nilaiTugas ?? 0),

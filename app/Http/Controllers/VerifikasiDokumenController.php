@@ -30,13 +30,23 @@ class VerifikasiDokumenController extends Controller
 
         if ($suratMandiri) {
             $isValid = true;
+            $rawNomor = trim((string) $suratMandiri->nomor_surat);
+            if (!empty($rawNomor) && str_contains($rawNomor, '/')) {
+                $noSuratFormatted = $rawNomor;
+            } else {
+                $urut = !empty($rawNomor) ? $rawNomor : str_pad((string) $suratMandiri->id, 3, '0', STR_PAD_LEFT);
+                $noSuratFormatted = $urut . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $suratMandiri->created_at->format('Y');
+            }
+
+            $tglTerbit = $suratMandiri->tanggal_terbit ?? $suratMandiri->updated_at ?? now();
+
             $dataDokumen = [
                 'jenis_dokumen' => strtoupper($suratMandiri->jenis_surat),
-                'nomor_dokumen' => ($suratMandiri->nomor_surat ?: str_pad((string) $suratMandiri->id, 3, '0', STR_PAD_LEFT)) . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $suratMandiri->created_at->format('Y'),
+                'nomor_dokumen' => $noSuratFormatted,
                 'nama_pemilik'  => $suratMandiri->mahasiswa->nama_lengkap ?? '-',
                 'nim_identitas' => $suratMandiri->mahasiswa->nim ?? '-',
                 'program_studi' => optional(optional($suratMandiri->mahasiswa)->programStudi)->nama_prodi ?? '-',
-                'tanggal_terbit'=> ($suratMandiri->tanggal_disetujui ?? $suratMandiri->updated_at)->translatedFormat('d F Y'),
+                'tanggal_terbit'=> \Carbon\Carbon::parse($tglTerbit)->translatedFormat('d F Y'),
                 'keterangan'    => 'Keperluan: ' . $suratMandiri->keperluan,
                 'kode_hash'     => strtoupper($token),
             ];

@@ -170,6 +170,7 @@ class NilaiController extends Controller
                 $hurufManual = !empty($inputHuruf[$mhsId]) ? strtoupper(trim($inputHuruf[$mhsId])) : null;
 
                 $adaKomponen = ($hadir !== null || $tugas !== null || $uts !== null || $uas !== null);
+                $adaUjian    = ($uts !== null || $uas !== null);
 
                 $akhirAngka = null;
                 $hurufFinal = $hurufManual;
@@ -181,7 +182,10 @@ class NilaiController extends Controller
                         $uts ?? 0,
                         $uas ?? 0
                     );
-                    $hurufFinal = $this->academicService->konversiAngkaKeHuruf($akhirAngka);
+                    // Konversi otomatis ke nilai huruf jika UTS/UAS sudah diisi atau huruf manual diisi
+                    if ($adaUjian || $hurufManual !== null) {
+                        $hurufFinal = $this->academicService->konversiAngkaKeHuruf($akhirAngka);
+                    }
                 }
 
                 DB::table('mahasiswa_mata_kuliah')

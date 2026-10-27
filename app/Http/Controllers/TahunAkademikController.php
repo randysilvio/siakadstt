@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,6 @@ class TahunAkademikController extends Controller
             'tanggal_selesai_krs' => 'required|date|after_or_equal:tanggal_mulai_krs',
         ]);
 
-        // Pastikan tahun akademik baru berstatus tidak aktif sampai diaktifkan secara eksplisit
         $validated['is_active'] = false;
 
         TahunAkademik::create($validated);
@@ -95,10 +95,26 @@ class TahunAkademikController extends Controller
         DB::transaction(function () use ($tahunAkademik) {
             TahunAkademik::query()->update(['is_active' => false]);
             $tahunAkademik->update(['is_active' => true]);
+
+            // Sinkronisasi status_krs seluruh mahasiswa aktif sesuai keberadaan KRS mereka pada semester yang baru diaktifkan:
+            // 1. Mahasiswa yang belum punya entri KRS di periode ini di-reset ke 'Belum Mengajukan'
+            $mhsSudahIsiIds = DB::table('mahasiswa_mata_kuliah')
+                ->where('tahun_akademik_id', $tahunAkademik->id)
+                ->distinct()
+                ->pluck('mahasiswa_id')
+                ->toArray();
+
+            Mahasiswa::where('status_mahasiswa', 'Aktif')
+                ->whereNotIn('id', $mhsSudahIsiIds)
+                ->update([
+                    'status_krs'      => 'Belum Mengajukan',
+                    'catatan_kaprodi' => null,
+                ]);
         });
         
         event(new TahunAkademikDiaktifkan($tahunAkademik));
 
-        return redirect()->route('admin.tahun-akademik.index')->with('success', "Tahun Akademik {$tahunAkademik->tahun} Semester {$tahunAkademik->semester} berhasil diaktifkan.");
+        return redirect()->route('admin.tahun-akademik.index')
+            ->with('success', "Tahun Akademik {$tahunAkademik->tahun} Semester {$tahunAkademik->semester} berhasil diaktifkan dan status KRS mahasiswa telah disinkronkan.");
     }
 }

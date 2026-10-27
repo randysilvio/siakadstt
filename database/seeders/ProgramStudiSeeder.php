@@ -7,14 +7,16 @@ use App\Models\ProgramStudi;
 
 class ProgramStudiSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
-        ProgramStudi::create(['nama_prodi' => 'Teknik Informatika']);
-        ProgramStudi::create(['nama_prodi' => 'Sistem Informasi']);
+        ProgramStudi::firstOrCreate(
+            ['kode_prodi' => '77201'],
+            ['nama_prodi' => 'Teologi (Kependetaan)', 'jenjang' => 'S1']
+        );
+
+        ProgramStudi::firstOrCreate(
+            ['kode_prodi' => '86202'],
+            ['nama_prodi' => 'Pendidikan Agama Kristen (PAK)', 'jenjang' => 'S1']
+        );
     }
 }

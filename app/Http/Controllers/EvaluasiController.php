@@ -37,7 +37,7 @@ class EvaluasiController extends Controller
         if ($mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
             $mataKuliah = $mahasiswa->mataKuliahs()
                 ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
-                ->with('dosen.user')
+                ->with(['dosen.user', 'teamDosens'])
                 ->get();
         }
 
@@ -65,7 +65,6 @@ class EvaluasiController extends Controller
                                 ->where('tanggal_selesai', '>=', now())
                                 ->firstOrFail();
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Pastikan mahasiswa benar-benar mengambil MK ini di KRS periode sesi aktif
         $terdaftarDiKrs = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
             ->where('mata_kuliahs.id', $mataKuliah->id)
@@ -75,13 +74,13 @@ class EvaluasiController extends Controller
             return redirect()->route('evaluasi.index')->with('error', 'Akses ditolak. Anda tidak mengambil mata kuliah ini pada semester evaluasi aktif.');
         }
 
-        if (!$mataKuliah->dosen) {
+        $dosenTarget = $mataKuliah->dosen ?? $mataKuliah->teamDosens()->first();
+        if (!$dosenTarget) {
             return redirect()->route('evaluasi.index')->with('error', 'Mata kuliah ini belum memiliki dosen pengampu.');
         }
 
         $pertanyaan = EvaluasiPertanyaan::where('is_active', true)->orderBy('urutan')->get();
 
-        // Ambil jawaban yang pernah disimpan (untuk UX pre-fill saat dibuka kembali)
         $jawabanTersimpan = EvaluasiJawaban::where('evaluasi_sesi_id', $sesiAktif->id)
             ->where('mahasiswa_id', $mahasiswa->id)
             ->where('mata_kuliah_id', $mataKuliah->id)
@@ -96,13 +95,12 @@ class EvaluasiController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
-        $dosen = $mataKuliah->dosen;
+        $dosen = $mataKuliah->dosen ?? $mataKuliah->teamDosens()->first();
 
         if (!$mahasiswa || !$dosen || $mahasiswa->status_krs !== 'Disetujui') {
             abort(403, 'Data mahasiswa, status KRS, atau dosen pengampu tidak valid.');
         }
 
-        // [PERBAIKAN KEAMANAN FASE 3]: Tarik sesi aktif langsung dari server, jangan percaya input sesi_id dari client
         $sesiAktif = EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
@@ -137,21 +135,21 @@ class EvaluasiController extends Controller
                 $nilaiSkala = null;
                 if ($pertanyaan->tipe_jawaban === 'skala_1_5') {
                     $val = (int) $jawaban;
-                    $val = max(1, min(4, $val)); // Standar skala 1-4 STT GPI Papua
+                    $val = max(1, min(4, $val));
                     $nilaiSkala = $val;
                 }
 
                 EvaluasiJawaban::updateOrCreate(
                     [
-                        'evaluasi_sesi_id' => $sesiAktif->id,
-                        'mahasiswa_id' => $mahasiswa->id,
-                        'dosen_id' => $dosen->id,
-                        'mata_kuliah_id' => $mataKuliah->id,
+                        'evaluasi_sesi_id'       => $sesiAktif->id,
+                        'mahasiswa_id'           => $mahasiswa->id,
+                        'dosen_id'               => $dosen->id,
+                        'mata_kuliah_id'         => $mataKuliah->id,
                         'evaluasi_pertanyaan_id' => $pertanyaan->id,
                     ],
                     [
                         'jawaban_skala' => $nilaiSkala,
-                        'jawaban_teks' => ($pertanyaan->tipe_jawaban === 'teks') ? strip_tags(trim((string) $jawaban)) : null,
+                        'jawaban_teks'  => ($pertanyaan->tipe_jawaban === 'teks') ? strip_tags(trim((string) $jawaban)) : null,
                     ]
                 );
             }

@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use App\Models\TahunAkademik;
-use App\Models\EvaluasiSesi;
-use App\Models\EvaluasiJawaban;
 use Barryvdh\DomPDF\Facade\Pdf; 
 
 class KhsController extends Controller
@@ -26,36 +24,12 @@ class KhsController extends Controller
         }
         $mahasiswa = $user->mahasiswa;
 
-        // --- INTERCEPTOR: Cek Kewajiban Mengisi EDOM ---
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-                                ->where('tanggal_mulai', '<=', now())
-                                ->where('tanggal_selesai', '>=', now())
-                                ->first();
-
-        if ($sesiAktif && $mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
-            $mataKuliahWajibEdom = $mahasiswa->mataKuliahs()
-                ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
-                ->pluck('mata_kuliahs.id')
-                ->toArray();
-
-            if (!empty($mataKuliahWajibEdom)) {
-                $evaluasiSelesai = EvaluasiJawaban::where('mahasiswa_id', $mahasiswa->id)
-                    ->where('evaluasi_sesi_id', $sesiAktif->id)
-                    ->distinct()
-                    ->pluck('mata_kuliah_id')
-                    ->toArray();
-
-                $belumDievaluasi = array_diff($mataKuliahWajibEdom, $evaluasiSelesai);
-
-                if (!empty($belumDievaluasi)) {
-                    return redirect()->route('evaluasi.index')
-                        ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) untuk seluruh mata kuliah semester ini sebelum dapat melihat Kartu Hasil Studi (KHS).');
-                }
-            }
+        // Gatekeeper Terpusat: Cek Kewajiban Mengisi EDOM (Hanya untuk MK yang memiliki dosen pengampu)
+        if ($mahasiswa->status_evaluasi === 'belum_isi') {
+            return redirect()->route('evaluasi.index')
+                ->with('error', 'PERHATIAN: Anda wajib menyelesaikan pengisian Kuesioner Evaluasi Dosen (EDOM) untuk seluruh mata kuliah semester ini sebelum dapat melihat Kartu Hasil Studi (KHS).');
         }
-        // ------------------------------------------------
 
-        // 1. Ambil daftar Tahun Akademik yang PERNAH DIAMBIL oleh mahasiswa tersebut
         $riwayatTahunAkademikIds = $mahasiswa->mataKuliahs()
             ->whereNotNull('mahasiswa_mata_kuliah.tahun_akademik_id')
             ->distinct()
@@ -66,15 +40,11 @@ class KhsController extends Controller
             ->orderBy('semester', 'desc')
             ->get();
 
-        // 2. Tentukan Tahun Akademik mana yang sedang dilihat (Filter Dropdown)
         $selectedTaId = $request->input('tahun_akademik_id');
-        
-        // Jika tidak ada pilihan, default ke riwayat paling terbaru yang dia punya
         if (!$selectedTaId && $riwayatTahunAkademiks->isNotEmpty()) {
             $selectedTaId = $riwayatTahunAkademiks->first()->id;
         }
 
-        // 3. Tarik data KHS HANYA untuk 1 semester tersebut
         $krsSelected = collect();
         $tahunSelected = null;
         $ipsData = ['total_sks' => 0, 'ips' => 0, 'nilaiBobot' => []];
@@ -83,7 +53,7 @@ class KhsController extends Controller
             $tahunSelected = TahunAkademik::find($selectedTaId);
             $krsSelected = $mahasiswa->mataKuliahs()
                 ->wherePivot('tahun_akademik_id', $selectedTaId)
-                ->withPivot('nilai')
+                ->withPivot('nilai', 'nama_kelas')
                 ->get();
             $ipsData = $mahasiswa->hitungIps($selectedTaId);
         }
@@ -98,42 +68,8 @@ class KhsController extends Controller
         ));
     }
 
-    /**
-     * Memproses KHS menjadi PDF (Bisa Pratinjau atau Unduh)
-     */
     public function cetak(Request $request)
     {
-        $user = Auth::user();
-        if (!$user->mahasiswa) { abort(403); }
-        $mahasiswa = $user->mahasiswa;
-
-        $selectedTaId = $request->input('tahun_akademik_id');
-        
-        if (!$selectedTaId) {
-            return redirect()->back()->with('error', 'Silakan pilih Tahun Akademik terlebih dahulu sebelum mencetak KHS.');
-        }
-
-        $tahunSelected = TahunAkademik::findOrFail($selectedTaId);
-        
-        $krsSelected = $mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $selectedTaId)
-            ->withPivot('nilai')
-            ->get();
-            
-        $ipsData = $mahasiswa->hitungIps($selectedTaId);
-
-        // Load view HTML dan ubah menjadi format PDF
-        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsSelected', 'tahunSelected', 'ipsData'));
-        
-        // Format penamaan file PDF yang rapi
-        $namaFile = 'KHS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunSelected->tahun) . '_' . strtoupper($tahunSelected->semester) . '.pdf';
-        
-        // Jika ada parameter download=1 di URL, paksa browser untuk mengunduh
-        if ($request->has('download') && $request->input('download') == 1) {
-            return $pdf->download($namaFile);
-        }
-        
-        // Jika tidak, tampilkan pratinjau (stream) di dalam browser/iframe
-        return $pdf->stream($namaFile);
+        return app(CetakController::class)->cetakKhs($request);
     }
 }
