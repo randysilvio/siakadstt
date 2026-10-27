@@ -104,6 +104,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/simpan-fcm-token', [ProfileController::class, 'simpanFcmToken'])->name('fcmToken.simpan');
 
+    Route::get('/pengumuman-internal/{pengumuman}', [PengumumanController::class, 'bacaInternal'])->name('pengumuman.internal.show');
+
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
     Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
     Route::post('/notifikasi/baca-semua', [NotificationController::class, 'tandaiSemuaDibaca'])->name('notifikasi.baca-semua');
@@ -284,6 +286,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('pembayaran', PembayaranController::class)->except(['show']);
         Route::patch('/pembayaran/{pembayaran}/lunas', [PembayaranController::class, 'tandaiLunas'])->name('pembayaran.lunas');
         Route::patch('/pembayaran/{pembayaran}/dispensasi', [PembayaranController::class, 'tandaiDispensasi'])->name('pembayaran.dispensasi');
+        Route::patch('/pembayaran/{pembayaran}/tolak-bukti', [PembayaranController::class, 'tolakBukti'])->name('pembayaran.tolakBukti');
     });
 
     // =========================================================================
@@ -393,6 +396,10 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/dosen/{dosen:nidn}', [DosenProfileController::class, 'show'])->name('dosen.public.show');
-Route::get('/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');
 
+// Rute autentikasi (lupa password, verifikasi email, dsb.) WAJIB didaftarkan sebelum rute slug pengumuman
+// di bawah. Rute satu-segmen '/{pengumuman}' menangkap semua URL yang belum terdaftar, termasuk /forgot-password.
 require __DIR__.'/auth.php';
+
+// Rute penangkap slug berita publik — harus selalu paling akhir.
+Route::get('/{pengumuman}', [PublicController::class, 'showPengumuman'])->name('pengumuman.public.show');

@@ -24,7 +24,7 @@
             Formulir Pembaruan Publikasi
         </div>
         <div class="card-body p-4">
-            <form action="{{ route('admin.pengumuman.update', $pengumuman->id) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.pengumuman.update', $pengumuman) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 

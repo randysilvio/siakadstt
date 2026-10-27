@@ -16,8 +16,16 @@
     </div>
 
     <div class="col-lg-8 mx-auto mb-5">
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show border rounded-0 p-3 mb-4 small uppercase fw-bold shadow-sm" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
         <form action="{{ route('admin.user.update', $user->id) }}" method="POST" autocomplete="off">
             @csrf
+            {{-- Penanda bahwa daftar peran ikut dikirim (agar menghapus semua centang tetap terbaca sebagai perubahan) --}}
+            <input type="hidden" name="roles_submitted" value="1">
             @method('PUT')
 
             {{-- Kartu 1: Kredensial & Reset Kata Sandi --}}

@@ -256,7 +256,7 @@
                             </thead>
                             <tbody>
                                 @forelse($pengumumans as $p)
-                                    <tr style="cursor: pointer;" onclick="window.location='{{ route('admin.pengumuman.show', $p->id) }}'">
+                                    <tr style="cursor: pointer;" onclick="window.location='{{ route('admin.pengumuman.show', $p) }}'">
                                         <td class="ps-3"><span class="badge bg-light text-dark border font-monospace">{{ $p->created_at->format('d/m/Y') }}</span></td>
                                         <td class="fw-bold text-dark pe-3">{{ $p->judul }}</td>
                                     </tr>

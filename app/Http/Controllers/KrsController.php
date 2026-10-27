@@ -7,6 +7,7 @@ use App\Models\Mahasiswa;
 use App\Models\MataKuliah;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
+use App\Models\KrsPersetujuan;
 use App\Services\AcademicRuleService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,34 +23,91 @@ class KrsController extends Controller
     }
 
     /**
-     * Mengambil daftar Mata Kuliah yang ditawarkan sesuai Program Studi mahasiswa & semester aktif.
+     * Mengambil daftar Mata Kuliah yang ditawarkan: kurikulum aktif prodi mahasiswa pada semester aktif.
      */
-    private function getOfferedMataKuliahs(Mahasiswa $mahasiswa, array $allowedSemesters)
+    private function getOfferedMataKuliahs(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif)
     {
-        $query = MataKuliah::with(['prasyarats', 'jadwals'])
-            ->whereIn('semester', $allowedSemesters);
+        return $this->academicService->mataKuliahDitawarkanQuery($mahasiswa, $periodeAktif)
+            ->with(['prasyarats', 'jadwals'])
+            ->orderBy('semester')
+            ->orderBy('kode_mk')
+            ->get();
+    }
 
-        // Filter berdasarkan kurikulum aktif milik prodi mahasiswa (jika tersedia)
-        $hasProdiKurikulum = MataKuliah::whereIn('semester', $allowedSemesters)
-            ->whereHas('kurikulum', function ($q) use ($mahasiswa) {
-                $q->where('is_active', true)
-                  ->where(function ($sub) use ($mahasiswa) {
-                      $sub->where('program_studi_id', $mahasiswa->program_studi_id)
-                          ->orWhereNull('program_studi_id');
-                  });
-            })->exists();
-
-        if ($hasProdiKurikulum) {
-            $query->whereHas('kurikulum', function ($q) use ($mahasiswa) {
-                $q->where('is_active', true)
-                  ->where(function ($sub) use ($mahasiswa) {
-                      $sub->where('program_studi_id', $mahasiswa->program_studi_id)
-                          ->orWhereNull('program_studi_id');
-                  });
-            });
+    /**
+     * Status KRS semester aktif; status yang tertinggal tanpa KRS dikembalikan ke "Belum Mengajukan".
+     */
+    private function statusSemesterIni(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, bool $punyaKrs): string
+    {
+        $status = $mahasiswa->statusKrsPada($periodeAktif->id);
+        if (!$punyaKrs && $status !== KrsPersetujuan::BELUM) {
+            $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::BELUM);
+            $status = KrsPersetujuan::BELUM;
+        } elseif ($mahasiswa->status_krs !== $status) {
+            // Selaraskan salinan kolom status_krs dengan status semester aktif
+            $mahasiswa->forceFill(['status_krs' => $status])->save();
         }
+        return $status;
+    }
 
-        return $query->orderBy('semester')->orderBy('kode_mk')->get();
+    /**
+     * Mengganti isi KRS semester aktif secara atomik (transaksi) dan mempertahankan nilai yang sudah ada.
+     *
+     * @return array<int,string> daftar pesan kesalahan aturan akademik (kosong bila berhasil)
+     */
+    private function simpanKrs(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, array $mataKuliahIds, array $pilihanKelas): array
+    {
+        $batas = $this->academicService->hitungBatasSks($mahasiswa);
+
+        return DB::transaction(function () use ($mahasiswa, $periodeAktif, $mataKuliahIds, $pilihanKelas, $batas) {
+            $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mataKuliahIds, $batas['max_sks'], $pilihanKelas);
+            if (!empty($ruleErrors)) {
+                return $ruleErrors;
+            }
+
+            $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
+            $gradesToKeep = [];
+            foreach ($existingKrs as $existingMk) {
+                $gradesToKeep[$existingMk->id] = [
+                    'nama_kelas'        => $existingMk->pivot->nama_kelas ?? 'A',
+                    'nilai'             => $existingMk->pivot->nilai,
+                    'nilai_manual'      => (bool) $existingMk->pivot->nilai_manual,
+                    'nilai_kehadiran'   => $existingMk->pivot->nilai_kehadiran,
+                    'nilai_tugas'       => $existingMk->pivot->nilai_tugas,
+                    'nilai_uts'         => $existingMk->pivot->nilai_uts,
+                    'nilai_uas'         => $existingMk->pivot->nilai_uas,
+                    'nilai_akhir_angka' => $existingMk->pivot->nilai_akhir_angka,
+                ];
+            }
+
+            $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
+
+            $attachData = [];
+            foreach ($mataKuliahIds as $mkId) {
+                $saved = $gradesToKeep[$mkId] ?? [];
+                $kelasDipilih = !empty($pilihanKelas[$mkId]) ? strtoupper(trim($pilihanKelas[$mkId])) : ($saved['nama_kelas'] ?? 'A');
+                $attachData[$mkId] = [
+                    'tahun_akademik_id' => $periodeAktif->id,
+                    'nama_kelas'        => $kelasDipilih,
+                    'nilai'             => $saved['nilai'] ?? null,
+                    'nilai_manual'      => $saved['nilai_manual'] ?? false,
+                    'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
+                    'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
+                    'nilai_uts'         => $saved['nilai_uts'] ?? null,
+                    'nilai_uas'         => $saved['nilai_uas'] ?? null,
+                    'nilai_akhir_angka' => $saved['nilai_akhir_angka'] ?? null,
+                ];
+            }
+
+            if (!empty($attachData)) {
+                $mahasiswa->mataKuliahs()->attach($attachData);
+                $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::MENUNGGU);
+            } else {
+                $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::BELUM);
+            }
+
+            return [];
+        });
     }
 
     public function index()
@@ -76,13 +134,9 @@ class KrsController extends Controller
             ->get();
 
         $krsSemesterIni = $krsExisting->isNotEmpty();
+        $statusKrs = $this->statusSemesterIni($mahasiswa, $periodeAktif, $krsSemesterIni);
 
-        if (!$krsSemesterIni && $mahasiswa->status_krs === 'Disetujui') {
-            $mahasiswa->status_krs = 'Belum Mengajukan';
-            $mahasiswa->save();
-        }
-
-        $isLocked = ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni);
+        $isLocked = ($statusKrs === KrsPersetujuan::DISETUJUI && $krsSemesterIni);
 
         $batas = $this->academicService->hitungBatasSks($mahasiswa);
         $ipk = $batas['ipk'];
@@ -93,9 +147,7 @@ class KrsController extends Controller
             ->pluck('mata_kuliahs.id')
             ->toArray();
 
-        $allowedSemesters = in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
-
-        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $allowedSemesters);
+        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $periodeAktif);
 
         $terisiMap = DB::table('mahasiswa_mata_kuliah')
             ->select('mata_kuliah_id', 'nama_kelas', DB::raw('COUNT(*) as total'))
@@ -137,9 +189,9 @@ class KrsController extends Controller
         }
 
         $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
-        
-        $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
+
+        if ($mahasiswa->krsDisetujuiPada($periodeAktif->id)
+            && $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists()) {
             return redirect()->route('krs.index')->with('error', 'KRS Anda sudah final dan disetujui.');
         }
 
@@ -150,53 +202,12 @@ class KrsController extends Controller
             'nama_kelas.*'   => 'nullable|string|max:30',
         ]);
 
-        $mata_kuliah_ids = array_values(array_unique($request->input('mata_kuliahs', [])));
-        $pilihanKelas    = $request->input('nama_kelas', []);
-        $batas           = $this->academicService->hitungBatasSks($mahasiswa);
+        $mataKuliahIds = array_values(array_unique(array_map('intval', $request->input('mata_kuliahs', []))));
+        $ruleErrors = $this->simpanKrs($mahasiswa, $periodeAktif, $mataKuliahIds, $request->input('nama_kelas', []));
 
-        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks'], $pilihanKelas);
         if (!empty($ruleErrors)) {
             throw ValidationException::withMessages(['mata_kuliahs' => $ruleErrors]);
         }
-        
-        $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
-        $gradesToKeep = [];
-        foreach ($existingKrs as $existingMk) {
-            $gradesToKeep[$existingMk->id] = [
-                'nilai'             => $existingMk->pivot->nilai,
-                'nilai_kehadiran'   => $existingMk->pivot->nilai_kehadiran,
-                'nilai_tugas'       => $existingMk->pivot->nilai_tugas,
-                'nilai_uts'         => $existingMk->pivot->nilai_uts,
-                'nilai_uas'         => $existingMk->pivot->nilai_uas,
-                'nilai_akhir_angka' => $existingMk->pivot->nilai_akhir_angka,
-            ];
-        }
-
-        $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
-        
-        $attachData = [];
-        foreach ($mata_kuliah_ids as $mk_id) {
-            $saved = $gradesToKeep[$mk_id] ?? [];
-            $kelasDipilih = !empty($pilihanKelas[$mk_id]) ? strtoupper(trim($pilihanKelas[$mk_id])) : 'A';
-            $attachData[$mk_id] = [
-                'tahun_akademik_id' => $periodeAktif->id,
-                'nama_kelas'        => $kelasDipilih,
-                'nilai'             => $saved['nilai'] ?? null,
-                'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
-                'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
-                'nilai_uts'         => $saved['nilai_uts'] ?? null,
-                'nilai_uas'         => $saved['nilai_uas'] ?? null,
-                'nilai_akhir_angka' => $saved['nilai_akhir_angka'] ?? null,
-            ];
-        }
-
-        if (!empty($attachData)) {
-            $mahasiswa->mataKuliahs()->attach($attachData);
-            $mahasiswa->status_krs = 'Menunggu Persetujuan';
-        } else {
-            $mahasiswa->status_krs = 'Belum Mengajukan';
-        }
-        $mahasiswa->save();
 
         return redirect()->route('krs.index')->with('success', 'Kartu Rencana Studi (KRS) berhasil disimpan.');
     }
@@ -214,12 +225,16 @@ class KrsController extends Controller
         }
         
         $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
+        if ($mahasiswa->krsDisetujuiPada($periodeAktif->id) && $krsSemesterIni) {
             return redirect()->back()->with('error', 'KRS sudah divalidasi dan dikunci.');
         }
-        
+
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($id);
-        
+
+        if (!$mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists()) {
+            $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::BELUM);
+        }
+
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS.');
     }
 
@@ -228,14 +243,14 @@ class KrsController extends Controller
         $user = $request->user();
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
 
-        $query = Mahasiswa::where('status_mahasiswa', 'Aktif')
-            ->where('status_krs', 'Menunggu Persetujuan');
-
-        if ($periodeAktif) {
-            $query->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
-                $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
-            });
+        if (!$periodeAktif) {
+            return response()->json([]);
         }
+
+        $query = Mahasiswa::where('status_mahasiswa', 'Aktif')
+            ->whereHas('krsPersetujuans', function ($q) use ($periodeAktif) {
+                $q->where('tahun_akademik_id', $periodeAktif->id)->where('status', KrsPersetujuan::MENUNGGU);
+            });
 
         if (!$user->hasRole('admin')) {
             if (!$user->dosen) {
@@ -271,7 +286,10 @@ class KrsController extends Controller
     public function validasiKrsApi(Request $request, $id)
     {
         $user = $request->user();
-        $request->validate(['status' => 'required|in:Setujui,Tolak']);
+        $request->validate([
+            'status'  => 'required|in:Setujui,Tolak',
+            'catatan' => 'nullable|string|max:1000',
+        ]);
         $mahasiswa = Mahasiswa::findOrFail($id);
 
         if (!$user->hasRole('admin')) {
@@ -290,16 +308,24 @@ class KrsController extends Controller
                 ], 403);
             }
         }
-        
-        $mahasiswa->status_krs = ($request->status === 'Setujui') ? 'Disetujui' : 'Ditolak';
-        $mahasiswa->save();
+
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+        if (!$periodeAktif) {
+            return response()->json(['status' => 'error', 'message' => 'Tidak ada periode akademik yang aktif.'], 400);
+        }
+
+        $statusBaru = ($request->status === 'Setujui') ? KrsPersetujuan::DISETUJUI : KrsPersetujuan::DITOLAK;
+        $error = $this->academicService->terapkanValidasiKrs($mahasiswa, $periodeAktif, $statusBaru, $request->input('catatan'), $user);
+        if ($error) {
+            return response()->json(['status' => 'error', 'message' => $error], 422);
+        }
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'KRS Mahasiswa berhasil ' . $mahasiswa->status_krs
+            'message' => 'KRS Mahasiswa berhasil ' . $statusBaru
         ]);
     }
-    
+
     public function getFormKrsApi(Request $request)
     {
         $mahasiswa = $request->user()->mahasiswa;
@@ -317,15 +343,10 @@ class KrsController extends Controller
         }
 
         $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-        if (!$krsSemesterIni && $mahasiswa->status_krs === 'Disetujui') {
-            $mahasiswa->status_krs = 'Belum Mengajukan';
-            $mahasiswa->save();
-        }
+        $statusKrs = $this->statusSemesterIni($mahasiswa, $periodeAktif, $krsSemesterIni);
 
         $batas = $this->academicService->hitungBatasSks($mahasiswa);
-        $allowedSemesters = in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
-        
-        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $allowedSemesters);
+        $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $periodeAktif);
 
         $mk_diambil_ids = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $periodeAktif->id)
@@ -337,7 +358,7 @@ class KrsController extends Controller
             'max_sks'        => $batas['max_sks'],
             'mk_diambil_ids' => $mk_diambil_ids,
             'mata_kuliahs'   => $mata_kuliahs,
-            'status_krs'     => $mahasiswa->status_krs
+            'status_krs'     => $statusKrs
         ]);
     }
 
@@ -358,7 +379,7 @@ class KrsController extends Controller
         }
 
         $krsSemesterIni = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
-        if ($mahasiswa->status_krs === 'Disetujui' && $krsSemesterIni) {
+        if ($mahasiswa->krsDisetujuiPada($periodeAktif->id) && $krsSemesterIni) {
             return response()->json(['message' => 'KRS sudah disetujui, tidak bisa diubah.'], 403);
         }
 
@@ -366,13 +387,12 @@ class KrsController extends Controller
             'mata_kuliahs'   => 'nullable|array',
             'mata_kuliahs.*' => 'integer|exists:mata_kuliahs,id',
             'nama_kelas'     => 'nullable|array',
+            'nama_kelas.*'   => 'nullable|string|max:30',
         ]);
 
-        $mata_kuliah_ids = array_values(array_unique($request->input('mata_kuliahs', [])));
-        $pilihanKelas    = $request->input('nama_kelas', []);
-        $batas           = $this->academicService->hitungBatasSks($mahasiswa);
+        $mataKuliahIds = array_values(array_unique(array_map('intval', $request->input('mata_kuliahs', []))));
+        $ruleErrors = $this->simpanKrs($mahasiswa, $periodeAktif, $mataKuliahIds, $request->input('nama_kelas', []));
 
-        $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mata_kuliah_ids, $batas['max_sks'], $pilihanKelas);
         if (!empty($ruleErrors)) {
             return response()->json([
                 'status'  => 'error',
@@ -380,46 +400,6 @@ class KrsController extends Controller
                 'errors'  => ['mata_kuliahs' => $ruleErrors]
             ], 422);
         }
-
-        $existingKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->get();
-        $gradesToKeep = [];
-        foreach ($existingKrs as $existingMk) {
-            $gradesToKeep[$existingMk->id] = [
-                'nama_kelas'        => $existingMk->pivot->nama_kelas ?? 'A',
-                'nilai'             => $existingMk->pivot->nilai,
-                'nilai_kehadiran'   => $existingMk->pivot->nilai_kehadiran,
-                'nilai_tugas'       => $existingMk->pivot->nilai_tugas,
-                'nilai_uts'         => $existingMk->pivot->nilai_uts,
-                'nilai_uas'         => $existingMk->pivot->nilai_uas,
-                'nilai_akhir_angka' => $existingMk->pivot->nilai_akhir_angka,
-            ];
-        }
-
-        $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach();
-        
-        $attachData = [];
-        foreach ($mata_kuliah_ids as $mk_id) {
-            $saved = $gradesToKeep[$mk_id] ?? [];
-            $kelasDipilih = !empty($pilihanKelas[$mk_id]) ? strtoupper(trim($pilihanKelas[$mk_id])) : ($saved['nama_kelas'] ?? 'A');
-            $attachData[$mk_id] = [
-                'tahun_akademik_id' => $periodeAktif->id,
-                'nama_kelas'        => $kelasDipilih,
-                'nilai'             => $saved['nilai'] ?? null,
-                'nilai_kehadiran'   => $saved['nilai_kehadiran'] ?? null,
-                'nilai_tugas'       => $saved['nilai_tugas'] ?? null,
-                'nilai_uts'         => $saved['nilai_uts'] ?? null,
-                'nilai_uas'         => $saved['nilai_uas'] ?? null,
-                'nilai_akhir_angka' => $saved['nilai_akhir_angka'] ?? null,
-            ];
-        }
-
-        if (!empty($attachData)) {
-            $mahasiswa->mataKuliahs()->attach($attachData);
-            $mahasiswa->status_krs = 'Menunggu Persetujuan';
-        } else {
-            $mahasiswa->status_krs = 'Belum Mengajukan';
-        }
-        $mahasiswa->save();
 
         return response()->json(['message' => 'KRS Berhasil Disimpan']);
     }

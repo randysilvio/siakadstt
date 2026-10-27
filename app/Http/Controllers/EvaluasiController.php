@@ -27,6 +27,7 @@ class EvaluasiController extends Controller
         $sesiAktif = EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
+                                ->orderByDesc('tanggal_mulai')
                                 ->first();
 
         if (!$sesiAktif) {
@@ -34,7 +35,8 @@ class EvaluasiController extends Controller
         }
 
         $mataKuliah = collect();
-        if ($mahasiswa->status_krs === 'Disetujui' && $sesiAktif->tahun_akademik_id) {
+        // Mata kuliah yang dievaluasi adalah KRS yang disetujui pada semester sesi evaluasi
+        if ($sesiAktif->tahun_akademik_id && $mahasiswa->krsDisetujuiPada((int) $sesiAktif->tahun_akademik_id)) {
             $mataKuliah = $mahasiswa->mataKuliahs()
                 ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
                 ->with(['dosen.user', 'teamDosens'])
@@ -56,14 +58,15 @@ class EvaluasiController extends Controller
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        if (!$mahasiswa || $mahasiswa->status_krs !== 'Disetujui') {
-            return redirect()->route('evaluasi.index')->with('error', 'Kuesioner hanya dapat diakses jika KRS Anda telah disetujui.');
-        }
-
         $sesiAktif = EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
+                                ->orderByDesc('tanggal_mulai')
                                 ->firstOrFail();
+
+        if (!$mahasiswa || !$mahasiswa->krsDisetujuiPada((int) $sesiAktif->tahun_akademik_id)) {
+            return redirect()->route('evaluasi.index')->with('error', 'Kuesioner hanya dapat diakses jika KRS Anda pada semester evaluasi telah disetujui.');
+        }
 
         $terdaftarDiKrs = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
@@ -97,14 +100,15 @@ class EvaluasiController extends Controller
         $mahasiswa = $user->mahasiswa;
         $dosen = $mataKuliah->dosen ?? $mataKuliah->teamDosens()->first();
 
-        if (!$mahasiswa || !$dosen || $mahasiswa->status_krs !== 'Disetujui') {
-            abort(403, 'Data mahasiswa, status KRS, atau dosen pengampu tidak valid.');
-        }
-
         $sesiAktif = EvaluasiSesi::where('is_active', true)
                                 ->where('tanggal_mulai', '<=', now())
                                 ->where('tanggal_selesai', '>=', now())
+                                ->orderByDesc('tanggal_mulai')
                                 ->firstOrFail();
+
+        if (!$mahasiswa || !$dosen || !$mahasiswa->krsDisetujuiPada((int) $sesiAktif->tahun_akademik_id)) {
+            abort(403, 'Data mahasiswa, status KRS, atau dosen pengampu tidak valid.');
+        }
 
         $terdaftarDiKrs = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)

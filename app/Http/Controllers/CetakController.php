@@ -113,6 +113,11 @@ class CetakController extends Controller
         
         $tahunAkademik = TahunAkademik::where('is_active', true)->firstOrFail();
 
+        // KRS resmi (ber-segel validasi) hanya dapat dicetak setelah disetujui Dosen Wali / Kaprodi
+        if (!$mahasiswa->krsDisetujuiPada($tahunAkademik->id)) {
+            return redirect()->route('krs.index')->with('error', 'KRS final hanya dapat dicetak setelah disetujui oleh Dosen Wali / Kaprodi. Status KRS Anda saat ini: ' . strtoupper($mahasiswa->statusKrsPada($tahunAkademik->id)) . '.');
+        }
+
         $krs = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
             ->get();
@@ -154,8 +159,9 @@ class CetakController extends Controller
                     return strtoupper($j->nama_kelas ?? 'A') === $klsMhs;
                 })
                 ->sortBy(function ($jadwal) {
+                    // Urut per hari lalu per jam mulai
                     $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                    return $hariOrder[$jadwal->hari] ?? 99;
+                    return sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai);
                 });
         }
 

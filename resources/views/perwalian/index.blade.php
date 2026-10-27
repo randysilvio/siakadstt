@@ -96,12 +96,14 @@
                                         <a href="{{ route('perwalian.show', $mahasiswa->id) }}" class="btn btn-sm {{ $stDisplay == 'Menunggu Persetujuan' ? 'btn-primary' : 'btn-outline-dark' }} rounded-0 py-1 px-3 uppercase fw-bold small">
                                             <i class="bi bi-eye me-1"></i> {{ $stDisplay == 'Menunggu Persetujuan' ? 'Validasi' : 'Detail' }}
                                         </a>
+                                        @if(in_array($mahasiswa->program_studi_id, $prodiKaprodiIds))
                                         <form action="{{ route('perwalian.destroy', $mahasiswa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Lepas mahasiswa ini dari bimbingan Tutorship Anda?');">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2" title="Lepas Tutorship">
                                                 <i class="bi bi-person-dash"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -119,10 +121,15 @@
         </div>
     </div>
 
-    {{-- BAGIAN 2: KLAIM MAHASISWA TUTORSHIP BARU --}}
+    {{-- BAGIAN 2: PENETAPAN MAHASISWA TUTORSHIP (KHUSUS KAPRODI) --}}
+    @if(!$bisaMenetapkan)
+    <div class="alert alert-light border rounded-0 mt-5 small uppercase fw-bold text-muted">
+        <i class="bi bi-info-circle me-2"></i> Penetapan mahasiswa bimbingan dilakukan oleh Ketua Program Studi atau Administrator.
+    </div>
+    @else
     <div class="mt-5 mb-3 border-bottom pb-2">
-        <h5 class="fw-bold text-dark uppercase mb-1">Klaim Mahasiswa Tutorship Baru</h5>
-        <span class="text-muted small uppercase font-monospace">Penelusuran mahasiswa aktif yang belum memiliki alokasi Dosen Tutor</span>
+        <h5 class="fw-bold text-dark uppercase mb-1">Penetapan Mahasiswa Tutorship</h5>
+        <span class="text-muted small uppercase font-monospace">Mahasiswa aktif program studi Anda yang belum memiliki Dosen Tutor</span>
     </div>
 
     {{-- Filter Bar Flat --}}
@@ -179,9 +186,16 @@
         <div class="card border-0 shadow-sm rounded-0 mb-5">
             <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
                 <span class="uppercase fw-bold small">Daftar Mahasiswa Aktif Tersedia (Belum Memiliki Dosen Tutor)</span>
-                <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm">
-                    <i class="bi bi-plus-lg me-1"></i> Klaim Mahasiswa Terpilih
-                </button>
+                <div class="d-flex gap-1">
+                    <select name="dosen_wali_id" class="form-select form-select-sm rounded-0 uppercase small fw-bold" style="min-width: 220px;" required>
+                        @foreach($dosenPilihan as $dp)
+                            <option value="{{ $dp->id }}" {{ (int) $dp->id === (int) $dosen->id ? 'selected' : '' }}>{{ $dp->nama_lengkap }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm text-nowrap">
+                        <i class="bi bi-plus-lg me-1"></i> Tetapkan Terpilih
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -234,6 +248,7 @@
             @endif
         </div>
     </form>
+    @endif
 </div>
 
 <script>

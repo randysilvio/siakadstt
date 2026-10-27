@@ -42,14 +42,12 @@ class VerumController extends Controller
      */
     private function isMahasiswaTerdaftarKelas($user, VerumKelas $kelas): bool
     {
-        if (!$user || !$user->mahasiswa || $user->mahasiswa->status_krs !== 'Disetujui') {
+        if (!$user || !$user->mahasiswa) {
             return false;
         }
 
-        return $user->mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $kelas->tahun_akademik_id)
-            ->where('mata_kuliahs.id', $kelas->mata_kuliah_id)
-            ->exists();
+        // KRS disetujui pada semester kelas + rombel KRS sesuai rombel kelas (bila kelas terikat rombel)
+        return $kelas->isPeserta($user->mahasiswa);
     }
 
     public function index(): View
@@ -82,15 +80,19 @@ class VerumController extends Controller
                                 ->with('mataKuliah')
                                 ->get();
         } elseif ($user->hasRole('mahasiswa') && $user->mahasiswa) {
-            if ($user->mahasiswa->status_krs === 'Disetujui') {
-                $krsMataKuliahIds = $user->mahasiswa->mataKuliahs()
+            if ($user->mahasiswa->krsDisetujuiPada($tahunAkademikAktif->id)) {
+                $rombelPerMk = $user->mahasiswa->mataKuliahs()
                     ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-                    ->pluck('mata_kuliahs.id');
+                    ->get()
+                    ->mapWithKeys(fn ($mk) => [$mk->id => strtoupper(trim((string) ($mk->pivot->nama_kelas ?? 'A')))]);
 
-                $semuaKelas = VerumKelas::whereIn('mata_kuliah_id', $krsMataKuliahIds)
+                $semuaKelas = VerumKelas::whereIn('mata_kuliah_id', $rombelPerMk->keys())
                                     ->where('tahun_akademik_id', $tahunAkademikAktif->id)
                                     ->with(['mataKuliah', 'dosen.user'])
-                                    ->get();
+                                    ->get()
+                                    ->filter(fn ($k) => $k->rombel === null || trim($k->rombel) === ''
+                                        || strtoupper(trim($k->rombel)) === ($rombelPerMk[$k->mata_kuliah_id] ?? null))
+                                    ->values();
             }
         } else {
             abort(403, 'Data profil akademik tidak ditemukan.');
@@ -130,8 +132,10 @@ class VerumController extends Controller
             ->pluck('mata_kuliah_id')
             ->toArray();
 
-        $mataKuliahs = MataKuliah::where('dosen_id', $user->dosen->id)
-            ->orWhereIn('id', $pivotMkIds)
+        $mataKuliahs = MataKuliah::with('jadwals')
+            ->where(function ($q) use ($user, $pivotMkIds) {
+                $q->where('dosen_id', $user->dosen->id)->orWhereIn('id', $pivotMkIds);
+            })
             ->orderBy('semester')
             ->get();
 
@@ -143,6 +147,7 @@ class VerumController extends Controller
         $request->validate([
             'mata_kuliah_id' => 'required|exists:mata_kuliahs,id',
             'nama_kelas' => 'required|string|max:255',
+            'rombel' => 'nullable|string|max:30',
             'deskripsi' => 'nullable|string'
         ]);
 
@@ -162,8 +167,19 @@ class VerumController extends Controller
             return back()->with('error', 'Anda tidak mengampu mata kuliah ini.');
         }
 
+        $rombel = $request->filled('rombel') ? strtoupper(trim($request->rombel)) : null;
+        if ($rombel !== null) {
+            $rombelValid = \App\Models\Jadwal::where('mata_kuliah_id', $request->mata_kuliah_id)
+                ->whereRaw('UPPER(nama_kelas) = ?', [$rombel])
+                ->exists();
+            if (!$rombelValid) {
+                return back()->withInput()->with('error', "Rombel {$rombel} tidak terdaftar pada jadwal mata kuliah ini.");
+            }
+        }
+
         VerumKelas::create([
             'mata_kuliah_id' => $request->mata_kuliah_id,
+            'rombel' => $rombel,
             'nama_kelas' => strip_tags($request->nama_kelas),
             'deskripsi' => strip_tags($request->deskripsi),
             'dosen_id' => $user->dosen->id,

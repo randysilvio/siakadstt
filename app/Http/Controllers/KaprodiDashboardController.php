@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ProgramStudi;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
+use App\Models\KrsPersetujuan;
 use Illuminate\View\View;
 
 class KaprodiDashboardController extends Controller
@@ -20,69 +21,56 @@ class KaprodiDashboardController extends Controller
         }
 
         $dosen = $user->dosen;
-        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->first(); 
+        // Satu dosen dapat menjabat Kaprodi di lebih dari satu prodi: pilih lewat parameter ?prodi=
+        $daftarProdiKaprodi = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->orderBy('nama_prodi')->get();
+        $programStudi = $daftarProdiKaprodi->firstWhere('id', (int) $request->input('prodi')) ?? $daftarProdiKaprodi->first();
 
         if (!$programStudi) {
             abort(403, 'Akses ditolak. Akun dosen Anda belum ditautkan sebagai Ketua Program Studi pada data Master Program Studi. Silakan hubungi Administrator.');
         }
 
         $periodeAktif = TahunAkademik::where('is_active', true)->first();
+        $periodeId = $periodeAktif->id ?? 0;
 
-        $countSemua = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_mahasiswa', 'Aktif')
-                            ->count();
-        
-        $countMenunggu = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_mahasiswa', 'Aktif')
-                            ->where('status_krs', 'Menunggu Persetujuan')
-                            ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
-                                $q->where('tahun_akademik_id', $periodeAktif->id ?? null);
-                            })
-                            ->count();
-                            
-        $countDisetujui = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_mahasiswa', 'Aktif')
-                            ->where('status_krs', 'Disetujui')
-                            ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
-                                $q->where('tahun_akademik_id', $periodeAktif->id ?? null);
-                            })
-                            ->count();
-                            
-        $countDitolak = Mahasiswa::where('program_studi_id', $programStudi->id)
-                            ->where('status_mahasiswa', 'Aktif')
-                            ->where('status_krs', 'Ditolak')
-                            ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
-                                $q->where('tahun_akademik_id', $periodeAktif->id ?? null);
-                            })
-                            ->count();
-                            
+        $basisAktif = fn () => Mahasiswa::where('program_studi_id', $programStudi->id)->where('status_mahasiswa', 'Aktif');
+        $hitungStatus = fn (string $status) => $basisAktif()
+            ->whereHas('krsPersetujuans', fn ($q) => $q->where('tahun_akademik_id', $periodeId)->where('status', $status))
+            ->whereHas('mataKuliahs', fn ($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeId))
+            ->count();
+
+        $countSemua     = $basisAktif()->count();
+        $countMenunggu  = $hitungStatus(KrsPersetujuan::MENUNGGU);
+        $countDisetujui = $hitungStatus(KrsPersetujuan::DISETUJUI);
+        $countDitolak   = $hitungStatus(KrsPersetujuan::DITOLAK);
         $countBelum = max(0, $countSemua - ($countMenunggu + $countDisetujui + $countDitolak));
 
-        // Deteksi Early Warning System (EWS): Mahasiswa Aktif di Prodi ini yang memiliki IPK > 0 dan < 2.00
-        $semuaMhsAktifProdi = Mahasiswa::with(['mataKuliahs', 'dosenWali'])
+        // Early Warning System (EWS): mahasiswa aktif yang SUDAH memiliki nilai dan IPK < 2.00
+        // (termasuk IPK 0,00 karena seluruh nilainya E — kelompok paling rawan DO).
+        $semuaMhsAktifProdi = Mahasiswa::with(['dosenWali'])
             ->where('program_studi_id', $programStudi->id)
             ->where('status_mahasiswa', 'Aktif')
+            ->whereHas('mataKuliahs', fn ($q) => $q->whereNotNull('mahasiswa_mata_kuliah.nilai'))
             ->get();
 
         $mahasiswaRawanDo = $semuaMhsAktifProdi->filter(function ($mhs) {
             $ipk = $mhs->hitungIpk();
             $mhs->ipk_hitung = $ipk;
             $mhs->sks_lulus_hitung = $mhs->totalSksLulus();
-            return $ipk > 0 && $ipk < 2.00;
+            return $ipk < 2.00;
         })->values();
 
         // Query Tabel Utama
         $query = $programStudi->mahasiswas()->with(['user', 'dosenWali', 'mataKuliahs'])->where('status_mahasiswa', 'Aktif');
 
-        $query->when($request->filled('status'), function ($q) use ($request, $periodeAktif) {
+        $query->when($request->filled('status'), function ($q) use ($request, $periodeId) {
             if ($request->status == 'Belum') {
-                $q->whereDoesntHave('mataKuliahs', function ($sub) use ($periodeAktif) {
-                    $sub->where('tahun_akademik_id', $periodeAktif->id ?? null);
+                $q->whereDoesntHave('mataKuliahs', function ($sub) use ($periodeId) {
+                    $sub->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeId);
                 });
             } else {
-                $q->where('status_krs', $request->status)
-                  ->whereHas('mataKuliahs', function ($sub) use ($periodeAktif) {
-                      $sub->where('tahun_akademik_id', $periodeAktif->id ?? null);
+                $q->whereHas('krsPersetujuans', fn ($sub) => $sub->where('tahun_akademik_id', $periodeId)->where('status', $request->status))
+                  ->whereHas('mataKuliahs', function ($sub) use ($periodeId) {
+                      $sub->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeId);
                   });
             }
         });
@@ -102,17 +90,15 @@ class KaprodiDashboardController extends Controller
             if ($periodeAktif) {
                 $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
             }
-            if (!$hasKrsThisSemester) {
-                $mhs->status_krs_display = 'Belum Mengajukan';
-            } else {
-                $mhs->status_krs_display = $mhs->status_krs;
-            }
+            $mhs->status_krs_display = $hasKrsThisSemester
+                ? $mhs->statusKrsPada($periodeAktif->id)
+                : 'Belum Mengajukan';
             $mhs->ipk_hitung = $mhs->hitungIpk();
             $mhs->sks_lulus_hitung = $mhs->totalSksLulus();
         }
 
         return view('kaprodi.dashboard', compact(
-            'programStudi', 'mahasiswas', 'mahasiswaRawanDo',
+            'programStudi', 'daftarProdiKaprodi', 'mahasiswas', 'mahasiswaRawanDo',
             'countSemua', 'countMenunggu', 'countDisetujui', 'countDitolak', 'countBelum'
         ));
     }

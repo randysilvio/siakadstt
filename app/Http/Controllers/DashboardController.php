@@ -35,7 +35,8 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // =========================================================
-        // AUTO-RECOVERY (SELF-HEALING) ROLE CAMABA / MAHASISWA / DOSEN
+        // AUTO-RECOVERY ROLE CAMABA (hanya untuk alur PMB yang belum selesai)
+        // Role mahasiswa/dosen TIDAK lagi dipulihkan otomatis: pencabutan role oleh Admin harus berlaku.
         // =========================================================
         if (!$user->hasRole('camaba') && $user->camaba && !$user->camaba->is_migrated && !$user->mahasiswa) {
             $roleCamaba = Role::firstOrCreate(
@@ -43,20 +44,6 @@ class DashboardController extends Controller
                 ['display_name' => 'Calon Mahasiswa Baru (PMB)']
             );
             $user->roles()->syncWithoutDetaching([$roleCamaba->id]);
-            $user->load('roles');
-        } elseif (!$user->hasRole('mahasiswa') && $user->mahasiswa) {
-            $roleMhs = Role::firstOrCreate(
-                ['name' => 'mahasiswa'],
-                ['display_name' => 'Mahasiswa']
-            );
-            $user->roles()->syncWithoutDetaching([$roleMhs->id]);
-            $user->load('roles');
-        } elseif (!$user->hasRole('dosen') && $user->dosen) {
-            $roleDosen = Role::firstOrCreate(
-                ['name' => 'dosen'],
-                ['display_name' => 'Dosen']
-            );
-            $user->roles()->syncWithoutDetaching([$roleDosen->id]);
             $user->load('roles');
         }
 
@@ -75,9 +62,8 @@ class DashboardController extends Controller
         }
         
         $userRoles = $user->roles->pluck('name')->toArray();
-        array_push($userRoles, 'semua');
 
-        $pengumumans = Pengumuman::whereIn('target_role', $userRoles)
+        $pengumumans = Pengumuman::whereIn('target_role', Pengumuman::targetUntukRoles($userRoles))
             ->latest()
             ->take(5)
             ->get();
@@ -250,7 +236,7 @@ class DashboardController extends Controller
                             $klsMhs = $kelasMap[$jadwal->mata_kuliah_id] ?? 'A';
                             return strtoupper($jadwal->nama_kelas ?? 'A') === $klsMhs;
                         })
-                        ->sortBy(fn($jadwal) => $hariOrder[$jadwal->hari] ?? 99)
+                        ->sortBy(fn($jadwal) => sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai))
                         ->values();
                 }
             }

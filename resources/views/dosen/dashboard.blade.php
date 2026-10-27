@@ -390,10 +390,10 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         @forelse($pengumumans as $p)
-                            <div class="list-group-item py-3 border-bottom">
+                            <a href="{{ route('pengumuman.internal.show', $p) }}" class="list-group-item list-group-item-action py-3 border-bottom">
                                 <small class="text-muted font-monospace d-block mb-1" style="font-size: 10px;">{{ $p->created_at->translatedFormat('d M Y') }}</small>
                                 <span class="fw-bold small text-dark uppercase d-block">{{ $p->judul }}</span>
-                            </div>
+                            </a>
                         @empty
                             <div class="p-4 text-center text-muted small uppercase fw-bold">Belum ada pengumuman.</div>
                         @endforelse

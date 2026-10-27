@@ -182,16 +182,23 @@ class DosenController extends Controller
 
     public function destroy(Dosen $dosen): RedirectResponse
     {
+        if ($alasan = $dosen->alasanTidakBisaDihapus()) {
+            return redirect()->route('admin.dosen.index')->with('error', $alasan);
+        }
+
         try {
             DB::transaction(function () use ($dosen) {
                 if ($dosen->foto_profil && Storage::disk('public')->exists($dosen->foto_profil)) {
                     Storage::disk('public')->delete($dosen->foto_profil);
                 }
 
-                if ($dosen->user) {
-                    $dosen->user->delete(); 
-                } else {
-                    $dosen->delete();
+                // Record dosen dihapus eksplisit: FK dosens.user_id = SET NULL, sehingga menghapus akun saja
+                // akan meninggalkan data dosen "hantu" tanpa akun.
+                $user = $dosen->user;
+                $dosen->delete();
+                if ($user) {
+                    $user->roles()->detach();
+                    $user->delete();
                 }
             });
 

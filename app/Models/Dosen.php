@@ -165,4 +165,27 @@ class Dosen extends Model
             'warna_bkd'      => $warnaBkd,
         ];
     }
+
+    /**
+     * Alasan data dosen tidak boleh dihapus (masih terikat data akademik), atau null bila aman.
+     */
+    public function alasanTidakBisaDihapus(): ?string
+    {
+        $cek = [
+            'mata kuliah yang diampu'   => fn () => $this->mataKuliahs()->exists() || DB::table('dosen_mata_kuliah')->where('dosen_id', $this->id)->exists(),
+            'kelas Verum'               => fn () => \App\Models\VerumKelas::where('dosen_id', $this->id)->exists(),
+            'hasil evaluasi (EDOM)'     => fn () => \App\Models\EvaluasiJawaban::where('dosen_id', $this->id)->exists(),
+            'bimbingan TA/PPL'          => fn () => \App\Models\BimbinganTugasAkhir::where('pembimbing_1_id', $this->id)->orWhere('pembimbing_2_id', $this->id)->exists(),
+            'data tridharma'            => fn () => $this->tridharmas()->exists(),
+            'Surat Keputusan'           => fn () => $this->suratKeputusans()->exists(),
+            'jabatan Kaprodi'           => fn () => \App\Models\ProgramStudi::where('kaprodi_dosen_id', $this->id)->exists(),
+        ];
+
+        $ada = collect($cek)->filter(fn ($fn) => $fn())->keys();
+
+        return $ada->isEmpty()
+            ? null
+            : 'Dosen ' . $this->nama_lengkap . ' tidak dapat dihapus karena masih memiliki ' . $ada->implode(', ')
+                . '. Lepaskan keterkaitan tersebut atau ubah status kepegawaiannya.';
+    }
 }

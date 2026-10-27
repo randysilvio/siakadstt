@@ -284,6 +284,39 @@ class PembayaranController extends Controller
         return back()->with('success', 'Pembayaran berhasil diverifikasi LUNAS.');
     }
 
+    /**
+     * Menolak bukti bayar yang tidak valid: status kembali "belum_lunas" sehingga gerbang KRS tetap terkunci,
+     * dan pembayar diberi tahu alasannya agar dapat mengunggah ulang.
+     */
+    public function tolakBukti(Request $request, Pembayaran $pembayaran): RedirectResponse
+    {
+        if ($pembayaran->status !== 'menunggu_konfirmasi') {
+            return back()->with('error', 'Hanya tagihan berstatus menunggu konfirmasi yang dapat ditolak buktinya.');
+        }
+
+        $request->validate(['alasan' => 'nullable|string|max:255']);
+        $alasan = trim(strip_tags((string) $request->input('alasan'))) ?: 'Bukti transfer tidak dapat diverifikasi';
+
+        $pembayaran->update([
+            'status'        => 'belum_lunas',
+            'tanggal_bayar' => null,
+            'keterangan'    => trim(($pembayaran->keterangan ? $pembayaran->keterangan . ' | ' : '') . 'Bukti ditolak: ' . $alasan),
+        ]);
+
+        $targetUser = $pembayaran->user ?? optional($pembayaran->mahasiswa)->user;
+        if ($targetUser) {
+            $targetUrl = $pembayaran->mahasiswa_id ? route('pembayaran.riwayat') : route('pmb.pembayaran.show');
+            $targetUser->notify(new GeneralNotification(
+                'Bukti Pembayaran Ditolak',
+                'Bukti pembayaran tagihan ' . $pembayaran->semester . ' ditolak Bagian Keuangan. Alasan: ' . $alasan . '. Silakan unggah ulang bukti yang valid.',
+                $targetUrl,
+                'bi-x-circle-fill text-danger'
+            ));
+        }
+
+        return back()->with('success', 'Bukti pembayaran ditolak. Tagihan dikembalikan ke status BELUM LUNAS.');
+    }
+
     public function tandaiDispensasi(Pembayaran $pembayaran): RedirectResponse
     {
         $catatan = $pembayaran->keterangan;

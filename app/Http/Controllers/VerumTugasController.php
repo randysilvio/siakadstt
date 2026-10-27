@@ -67,9 +67,7 @@ class VerumTugasController extends Controller
             abort(403, 'Akses ditolak. Anda bukan pengampu kelas ini.');
         }
 
-        $mahasiswas = $verum_tuga->kelas->mataKuliah->mahasiswas()
-            ->wherePivot('tahun_akademik_id', $verum_tuga->kelas->tahun_akademik_id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
+        $mahasiswas = $verum_tuga->kelas->pesertaQuery()
             ->orderBy('nama_lengkap')
             ->get();
 
@@ -96,9 +94,7 @@ class VerumTugasController extends Controller
             'catatan_dosen.*' => 'nullable|string|max:500',
         ]);
 
-        $validMahasiswaIds = $verum_tuga->kelas->mataKuliah->mahasiswas()
-            ->wherePivot('tahun_akademik_id', $verum_tuga->kelas->tahun_akademik_id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
+        $validMahasiswaIds = $verum_tuga->kelas->pesertaQuery()
             ->pluck('mahasiswas.id')
             ->toArray();
 
@@ -145,17 +141,13 @@ class VerumTugasController extends Controller
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        if (!$mahasiswa || $mahasiswa->status_krs !== 'Disetujui') {
-            abort(403, 'Aksi ini hanya untuk mahasiswa dengan KRS yang telah disetujui.');
+        if (!$mahasiswa || !$verum_tuga->kelas) {
+            abort(403, 'Aksi ini hanya untuk mahasiswa peserta kelas.');
         }
 
-        $isEnrolled = $mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $verum_tuga->kelas->tahun_akademik_id)
-            ->where('mata_kuliahs.id', $verum_tuga->kelas->mata_kuliah_id)
-            ->exists();
-
-        if (!$isEnrolled) {
-            return back()->with('error', 'Anda tidak terdaftar di mata kuliah ini pada semester berjalan.');
+        // Peserta resmi: KRS disetujui pada semester kelas & rombel sesuai rombel kelas
+        if (!$verum_tuga->kelas->isPeserta($mahasiswa)) {
+            return back()->with('error', 'Anda tidak terdaftar sebagai peserta kelas/rombel ini.');
         }
 
         if (now()->isAfter($verum_tuga->tenggat_waktu)) {

@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
-use App\Notifications\KrsValidated;
+use App\Models\Dosen;
+use App\Models\KrsPersetujuan;
+use App\Services\AcademicRuleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -36,17 +38,20 @@ class PerwalianController extends Controller
             if ($periodeAktif) {
                 $hasKrsThisSemester = $mhs->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
             }
-            
-            if (!$hasKrsThisSemester) {
-                $mhs->status_krs_display = 'Belum Mengajukan';
-            } else {
-                $mhs->status_krs_display = $mhs->status_krs;
-            }
+
+            $mhs->status_krs_display = ($hasKrsThisSemester && $periodeAktif)
+                ? $mhs->statusKrsPada($periodeAktif->id)
+                : 'Belum Mengajukan';
             $mhs->ipk_hitung = $mhs->hitungIpk();
         }
 
+        // Penetapan dosen wali hanya oleh Kaprodi (untuk prodinya) atau Admin (menu Data Mahasiswa).
+        $prodiKaprodiIds = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->pluck('id')->all();
+        $bisaMenetapkan = !empty($prodiKaprodiIds);
+
         $query = Mahasiswa::whereNull('dosen_wali_id')
                     ->where('status_mahasiswa', 'Aktif')
+                    ->whereIn('program_studi_id', $prodiKaprodiIds)
                     ->with('programStudi')
                     ->latest();
 
@@ -67,12 +72,18 @@ class PerwalianController extends Controller
         }
 
         $mahasiswa_tersedia = $query->paginate(10)->withQueryString();
-        $program_studis = ProgramStudi::orderBy('nama_prodi')->get();
+        $program_studis = ProgramStudi::whereIn('id', $prodiKaprodiIds)->orderBy('nama_prodi')->get();
         $angkatans = Mahasiswa::whereNull('dosen_wali_id')
                         ->where('status_mahasiswa', 'Aktif')
+                        ->whereIn('program_studi_id', $prodiKaprodiIds)
                         ->select('tahun_masuk')->distinct()->orderBy('tahun_masuk', 'desc')->pluck('tahun_masuk');
+        $dosenPilihan = $bisaMenetapkan
+            ? Dosen::where(function ($q) use ($prodiKaprodiIds) {
+                    $q->whereIn('program_studi_id', $prodiKaprodiIds)->orWhereNull('program_studi_id');
+                })->orderBy('nama_lengkap')->get(['id', 'nama_lengkap'])
+            : collect();
 
-        return view('perwalian.index', compact('mahasiswa_wali', 'mahasiswa_tersedia', 'program_studis', 'angkatans', 'dosen'));
+        return view('perwalian.index', compact('mahasiswa_wali', 'mahasiswa_tersedia', 'program_studis', 'angkatans', 'dosen', 'bisaMenetapkan', 'prodiKaprodiIds', 'dosenPilihan'));
     }
 
     public function show($id): View
@@ -93,8 +104,8 @@ class PerwalianController extends Controller
                          ->get();
 
         // Jika di semester aktif ini mahasiswa belum punya mata kuliah sama sekali, pastikan status_krs tidak nyangkut di Disetujui
-        if ($krs->isEmpty() && $mahasiswa->status_krs !== 'Belum Mengajukan') {
-            $mahasiswa->update(['status_krs' => 'Belum Mengajukan']);
+        if ($krs->isEmpty() && $mahasiswa->statusKrsPada($periodeAktif->id) !== KrsPersetujuan::BELUM) {
+            $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::BELUM);
         }
                          
         $totalSks = $krs->sum('sks');
@@ -140,16 +151,10 @@ class PerwalianController extends Controller
             'catatan_kaprodi' => 'nullable|string|max:1000',
         ]);
 
-        $mahasiswa->status_krs = $request->status_krs;
-        if ($request->filled('catatan_kaprodi')) {
-            $mahasiswa->catatan_kaprodi = strip_tags($request->catatan_kaprodi);
-        } elseif ($request->status_krs === 'Disetujui') {
-            $mahasiswa->catatan_kaprodi = null;
-        }
-        $mahasiswa->save();
-
-        if ($mahasiswa->user && in_array($request->status_krs, ['Disetujui', 'Ditolak'])) {
-            $mahasiswa->user->notify(new KrsValidated($mahasiswa, $request->status_krs));
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+        $error = app(AcademicRuleService::class)->terapkanValidasiKrs($mahasiswa, $periodeAktif, $request->status_krs, $request->input('catatan_kaprodi'), $user);
+        if ($error) {
+            return redirect()->back()->with('error', $error);
         }
 
         $pesan = $request->status_krs == 'Disetujui'
@@ -159,25 +164,36 @@ class PerwalianController extends Controller
         return redirect()->back()->with('success', $pesan);
     }
 
+    /**
+     * Penetapan dosen wali oleh Kaprodi untuk mahasiswa prodinya yang belum memiliki dosen wali.
+     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'mahasiswa_ids' => 'required|array',
             'mahasiswa_ids.*' => 'exists:mahasiswas,id',
+            'dosen_wali_id' => 'nullable|exists:dosens,id',
         ]);
 
         $user = Auth::user();
         if (!$user->dosen) abort(403);
-        $dosen = $user->dosen;
 
-        if ($request->has('mahasiswa_ids')) {
-            Mahasiswa::whereIn('id', $request->mahasiswa_ids)
-                     ->where('status_mahasiswa', 'Aktif')
-                     ->whereNull('dosen_wali_id')
-                     ->update(['dosen_wali_id' => $dosen->id]);
+        $prodiKaprodiIds = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->pluck('id')->all();
+        if (empty($prodiKaprodiIds)) {
+            return redirect()->route('perwalian.index')->with('error', 'Penetapan dosen wali hanya dapat dilakukan oleh Kaprodi atau Administrator.');
         }
 
-        return redirect()->route('perwalian.index')->with('success', 'Mahasiswa berhasil ditambahkan ke daftar bimbingan Anda.');
+        $dosenWaliId = (int) ($request->input('dosen_wali_id') ?: $user->dosen->id);
+
+        $jumlah = Mahasiswa::whereIn('id', $request->mahasiswa_ids)
+                     ->where('status_mahasiswa', 'Aktif')
+                     ->whereNull('dosen_wali_id')
+                     ->whereIn('program_studi_id', $prodiKaprodiIds)
+                     ->update(['dosen_wali_id' => $dosenWaliId]);
+
+        $namaDosen = Dosen::whereKey($dosenWaliId)->value('nama_lengkap');
+
+        return redirect()->route('perwalian.index')->with('success', "{$jumlah} mahasiswa berhasil ditetapkan ke dosen wali {$namaDosen}.");
     }
 
     public function destroy(Mahasiswa $mahasiswa): RedirectResponse
@@ -186,12 +202,16 @@ class PerwalianController extends Controller
         if (!$user->dosen) abort(403);
         $dosen = $user->dosen;
 
-        if ((int) $mahasiswa->dosen_wali_id === (int) $dosen->id) {
+        $isKaprodiProdi = ProgramStudi::where('id', $mahasiswa->program_studi_id)
+            ->where('kaprodi_dosen_id', $dosen->id)
+            ->exists();
+
+        if ($isKaprodiProdi) {
             $mahasiswa->update(['dosen_wali_id' => null]);
-            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari daftar bimbingan.');
+            return redirect()->route('perwalian.index')->with('success', 'Mahasiswa dilepas dari dosen wali.');
         }
 
-        return redirect()->route('perwalian.index')->with('error', 'Akses ditolak.');
+        return redirect()->route('perwalian.index')->with('error', 'Pelepasan dosen wali hanya dapat dilakukan oleh Kaprodi program studi mahasiswa atau Administrator.');
     }
 
     public function destroyKrs($mahasiswa_id, $mk_id): RedirectResponse
@@ -205,12 +225,16 @@ class PerwalianController extends Controller
                         ->where('dosen_wali_id', $dosen->id)
                         ->firstOrFail();
 
+        if ($mahasiswa->krsDisetujuiPada($periodeAktif->id)) {
+            return redirect()->back()->with('error', 'KRS sudah disetujui. Buka kembali persetujuan terlebih dahulu sebelum mengubah mata kuliah.');
+        }
+
         $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->detach($mk_id);
 
         // Jika seluruh mata kuliah di semester ini habis dihapus, kembalikan status ke 'Belum Mengajukan'
         $masihAda = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
         if (!$masihAda) {
-            $mahasiswa->update(['status_krs' => 'Belum Mengajukan']);
+            $mahasiswa->setStatusKrs($periodeAktif->id, KrsPersetujuan::BELUM);
         }
 
         return redirect()->back()->with('success', 'Mata kuliah berhasil dihapus dari KRS mahasiswa.');

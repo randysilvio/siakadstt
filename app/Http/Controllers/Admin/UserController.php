@@ -61,6 +61,14 @@ class UserController extends Controller
 
         $request->validate($rules);
 
+        // Admin tidak boleh mencabut peran admin dari akunnya sendiri (mencegah terkunci dari sistem).
+        if ($user->id === Auth::id() && ($request->has('roles') || $request->boolean('roles_submitted'))) {
+            $adminRoleId = Role::where('name', 'admin')->value('id');
+            if ($adminRoleId && !in_array((string) $adminRoleId, array_map('strval', $request->input('roles', [])), true)) {
+                return back()->withInput()->with('error', 'Anda tidak dapat mencabut peran Administrator dari akun Anda sendiri.');
+            }
+        }
+
         DB::transaction(function () use ($request, $user) {
             if ($request->filled('name')) {
                 $user->name = $request->name;
@@ -86,7 +94,11 @@ class UserController extends Controller
                 }
             }
 
-            $user->roles()->sync($request->input('roles', []));
+            // Peran hanya disinkronkan bila form peran benar-benar dikirim; update nama/email saja tidak boleh
+            // menghapus seluruh peran pengguna.
+            if ($request->has('roles') || $request->boolean('roles_submitted')) {
+                $user->roles()->sync($request->input('roles', []));
+            }
         });
 
         return redirect()->route('admin.user.index')->with('success', 'Data akun dan otoritas peran untuk ' . $user->name . ' berhasil diperbarui.');
@@ -96,6 +108,20 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        // Akun yang terikat riwayat akademik/keuangan tidak boleh dihapus (FK RESTRICT); nonaktifkan via profilnya.
+        if ($user->mahasiswa && ($alasan = $user->mahasiswa->alasanTidakBisaDihapus())) {
+            return back()->with('error', $alasan);
+        }
+        if ($user->dosen && ($alasan = $user->dosen->alasanTidakBisaDihapus())) {
+            return back()->with('error', $alasan);
+        }
+        if ($user->camaba) {
+            return back()->with('error', 'Akun ini milik pendaftar PMB. Hapus melalui menu PMB › Data Pendaftar agar dokumen dan tagihannya ikut dibersihkan.');
+        }
+        if ($user->pembayarans()->exists()) {
+            return back()->with('error', 'Akun ini memiliki riwayat tagihan keuangan sehingga tidak dapat dihapus.');
         }
 
         DB::transaction(function () use ($user) {

@@ -91,9 +91,9 @@ class PengumumanController extends Controller
             $targetUrl = route('pengumuman.public.show', $pengumuman->slug);
         } else {
             $users = User::whereHas('roles', function ($q) use ($request) {
-                $q->where('name', $request->target_role);
+                $q->whereIn('name', Pengumuman::roleSasaran($request->target_role));
             })->get();
-            $targetUrl = route('dashboard');
+            $targetUrl = route('pengumuman.internal.show', $pengumuman->slug);
         }
         
         if ($users->isNotEmpty()) {
@@ -106,6 +106,18 @@ class PengumumanController extends Controller
         }
 
         return redirect()->route('admin.pengumuman.index')->with('success', 'Pengumuman berhasil ditambahkan dan notifikasi dikirim.');
+    }
+
+    /**
+     * Halaman baca pengumuman internal (bertarget peran tertentu) bagi pengguna yang login.
+     */
+    public function bacaInternal(Pengumuman $pengumuman): View
+    {
+        if (!$pengumuman->bisaDibacaOleh(Auth::user())) {
+            abort(403, 'Pengumuman ini tidak ditujukan untuk peran akun Anda.');
+        }
+
+        return view('pengumuman.internal_show', compact('pengumuman'));
     }
 
     public function show(Pengumuman $pengumuman): View

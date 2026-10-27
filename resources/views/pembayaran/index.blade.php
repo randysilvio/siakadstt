@@ -150,6 +150,17 @@
                                             </form>
                                         @endif
 
+                                        @if($p->status == 'menunggu_konfirmasi')
+                                            <form action="{{ route('pembayaran.tolakBukti', $p->id) }}" method="POST" class="d-inline" onsubmit="var a = prompt('Alasan penolakan bukti bayar (akan dikirim ke pembayar):'); if (a === null) return false; this.alasan.value = a; return true;">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="alasan" value="">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Tolak Bukti Bayar">
+                                                    <i class="bi bi-x-lg"></i> Tolak
+                                                </button>
+                                            </form>
+                                        @endif
+
                                         @if(in_array($p->status, ['belum_lunas', 'belum_bayar', 'menunggu_konfirmasi']) && $p->mahasiswa_id)
                                             <form action="{{ route('pembayaran.dispensasi', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Berikan Dispensasi Cicilan? Mahasiswa akan diizinkan mengisi KRS semester ini.');">
                                                 @csrf

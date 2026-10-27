@@ -124,9 +124,8 @@ class DosenDashboardController extends Controller
 
         $ringkasanBkd = method_exists($dosen, 'hitungRingkasanBkd') ? $dosen->hitungRingkasanBkd() : null;
 
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $userRoles[] = 'semua';
-        $pengumumans = Pengumuman::whereIn('target_role', $userRoles)->latest()->take(5)->get();
+        $pengumumans = Pengumuman::whereIn('target_role', Pengumuman::targetUntukRoles($user->roles->pluck('name')->toArray()))
+            ->latest()->take(5)->get();
 
         $query = $dosen->suratKeputusans()->where('status', 'Selesai');
         if ($request->filled('search_surat')) {
@@ -180,8 +179,9 @@ class DosenDashboardController extends Controller
             ->whereIn('mata_kuliah_id', $mkIds)
             ->get()
             ->sortBy(function ($jadwal) {
+                // Urut per hari lalu per jam mulai
                 $hariOrder = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7];
-                return $hariOrder[$jadwal->hari] ?? 99;
+                return sprintf('%02d-%s', $hariOrder[$jadwal->hari] ?? 99, $jadwal->jam_mulai);
             });
 
         $pdf = Pdf::loadView('dosen.cetak_jadwal', compact('dosen', 'jadwals', 'tahunAkademik'));

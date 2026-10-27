@@ -11,7 +11,17 @@
             <span class="text-muted small uppercase">Program Studi {{ $programStudi->nama_prodi ?? '-' }}</span>
         </div>
         <div>
-            <span class="badge bg-dark px-3 py-2 uppercase font-monospace">{{ $programStudi->nama_prodi ?? 'PRODI' }}</span>
+            @if(isset($daftarProdiKaprodi) && $daftarProdiKaprodi->count() > 1)
+                <form action="{{ route('kaprodi.dashboard') }}" method="GET">
+                    <select name="prodi" class="form-select form-select-sm rounded-0 border-dark uppercase small fw-bold font-monospace" onchange="this.form.submit()">
+                        @foreach($daftarProdiKaprodi as $pr)
+                            <option value="{{ $pr->id }}" {{ (int) $pr->id === (int) $programStudi->id ? 'selected' : '' }}>{{ $pr->nama_prodi }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @else
+                <span class="badge bg-dark px-3 py-2 uppercase font-monospace">{{ $programStudi->nama_prodi ?? 'PRODI' }}</span>
+            @endif
         </div>
     </div>
 
@@ -63,19 +73,19 @@
         <div class="card-header bg-white py-3 border-bottom">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div class="d-flex flex-wrap gap-1.5">
-                    <a href="{{ route('kaprodi.dashboard', ['search' => request('search')]) }}" class="btn btn-sm uppercase fw-bold small {{ !request('status') ? 'btn-dark' : 'btn-outline-dark' }}">
+                    <a href="{{ route('kaprodi.dashboard', ['search' => request('search'), 'prodi' => request('prodi')]) }}" class="btn btn-sm uppercase fw-bold small {{ !request('status') ? 'btn-dark' : 'btn-outline-dark' }}">
                         Semua ({{ $countSemua ?? 0 }})
                     </a>
-                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Menunggu Persetujuan', 'search' => request('search')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Menunggu Persetujuan' ? 'btn-dark' : 'btn-outline-dark' }}">
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Menunggu Persetujuan', 'search' => request('search'), 'prodi' => request('prodi')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Menunggu Persetujuan' ? 'btn-dark' : 'btn-outline-dark' }}">
                         Menunggu Validasi ({{ $countMenunggu ?? 0 }})
                     </a>
-                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Disetujui', 'search' => request('search')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Disetujui' ? 'btn-dark' : 'btn-outline-dark' }}">
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Disetujui', 'search' => request('search'), 'prodi' => request('prodi')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Disetujui' ? 'btn-dark' : 'btn-outline-dark' }}">
                         Disetujui ({{ $countDisetujui ?? 0 }})
                     </a>
-                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Ditolak', 'search' => request('search')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Ditolak' ? 'btn-dark' : 'btn-outline-dark' }}">
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Ditolak', 'search' => request('search'), 'prodi' => request('prodi')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Ditolak' ? 'btn-dark' : 'btn-outline-dark' }}">
                         Ditolak ({{ $countDitolak ?? 0 }})
                     </a>
-                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Belum', 'search' => request('search')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Belum' ? 'btn-dark' : 'btn-outline-dark' }}">
+                    <a href="{{ route('kaprodi.dashboard', ['status' => 'Belum', 'search' => request('search'), 'prodi' => request('prodi')]) }}" class="btn btn-sm uppercase fw-bold small {{ request('status') == 'Belum' ? 'btn-dark' : 'btn-outline-dark' }}">
                         Belum Isi ({{ $countBelum ?? 0 }})
                     </a>
                 </div>
@@ -84,6 +94,9 @@
                     <input type="text" name="search" class="form-control form-control-sm border-dark uppercase small font-monospace" placeholder="Cari NIM / Nama..." value="{{ request()->input('search') }}">
                     @if(request()->has('status'))
                         <input type="hidden" name="status" value="{{ request()->input('status') }}">
+                    @endif
+                    @if(request()->filled('prodi'))
+                        <input type="hidden" name="prodi" value="{{ request()->input('prodi') }}">
                     @endif
                     <button type="submit" class="btn btn-sm btn-dark uppercase fw-bold small px-3">Cari</button>
                 </form>

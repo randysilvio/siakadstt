@@ -21,6 +21,11 @@
             <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
             <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+    @elseif(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 p-3 mb-4 font-monospace small uppercase fw-bold shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     @elseif(session('status') === 'profile-updated')
          <div class="alert alert-success alert-dismissible fade show border rounded-0 p-3 mb-4 font-monospace small uppercase fw-bold shadow-sm" role="alert">
              <i class="bi bi-check-circle-fill me-2"></i> Informasi profil berhasil diperbarui secara permanen.

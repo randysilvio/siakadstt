@@ -138,6 +138,10 @@ class MataKuliahController extends Controller
 
     public function destroy(MataKuliah $mataKuliah): RedirectResponse
     {
+        if ($alasan = $mataKuliah->alasanTidakBisaDihapus()) {
+            return redirect()->route('admin.mata-kuliah.index')->with('error', $alasan);
+        }
+
         $mataKuliah->teamDosens()->detach(); // [TAMBAHAN BARU] Putus hubungan pivot saat dihapus
         $mataKuliah->prasyarats()->detach();
         $mataKuliah->jadwals()->delete();

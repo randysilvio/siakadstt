@@ -85,12 +85,16 @@
                                     $nUas   = $mahasiswa->pivot->nilai_uas;
                                     $nAkhir = $mahasiswa->pivot->nilai_akhir_angka;
                                     $nHuruf = $mahasiswa->pivot->nilai ?? '';
+                                    $nManual = (bool) ($mahasiswa->pivot->nilai_manual ?? false);
                                 @endphp
                                 <tr class="baris-mahasiswa" data-mhs-id="{{ $mhsId }}">
                                     <td class="text-center font-monospace fw-bold text-muted">{{ $index + 1 }}</td>
                                     <td class="text-center font-monospace fw-bold">{{ $mahasiswa->nim }}</td>
                                     <td class="text-start ps-3 uppercase fw-bold text-dark">{{ $mahasiswa->nama_lengkap }}</td>
-                                    <td class="text-center font-monospace fw-bold">{{ $nKelas }}</td>
+                                    <td class="text-center font-monospace fw-bold">
+                                        {{ $nKelas }}
+                                        <input type="hidden" name="peserta[]" value="{{ $mhsId }}">
+                                    </td>
                                     <td class="p-1">
                                         <input type="number" step="0.01" min="0" max="100" name="nilai_kehadiran[{{ $mhsId }}]" value="{{ $nHadir !== null ? floatval($nHadir) : '' }}" class="form-control form-control-sm text-center font-monospace fw-bold input-komponen input-hadir" data-col="0" data-row="{{ $index }}">
                                     </td>
@@ -107,12 +111,15 @@
                                         {{ $nAkhir !== null ? number_format($nAkhir, 2) : '-' }}
                                     </td>
                                     <td class="p-1">
-                                        <select name="nilai[{{ $mhsId }}]" id="huruf-{{ $mhsId }}" class="form-select form-select-sm font-monospace uppercase text-center fw-bold">
+                                        <select name="nilai[{{ $mhsId }}]" id="huruf-{{ $mhsId }}" class="form-select form-select-sm font-monospace uppercase text-center fw-bold select-huruf">
                                             <option value="" {{ $nHuruf === '' ? 'selected' : '' }}>-</option>
                                             @foreach(['A', 'B', 'C', 'D', 'E'] as $h)
                                                 <option value="{{ $h }}" {{ $nHuruf === $h ? 'selected' : '' }}>{{ $h }}</option>
                                             @endforeach
                                         </select>
+                                        {{-- Penanda huruf dipilih manual oleh dosen (tidak ditimpa konversi otomatis) --}}
+                                        <input type="hidden" name="huruf_manual[{{ $mhsId }}]" id="manual-{{ $mhsId }}" value="{{ $nManual ? 1 : 0 }}">
+                                        <div class="text-center font-monospace text-muted label-manual {{ $nManual ? '' : 'd-none' }}" id="label-manual-{{ $mhsId }}" style="font-size: 9px;">MANUAL</div>
                                     </td>
                                 </tr>
                             @empty
@@ -155,8 +162,12 @@
             const skorEl  = document.getElementById('skor-akhir-' + mhsId);
             const hurufEl = document.getElementById('huruf-' + mhsId);
 
+            const manualEl = document.getElementById('manual-' + mhsId);
+            const isManual = manualEl && manualEl.value === '1';
+
             if (vHadir === '' && vTugas === '' && vUts === '' && vUas === '') {
                 skorEl.textContent = '-';
+                if (!isManual) hurufEl.value = '';
                 return;
             }
 
@@ -168,6 +179,14 @@
             const akhir = (hadir * wHadir) + (tugas * wTugas) + (uts * wUts) + (uas * wUas);
             skorEl.textContent = akhir.toFixed(2);
 
+            // Huruf mutu hanya dihitung otomatis setelah UTS/UAS terisi (sama dengan aturan server),
+            // agar input kehadiran/tugas di tengah semester tidak menghasilkan nilai E prematur.
+            if (isManual) return;
+            if (vUts === '' && vUas === '') {
+                hurufEl.value = '';
+                return;
+            }
+
             let huruf = 'E';
             if (akhir >= 80) huruf = 'A';
             else if (akhir >= 70) huruf = 'B';
@@ -176,6 +195,19 @@
 
             hurufEl.value = huruf;
         }
+
+        // Dosen memilih huruf sendiri -> tandai manual; memilih "-" -> kembali ke perhitungan otomatis
+        document.querySelectorAll('.select-huruf').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                const mhsId = this.id.replace('huruf-', '');
+                const manualEl = document.getElementById('manual-' + mhsId);
+                const labelEl = document.getElementById('label-manual-' + mhsId);
+                const manual = this.value !== '';
+                manualEl.value = manual ? '1' : '0';
+                labelEl.classList.toggle('d-none', !manual);
+                if (!manual) hitungBaris(this.closest('tr'));
+            });
+        });
 
         document.querySelectorAll('.baris-mahasiswa').forEach(function (tr) {
             tr.querySelectorAll('.input-komponen').forEach(function (inp) {

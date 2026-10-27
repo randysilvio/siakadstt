@@ -48,7 +48,7 @@
                 
                 {{-- Kaki Kartu --}}
                 <div class="card-footer bg-light border-top py-3 rounded-0 text-end">
-                    <a href="{{ route('admin.pengumuman.edit', $pengumuman->id) }}" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm me-1">
+                    <a href="{{ route('admin.pengumuman.edit', $pengumuman) }}" class="btn btn-sm btn-primary rounded-0 px-4 uppercase fw-bold small shadow-sm me-1">
                         <i class="bi bi-pencil-square me-1"></i> Edit Konten Ini
                     </a>
                     <a href="{{ url()->previous() }}" class="btn btn-sm btn-outline-dark rounded-0 px-4 uppercase fw-bold small">

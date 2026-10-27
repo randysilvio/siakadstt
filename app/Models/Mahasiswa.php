@@ -53,7 +53,8 @@ class Mahasiswa extends Model
                         'nilai_tugas',
                         'nilai_uts',
                         'nilai_uas',
-                        'nilai_akhir_angka'
+                        'nilai_akhir_angka',
+                        'nilai_manual'
                     )
                     ->withTimestamps();
     }
@@ -100,9 +101,12 @@ class Mahasiswa extends Model
         $sesiAktif = EvaluasiSesi::where('is_active', true)
             ->where('tanggal_mulai', '<=', now())
             ->where('tanggal_selesai', '>=', now())
+            ->orderByDesc('tanggal_mulai')
             ->first();
 
-        if (!$sesiAktif || !$sesiAktif->tahun_akademik_id || $this->status_krs !== 'Disetujui') {
+        // Kewajiban EDOM mengikuti KRS yang disetujui pada semester sesi evaluasi (bukan status semester berjalan),
+        // sehingga evaluasi semester lalu tetap wajib walaupun semester baru sudah diaktifkan.
+        if (!$sesiAktif || !$sesiAktif->tahun_akademik_id || !$this->krsDisetujuiPada((int) $sesiAktif->tahun_akademik_id)) {
             return 'sudah_isi';
         }
 
@@ -224,5 +228,80 @@ class Mahasiswa extends Model
             'total_sks' => $total_sks_diambil,
             'nilaiBobot' => $nilaiBobot
         ];
+    }
+
+    /**
+     * Alasan data mahasiswa tidak boleh dihapus (riwayat akademik/keuangan harus tetap utuh), atau null bila aman.
+     */
+    public function alasanTidakBisaDihapus(): ?string
+    {
+        $cek = [
+            'riwayat KRS/nilai'       => fn () => \Illuminate\Support\Facades\DB::table('mahasiswa_mata_kuliah')->where('mahasiswa_id', $this->id)->exists(),
+            'riwayat tagihan'         => fn () => $this->pembayarans()->exists(),
+            'data bimbingan TA/PPL'   => fn () => \App\Models\BimbinganTugasAkhir::where('mahasiswa_id', $this->id)->exists(),
+            'permohonan surat'        => fn () => \App\Models\PengajuanSurat::where('mahasiswa_id', $this->id)->exists(),
+            'data tracer study'       => fn () => $this->tracerStudy()->exists(),
+        ];
+
+        $ada = collect($cek)->filter(fn ($fn) => $fn())->keys();
+
+        return $ada->isEmpty()
+            ? null
+            : 'Mahasiswa ' . $this->nama_lengkap . ' tidak dapat dihapus karena memiliki ' . $ada->implode(', ')
+                . '. Ubah status mahasiswa (mis. Non-Aktif / Keluar / DO) untuk menonaktifkannya.';
+    }
+
+    // =========================================================================
+    // STATUS KRS PER SEMESTER
+    // =========================================================================
+
+    public function krsPersetujuans(): HasMany
+    {
+        return $this->hasMany(KrsPersetujuan::class);
+    }
+
+    /**
+     * Status KRS mahasiswa pada tahun akademik tertentu.
+     */
+    public function statusKrsPada(int $tahunAkademikId): string
+    {
+        return $this->krsPersetujuans()->where('tahun_akademik_id', $tahunAkademikId)->value('status')
+            ?? KrsPersetujuan::BELUM;
+    }
+
+    public function krsDisetujuiPada(int $tahunAkademikId): bool
+    {
+        return $this->statusKrsPada($tahunAkademikId) === KrsPersetujuan::DISETUJUI;
+    }
+
+    public function persetujuanKrsPada(int $tahunAkademikId): ?KrsPersetujuan
+    {
+        return $this->krsPersetujuans()->where('tahun_akademik_id', $tahunAkademikId)->first();
+    }
+
+    /**
+     * Menyimpan status KRS untuk satu tahun akademik. Bila tahun akademik itu sedang aktif,
+     * salinan di kolom mahasiswas.status_krs / catatan_kaprodi ikut diperbarui.
+     */
+    public function setStatusKrs(int $tahunAkademikId, string $status, ?string $catatan = null, ?int $olehUserId = null): KrsPersetujuan
+    {
+        $isValidasi = in_array($status, [KrsPersetujuan::DISETUJUI, KrsPersetujuan::DITOLAK], true);
+
+        $persetujuan = KrsPersetujuan::updateOrCreate(
+            ['mahasiswa_id' => $this->id, 'tahun_akademik_id' => $tahunAkademikId],
+            [
+                'status'          => $status,
+                'catatan'         => $catatan,
+                'divalidasi_oleh' => $isValidasi ? $olehUserId : null,
+                'divalidasi_pada' => $isValidasi ? now() : null,
+            ]
+        );
+
+        $aktifId = TahunAkademik::where('is_active', true)->value('id');
+        if ((int) $aktifId === $tahunAkademikId) {
+            $this->forceFill(['status_krs' => $status, 'catatan_kaprodi' => $catatan])->save();
+        }
+
+        return $persetujuan;
     }
 }

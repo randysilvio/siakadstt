@@ -110,7 +110,7 @@ class NilaiController extends Controller
 
         $mataKuliah->load(['mahasiswas' => function ($query) use ($tahunAkademikAktif) {
             $query->where('mahasiswa_mata_kuliah.tahun_akademik_id', $tahunAkademikAktif->id)
-                  ->where('mahasiswas.status_krs', 'Disetujui')
+                  ->whereIn('mahasiswas.id', \App\Models\KrsPersetujuan::idsDisetujui((int) $tahunAkademikAktif->id))
                   ->orderBy('nama_lengkap', 'asc');
         }]);
 
@@ -125,8 +125,12 @@ class NilaiController extends Controller
     {
         $request->validate([
             'mata_kuliah_id'    => 'required|exists:mata_kuliahs,id',
+            'peserta'           => 'nullable|array',
+            'peserta.*'         => 'integer',
             'nilai'             => 'nullable|array',
             'nilai.*'           => 'nullable|string|in:A,B,C,D,E',
+            'huruf_manual'      => 'nullable|array',
+            'huruf_manual.*'    => 'nullable|in:0,1',
             'nilai_kehadiran'   => 'nullable|array',
             'nilai_kehadiran.*' => 'nullable|numeric|min:0|max:100',
             'nilai_tugas'       => 'nullable|array',
@@ -151,42 +155,35 @@ class NilaiController extends Controller
 
         $enrolledMahasiswaIds = $mataKuliah->mahasiswas()
             ->wherePivot('tahun_akademik_id', $tahunAkademikAktif->id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
+            ->whereIn('mahasiswas.id', \App\Models\KrsPersetujuan::idsDisetujui((int) $tahunAkademikAktif->id))
             ->pluck('mahasiswas.id')
             ->toArray();
 
-        $inputHuruf = $request->input('nilai', []);
-        $inputHadir = $request->input('nilai_kehadiran', []);
-        $inputTugas = $request->input('nilai_tugas', []);
-        $inputUts   = $request->input('nilai_uts', []);
-        $inputUas   = $request->input('nilai_uas', []);
+        $inputHuruf  = $request->input('nilai', []);
+        $inputManual = $request->input('huruf_manual', []);
+        $inputHadir  = $request->input('nilai_kehadiran', []);
+        $inputTugas  = $request->input('nilai_tugas', []);
+        $inputUts    = $request->input('nilai_uts', []);
+        $inputUas    = $request->input('nilai_uas', []);
 
-        DB::transaction(function () use ($enrolledMahasiswaIds, $mataKuliah, $tahunAkademikAktif, $inputHuruf, $inputHadir, $inputTugas, $inputUts, $inputUas) {
-            foreach ($enrolledMahasiswaIds as $mhsId) {
+        // Hanya peserta yang benar-benar ada di form yang diproses. Peserta yang tidak terkirim
+        // (mis. baru disetujui setelah halaman dibuka) tidak boleh ikut dikosongkan nilainya.
+        $pesertaForm = collect($request->input('peserta', []))->map(fn ($id) => (int) $id);
+        if ($pesertaForm->isEmpty()) {
+            $pesertaForm = collect(array_keys($inputHuruf + $inputHadir + $inputTugas + $inputUts + $inputUas))->map(fn ($id) => (int) $id);
+        }
+        $targetIds = array_values(array_intersect($enrolledMahasiswaIds, $pesertaForm->all()));
+
+        DB::transaction(function () use ($targetIds, $mataKuliah, $tahunAkademikAktif, $inputHuruf, $inputManual, $inputHadir, $inputTugas, $inputUts, $inputUas) {
+            foreach ($targetIds as $mhsId) {
                 $hadir = isset($inputHadir[$mhsId]) && $inputHadir[$mhsId] !== '' ? (float) $inputHadir[$mhsId] : null;
                 $tugas = isset($inputTugas[$mhsId]) && $inputTugas[$mhsId] !== '' ? (float) $inputTugas[$mhsId] : null;
                 $uts   = isset($inputUts[$mhsId])   && $inputUts[$mhsId] !== ''   ? (float) $inputUts[$mhsId]   : null;
                 $uas   = isset($inputUas[$mhsId])   && $inputUas[$mhsId] !== ''   ? (float) $inputUas[$mhsId]   : null;
-                $hurufManual = !empty($inputHuruf[$mhsId]) ? strtoupper(trim($inputHuruf[$mhsId])) : null;
+                $hurufInput = !empty($inputHuruf[$mhsId]) ? strtoupper(trim($inputHuruf[$mhsId])) : null;
+                $isManual   = ($inputManual[$mhsId] ?? '0') === '1' && $hurufInput !== null;
 
-                $adaKomponen = ($hadir !== null || $tugas !== null || $uts !== null || $uas !== null);
-                $adaUjian    = ($uts !== null || $uas !== null);
-
-                $akhirAngka = null;
-                $hurufFinal = $hurufManual;
-
-                if ($adaKomponen) {
-                    $akhirAngka = $this->academicService->hitungNilaiAkhir(
-                        $hadir ?? 0,
-                        $tugas ?? 0,
-                        $uts ?? 0,
-                        $uas ?? 0
-                    );
-                    // Konversi otomatis ke nilai huruf jika UTS/UAS sudah diisi atau huruf manual diisi
-                    if ($adaUjian || $hurufManual !== null) {
-                        $hurufFinal = $this->academicService->konversiAngkaKeHuruf($akhirAngka);
-                    }
-                }
+                $hasil = $this->academicService->tentukanNilai($hadir, $tugas, $uts, $uas, $isManual ? $hurufInput : null);
 
                 DB::table('mahasiswa_mata_kuliah')
                     ->where('mahasiswa_id', $mhsId)
@@ -197,8 +194,9 @@ class NilaiController extends Controller
                         'nilai_tugas'       => $tugas,
                         'nilai_uts'         => $uts,
                         'nilai_uas'         => $uas,
-                        'nilai_akhir_angka' => $akhirAngka,
-                        'nilai'             => $hurufFinal,
+                        'nilai_akhir_angka' => $hasil['angka'],
+                        'nilai'             => $hasil['huruf'],
+                        'nilai_manual'      => $isManual,
                         'updated_at'        => now(),
                     ]);
             }

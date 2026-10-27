@@ -132,7 +132,7 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         @forelse($pengumumans as $pengumuman)
-                            <a href="{{ route('pengumuman.public.show', $pengumuman) }}" target="_blank" class="list-group-item list-group-item-action p-3 border-bottom">
+                            <a href="{{ route('pengumuman.internal.show', $pengumuman) }}" class="list-group-item list-group-item-action p-3 border-bottom">
                                 <div class="d-flex w-100 justify-content-between align-items-center mb-1">
                                     <h6 class="mb-0 uppercase fw-bold small text-dark">{{ $pengumuman->judul }}</h6>
                                     <span class="font-monospace text-muted" style="font-size: 10px;">{{ $pengumuman->created_at->diffForHumans() }}</span>

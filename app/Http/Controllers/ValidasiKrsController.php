@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
+use App\Models\KrsPersetujuan;
+use App\Services\AcademicRuleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -25,9 +27,12 @@ class ValidasiKrsController extends Controller
             abort(403, 'Aksi tidak diizinkan.');
         }
 
-        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->firstOrFail();
+        // Seorang dosen dapat menjabat Kaprodi di lebih dari satu prodi; cek prodi milik mahasiswa ini.
+        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)
+            ->where('id', $mahasiswa->program_studi_id)
+            ->first();
 
-        if ((int) $mahasiswa->program_studi_id !== (int) $programStudi->id) {
+        if (!$programStudi) {
             abort(403, 'Anda hanya dapat memvalidasi mahasiswa dari program studi Anda.');
         }
 
@@ -47,7 +52,7 @@ class ValidasiKrsController extends Controller
         // Cari mahasiswa berikutnya & sebelumnya yang berstatus Menunggu Persetujuan di Prodi yang sama (Zero-Click Navigation)
         $antreanIds = Mahasiswa::where('program_studi_id', $programStudi->id)
             ->where('status_mahasiswa', 'Aktif')
-            ->where('status_krs', 'Menunggu Persetujuan')
+            ->whereHas('krsPersetujuans', fn($q) => $q->where('tahun_akademik_id', $periodeAktif->id)->where('status', KrsPersetujuan::MENUNGGU))
             ->whereHas('mataKuliahs', fn($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id))
             ->orderBy('nim', 'asc')
             ->pluck('id')
@@ -94,24 +99,18 @@ class ValidasiKrsController extends Controller
             abort(403, 'Aksi tidak diizinkan.');
         }
 
-        $programStudi = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)->firstOrFail();
+        $isKaprodiProdi = ProgramStudi::where('kaprodi_dosen_id', $user->dosen->id)
+            ->where('id', $mahasiswa->program_studi_id)
+            ->exists();
 
-        if ((int) $mahasiswa->program_studi_id !== (int) $programStudi->id) {
+        if (!$isKaprodiProdi) {
             abort(403, 'Akses ditolak. Mahasiswa ini bukan berasal dari program studi Anda.');
         }
 
-        $catatan = $request->filled('catatan_kaprodi') ? strip_tags($request->catatan_kaprodi) : null;
-        if ($request->status_krs === 'Disetujui' && !$request->filled('catatan_kaprodi')) {
-            $catatan = null;
-        }
-
-        $mahasiswa->update([
-            'status_krs' => $request->status_krs,
-            'catatan_kaprodi' => $catatan,
-        ]);
-
-        if ($mahasiswa->user && in_array($request->status_krs, ['Disetujui', 'Ditolak'])) {
-            $mahasiswa->user->notify(new KrsValidated($mahasiswa, $request->status_krs));
+        $periodeAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+        $error = app(AcademicRuleService::class)->terapkanValidasiKrs($mahasiswa, $periodeAktif, $request->status_krs, $request->input('catatan_kaprodi'), $user);
+        if ($error) {
+            return redirect()->back()->with('error', $error);
         }
 
         // [PERBAIKAN UX STAY-ON-PAGE]: Tetap bertahan di halaman detail KRS mahasiswa ini agar tidak banyak klik

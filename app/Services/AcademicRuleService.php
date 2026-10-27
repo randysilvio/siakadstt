@@ -37,7 +37,32 @@ class AcademicRuleService
     }
 
     /**
-     * Memvalidasi aturan pengajuan KRS (Semester, Batas SKS, Prasyarat, Kuota Kursi Kelas Paralel, & Bentrok Jadwal Rombel).
+     * Semester kurikulum yang ditawarkan pada periode aktif (Ganjil: 1,3,5,7 — Genap: 2,4,6,8).
+     */
+    public function semesterDitawarkan(TahunAkademik $periodeAktif): array
+    {
+        return in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
+    }
+
+    /**
+     * Query mata kuliah yang boleh diambil mahasiswa: kurikulum AKTIF milik prodinya (atau kurikulum umum
+     * tanpa prodi) pada semester yang ditawarkan. Tidak ada lagi fallback ke seluruh mata kuliah.
+     */
+    public function mataKuliahDitawarkanQuery(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif)
+    {
+        return MataKuliah::query()
+            ->whereIn('semester', $this->semesterDitawarkan($periodeAktif))
+            ->whereHas('kurikulum', function ($q) use ($mahasiswa) {
+                $q->where('is_active', true)
+                  ->where(function ($sub) use ($mahasiswa) {
+                      $sub->where('program_studi_id', $mahasiswa->program_studi_id)
+                          ->orWhereNull('program_studi_id');
+                  });
+            });
+    }
+
+    /**
+     * Memvalidasi aturan pengajuan KRS (Kurikulum Prodi, Semester, Batas SKS, Prasyarat, Rombel, Kuota Kursi Kelas Paralel, & Bentrok Jadwal Rombel).
      */
     public function validateKrsRules(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, array $mataKuliahIds, int $maxSks, array $pilihanKelas = []): array
     {
@@ -45,11 +70,20 @@ class AcademicRuleService
             return [];
         }
 
-        $allowedSemesters = in_array($periodeAktif->semester, ['Ganjil', 'Gasal']) ? [1, 3, 5, 7] : [2, 4, 6, 8];
+        $allowedSemesters = $this->semesterDitawarkan($periodeAktif);
         $mkDipilih = MataKuliah::with(['prasyarats', 'jadwals'])->whereIn('id', $mataKuliahIds)->get();
 
         if ($mkDipilih->count() !== count(array_unique($mataKuliahIds))) {
             return ['Terdapat mata kuliah yang tidak valid di dalam pilihan KRS.'];
+        }
+
+        $ditawarkanIds = $this->mataKuliahDitawarkanQuery($mahasiswa, $periodeAktif)
+            ->whereIn('id', $mataKuliahIds)
+            ->pluck('id')
+            ->all();
+        $tidakDitawarkan = $mkDipilih->whereNotIn('id', $ditawarkanIds);
+        if ($tidakDitawarkan->isNotEmpty()) {
+            return ['Mata kuliah berikut bukan bagian dari kurikulum aktif program studi Anda: ' . $tidakDitawarkan->pluck('nama_mk')->implode(', ') . '.'];
         }
 
         foreach ($mkDipilih as $mk) {
@@ -89,6 +123,9 @@ class AcademicRuleService
             $slotDipilih = null;
             if ($klsPilihan) {
                 $slotDipilih = $mk->jadwals->first(fn($j) => strtoupper($j->nama_kelas ?? 'A') === $klsPilihan);
+                if (!$slotDipilih && $mk->jadwals->isNotEmpty()) {
+                    return ["Kelas {$klsPilihan} tidak tersedia untuk mata kuliah {$mk->nama_mk}."];
+                }
             }
             if (!$slotDipilih) {
                 $slotDipilih = $mk->jadwals->first();
@@ -98,7 +135,9 @@ class AcademicRuleService
                 $namaKlsAktual = strtoupper($slotDipilih->nama_kelas ?? 'A');
                 $kuotaMaks = (int) ($slotDipilih->kuota ?? 40);
 
+                // lockForUpdate: dipanggil di dalam transaksi simpan KRS agar dua pengajuan bersamaan tidak melampaui kuota
                 $terisiSaatIni = DB::table('mahasiswa_mata_kuliah')
+                    ->lockForUpdate()
                     ->where('mata_kuliah_id', $mk->id)
                     ->where('tahun_akademik_id', $periodeAktif->id)
                     ->where('nama_kelas', $namaKlsAktual)
@@ -131,6 +170,43 @@ class AcademicRuleService
         }
 
         return [];
+    }
+
+    /**
+     * Menerapkan keputusan validasi KRS (oleh Dosen Wali / Kaprodi / Admin) untuk semester aktif.
+     * Aturan: salah satu validator cukup; KRS yang sudah Disetujui hanya dapat dibuka kembali oleh validator
+     * yang menyetujuinya atau Admin, agar dosen wali & Kaprodi tidak saling membatalkan keputusan.
+     *
+     * @return string|null pesan kesalahan, atau null bila berhasil
+     */
+    public function terapkanValidasiKrs(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, string $statusBaru, ?string $catatan, \App\Models\User $oleh): ?string
+    {
+        $punyaKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
+        if (!$punyaKrs) {
+            return 'Mahasiswa ini belum mengajukan mata kuliah apa pun pada semester ' . $periodeAktif->nama_semester . '.';
+        }
+
+        $persetujuan = $mahasiswa->persetujuanKrsPada($periodeAktif->id);
+        if ($persetujuan && $persetujuan->status === \App\Models\KrsPersetujuan::DISETUJUI && $statusBaru !== \App\Models\KrsPersetujuan::DISETUJUI) {
+            $bolehBuka = $oleh->hasRole('admin') || (int) $persetujuan->divalidasi_oleh === (int) $oleh->id;
+            if (!$bolehBuka) {
+                $nama = optional($persetujuan->validator)->name ?? 'validator lain';
+                return "KRS ini sudah DISETUJUI oleh {$nama}. Hanya validator tersebut atau Admin yang dapat membukanya kembali.";
+            }
+        }
+
+        $catatanBersih = $catatan !== null && trim($catatan) !== '' ? strip_tags($catatan) : null;
+        if ($statusBaru === \App\Models\KrsPersetujuan::DISETUJUI && $catatanBersih === null) {
+            $catatanBersih = null;
+        }
+
+        $mahasiswa->setStatusKrs($periodeAktif->id, $statusBaru, $catatanBersih, $oleh->id);
+
+        if ($mahasiswa->user && in_array($statusBaru, [\App\Models\KrsPersetujuan::DISETUJUI, \App\Models\KrsPersetujuan::DITOLAK], true)) {
+            $mahasiswa->user->notify(new \App\Notifications\KrsValidated($mahasiswa->fresh(), $statusBaru));
+        }
+
+        return null;
     }
 
     public function bobotPenilaian(): array
@@ -174,71 +250,96 @@ class AcademicRuleService
         return 'E';
     }
 
+    /**
+     * Menentukan nilai akhir angka & huruf mutu dari komponen penilaian.
+     *  - Huruf manual dari dosen selalu dihormati.
+     *  - Konversi otomatis ke huruf hanya dilakukan bila UTS atau UAS sudah ada, sehingga input kehadiran/tugas
+     *    di tengah semester tidak menghasilkan nilai huruf (dan IPK) prematur.
+     *
+     * @return array{angka: float|null, huruf: string|null}
+     */
+    public function tentukanNilai(?float $hadir, ?float $tugas, ?float $uts, ?float $uas, ?string $hurufManual = null): array
+    {
+        $adaKomponen = ($hadir !== null || $tugas !== null || $uts !== null || $uas !== null);
+        $angka = $adaKomponen
+            ? $this->hitungNilaiAkhir($hadir ?? 0, $tugas ?? 0, $uts ?? 0, $uas ?? 0)
+            : null;
+
+        if ($hurufManual !== null && $hurufManual !== '') {
+            return ['angka' => $angka, 'huruf' => strtoupper($hurufManual)];
+        }
+
+        $huruf = ($uts !== null || $uas !== null) ? $this->konversiAngkaKeHuruf((float) $angka) : null;
+
+        return ['angka' => $angka, 'huruf' => $huruf];
+    }
+
+    /**
+     * Menarik nilai kehadiran & tugas dari kelas Verum ke buku nilai KRS.
+     * Setiap mahasiswa hanya dihitung dari kelas Verum rombelnya sendiri (atau kelas Verum tanpa rombel,
+     * yang berlaku untuk semua rombel), sehingga kelas paralel tidak saling mengencerkan nilai.
+     */
     public function syncNilaiVerumKeKrs(MataKuliah $mataKuliah, TahunAkademik $tahunAkademik): int
     {
-        $verumKelasIds = VerumKelas::where('mata_kuliah_id', $mataKuliah->id)
+        $verumKelas = VerumKelas::where('mata_kuliah_id', $mataKuliah->id)
             ->where('tahun_akademik_id', $tahunAkademik->id)
-            ->pluck('id');
+            ->get(['id', 'rombel']);
 
-        if ($verumKelasIds->isEmpty()) {
+        if ($verumKelas->isEmpty()) {
             return 0;
         }
 
-        $presensiIds = DB::table('verum_presensi')
-            ->whereIn('kelas_id', $verumKelasIds)
-            ->pluck('id');
-        $totalPertemuan = $presensiIds->count();
-
-        $tugasIds = DB::table('verum_tugas')
-            ->whereIn('kelas_id', $verumKelasIds)
-            ->pluck('id');
-        $totalTugas = $tugasIds->count();
-
         $mahasiswas = $mataKuliah->mahasiswas()
             ->wherePivot('tahun_akademik_id', $tahunAkademik->id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
+            ->whereIn('mahasiswas.id', \App\Models\KrsPersetujuan::idsDisetujui((int) $tahunAkademik->id))
             ->get();
 
         $updatedCount = 0;
 
-        DB::transaction(function () use ($mahasiswas, $mataKuliah, $tahunAkademik, $presensiIds, $totalPertemuan, $tugasIds, $totalTugas, &$updatedCount) {
+        DB::transaction(function () use ($mahasiswas, $mataKuliah, $tahunAkademik, $verumKelas, &$updatedCount) {
             foreach ($mahasiswas as $mhs) {
+                $rombelMhs = strtoupper(trim((string) ($mhs->pivot->nama_kelas ?? 'A')));
+                $kelasIds = $verumKelas
+                    ->filter(fn ($k) => $k->rombel === null || $k->rombel === '' || strtoupper(trim($k->rombel)) === $rombelMhs)
+                    ->pluck('id');
+
+                if ($kelasIds->isEmpty()) {
+                    continue;
+                }
+
+                $presensiIds = DB::table('verum_presensi')->whereIn('kelas_id', $kelasIds)->pluck('id');
+                $tugasIds = DB::table('verum_tugas')->whereIn('kelas_id', $kelasIds)->pluck('id');
+
                 $nilaiHadir = $mhs->pivot->nilai_kehadiran;
-                if ($totalPertemuan > 0) {
+                if ($presensiIds->count() > 0) {
                     $jmlHadir = DB::table('verum_kehadiran')
                         ->whereIn('presensi_id', $presensiIds)
                         ->where('mahasiswa_id', $mhs->id)
                         ->where('status', 'hadir')
                         ->count();
-                    $nilaiHadir = round(($jmlHadir / $totalPertemuan) * 100, 2);
+                    $nilaiHadir = round(($jmlHadir / $presensiIds->count()) * 100, 2);
                 }
 
                 $nilaiTugas = $mhs->pivot->nilai_tugas;
-                if ($totalTugas > 0) {
+                if ($tugasIds->count() > 0) {
                     $sumNilaiTugas = VerumPengumpulan::whereIn('tugas_id', $tugasIds)
                         ->where('mahasiswa_id', $mhs->id)
                         ->whereNotNull('nilai')
                         ->sum('nilai');
-                    $nilaiTugas = round($sumNilaiTugas / $totalTugas, 2);
+                    $nilaiTugas = round($sumNilaiTugas / $tugasIds->count(), 2);
                 }
 
                 $uts = $mhs->pivot->nilai_uts;
                 $uas = $mhs->pivot->nilai_uas;
+                $hurufManual = !empty($mhs->pivot->nilai_manual) ? $mhs->pivot->nilai : null;
 
-                $akhirAngka = $mhs->pivot->nilai_akhir_angka;
-                $huruf      = $mhs->pivot->nilai;
-
-                // Hanya hitung ulang Nilai Akhir & Huruf jika nilai UTS atau UAS sudah ada,
-                // agar tarik data Verum di awal/tengah semester tidak menjatuhkan nilai huruf 'E' prematur.
-                if ($uts !== null || $uas !== null) {
-                    $akhirAngka = $this->hitungNilaiAkhir(
-                        (float) ($nilaiHadir ?? 0),
-                        (float) ($nilaiTugas ?? 0),
-                        (float) ($uts ?? 0),
-                        (float) ($uas ?? 0)
-                    );
-                    $huruf = $this->konversiAngkaKeHuruf($akhirAngka);
-                }
+                $hasil = $this->tentukanNilai(
+                    $nilaiHadir !== null ? (float) $nilaiHadir : null,
+                    $nilaiTugas !== null ? (float) $nilaiTugas : null,
+                    $uts !== null ? (float) $uts : null,
+                    $uas !== null ? (float) $uas : null,
+                    $hurufManual
+                );
 
                 DB::table('mahasiswa_mata_kuliah')
                     ->where('mahasiswa_id', $mhs->id)
@@ -247,8 +348,8 @@ class AcademicRuleService
                     ->update([
                         'nilai_kehadiran'   => $nilaiHadir,
                         'nilai_tugas'       => $nilaiTugas,
-                        'nilai_akhir_angka' => $akhirAngka,
-                        'nilai'             => $huruf,
+                        'nilai_akhir_angka' => $hasil['angka'],
+                        'nilai'             => $hasil['huruf'],
                         'updated_at'        => now(),
                     ]);
 

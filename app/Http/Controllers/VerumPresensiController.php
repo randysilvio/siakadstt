@@ -84,17 +84,13 @@ class VerumPresensiController extends Controller
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        if (!$mahasiswa || $mahasiswa->status_krs !== 'Disetujui') {
-            abort(403, 'Aksi ini hanya untuk mahasiswa dengan KRS yang telah disetujui.');
+        if (!$mahasiswa || !$verum_presensi->kelas) {
+            abort(403, 'Aksi ini hanya untuk mahasiswa peserta kelas.');
         }
 
-        $isEnrolled = $mahasiswa->mataKuliahs()
-            ->wherePivot('tahun_akademik_id', $verum_presensi->kelas->tahun_akademik_id)
-            ->where('mata_kuliahs.id', $verum_presensi->kelas->mata_kuliah_id)
-            ->exists();
-
-        if (!$isEnrolled) {
-            return back()->with('error', 'Anda tidak terdaftar di kelas ini pada semester berjalan.');
+        // Peserta resmi: KRS disetujui pada semester kelas & rombel sesuai rombel kelas
+        if (!$verum_presensi->kelas->isPeserta($mahasiswa)) {
+            return back()->with('error', 'Anda tidak terdaftar sebagai peserta kelas/rombel ini.');
         }
 
         if (now()->isAfter($verum_presensi->waktu_tutup)) {
@@ -130,9 +126,7 @@ class VerumPresensiController extends Controller
 
         $verum_kela->load(['mataKuliah', 'dosen', 'tahunAkademik']);
 
-        $mahasiswas = $verum_kela->mataKuliah->mahasiswas()
-            ->wherePivot('tahun_akademik_id', $verum_kela->tahun_akademik_id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
+        $mahasiswas = $verum_kela->pesertaQuery()
             ->orderBy('nama_lengkap')
             ->get();
         
@@ -152,10 +146,7 @@ class VerumPresensiController extends Controller
 
         $verum_kela->load(['mataKuliah.kurikulum.programStudi', 'dosen', 'tahunAkademik']);
 
-        $totalPeserta = $verum_kela->mataKuliah->mahasiswas()
-            ->wherePivot('tahun_akademik_id', $verum_kela->tahun_akademik_id)
-            ->where('mahasiswas.status_krs', 'Disetujui')
-            ->count();
+        $totalPeserta = $verum_kela->pesertaQuery()->count();
 
         $presensis = $verum_kela->presensi()->with('kehadiran')->orderBy('pertemuan_ke')->get();
 

@@ -16,6 +16,7 @@ class VerumKelas extends Model
         'dosen_id',
         'tahun_akademik_id',
         'nama_kelas',
+        'rombel',
         'deskripsi',
         'kode_kelas',
         'is_meeting_active', // <-- Kolom yang baru kita tambah di Langkah 1
@@ -59,5 +60,31 @@ class VerumKelas extends Model
     public function presensi()
     {
         return $this->hasMany(VerumPresensi::class, 'kelas_id');
+    }
+
+    /**
+     * Query peserta resmi kelas: mahasiswa yang mengambil mata kuliah ini pada tahun akademik kelas,
+     * KRS-nya disetujui pada semester tersebut, dan (bila kelas terikat rombel) berada di rombel yang sama.
+     */
+    public function pesertaQuery()
+    {
+        $query = $this->mataKuliah->mahasiswas()
+            ->wherePivot('tahun_akademik_id', $this->tahun_akademik_id)
+            ->whereIn('mahasiswas.id', KrsPersetujuan::idsDisetujui((int) $this->tahun_akademik_id));
+
+        if ($this->rombel !== null && trim($this->rombel) !== '') {
+            $query->wherePivot('nama_kelas', strtoupper(trim($this->rombel)));
+        }
+
+        return $query;
+    }
+
+    public function isPeserta(?Mahasiswa $mahasiswa): bool
+    {
+        if (!$mahasiswa || !$this->mataKuliah) {
+            return false;
+        }
+
+        return $this->pesertaQuery()->where('mahasiswas.id', $mahasiswa->id)->exists();
     }
 }

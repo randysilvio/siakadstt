@@ -59,6 +59,22 @@
                 </div>
 
                 <div class="mb-4">
+                    <label for="rombel" class="form-label small fw-bold uppercase text-dark">Rombel Peserta</label>
+                    <select class="form-select rounded-0 uppercase @error('rombel') is-invalid @enderror" id="rombel" name="rombel">
+                        <option value="">SEMUA ROMBEL (SELURUH PESERTA MATA KULIAH)</option>
+                        @foreach($mataKuliahs as $matkul)
+                            @foreach($matkul->jadwals->pluck('nama_kelas')->filter()->map(fn ($k) => strtoupper($k))->unique() as $rbl)
+                                <option value="{{ $rbl }}" data-mk="{{ $matkul->id }}" {{ old('rombel') == $rbl && old('mata_kuliah_id') == $matkul->id ? 'selected' : '' }}>KELAS {{ $rbl }}</option>
+                            @endforeach
+                        @endforeach
+                    </select>
+                    <div class="form-text text-muted small uppercase mt-1">Pilih rombel bila mata kuliah memiliki kelas paralel; hanya mahasiswa rombel tersebut yang dapat masuk.</div>
+                    @error('rombel')
+                        <div class="invalid-feedback font-monospace small">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
                     <label for="deskripsi" class="form-label small fw-bold uppercase text-dark">Deskripsi Uraian Kelas (Opsional)</label>
                     <textarea class="form-control rounded-0 uppercase @error('deskripsi') is-invalid @enderror" id="deskripsi" name="deskripsi" rows="4" placeholder="BERIKAN GAMBARAN SINGKAT TENTANG KELAS INI...">{{ old('deskripsi') }}</textarea>
                     @error('deskripsi')
@@ -76,4 +92,20 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const mkSelect = document.getElementById('mata_kuliah_id');
+        const rombelSelect = document.getElementById('rombel');
+        function saringRombel() {
+            const mk = mkSelect.value;
+            rombelSelect.querySelectorAll('option[data-mk]').forEach(function (opt) {
+                const cocok = opt.getAttribute('data-mk') === mk;
+                opt.hidden = !cocok;
+                if (!cocok && opt.selected) rombelSelect.value = '';
+            });
+        }
+        mkSelect.addEventListener('change', saringRombel);
+        saringRombel();
+    });
+</script>
 @endsection

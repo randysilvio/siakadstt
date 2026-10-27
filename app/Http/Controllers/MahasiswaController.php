@@ -191,12 +191,19 @@ class MahasiswaController extends Controller
 
     public function destroy(Mahasiswa $mahasiswa): RedirectResponse
     {
+        if ($alasan = $mahasiswa->alasanTidakBisaDihapus()) {
+            return redirect()->route('admin.mahasiswa.index')->with('error', $alasan);
+        }
+
         try {
             DB::transaction(function () use ($mahasiswa) {
-                if ($mahasiswa->user) {
-                    $mahasiswa->user->delete();
-                }
+                $user = $mahasiswa->user;
+                // Hapus profil dulu, baru akun (FK mahasiswas.user_id kini RESTRICT)
                 $mahasiswa->delete();
+                if ($user) {
+                    $user->roles()->detach();
+                    $user->delete();
+                }
             });
 
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus!');

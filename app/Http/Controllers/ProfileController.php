@@ -62,19 +62,13 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit')->with('success', 'Foto profil berhasil diperbarui.');
     }
 
+    /**
+     * Penghapusan akun mandiri dinonaktifkan. Akun SIAKAD terikat riwayat akademik & keuangan (KRS, nilai,
+     * tagihan) yang wajib tetap utuh; penonaktifan akun dilakukan oleh Administrator.
+     */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current-password'],
-        ]);
-
-        $user = $request->user();
-        Auth::logout();
-        $user->delete();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return Redirect::route('profile.edit')->with('error', 'Penghapusan akun secara mandiri tidak tersedia. Hubungi Administrator SIAKAD untuk menonaktifkan akun Anda.');
     }
 
     public function simpanFcmToken(Request $request)

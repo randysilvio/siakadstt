@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
+use App\Models\KrsPersetujuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Rules\UniqueTahunSemesterRule;
@@ -86,6 +87,12 @@ class TahunAkademikController extends Controller
             return back()->with('error', 'Tidak dapat menghapus tahun akademik yang sedang aktif.');
         }
 
+        // Semester yang sudah memiliki KRS/nilai tidak boleh dihapus: KHS akan kehilangan semester itu
+        // sementara nilainya tetap dihitung di IPK dan transkrip.
+        if (DB::table('mahasiswa_mata_kuliah')->where('tahun_akademik_id', $tahunAkademik->id)->exists()) {
+            return back()->with('error', 'Tahun akademik ini sudah memiliki data KRS/nilai mahasiswa sehingga tidak dapat dihapus.');
+        }
+
         $tahunAkademik->delete();
         return redirect()->route('admin.tahun-akademik.index')->with('success', 'Tahun Akademik berhasil dihapus.');
     }
@@ -96,20 +103,21 @@ class TahunAkademikController extends Controller
             TahunAkademik::query()->update(['is_active' => false]);
             $tahunAkademik->update(['is_active' => true]);
 
-            // Sinkronisasi status_krs seluruh mahasiswa aktif sesuai keberadaan KRS mereka pada semester yang baru diaktifkan:
-            // 1. Mahasiswa yang belum punya entri KRS di periode ini di-reset ke 'Belum Mengajukan'
-            $mhsSudahIsiIds = DB::table('mahasiswa_mata_kuliah')
-                ->where('tahun_akademik_id', $tahunAkademik->id)
-                ->distinct()
-                ->pluck('mahasiswa_id')
-                ->toArray();
+            // Salinan mahasiswas.status_krs selalu mencerminkan semester AKTIF. Riwayat status semester lain
+            // tetap tersimpan di tabel krs_persetujuans dan tidak ikut terhapus.
+            Mahasiswa::where('status_mahasiswa', 'Aktif')->update([
+                'status_krs'      => KrsPersetujuan::BELUM,
+                'catatan_kaprodi' => null,
+            ]);
 
-            Mahasiswa::where('status_mahasiswa', 'Aktif')
-                ->whereNotIn('id', $mhsSudahIsiIds)
-                ->update([
-                    'status_krs'      => 'Belum Mengajukan',
-                    'catatan_kaprodi' => null,
-                ]);
+            KrsPersetujuan::where('tahun_akademik_id', $tahunAkademik->id)
+                ->get(['mahasiswa_id', 'status', 'catatan'])
+                ->each(function ($p) {
+                    Mahasiswa::whereKey($p->mahasiswa_id)->update([
+                        'status_krs'      => $p->status,
+                        'catatan_kaprodi' => $p->catatan,
+                    ]);
+                });
         });
         
         event(new TahunAkademikDiaktifkan($tahunAkademik));
