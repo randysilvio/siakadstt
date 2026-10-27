@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('pembayarans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('mahasiswa_id')->constrained()->onDelete('cascade');
+            // Nullable sejak awal agar instalasi baru konsisten dengan migrasi PMB (tagihan camaba tanpa mahasiswa_id)
+            $table->foreignId('mahasiswa_id')->nullable()->constrained()->onDelete('cascade');
             $table->integer('jumlah');
             $table->string('semester');
             $table->date('tanggal_bayar')->nullable();

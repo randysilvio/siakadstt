@@ -1,19 +1,21 @@
 <?php
 
-test('registration screen can be rendered', function () {
-    $response = $this->get('/register');
+use App\Models\User;
 
-    $response->assertStatus(200);
+// Registrasi publik umum ditutup; pendaftaran akun baru hanya melalui jalur PMB.
+
+test('halaman register diarahkan ke pendaftaran PMB', function () {
+    $this->get('/register')->assertRedirect(route('pmb.register'));
 });
 
-test('new users can register', function () {
-    $response = $this->post('/register', [
+test('registrasi umum lewat POST /register tidak membuat akun', function () {
+    $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertGuest();
+    expect(User::where('email', 'test@example.com')->exists())->toBeFalse();
 });

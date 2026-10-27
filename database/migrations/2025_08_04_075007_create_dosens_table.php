@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('dosens', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('nidn')->unique();
+            $table->string('nidn')->nullable()->unique();
             $table->string('nama_lengkap');
             $table->timestamps();
         });

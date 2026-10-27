@@ -9,8 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pembayarans', function (Blueprint $table) {
-            // 1. Ubah mahasiswa_id jadi nullable (boleh kosong)
-            $table->unsignedBigInteger('mahasiswa_id')->nullable()->change();
+            // 1. Ubah mahasiswa_id jadi nullable (boleh kosong).
+            //    SQLite tidak mendukung ubah kolom tanpa doctrine/dbal; di sana kolom sudah nullable sejak create.
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->unsignedBigInteger('mahasiswa_id')->nullable()->change();
+            }
             
             // 2. Tambahkan user_id (untuk relasi ke user login, baik mhs/camaba)
             $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
@@ -21,7 +24,9 @@ return new class extends Migration
     {
         Schema::table('pembayarans', function (Blueprint $table) {
             // Kembalikan seperti semula (hati-hati jika ada data null)
-            $table->unsignedBigInteger('mahasiswa_id')->nullable(false)->change();
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->unsignedBigInteger('mahasiswa_id')->nullable(false)->change();
+            }
             $table->dropForeign(['user_id']);
             $table->dropColumn('user_id');
         });

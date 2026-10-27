@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('tahun_akademiks', function (Blueprint $table) {
             $table->id();
             $table->string('tahun');
-            $table->enum('semester', ['Gasal', 'Genap']);
+            // 'Ganjil' disertakan agar driver non-MySQL (yang tidak menjalankan ALTER ENUM) tetap menerima nilai baru
+            $table->enum('semester', ['Gasal', 'Ganjil', 'Genap']);
             $table->boolean('is_active')->default(false);
             $table->date('tanggal_mulai_krs');
             $table->date('tanggal_selesai_krs');

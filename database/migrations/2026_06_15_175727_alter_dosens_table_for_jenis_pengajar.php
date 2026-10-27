@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::table('dosens', function (Blueprint $table) {
             // Mengubah kolom NIDN menjadi boleh kosong (nullable)
-            $table->string('nidn')->nullable()->change();
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->string('nidn')->nullable()->change();
+            }
             
             // Menambahkan kategori pengajar (default 'Dosen Tetap' agar data lama otomatis terisi)
             $table->string('jenis_pengajar')->default('Dosen Tetap')->after('nama_lengkap');
@@ -21,7 +23,9 @@ return new class extends Migration
     {
         Schema::table('dosens', function (Blueprint $table) {
             // Mengembalikan ke pengaturan semula jika di-rollback
-            $table->string('nidn')->nullable(false)->change();
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->string('nidn')->nullable(false)->change();
+            }
             $table->dropColumn('jenis_pengajar');
         });
     }

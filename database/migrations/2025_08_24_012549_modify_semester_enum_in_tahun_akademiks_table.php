@@ -12,6 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // ALTER ... CHANGE COLUMN hanya ada di MySQL/MariaDB. Driver lain cukup memperbarui datanya.
+        if (DB::getDriverName() !== 'mysql') {
+            DB::table('tahun_akademiks')->where('semester', 'Gasal')->update(['semester' => 'Ganjil']);
+            return;
+        }
+
         // LANGKAH 1: Ubah tipe kolom menjadi VARCHAR untuk sementara agar bisa diupdate
         DB::statement("ALTER TABLE tahun_akademiks CHANGE COLUMN semester semester VARCHAR(255) NOT NULL");
 
@@ -29,6 +35,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            DB::table('tahun_akademiks')->where('semester', 'Ganjil')->update(['semester' => 'Gasal']);
+            return;
+        }
+
         // LANGKAH 1 (Reverse): Ubah tipe kolom menjadi VARCHAR untuk sementara
         DB::statement("ALTER TABLE tahun_akademiks CHANGE COLUMN semester semester VARCHAR(255) NOT NULL");
 
