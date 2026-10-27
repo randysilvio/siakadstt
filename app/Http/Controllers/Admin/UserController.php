@@ -161,6 +161,12 @@ class UserController extends Controller
             return back()->with('error', 'Anda tidak dapat menyamar menjadi diri sendiri atau sesama Admin.');
         }
 
+        \Illuminate\Support\Facades\Log::info('Impersonasi dimulai', [
+            'admin_id'  => Auth::id(),
+            'target_id' => $userToImpersonate->id,
+            'ip'        => request()->ip(),
+        ]);
+
         session()->put('impersonate_by', Auth::id());
         Auth::login($userToImpersonate);
 
@@ -171,6 +177,7 @@ class UserController extends Controller
     {
         if (session()->has('impersonate_by')) {
             $adminId = session()->pull('impersonate_by');
+            \Illuminate\Support\Facades\Log::info('Impersonasi dihentikan', ['admin_id' => $adminId, 'target_id' => Auth::id()]);
             Auth::loginUsingId($adminId);
             session()->forget('impersonate_by');
             

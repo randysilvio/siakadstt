@@ -9,6 +9,7 @@ use App\Models\Pengaturan;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
 use App\Models\Jadwal;
+use App\Models\DokumenTerbit;
 
 class CetakController extends Controller
 {
@@ -40,7 +41,14 @@ class CetakController extends Controller
             
         $ipsData = $mahasiswa->hitungIps($selectedTaId);
 
-        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsSelected', 'tahunSelected', 'ipsData'));
+        $tokenDokumen = DokumenTerbit::terbitkan('KHS', $mahasiswa, [
+            'semester'  => $tahunSelected->nama_semester,
+            'ips'       => number_format((float) $ipsData['ips'], 2, '.', ''),
+            'total_sks' => (string) $ipsData['total_sks'],
+            'nilai'     => $krsSelected->map(fn ($mk) => [$mk->kode_mk, $mk->nama_mk, (string) $mk->sks, (string) ($mk->pivot->nilai ?? '-')])->values()->all(),
+        ])->kode;
+
+        $pdf = Pdf::loadView('khs.pdf', compact('mahasiswa', 'krsSelected', 'tahunSelected', 'ipsData', 'tokenDokumen'));
         
         $namaFile = 'KHS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunSelected->tahun) . '_' . strtoupper($tahunSelected->semester) . '.pdf';
         
@@ -98,7 +106,13 @@ class CetakController extends Controller
         $ipk = $mahasiswa->hitungIpk();
         $total_sks = $krsSelesaiUnik->sum('sks');
 
-        $pdf = Pdf::loadView('transkrip.pdf', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk'));
+        $tokenDokumen = DokumenTerbit::terbitkan('TRANSKRIP', $mahasiswa, [
+            'ipk'       => number_format((float) $ipk, 2, '.', ''),
+            'total_sks' => (string) $total_sks,
+            'nilai'     => $krsSelesaiUnik->sortBy('kode_mk')->map(fn ($mk) => [$mk->kode_mk, $mk->nama_mk, (string) $mk->sks, (string) $mk->pivot->nilai])->values()->all(),
+        ])->kode;
+
+        $pdf = Pdf::loadView('transkrip.pdf', compact('mahasiswa', 'krs_per_semester', 'total_sks', 'ipk', 'tokenDokumen'));
         return $pdf->download('Transkrip_' . $mahasiswa->nim . '.pdf');
     }
 
@@ -124,7 +138,13 @@ class CetakController extends Controller
 
         $rektor = Pengaturan::where('key', 'nama_rektor')->first();
 
-        $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor', 'tahunAkademik'));
+        $tokenDokumen = DokumenTerbit::terbitkan('KRS', $mahasiswa, [
+            'semester' => $tahunAkademik->nama_semester,
+            'status'   => 'Disetujui',
+            'mata_kuliah' => $krs->map(fn ($mk) => [$mk->kode_mk, $mk->nama_mk, (string) $mk->sks, (string) ($mk->pivot->nama_kelas ?? 'A')])->values()->all(),
+        ])->kode;
+
+        $pdf = Pdf::loadView('krs.pdf', compact('mahasiswa', 'krs', 'rektor', 'tahunAkademik', 'tokenDokumen'));
         return $pdf->download('KRS_' . $mahasiswa->nim . '_' . str_replace('/', '-', $tahunAkademik->tahun) . '.pdf');
     }
 

@@ -23,6 +23,12 @@
             <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            {{ session('error') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     <div class="row g-4 mb-4">
         <div class="col-lg-7">
@@ -218,7 +224,7 @@
                                         <div class="text-muted small">{{ $log->catatan_mahasiswa }}</div>
                                     @endif
                                     @if($log->file_draf)
-                                        <a href="{{ asset('storage/' . $log->file_draf) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 py-0 px-2 mt-1 font-monospace" style="font-size: 10px;">
+                                        <a href="{{ route('berkas.unduh', ['jenis' => 'draf-bimbingan', 'id' => $log->id]) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 py-0 px-2 mt-1 font-monospace" style="font-size: 10px;">
                                             Unduh Draf
                                         </a>
                                     @endif

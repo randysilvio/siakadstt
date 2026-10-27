@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Imports\Concerns\ResolveReferensiImpor;
 use App\Models\Dosen;
 use App\Models\User;
 use App\Models\Role;
@@ -17,6 +18,8 @@ use Carbon\Carbon;
 
 class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
+    use ResolveReferensiImpor;
+
     public function headingRow(): int
     {
         // [PERBAIKAN BUG FASE 5]: Baris 1 adalah banner judul template, header kolom berada di baris 2
@@ -25,6 +28,8 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
 
     public function model(array $row)
     {
+        $this->majukanBaris();
+
         if (empty($row['nik']) || empty($row['nama_lengkap'])) {
             return null;
         }
@@ -39,34 +44,34 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
 
         $prodiId = null;
         if (!empty($row['program_studi'])) {
-            $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . trim($row['program_studi']) . '%')->first();
-            if ($prodi) {
-                $prodiId = $prodi->id;
+            $prodi = $this->cariProdi($row['program_studi']);
+            if (!$prodi) {
+                $this->gagal("program studi '" . trim((string) $row['program_studi']) . "' tidak ditemukan. Gunakan kode atau nama prodi persis.");
             }
+            $prodiId = $prodi->id;
         }
 
         $fallbackUsername = $nidn ?: $nik;
         $email = !empty($row['email']) ? trim($row['email']) : $fallbackUsername . '@lecturer.sttgpipapua.ac.id';
 
-        // [PERBAIKAN KEAMANAN FASE 5]: Cegah penimpaan akun Admin jika email bentrok
+        // Hanya akun dosen/kaprodi yang boleh diperbarui; akun admin/staf/mahasiswa dengan email sama ditolak
         $existingUser = User::where('email', $email)->first();
-        if ($existingUser && $existingUser->hasRole('admin')) {
-            return null;
+        if ($existingUser && !$this->akunBolehDipakai($existingUser, ['dosen', 'kaprodi'])) {
+            $this->gagal("email {$email} sudah dipakai akun non-dosen.");
         }
 
         if ($existingUser) {
             $user = $existingUser;
             $user->name = $row['nama_lengkap'];
             if (!empty($row['password'])) {
-                $user->password = Hash::make((string) $row['password']);
+                $user->password = Hash::make($this->passwordImpor($row['password']));
             }
             $user->save();
         } else {
-            $rawPassword = !empty($row['password']) ? (string) $row['password'] : ($fallbackUsername . '@' . Str::upper(Str::random(4)));
             $user = User::create([
                 'name' => $row['nama_lengkap'],
                 'email' => $email,
-                'password' => Hash::make($rawPassword),
+                'password' => Hash::make($this->passwordImpor($row['password'] ?? '')),
             ]);
         }
 

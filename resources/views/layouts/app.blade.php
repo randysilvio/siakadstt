@@ -258,9 +258,12 @@
     @if(session()->has('impersonate_by'))
         <div class="bg-danger text-white text-center py-2 px-2 fw-bold uppercase small shadow-sm" style="position: sticky; top: 0; z-index: 1055;">
             Mode Penyamaran: Anda sedang mengendalikan akun <u class="font-monospace">{{ Auth::user()->name }}</u>.
-            <a href="{{ route('impersonate.stop') }}" class="btn btn-sm btn-dark text-white fw-bold ms-2 px-3 py-0.5 shadow-sm">
-                Kembali ke Admin
-            </a>
+            <form action="{{ route('impersonate.stop') }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-dark text-white fw-bold ms-2 px-3 py-0.5 shadow-sm">
+                    Kembali ke Admin
+                </button>
+            </form>
         </div>
     @endif
 

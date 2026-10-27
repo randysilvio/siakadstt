@@ -74,7 +74,7 @@
                                                     <i class="bi bi-check-circle-fill me-2"></i> TERCATAT PADA: {{ $fileKumpul->waktu_pengumpulan->format('d/m/Y H:i') }} WIT
                                                     @if(!empty($fileKumpul->file_path))
                                                         <div class="mt-2">
-                                                            <a href="{{ Storage::url($fileKumpul->file_path) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-0 fw-bold">
+                                                            <a href="{{ route('berkas.unduh', ['jenis' => 'jawaban-tugas', 'id' => $fileKumpul->id]) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-0 fw-bold">
                                                                 <i class="bi bi-download me-1"></i> Unduh Berkas Jawaban Saya
                                                             </a>
                                                         </div>

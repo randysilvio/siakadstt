@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BerkasPrivat;
 use App\Models\Camaba;
 use App\Models\ProgramStudi;
 use App\Models\PmbDocument;
@@ -67,13 +68,15 @@ class PmbController extends Controller
             $userId = $camaba->user_id;
 
             foreach ($camaba->documents as $doc) {
-                if (Storage::disk('public')->exists($doc->path_file)) {
-                    Storage::disk('public')->delete($doc->path_file);
-                }
+                BerkasPrivat::hapus($doc->path_file);
                 $doc->delete();
             }
 
-            Pembayaran::where('user_id', $userId)->where('jenis_pembayaran', 'formulir_pmb')->delete();
+            Pembayaran::where('user_id', $userId)->where('jenis_pembayaran', 'formulir_pmb')->get()
+                ->each(function ($p) {
+                    BerkasPrivat::hapus($p->bukti_bayar);
+                    $p->delete();
+                });
             $camaba->delete();
 
             if ($user = User::find($userId)) {
@@ -131,10 +134,8 @@ class PmbController extends Controller
         }
 
         if ($request->hasFile('bukti_bayar')) {
-            if ($tagihan->bukti_bayar && Storage::disk('public')->exists($tagihan->bukti_bayar)) {
-                Storage::disk('public')->delete($tagihan->bukti_bayar);
-            }
-            $path = $request->file('bukti_bayar')->store('bukti-bayar-pmb', 'public');
+            BerkasPrivat::hapus($tagihan->bukti_bayar);
+            $path = BerkasPrivat::simpan($request->file('bukti_bayar'), 'bukti-bayar-pmb');
             $tagihan->update([
                 'bukti_bayar' => $path,
                 'status' => 'menunggu_konfirmasi',
@@ -256,8 +257,8 @@ class PmbController extends Controller
         $pasFotoDoc = $camaba->documents->where('jenis_dokumen', 'Pas Foto')->first();
         $pasFotoBase64 = null;
         if ($pasFotoDoc && $pasFotoDoc->path_file) {
-            $fullPath = storage_path('app/public/' . $pasFotoDoc->path_file);
-            if (file_exists($fullPath)) {
+            $fullPath = BerkasPrivat::pathAbsolut($pasFotoDoc->path_file);
+            if ($fullPath && file_exists($fullPath)) {
                 $ext = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'jpeg';
                 $pasFotoBase64 = 'data:image/' . $ext . ';base64,' . base64_encode(file_get_contents($fullPath));
             }
@@ -277,12 +278,10 @@ class PmbController extends Controller
         if ($request->hasFile($inputName)) {
             $existingDoc = PmbDocument::where('camaba_id', $camaba->id)->where('jenis_dokumen', $jenisDokumen)->first();
             if ($existingDoc) {
-                if (Storage::disk('public')->exists($existingDoc->path_file)) {
-                    Storage::disk('public')->delete($existingDoc->path_file);
-                }
+                BerkasPrivat::hapus($existingDoc->path_file);
                 $existingDoc->delete();
             }
-            $path = $request->file($inputName)->store('dokumen-pmb', 'public');
+            $path = BerkasPrivat::simpan($request->file($inputName), 'dokumen-pmb');
             PmbDocument::create([
                 'camaba_id' => $camaba->id,
                 'jenis_dokumen' => $jenisDokumen,

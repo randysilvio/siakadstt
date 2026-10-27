@@ -42,7 +42,7 @@
 
                     {{-- Konten sudah disanitasi saat disimpan --}}
                     <div class="text-dark" style="line-height: 1.8;">
-                        {!! $pengumuman->konten !!}
+                        {!! \App\Support\HtmlSanitizer::clean($pengumuman->konten) !!}
                     </div>
                 </div>
             </div>

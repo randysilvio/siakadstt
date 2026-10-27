@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Mahasiswa;
+use App\Models\DokumenTerbit;
 use App\Models\PengajuanSurat;
 use App\Models\Pengaturan;
 use Illuminate\Http\Request;
@@ -22,6 +23,37 @@ class VerifikasiDokumenController extends Controller
         $isValid = false;
         $dataDokumen = null;
         $singkatanPt = Pengaturan::get('singkatan_kampus', 'STT GPI PAPUA');
+
+        // 1. Dokumen bercetak dengan kode terikat isi (format baru)
+        $terbit = DokumenTerbit::with('mahasiswa.programStudi')->where('kode', strtoupper(trim($token)))->first();
+        if ($terbit && $terbit->utuh()) {
+            $r = $terbit->ringkasan;
+            $mhs = $terbit->mahasiswa;
+            $rincian = $r['nilai'] ?? $r['mata_kuliah'] ?? [];
+            $keterangan = match ($terbit->jenis) {
+                'KHS'        => 'Semester ' . ($r['semester'] ?? '-') . ' | IPS ' . ($r['ips'] ?? '-') . ' | ' . ($r['total_sks'] ?? '-') . ' SKS',
+                'TRANSKRIP'  => 'IPK ' . ($r['ipk'] ?? '-') . ' | Total ' . ($r['total_sks'] ?? '-') . ' SKS',
+                'KRS'        => 'Semester ' . ($r['semester'] ?? '-') . ' | Status KRS: ' . strtoupper($r['status'] ?? '-'),
+                'SURATAKTIF' => 'Semester ' . ($r['semester'] ?? '-') . ' | Keperluan: ' . ($r['keperluan'] ?? '-'),
+                default      => '-',
+            };
+
+            return view('public.verifikasi_dokumen', [
+                'isValid'     => true,
+                'token'       => $token,
+                'dataDokumen' => [
+                    'jenis_dokumen'  => DokumenTerbit::JUDUL[$terbit->jenis] ?? 'DOKUMEN AKADEMIK RESMI',
+                    'nomor_dokumen'  => $r['nomor_surat'] ?? $terbit->kode,
+                    'nama_pemilik'   => optional($mhs)->nama_lengkap ?? '-',
+                    'nim_identitas'  => optional($mhs)->nim ?? '-',
+                    'program_studi'  => optional(optional($mhs)->programStudi)->nama_prodi ?? '-',
+                    'tanggal_terbit' => $terbit->created_at->translatedFormat('d F Y H:i'),
+                    'keterangan'     => $keterangan . '. Isi di bawah adalah isi dokumen saat dicetak; bandingkan dengan dokumen yang Anda terima.',
+                    'kode_hash'      => strtoupper(substr($terbit->sidik, 0, 32)),
+                    'rincian'        => $rincian,
+                ],
+            ]);
+        }
 
         $suratMandiri = PengajuanSurat::with('mahasiswa.programStudi')
             ->where('kode_verifikasi', $token)
@@ -75,7 +107,7 @@ class VerifikasiDokumenController extends Controller
                             'nim_identitas' => $mhs->nim,
                             'program_studi' => optional($mhs->programStudi)->nama_prodi ?? '-',
                             'tanggal_terbit'=> now()->translatedFormat('d F Y'),
-                            'keterangan'    => 'Status Mahasiswa: ' . strtoupper($mhs->status_mahasiswa) . ' | IPK Kumulatif: ' . number_format($mhs->hitungIpk(), 2),
+                            'keterangan'    => 'Kode format lama: hanya memastikan identitas mahasiswa, BUKAN isi dokumen. Status saat ini: ' . strtoupper($mhs->status_mahasiswa) . '. Minta dokumen cetak ulang untuk verifikasi isi.',
                             'kode_hash'     => $expectedToken,
                         ];
                     }

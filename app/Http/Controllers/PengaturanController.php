@@ -22,12 +22,12 @@ class PengaturanController extends Controller
             'nama_kampus'            => 'required|string|max:255',
             'singkatan_kampus'       => 'required|string|max:80',
             'nama_rektor'            => 'required|string|max:255',
-            'logo_file'              => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
-            'logo_event_file'        => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
+            'logo_file'              => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
+            'logo_event_file'        => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'favicon_file'           => 'nullable|image|mimes:png,ico,jpg,jpeg,webp|max:1024',
             'foto_pimpinan_file'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
-            'watermark_card_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:2048',
-            'watermark_section_file' => 'nullable|image|mimes:png,jpg,jpeg,webp,svg|max:3072',
+            'watermark_card_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
+            'watermark_section_file' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:3072',
             'bagan_struktur_file'    => 'nullable|image|mimes:png,jpg,jpeg,webp|max:5120',
         ]);
 

@@ -28,7 +28,7 @@ class KalenderController extends Controller
 
     public function create(): View
     {
-        $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
+        $roles = Role::orderBy('name')->get();
         return view('kalender.create', compact('roles'));
     }
 
@@ -70,7 +70,7 @@ class KalenderController extends Controller
 
     public function edit(KegiatanAkademik $kalender): View
     {
-        $roles = Role::where('name', '!=', 'admin')->orderBy('name')->get();
+        $roles = Role::orderBy('name')->get();
         $kalender->load('roles');
         return view('kalender.edit', compact('kalender', 'roles'));
     }
@@ -120,9 +120,10 @@ class KalenderController extends Controller
         $query = KegiatanAkademik::query()
             ->where('tanggal_mulai', '<=', $request->end)
             ->where('tanggal_selesai', '>=', $request->start)
-            ->whereHas('roles', function ($q) use ($userRoleIds) {
-                $q->whereIn('roles.id', $userRoleIds);
-            });
+            // Admin pengelola kalender melihat seluruh agenda
+            ->when(!$user->hasRole('admin'), fn ($q) => $q->whereHas('roles', function ($r) use ($userRoleIds) {
+                $r->whereIn('roles.id', $userRoleIds);
+            }));
         
         $kegiatans = $query->get(['id', 'judul_kegiatan as title', 'tanggal_mulai as start', 'tanggal_selesai as end', 'deskripsi']);
 

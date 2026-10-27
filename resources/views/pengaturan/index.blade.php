@@ -262,7 +262,7 @@
                                 <div class="border p-3 bg-light h-100 text-center">
                                     <label class="form-label small fw-bold uppercase text-dark d-block">1. Logo Inti Kampus</label>
                                     <img src="{{ \App\Models\Pengaturan::logoUrl() }}" alt="Logo" class="my-2 border bg-white p-2" style="height: 75px; object-fit: contain;">
-                                    <input type="file" name="logo_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                                    <input type="file" name="logo_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp">
                                     <small class="text-muted d-block mt-1" style="font-size: 10px;">Logo permanen untuk SIAKAD Internal, Login, & Kop Surat PDF.</small>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@
                                     @else
                                         <div class="my-2 py-4 text-muted small font-monospace">[TIDAK ADA EVENT AKTIF]</div>
                                     @endif
-                                    <input type="file" name="logo_event_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                                    <input type="file" name="logo_event_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp">
                                     <input type="text" name="label_event_publik" class="form-control form-control-sm mt-2" value="{{ $c['label_event_publik'] ?? '' }}" placeholder="Teks: Dies Natalis ke-25...">
                                     @if(!empty($c['logo_event_path']))
                                         <div class="form-check text-start mt-1">
@@ -325,7 +325,7 @@
                                             Ditampilkan secara eksklusif sebagai siluet bayangan monokrom hanya pada Kartu Sambutan Pimpinan dan 1 Kartu Statistik Utama.
                                         </div>
                                     </div>
-                                    <input type="file" name="watermark_card_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                                    <input type="file" name="watermark_card_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp">
                                     @if(!empty($c['watermark_card_path']))
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="checkbox" name="hapus_watermark_card" value="1" id="chkHapusWmCard">
@@ -346,7 +346,7 @@
                                             Ornamen bayangan budaya pada latar belakang header halaman dalam dan footer.
                                         </div>
                                     </div>
-                                    <input type="file" name="watermark_section_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                                    <input type="file" name="watermark_section_file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp">
                                     @if(!empty($c['watermark_section_path']))
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="checkbox" name="hapus_watermark_section" value="1" id="chkHapusWmSec">

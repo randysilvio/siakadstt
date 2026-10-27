@@ -55,7 +55,7 @@
 
                 <div class="p-8 md:p-10">
                     <div class="prose max-w-none text-sm md:text-base">
-                        {!! $pengumuman->konten !!}
+                        {!! \App\Support\HtmlSanitizer::clean($pengumuman->konten) !!}
                     </div>
                 </div>
             </article>

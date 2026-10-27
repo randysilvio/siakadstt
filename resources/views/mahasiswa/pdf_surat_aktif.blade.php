@@ -98,7 +98,7 @@
         </tr>
     </table>
 
-    @include('partials._qr_verifikasi', ['jenisDoc' => 'SURATAKTIF', 'idEntitas' => $mahasiswa->id])
+    @include('partials._qr_verifikasi', ['jenisDoc' => 'SURATAKTIF', 'idEntitas' => $mahasiswa->id, 'customToken' => $tokenDokumen ?? null])
 
 </body>
 </html>

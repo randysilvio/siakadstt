@@ -27,7 +27,7 @@ class MahasiswaImportTemplateExport implements FromCollection, WithHeadings, Wit
         return new Collection([[
             'nim' => '2025001', 'nama_lengkap' => 'Contoh Mahasiswa', 'program_studi' => '1', 'angkatan' => '2025',
             'status_mahasiswa' => 'Aktif', 'dosen_wali' => '5', 'nik' => '9102xxxxxxxxxxxx', 'nisn' => '005xxxxxxx',
-            'jalur_pendaftaran' => 'Mandiri', 'email' => 'mhs@contoh.com', 'password' => '123456', 'no_hp' => '08123xxxx',
+            'jalur_pendaftaran' => 'Mandiri', 'email' => 'mhs@contoh.com', 'password' => '(kosongkan = acak, min. 8 karakter)', 'no_hp' => '08123xxxx',
             'tempat_lahir' => 'Jayapura', 'tanggal_lahir' => '2005-08-17', 'jenis_kelamin' => 'L', 'agama' => 'Kristen Protestan',
             'alamat' => 'Jl. Merdeka No 1', 'dusun' => 'Dusun 1', 'rt' => '01', 'rw' => '02', 'kelurahan' => 'Vim',
             'kecamatan' => 'Abepura', 'kode_pos' => '99xxx', 'jenis_tinggal' => 'Bersama Orang Tua', 'alat_transportasi' => 'Motor',

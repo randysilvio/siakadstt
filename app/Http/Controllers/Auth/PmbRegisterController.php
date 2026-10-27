@@ -122,7 +122,8 @@ class PmbRegisterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memproses pendaftaran: ' . $e->getMessage())->withInput();
+            \Illuminate\Support\Facades\Log::error('Gagal registrasi PMB: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses pendaftaran. Silakan coba lagi atau hubungi panitia PMB.')->withInput();
         }
     }
 }

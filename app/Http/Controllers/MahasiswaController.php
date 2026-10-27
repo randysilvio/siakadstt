@@ -145,7 +145,8 @@ class MahasiswaController extends Controller
             'program_studi_id' => 'required|exists:program_studis,id',
             'tahun_masuk' => 'required|digits:4',
             'nama_ibu_kandung' => 'required|string', 
-            'status_mahasiswa' => 'required|string',
+            // Hanya status baku; status lama non-baku tetap boleh dipertahankan apa adanya
+            'status_mahasiswa' => ['required', 'string', \Illuminate\Validation\Rule::in(array_merge(Mahasiswa::STATUS, [$mahasiswa->status_mahasiswa]))],
             'tanggal_lulus' => 'nullable|date|required_if:status_mahasiswa,Lulus',
             'nik_ayah' => 'nullable|digits:16',
             'nik_ibu' => 'nullable|digits:16',
@@ -291,7 +292,14 @@ class MahasiswaController extends Controller
         $nomorSurat = $request->input('nomor_surat', '........');
         $keperluan = $request->input('keperluan', '........................................................................................................');
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_surat_aktif', compact('mahasiswa', 'periodeAktif', 'nomorSurat', 'keperluan'))
+        $tokenDokumen = \App\Models\DokumenTerbit::terbitkan('SURATAKTIF', $mahasiswa, [
+            'nomor_surat' => (string) $nomorSurat,
+            'semester'    => $periodeAktif->nama_semester,
+            'keperluan'   => (string) $keperluan,
+            'tanggal'     => now()->toDateString(),
+        ])->kode;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('mahasiswa.pdf_surat_aktif', compact('mahasiswa', 'periodeAktif', 'nomorSurat', 'keperluan', 'tokenDokumen'))
                ->setPaper('a4', 'portrait');
         
         return $pdf->stream('Surat_Keterangan_Aktif_' . $mahasiswa->nim . '.pdf');

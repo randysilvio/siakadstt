@@ -91,10 +91,10 @@
                                     <td class="text-center">
                                         @if($kumpul && !empty($kumpul->file_path))
                                             <div class="btn-group rounded-0" role="group">
-                                                <button type="button" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 fw-bold uppercase" onclick="lihatPDF('{{ Storage::url($kumpul->file_path) }}', '{{ addslashes($mhs->nama_lengkap) }}')" style="font-size: 10px;">
+                                                <button type="button" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 fw-bold uppercase" onclick="lihatPDF('{{ route('berkas.unduh', ['jenis' => 'jawaban-tugas', 'id' => $kumpul->id]) }}', '{{ addslashes($mhs->nama_lengkap) }}')" style="font-size: 10px;">
                                                     <i class="bi bi-eye-fill me-1"></i>Lihat
                                                 </button>
-                                                <a href="{{ Storage::url($kumpul->file_path) }}" target="_blank" class="btn btn-sm btn-primary rounded-0 py-1 px-2 fw-bold uppercase" style="font-size: 10px;">
+                                                <a href="{{ route('berkas.unduh', ['jenis' => 'jawaban-tugas', 'id' => $kumpul->id]) }}" target="_blank" class="btn btn-sm btn-primary rounded-0 py-1 px-2 fw-bold uppercase" style="font-size: 10px;">
                                                     <i class="bi bi-download"></i>
                                                 </a>
                                             </div>

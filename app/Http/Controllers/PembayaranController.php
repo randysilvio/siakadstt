@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BerkasPrivat;
 use App\Models\Pembayaran;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
@@ -344,9 +345,7 @@ class PembayaranController extends Controller
     
     public function destroy(Pembayaran $pembayaran): RedirectResponse
     {
-        if ($pembayaran->bukti_bayar && Storage::disk('public')->exists($pembayaran->bukti_bayar)) {
-            Storage::disk('public')->delete($pembayaran->bukti_bayar);
-        }
+        BerkasPrivat::hapus($pembayaran->bukti_bayar);
         $pembayaran->delete();
         return back()->with('success', 'Tagihan berhasil dihapus.');
     }
@@ -392,11 +391,9 @@ class PembayaranController extends Controller
         ]);
 
         if ($request->hasFile('bukti_bayar')) {
-            if ($pembayaran->bukti_bayar && Storage::disk('public')->exists($pembayaran->bukti_bayar)) {
-                Storage::disk('public')->delete($pembayaran->bukti_bayar);
-            }
+            BerkasPrivat::hapus($pembayaran->bukti_bayar);
 
-            $path = $request->file('bukti_bayar')->store('bukti-bayar-spp', 'public');
+            $path = BerkasPrivat::simpan($request->file('bukti_bayar'), 'bukti-bayar-spp');
             $pembayaran->update([
                 'bukti_bayar'   => $path,
                 'status'        => 'menunggu_konfirmasi',

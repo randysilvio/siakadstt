@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BerkasPrivat;
 use App\Models\BimbinganTugasAkhir;
 use App\Models\BimbinganLog;
 use App\Models\Dosen;
@@ -90,6 +91,15 @@ class BimbinganAkademikController extends Controller
             'pembimbing_2_id'  => 'nullable|exists:dosens,id',
         ]);
 
+        // Satu pengajuan aktif per jenis bimbingan; pengajuan baru hanya setelah yang lama selesai.
+        $masihAktif = BimbinganTugasAkhir::where('mahasiswa_id', $user->mahasiswa->id)
+            ->where('jenis_bimbingan', $validated['jenis_bimbingan'])
+            ->where('status', '!=', 'Selesai / Lulus')
+            ->exists();
+        if ($masihAktif) {
+            return back()->withInput()->with('error', 'Anda masih memiliki pengajuan ' . $validated['jenis_bimbingan'] . ' yang aktif. Ajukan perubahan judul melalui pembimbing atau Kaprodi.');
+        }
+
         BimbinganTugasAkhir::create([
             'mahasiswa_id'     => $user->mahasiswa->id,
             'jenis_bimbingan'  => $validated['jenis_bimbingan'],
@@ -135,19 +145,40 @@ class BimbinganAkademikController extends Controller
             'catatan_kaprodi' => 'nullable|string|max:1000',
         ]);
 
-        $bimbingan->update([
-            'judul'           => isset($validated['judul']) ? strip_tags($validated['judul']) : $bimbingan->judul,
-            'pembimbing_1_id' => $validated['pembimbing_1_id'] ?? $bimbingan->pembimbing_1_id,
-            'pembimbing_2_id' => $validated['pembimbing_2_id'] ?? $bimbingan->pembimbing_2_id,
-            'status'          => $validated['status'],
-            'tanggal_sidang'  => $validated['tanggal_sidang'] ?? $bimbingan->tanggal_sidang,
-            'ruang_sidang'    => isset($validated['ruang_sidang']) ? strip_tags($validated['ruang_sidang']) : $bimbingan->ruang_sidang,
-            'nilai_angka'     => $validated['nilai_angka'] ?? $bimbingan->nilai_angka,
-            'nilai_huruf'     => $validated['nilai_huruf'] ?? $bimbingan->nilai_huruf,
-            'catatan_kaprodi' => isset($validated['catatan_kaprodi']) ? strip_tags($validated['catatan_kaprodi']) : null,
-        ]);
+        // Penetapan pembimbing, jadwal sidang, kelulusan & nilai TA adalah wewenang Kaprodi/Admin.
+        // Dosen pembimbing hanya dapat mengubah status proses bimbingan dan judul.
+        $isKaprodiAtauAdmin = $user->hasRole('admin') || ($user->dosen && ProgramStudi::where('id', $bimbingan->mahasiswa->program_studi_id)
+            ->where('kaprodi_dosen_id', $user->dosen->id)->exists());
 
-        return back()->with('success', 'Status dan parameter bimbingan mahasiswa berhasil diperbarui.');
+        if (!$isKaprodiAtauAdmin && $validated['status'] === 'Selesai / Lulus') {
+            return back()->with('error', 'Status SELESAI / LULUS hanya dapat ditetapkan oleh Kaprodi atau Admin.');
+        }
+
+        $data = [
+            'judul'  => isset($validated['judul']) ? strip_tags($validated['judul']) : $bimbingan->judul,
+            'status' => $validated['status'],
+        ];
+
+        if ($isKaprodiAtauAdmin) {
+            $data += [
+                'pembimbing_1_id' => $validated['pembimbing_1_id'] ?? $bimbingan->pembimbing_1_id,
+                'pembimbing_2_id' => $validated['pembimbing_2_id'] ?? $bimbingan->pembimbing_2_id,
+                'tanggal_sidang'  => $validated['tanggal_sidang'] ?? $bimbingan->tanggal_sidang,
+                'ruang_sidang'    => isset($validated['ruang_sidang']) ? strip_tags($validated['ruang_sidang']) : $bimbingan->ruang_sidang,
+                'nilai_angka'     => $validated['nilai_angka'] ?? $bimbingan->nilai_angka,
+                'nilai_huruf'     => $validated['nilai_huruf'] ?? $bimbingan->nilai_huruf,
+                // Catatan lama tidak dihapus bila field tidak dikirim
+                'catatan_kaprodi' => array_key_exists('catatan_kaprodi', $validated) ? ($validated['catatan_kaprodi'] !== null ? strip_tags($validated['catatan_kaprodi']) : null) : $bimbingan->catatan_kaprodi,
+            ];
+        }
+
+        $bimbingan->update($data);
+
+        $pesan = $isKaprodiAtauAdmin
+            ? 'Status dan parameter bimbingan mahasiswa berhasil diperbarui.'
+            : 'Status bimbingan diperbarui. Penetapan pembimbing, sidang, dan nilai dilakukan oleh Kaprodi.';
+
+        return back()->with('success', $pesan);
     }
 
     public function storeLog(Request $request, BimbinganTugasAkhir $bimbingan): RedirectResponse
@@ -165,7 +196,7 @@ class BimbinganAkademikController extends Controller
 
         $filePath = null;
         if ($request->hasFile('file_draf')) {
-            $filePath = $request->file('file_draf')->store('draf-bimbingan', 'public');
+            $filePath = BerkasPrivat::simpan($request->file('file_draf'), 'draf-bimbingan');
         }
 
         $bimbingan->logs()->create([

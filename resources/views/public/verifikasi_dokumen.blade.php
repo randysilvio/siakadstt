@@ -60,6 +60,30 @@
                             <span class="text-[11px] font-mono font-bold text-slate-500 uppercase block mb-1">Keterangan Validasi:</span>
                             <p class="text-xs font-semibold text-slate-800">{{ $dataDokumen['keterangan'] }}</p>
                         </div>
+                        @if(!empty($dataDokumen['rincian']))
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs border border-slate-200">
+                                    <thead class="bg-slate-100 text-slate-600 uppercase">
+                                        <tr>
+                                            <th class="p-2 text-left font-mono">Kode</th>
+                                            <th class="p-2 text-left">Mata Kuliah</th>
+                                            <th class="p-2 text-center">SKS</th>
+                                            <th class="p-2 text-center">{{ ($dataDokumen['jenis_dokumen'] ?? '') === 'KARTU RENCANA STUDI (KRS) AKADEMIK' ? 'Kelas' : 'Nilai' }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($dataDokumen['rincian'] as $baris)
+                                            <tr class="border-t border-slate-100">
+                                                <td class="p-2 font-mono">{{ $baris[0] ?? '-' }}</td>
+                                                <td class="p-2 uppercase">{{ $baris[1] ?? '-' }}</td>
+                                                <td class="p-2 text-center font-mono">{{ $baris[2] ?? '-' }}</td>
+                                                <td class="p-2 text-center font-mono font-bold">{{ $baris[3] ?? '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                         <div class="text-center pt-2">
                             <span class="text-[11px] font-mono text-slate-400">SIGNATURE HASH: {{ $dataDokumen['kode_hash'] }}</span>
                         </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Support\BerkasPrivat;
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiPegawai;
 use App\Models\LokasiKerja;
@@ -97,7 +98,7 @@ class AbsensiController extends Controller
             ], 422);
         }
 
-        $path = $request->file('foto_check_in')->store('foto-absensi', 'public');
+        $path = BerkasPrivat::simpan($request->file('foto_check_in'), 'foto-absensi');
 
         $absensi = AbsensiPegawai::updateOrCreate(
             ['user_id' => $user->id, 'tanggal_absensi' => $today],
@@ -161,7 +162,7 @@ class AbsensiController extends Controller
             ], 422);
         }
 
-        $path = $request->file('foto_check_out')->store('foto-absensi', 'public');
+        $path = BerkasPrivat::simpan($request->file('foto_check_out'), 'foto-absensi');
 
         $absensiHariIni->update([
             'waktu_check_out' => now(),

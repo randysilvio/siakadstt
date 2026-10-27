@@ -91,9 +91,20 @@ class PmbAdminController extends Controller
             return back()->with('error', 'Biodata belum lengkap. Camaba wajib melengkapi biodata terlebih dahulu.');
         }
 
+        // Hanya pendaftar yang biodatanya sudah diserahkan & menunggu verifikasi yang dapat diluluskan.
+        if ($camaba->status_pendaftaran === 'tidak_lulus') {
+            return back()->with('error', 'Pendaftar ini sudah dinyatakan TIDAK LULUS. Ubah keputusan seleksi tidak dapat dilakukan dari tombol kelulusan.');
+        }
+        if ($camaba->status_pendaftaran !== 'menunggu_verifikasi') {
+            return back()->with('error', 'Pendaftar belum menyerahkan biodata untuk diverifikasi.');
+        }
+
         DB::beginTransaction();
         try {
             // 1. Generate NIM Otomatis dengan proteksi anti-bentrok (Lock & Loop Check)
+            // Kunci baris prodi sebagai mutex agar dua admin yang meluluskan bersamaan tidak mendapat NIM yang sama
+            DB::table('program_studis')->where('id', $camaba->pilihan_prodi_1_id)->lockForUpdate()->first();
+
             $tahunMasuk = date('Y');
             $kodeProdi = $camaba->prodi1->kode_prodi ?: str_pad((string) $camaba->pilihan_prodi_1_id, 2, '0', STR_PAD_LEFT);
             $prefixNim = $tahunMasuk . $kodeProdi;
@@ -114,7 +125,6 @@ class PmbAdminController extends Controller
                 $urutan++;
             } while (Mahasiswa::where('nim', $nimBaru)->exists());
 
-            $nikDummy = $camaba->nik ?? (date('YmdHis') . str_pad((string) ($camaba->id % 100), 2, '0', STR_PAD_LEFT));
 
             // 2. Insert ke Tabel Mahasiswas
             // [PERBAIKAN BUG FASE 4]: Menggunakan 'nomor_telepon' & menyertakan 'nisn' agar data tidak hilang
@@ -130,7 +140,8 @@ class PmbAdminController extends Controller
                 'nomor_telepon' => $camaba->no_hp ?? '-',
                 'nisn' => $camaba->nisn,
                 'alamat' => $camaba->alamat ?? 'Belum Diisi',
-                'nik' => $nikDummy,
+                // NIK tidak lagi diisi angka buatan: dibiarkan kosong agar terdeteksi wajib dilengkapi sebelum sinkron Feeder.
+                'nik' => null,
                 'kewarganegaraan' => 'WNI',
                 'nama_ibu_kandung' => 'Belum Diisi',
                 'jalur_pendaftaran' => 'Mandiri (PMB)',
@@ -163,7 +174,7 @@ class PmbAdminController extends Controller
             DB::rollBack();
             Log::error('Gagal Approve PMB: ' . $e->getMessage()); 
             
-            return back()->with('error', 'Gagal memproses kelulusan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memproses kelulusan. Detail kesalahan telah dicatat di log sistem.');
         }
     }
 

@@ -22,6 +22,12 @@
             <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border rounded-0 shadow-sm mb-4 p-3 uppercase small fw-bold">
+            {{ session('error') }}
+            <button type="button" class="btn-close rounded-0" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     @if(!Auth::user()->hasRole('mahasiswa'))
         <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-4 bg-light">

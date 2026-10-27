@@ -55,7 +55,13 @@ class ChatbotService
             $contextData .= "- Topik/Kata Kunci [" . $data->keywords . "]:\n  " . $data->jawaban . "\n\n";
         }
 
-        // 4. Periksa API Key Gemini; jika kosong, gunakan Mesin Pencari Lokal (Smart Local Fallback)
+        // 4. Pertanyaan tentang data pribadi (IPK, KRS, tagihan, nilai) dijawab langsung oleh server dari database.
+        //    Data pribadi mahasiswa TIDAK dikirim ke layanan AI pihak ketiga (prinsip minimisasi data / UU PDP).
+        if (Auth::check() && $this->pertanyaanPribadi($userMessage)) {
+            return "Shalom! Berikut ringkasan data Anda di SIAKAD saat ini:\n\n" . $userContext;
+        }
+
+        // 5. Periksa API Key Gemini; jika kosong, gunakan Mesin Pencari Lokal (Smart Local Fallback)
         $apiKey = config('services.gemini.api_key');
         if (empty($apiKey)) {
             return $this->getLocalFallbackResponse($userMessage, $knowledgeBase, $singkatanKampus, $bankKampus, $userContext);
@@ -76,8 +82,8 @@ class ChatbotService
             "- {$infoPmb}\n" .
             "- Rekening Resmi Kampus: {$bankKampus}\n" .
             "- Kontak Resmi BAAK/Admisi: WhatsApp {$kontakWa} | Email: {$emailKampus}\n\n" .
-            "=== PROFIL PENGGUNA YANG SEDANG BERTANYA SAAT INI ===\n" .
-            "{$userContext}\n\n" .
+            "=== PENGGUNA YANG SEDANG BERTANYA ===\n" .
+            "- Peran akun: {$this->peranPengguna()}\n\n" .
             "=== ATURAN BISNIS & SOP 22 MODUL SIAKAD {$singkatanKampus} ===\n" .
             "1. MODUL PMB ONLINE: Calon Mahasiswa Baru (Camaba) mendaftar di menu 'Daftar PMB', login, lalu wajib mengunggah bukti bayar tagihan 'formulir_pmb'. Setelah diverifikasi LUNAS oleh Admin Keuangan, menu 'Biodata PMB' & upload berkas (Ijazah, KK, Pas Foto) terbuka, lanjut cetak 'Kartu Peserta Ujian (PDF)'. Saat dinyatakan LULUS oleh Admin, akun Camaba otomatis berubah menjadi Mahasiswa Aktif lengkap dengan NIM baru.\n" .
             "2. MODUL KRS & KELAS PARALEL (ROMBEL A/B): Mahasiswa mengisi KRS sesuai kuota SKS berdasarkan IPK (IPK >= 3.00 max 24 SKS; 2.50-2.99 max 21 SKS; 2.00-2.49 max 18 SKS; < 2.00 max 15 SKS; Mahasiswa Baru otomatis 24 SKS). Mahasiswa memilih Kelas Paralel (Kelas A/B) selama kursi kuota masih tersedia, lulus MK Prasyarat, dan tidak bentrok jadwal. Syarat buka KRS: Tagihan harus LUNAS atau mendapat status 'DISPENSASI CICILAN' dari Bagian Keuangan, serta sudah mengisi Evaluasi Dosen (EDOM).\n" .
@@ -91,16 +97,18 @@ class ChatbotService
             "=== BASIS PENGETAHUAN TAMBAHAN DARI DATABASE ===\n" .
             $contextData . "\n" .
             "=== INSTRUKSI MENJAWAB ===\n" .
-            "- Jawablah secara ramah, ringkas, rapi (gunakan poin/bullet atau penomoran jika menjelaskan langkah-langkah), dan sebut nama pengguna jika ia sedang login.\n" .
-            "- Jika pengguna yang login bertanya tentang status dirinya (misal: 'KRS saya sudah disetujui belum?', 'Berapa IPK saya?', 'Apakah saya ada tunggakan?'), jawab langsung berdasarkan data pada bagian PROFIL PENGGUNA YANG SEDANG BERTANYA SAAT INI.\n" .
+            "- Jawablah secara ramah, ringkas, rapi (gunakan poin/bullet atau penomoran jika menjelaskan langkah-langkah).\n" .
+            "- Kamu TIDAK memiliki akses ke data pribadi pengguna. Jika ditanya status dirinya (IPK, KRS, tagihan, nilai), sarankan mengetik 'status saya' atau membuka menu terkait di SIAKAD.\n" .
             "- DILARANG KERAS mengarang nominal biaya atau aturan di luar konteks resmi di atas. Jika tidak tahu, arahkan dengan sopan ke BAAK atau Bagian Keuangan.";
 
         $model = config('services.gemini.model', 'gemini-2.5-flash');
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
         try {
+            // API key dikirim lewat header (bukan query string) agar tidak tercatat di log URL/proxy
             $response = Http::withHeaders([
-                'Content-Type' => 'application/json'
+                'Content-Type'   => 'application/json',
+                'x-goog-api-key' => $apiKey,
             ])->timeout(18)
               ->retry(2, 1500, function ($exception) {
                   return $exception->getCode() === 503 || $exception->getCode() === 429;
@@ -125,7 +133,7 @@ class ChatbotService
                 }
             }
 
-            Log::warning('Gemini API Non-200 Response: ' . $response->status() . ' - ' . $response->body());
+            Log::warning('Gemini API Non-200 Response: ' . $response->status());
             return $this->getLocalFallbackResponse($userMessage, $knowledgeBase, $singkatanKampus, $bankKampus, $userContext);
 
         } catch (\Exception $e) {
@@ -221,7 +229,7 @@ class ChatbotService
             return "Shalom! Berikut informasi resmi terkait pertanyaan Anda:\n\n" . $bestMatch;
         }
 
-        if (str_contains($pesanLower, 'status saya') || str_contains($pesanLower, 'ipk saya') || str_contains($pesanLower, 'krs saya') || str_contains($pesanLower, 'tagihan saya')) {
+        if ($this->pertanyaanPribadi($userMessage)) {
             return "Shalom! Berikut adalah ringkasan status akademik Anda saat ini di sistem:\n\n" . $userContext;
         }
 
@@ -232,5 +240,24 @@ class ChatbotService
              . "- **Pembayaran Kuliah / PMB:** Transfer ke **{$bankKampus}** lalu unggah bukti bayar di menu *Pembayaran*.\n"
              . "- ** Kelas Daring & Tugas:** Buka menu *Verum*.\n\n"
              . "Silakan ketik kata kunci spesifik seperti **\"cara isi krs\"**, **\"edom\"**, **\"skripsi\"**, **\"surat aktif\"**, atau **\"cara bayar spp\"**.";
+    }
+
+    /**
+     * Mendeteksi pertanyaan tentang data pribadi pengguna (dijawab lokal, tidak dikirim ke API AI).
+     */
+    private function pertanyaanPribadi(string $pesan): bool
+    {
+        $p = mb_strtolower($pesan);
+        $kataGanti = (bool) preg_match('/\b(saya|aku|punyaku|milikku)\b|\b(ipk|krs|khs|nilai|tagihan|status)ku\b/u', $p);
+        $topik = (bool) preg_match('/\b(ipk|ips|krs|khs|nilai|tagihan|tunggakan|bayar|pembayaran|status|nim|sks|edom|dosen wali|tutor)\b/u', $p);
+        return ($kataGanti && $topik) || str_contains($p, 'status saya');
+    }
+
+    private function peranPengguna(): string
+    {
+        if (!Auth::check()) {
+            return 'Pengunjung publik (belum login)';
+        }
+        return Auth::user()->roles->pluck('display_name')->implode(', ') ?: 'Pengguna';
     }
 }

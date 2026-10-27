@@ -55,7 +55,7 @@
                 @if($tagihan->bukti_bayar)
                     <div class="mb-4 p-3 border bg-light text-center">
                         <span class="small font-monospace text-muted uppercase d-block mb-2">BUKTI TERAKHIR YANG DIUNGGAH:</span>
-                        <img src="{{ Storage::url($tagihan->bukti_bayar) }}" class="img-fluid border d-block mx-auto" style="max-height: 180px; object-fit: cover;" alt="Bukti Transfer">
+                        <img src="{{ route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $tagihan->id]) }}" class="img-fluid border d-block mx-auto" style="max-height: 180px; object-fit: cover;" alt="Bukti Transfer">
                     </div>
                 @endif
 

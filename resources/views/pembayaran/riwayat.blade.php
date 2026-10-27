@@ -98,7 +98,7 @@
                                         </form>
                                         @if($p->bukti_bayar)
                                             <div class="mt-1 text-center">
-                                                <a href="{{ asset('storage/' . $p->bukti_bayar) }}" target="_blank" class="small font-monospace text-dark text-decoration-underline" style="font-size: 10px;">
+                                                <a href="{{ route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $p->id]) }}" target="_blank" class="small font-monospace text-dark text-decoration-underline" style="font-size: 10px;">
                                                     Lihat Bukti Terkirim
                                                 </a>
                                             </div>

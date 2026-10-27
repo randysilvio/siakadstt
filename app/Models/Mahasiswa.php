@@ -13,6 +13,21 @@ class Mahasiswa extends Model
 {
     use HasFactory;
 
+    /** Status akademik baku (dipakai validasi form & impor). */
+    public const STATUS = ['Aktif', 'Cuti', 'Lulus', 'Drop Out', 'Non-Aktif', 'Keluar'];
+
+    /** Mengembalikan status baku yang cocok (tanpa membedakan huruf besar/kecil), atau null. */
+    public static function normalisasiStatus(?string $status): ?string
+    {
+        $cari = mb_strtolower(trim((string) $status));
+        foreach (self::STATUS as $baku) {
+            if (mb_strtolower($baku) === $cari) {
+                return $baku;
+            }
+        }
+        return null;
+    }
+
     protected $fillable = [
         'nim', 'nama_lengkap', 'program_studi_id', 'user_id', 'dosen_wali_id',
         'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama', 'alamat',

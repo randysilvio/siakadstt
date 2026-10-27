@@ -93,18 +93,24 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/global-search', [GlobalSearchController::class, 'search'])->name('global.search');
 
-    Route::get('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
+    Route::post('/impersonate/stop', [UserController::class, 'stopImpersonate'])->name('impersonate.stop');
     Route::get('/surat-keputusan/{surat_keputusan}/download-pdf', [\App\Http\Controllers\SuratKeputusanController::class, 'download'])->name('surat-keputusan.download');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
-    Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->name('chatbot.handle');
+    Route::post('/chatbot-handle', [ChatbotController::class, 'handle'])->middleware('throttle:chatbot')->name('chatbot.handle');
 
     Route::post('/simpan-fcm-token', [ProfileController::class, 'simpanFcmToken'])->name('fcmToken.simpan');
 
     Route::get('/pengumuman-internal/{pengumuman}', [PengumumanController::class, 'bacaInternal'])->name('pengumuman.internal.show');
+
+    // Berkas sensitif (bukti bayar, dokumen PMB, draf skripsi, jawaban tugas, foto absensi) dengan cek hak akses
+    Route::get('/berkas/{jenis}/{id}/{sisi?}', [\App\Http\Controllers\BerkasController::class, 'unduh'])
+        ->whereNumber('id')
+        ->whereIn('sisi', ['masuk', 'pulang'])
+        ->name('berkas.unduh');
 
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
     Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'tandaiDibaca'])->name('notifikasi.baca');
@@ -319,7 +325,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/user/{id}/impersonate', [UserController::class, 'impersonate'])
+        Route::post('/user/{id}/impersonate', [UserController::class, 'impersonate'])
              ->middleware(\App\Http\Middleware\PreventNestedImpersonation::class)
              ->name('user.impersonate');
 

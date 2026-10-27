@@ -14,9 +14,12 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use Carbon\Carbon;
+use App\Imports\Concerns\ResolveReferensiImpor;
 
 class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmptyRows
 {
+    use ResolveReferensiImpor;
+
     public function headingRow(): int
     {
         // [PERBAIKAN BUG FASE 5]: Membaca judul kolom dari baris ke-2 (baris 1 adalah banner peringatan template)
@@ -25,43 +28,38 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
     public function model(array $row)
     {
+        $this->majukanBaris();
+
         if (empty($row['nim']) || empty($row['nama_lengkap'])) {
             return null;
         }
 
         $nim = ltrim(trim((string) $row['nim']), "'");
 
-        $role = Role::where('name', 'LIKE', 'mahasiswa')
-                    ->orWhere('name', 'LIKE', 'student')
-                    ->first();
+        $role = Role::where('name', 'mahasiswa')->first();
 
-        $prodiId = null;
-        $inputProdi = !empty($row['program_studi']) ? $row['program_studi'] : (!empty($row['program_studi_id']) ? $row['program_studi_id'] : null);
-
-        if (!empty($inputProdi)) {
-            if (is_numeric($inputProdi)) {
-                $prodiId = (int) $inputProdi;
-            } else {
-                $prodi = ProgramStudi::where('nama_prodi', 'LIKE', '%' . trim($inputProdi) . '%')->first();
-                $prodiId = $prodi ? $prodi->id : null;
-            }
+        // Prodi WAJIB cocok persis (ID / kode / nama). Tidak ada lagi fallback ke prodi pertama.
+        $inputProdi = !empty($row['program_studi']) ? $row['program_studi'] : ($row['program_studi_id'] ?? null);
+        $prodi = $this->cariProdi($inputProdi);
+        if (!$prodi) {
+            $this->gagal("program studi '" . trim((string) $inputProdi) . "' tidak ditemukan. Gunakan kode atau nama prodi persis seperti di menu Program Studi.");
         }
-
-        if (empty($prodiId)) {
-            $firstProdi = ProgramStudi::first();
-            $prodiId = $firstProdi ? $firstProdi->id : 1; 
-        }
+        $prodiId = $prodi->id;
 
         $dosenWaliId = null;
-        $inputDosen = !empty($row['dosen_wali']) ? $row['dosen_wali'] : (!empty($row['dosen_wali_id']) ? $row['dosen_wali_id'] : null);
-
+        $inputDosen = !empty($row['dosen_wali']) ? $row['dosen_wali'] : ($row['dosen_wali_id'] ?? null);
         if (!empty($inputDosen)) {
-            if (is_numeric($inputDosen)) {
-                $dosenWaliId = (int) $inputDosen;
-            } else {
-                $dosen = Dosen::where('nama_lengkap', 'LIKE', '%' . trim($inputDosen) . '%')->first();
-                $dosenWaliId = $dosen ? $dosen->id : null;
+            $dosen = $this->cariDosen($inputDosen);
+            if (!$dosen) {
+                $this->gagal("dosen wali '" . trim((string) $inputDosen) . "' tidak ditemukan. Gunakan NIDN atau nama lengkap persis.");
             }
+            $dosenWaliId = $dosen->id;
+        }
+
+        $statusMahasiswa = 'Aktif';
+        if (!empty($row['status_mahasiswa'])) {
+            $statusMahasiswa = Mahasiswa::normalisasiStatus($row['status_mahasiswa'])
+                ?? $this->gagal("status mahasiswa '" . trim((string) $row['status_mahasiswa']) . "' tidak dikenal. Pilihan: " . implode(', ', Mahasiswa::STATUS) . '.');
         }
 
         $tanggalLahir = null;
@@ -79,25 +77,25 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
 
         $email = !empty($row['email']) ? trim($row['email']) : $nim . '@student.sttgpipapua.ac.id';
 
-        // [PERBAIKAN KEAMANAN FASE 5]: Cegah penimpaan akun Admin atau Dosen jika email bentrok
+        // Akun staf/dosen/admin tidak boleh ditimpa oleh baris impor mahasiswa yang emailnya bentrok
         $existingUser = User::where('email', $email)->first();
-        if ($existingUser && $existingUser->hasRole(['admin', 'dosen'])) {
-            return null;
+        if ($existingUser && !$this->akunBolehDipakai($existingUser, ['mahasiswa'])) {
+            $this->gagal("email {$email} sudah dipakai akun non-mahasiswa.");
         }
 
         if ($existingUser) {
             $user = $existingUser;
             $user->name = $row['nama_lengkap'];
             if (!empty($row['password'])) {
-                $user->password = Hash::make((string) $row['password']);
+                $user->password = Hash::make($this->passwordImpor($row['password']));
             }
             $user->save();
         } else {
-            $password = !empty($row['password']) ? Hash::make((string) $row['password']) : Hash::make($nim);
+            // Password default tidak lagi = NIM (data publik). Kosong => acak; mahasiswa memakai "Lupa Password".
             $user = User::create([
                 'name' => $row['nama_lengkap'],
                 'email' => $email,
-                'password' => $password,
+                'password' => Hash::make($this->passwordImpor($row['password'] ?? '')),
             ]);
         }
 
@@ -113,7 +111,7 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
                 'program_studi_id'  => $prodiId, 
                 'dosen_wali_id'     => $dosenWaliId,
                 'tahun_masuk'       => !empty($row['angkatan']) ? trim((string) $row['angkatan']) : (!empty($row['tahun_masuk']) ? trim((string) $row['tahun_masuk']) : date('Y')),
-                'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? trim($row['status_mahasiswa']) : 'Aktif',
+                'status_mahasiswa'  => $statusMahasiswa,
                 'nik'               => !empty($row['nik']) ? ltrim(trim((string) $row['nik']), "'") : null,
                 'nisn'              => !empty($row['nisn']) ? ltrim(trim((string) $row['nisn']), "'") : null,
                 'jalur_pendaftaran' => !empty($row['jalur_pendaftaran']) ? trim($row['jalur_pendaftaran']) : 'Mandiri',

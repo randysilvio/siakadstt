@@ -29,10 +29,10 @@ class FeederExportController extends Controller
 
         // Audit kesiapan data standar PDDIKTI
         $totalMhsAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
-        $mhsTanpaNik = Mahasiswa::where('status_mahasiswa', 'Aktif')
-            ->where(function ($q) {
-                $q->whereNull('nik')->orWhere('nik', '')->orWhereRaw('LENGTH(nik) < 16');
-            })->count();
+        // NIK valid: 16 digit angka dengan kode provinsi Dukcapil (menangkap juga NIK buatan dari PMB lama)
+        $mhsTanpaNik = Mahasiswa::where('status_mahasiswa', 'Aktif')->pluck('nik')
+            ->filter(fn ($nik) => !self::nikValid($nik))
+            ->count();
 
         $mhsTanpaIbu = Mahasiswa::where('status_mahasiswa', 'Aktif')
             ->where(function ($q) {
@@ -88,13 +88,13 @@ class FeederExportController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
 
             if ($kategori === 'mahasiswa') {
-                fputcsv($out, [
+                fputcsv($out, self::amankanCsv([
                     'NIM', 'Nama Mahasiswa', 'Tempat Lahir', 'Tanggal Lahir', 'Jenis Kelamin',
                     'NIK', 'NISN', 'Agama', 'Nama Ibu Kandung', 'Alamat', 'RT', 'RW',
                     'Dusun', 'Kelurahan', 'Kecamatan', 'Kode Pos', 'Jenis Tinggal',
                     'Alat Transportasi', 'No HP', 'Email', 'Kode Prodi', 'Nama Prodi',
                     'Tahun Masuk', 'Semester Mulai', 'Status Mahasiswa'
-                ], ';');
+                ]), ';');
 
                 $query = Mahasiswa::with(['programStudi', 'user'])->orderBy('nim');
                 if ($prodiId) {
@@ -102,7 +102,7 @@ class FeederExportController extends Controller
                 }
 
                 foreach ($query->cursor() as $mhs) {
-                    fputcsv($out, [
+                    fputcsv($out, self::amankanCsv([
                         $mhs->nim,
                         $mhs->nama_lengkap,
                         $mhs->tempat_lahir ?? '',
@@ -128,13 +128,13 @@ class FeederExportController extends Controller
                         $mhs->tahun_masuk,
                         ($mhs->tahun_masuk ?: date('Y')) . '1',
                         $mhs->status_mahasiswa,
-                    ], ';');
+                    ]), ';');
                 }
             } elseif ($kategori === 'kelas_kuliah') {
-                fputcsv($out, [
+                fputcsv($out, self::amankanCsv([
                     'Semester', 'Kode Mata Kuliah', 'Nama Mata Kuliah', 'Nama Kelas',
                     'Bobot SKS', 'Kapasitas Kuota', 'Ruang Kuliah', 'Dosen Pengampu Utama'
-                ], ';');
+                ]), ';');
 
                 $matkuls = MataKuliah::with(['jadwals', 'dosen', 'kurikulum.programStudi'])
                     ->orderBy('semester')
@@ -144,7 +144,7 @@ class FeederExportController extends Controller
                 foreach ($matkuls as $mk) {
                     if ($mk->jadwals->isNotEmpty()) {
                         foreach ($mk->jadwals as $j) {
-                            fputcsv($out, [
+                            fputcsv($out, self::amankanCsv([
                                 $kodeSemester,
                                 $mk->kode_mk,
                                 $mk->nama_mk,
@@ -153,10 +153,10 @@ class FeederExportController extends Controller
                                 $j->kuota ?? 40,
                                 $j->ruang ?? '-',
                                 optional($mk->dosen)->nama_lengkap ?? '-',
-                            ], ';');
+                            ]), ';');
                         }
                     } else {
-                        fputcsv($out, [
+                        fputcsv($out, self::amankanCsv([
                             $kodeSemester,
                             $mk->kode_mk,
                             $mk->nama_mk,
@@ -165,20 +165,26 @@ class FeederExportController extends Controller
                             40,
                             '-',
                             optional($mk->dosen)->nama_lengkap ?? '-',
-                        ], ';');
+                        ]), ';');
                     }
                 }
             } elseif ($kategori === 'krs_nilai') {
-                fputcsv($out, [
+                fputcsv($out, self::amankanCsv([
                     'NIM', 'Nama Mahasiswa', 'Semester', 'Kode Mata Kuliah', 'Nama Mata Kuliah',
                     'Nama Kelas', 'Bobot SKS', 'Nilai Angka', 'Nilai Huruf', 'Nilai Indeks', 'Kode Prodi'
-                ], ';');
+                ]), ';');
 
                 $bobotMap = ['A' => 4.00, 'B' => 3.00, 'C' => 2.00, 'D' => 1.00, 'E' => 0.00];
 
                 $rows = DB::table('mahasiswa_mata_kuliah as mmk')
                     ->join('mahasiswas as m', 'm.id', '=', 'mmk.mahasiswa_id')
                     ->join('mata_kuliahs as mk', 'mk.id', '=', 'mmk.mata_kuliah_id')
+                    // Hanya KRS yang disetujui pada semester tersebut yang dilaporkan ke PDDIKTI
+                    ->join('krs_persetujuans as kp', function ($j) {
+                        $j->on('kp.mahasiswa_id', '=', 'mmk.mahasiswa_id')
+                          ->on('kp.tahun_akademik_id', '=', 'mmk.tahun_akademik_id')
+                          ->where('kp.status', '=', 'Disetujui');
+                    })
                     ->leftJoin('program_studis as ps', 'ps.id', '=', 'm.program_studi_id')
                     ->when($ta, fn($q) => $q->where('mmk.tahun_akademik_id', $ta->id))
                     ->when($prodiId, fn($q) => $q->where('m.program_studi_id', $prodiId))
@@ -200,7 +206,7 @@ class FeederExportController extends Controller
                 foreach ($rows as $r) {
                     $huruf = strtoupper(trim((string) $r->nilai));
                     $indeks = $bobotMap[$huruf] ?? '';
-                    fputcsv($out, [
+                    fputcsv($out, self::amankanCsv([
                         $r->nim,
                         $r->nama_lengkap,
                         $kodeSemester,
@@ -212,13 +218,13 @@ class FeederExportController extends Controller
                         $huruf,
                         $indeks !== '' ? number_format((float) $indeks, 2, '.', '') : '',
                         $r->kode_prodi ?? '',
-                    ], ';');
+                    ]), ';');
                 }
             } elseif ($kategori === 'akm') {
-                fputcsv($out, [
+                fputcsv($out, self::amankanCsv([
                     'NIM', 'Nama Mahasiswa', 'Semester', 'Status Mahasiswa (A/C/L/N)',
                     'IPS', 'IPK', 'SKS Semester', 'Total SKS Kumulatif', 'Kode Prodi'
-                ], ';');
+                ]), ';');
 
                 $query = Mahasiswa::with(['programStudi', 'mataKuliahs'])->orderBy('nim');
                 if ($prodiId) {
@@ -239,7 +245,7 @@ class FeederExportController extends Controller
                     $totalSksKumulatif = $mhs->totalSksLulus();
                     $kodeSt = $statusKodeMap[$mhs->status_mahasiswa] ?? 'A';
 
-                    fputcsv($out, [
+                    fputcsv($out, self::amankanCsv([
                         $mhs->nim,
                         $mhs->nama_lengkap,
                         $kodeSemester,
@@ -249,13 +255,13 @@ class FeederExportController extends Controller
                         $ipsData['total_sks'],
                         $totalSksKumulatif,
                         optional($mhs->programStudi)->kode_prodi ?? '',
-                    ], ';');
+                    ]), ';');
                 }
             } elseif ($kategori === 'ajar_dosen') {
-                fputcsv($out, [
+                fputcsv($out, self::amankanCsv([
                     'NIDN / NUPTK', 'Nama Dosen', 'Semester', 'Kode Mata Kuliah',
                     'Nama Mata Kuliah', 'Nama Kelas', 'Beban SKS', 'Rencana Tatap Muka', 'Realisasi Tatap Muka'
-                ], ';');
+                ]), ';');
 
                 $matkuls = MataKuliah::with(['dosen', 'teamDosens', 'jadwals'])
                     ->orderBy('kode_mk')
@@ -273,7 +279,7 @@ class FeederExportController extends Controller
 
                     foreach ($kelasList as $namaKls) {
                         foreach ($pengampus as $dsn) {
-                            fputcsv($out, [
+                            fputcsv($out, self::amankanCsv([
                                 $dsn->nidn ?? '',
                                 $dsn->nama_lengkap ?? '',
                                 $kodeSemester,
@@ -283,7 +289,7 @@ class FeederExportController extends Controller
                                 number_format($sksPerDosen, 2, '.', ''),
                                 16,
                                 16,
-                            ], ';');
+                            ]), ';');
                         }
                     }
                 }
@@ -354,5 +360,29 @@ class FeederExportController extends Controller
         }, $filename, [
             'Content-Type' => 'application/sql',
         ]);
+    }
+
+    /**
+     * Mencegah CSV/Formula injection saat file dibuka di Excel: sel teks yang diawali = + - @ diberi apostrof.
+     */
+    private static function amankanCsv(array $baris): array
+    {
+        return array_map(function ($nilai) {
+            if (is_string($nilai) && $nilai !== '' && in_array($nilai[0], ['=', '+', '-', '@', "\t", "\r"], true) && !is_numeric($nilai)) {
+                return "'" . $nilai;
+            }
+            return $nilai;
+        }, $baris);
+    }
+
+    public static function nikValid($nik): bool
+    {
+        $nik = trim((string) $nik);
+        if (!preg_match('/^\d{16}$/', $nik)) {
+            return false;
+        }
+        // Kode provinsi Dukcapil yang berlaku (termasuk provinsi baru di Tanah Papua 93–96)
+        $kodeProvinsi = array_merge(range(11, 19), [21], range(31, 36), range(51, 53), range(61, 65), range(71, 76), [81, 82], range(91, 96));
+        return in_array((int) substr($nik, 0, 2), $kodeProvinsi, true);
     }
 }

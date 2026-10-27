@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BerkasPrivat;
 use App\Models\VerumKelas;
 use App\Models\VerumTugas;
 use App\Models\VerumPengumpulan;
@@ -52,9 +53,7 @@ class VerumTugasController extends Controller
         }
 
         foreach ($verum_tuga->pengumpulan as $kumpul) {
-            if ($kumpul->file_path && Storage::disk('public')->exists($kumpul->file_path)) {
-                Storage::disk('public')->delete($kumpul->file_path);
-            }
+            BerkasPrivat::hapus($kumpul->file_path);
         }
         
         $verum_tuga->delete();
@@ -166,11 +165,11 @@ class VerumTugasController extends Controller
             ->where('mahasiswa_id', $mahasiswa->id)
             ->first();
 
-        if ($existing && $existing->file_path && Storage::disk('public')->exists($existing->file_path)) {
-            Storage::disk('public')->delete($existing->file_path);
+        if ($existing) {
+            BerkasPrivat::hapus($existing->file_path);
         }
 
-        $filePath = $request->file('file_jawaban')->store('jawaban_tugas', 'public');
+        $filePath = BerkasPrivat::simpan($request->file('file_jawaban'), 'jawaban_tugas');
 
         VerumPengumpulan::updateOrCreate(
             [

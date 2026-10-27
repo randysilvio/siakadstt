@@ -113,6 +113,6 @@
         </tr>
     </table>
 
-    @include('partials._qr_verifikasi', ['jenisDoc' => 'KRS', 'idEntitas' => $mahasiswa->id])
+    @include('partials._qr_verifikasi', ['jenisDoc' => 'KRS', 'idEntitas' => $mahasiswa->id, 'customToken' => $tokenDokumen ?? null])
 </body>
 </html>

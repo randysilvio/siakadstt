@@ -98,9 +98,12 @@
                                 <td class="text-center">
                                     <div class="btn-group rounded-0" role="group">
                                         @if($user->id !== Auth::id() && !$user->hasRole('admin'))
-                                            <a href="{{ route('admin.user.impersonate', $user->id) }}" class="btn btn-sm btn-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Masuk sebagai user ini" onclick="return confirm('Sistem akan melakukan otentikasi menyamar sebagai {{ $user->name }}. Lanjutkan?');">
-                                                <i class="bi bi-box-arrow-in-right me-1"></i> Login
-                                            </a>
+                                            <form action="{{ route('admin.user.impersonate', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Sistem akan melakukan otentikasi menyamar sebagai {{ addslashes($user->name) }}. Lanjutkan?');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Masuk sebagai user ini">
+                                                    <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                                                </button>
+                                            </form>
                                         @endif
 
                                         <a href="{{ route('admin.user.edit', $user->id) }}" class="btn btn-sm btn-outline-dark rounded-0 py-1 px-2 uppercase fw-bold" style="font-size: 10px;" title="Konfigurasi Hak Akses">

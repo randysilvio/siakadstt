@@ -27,7 +27,7 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
                 'nidn' => '0012345678',
                 'nama_lengkap' => 'Dr. Contoh Dosen, M.Th.',
                 'email' => 'dosen@contoh.com',
-                'password' => '123456',
+                'password' => '(kosongkan = acak, min. 8 karakter)',
                 'program_studi' => 'Teologi', // <-- Kolom baru di template
                 'nik' => '9102xxxxxxxxxxxx',
                 'jenis_kelamin' => 'L',

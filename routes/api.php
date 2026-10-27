@@ -36,7 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
         } elseif ($user->hasRole('dosen')) {
             $roleName = 'dosen';
             $user->load('dosen');
-        } elseif ($user->hasRole('pegawai') || $user->hasRole('admin')) {
+        } elseif ($user->tendik || $user->hasRole(['admin', 'keuangan', 'pustakawan', 'administrasi_umum', 'penjaminan_mutu', 'rektorat'])) {
+            // Tidak ada role bernama 'pegawai'; aplikasi mobile memakai label ini untuk staf/tendik (fitur absensi)
             $roleName = 'pegawai'; 
         } else {
             $roleName = $user->roles->first() ? $user->roles->first()->name : 'umum';

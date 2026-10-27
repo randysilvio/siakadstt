@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BerkasPrivat;
 use App\Models\SuratKeputusan;
 use App\Models\Dosen;
 use Illuminate\Http\Request;
@@ -208,10 +209,8 @@ class SuratKeputusanController extends Controller
         ]);
 
         if ($request->hasFile('file_pdf')) {
-            if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
-                Storage::disk('public')->delete($suratKeputusan->file_path);
-            }
-            $path = $request->file('file_pdf')->store('dokumen_sk', 'public');
+            BerkasPrivat::hapus($suratKeputusan->file_path);
+            $path = BerkasPrivat::simpan($request->file('file_pdf'), 'dokumen_sk');
             $suratKeputusan->update([
                 'file_path' => $path,
                 'status'    => 'Selesai'
@@ -237,9 +236,9 @@ class SuratKeputusanController extends Controller
             abort(403, 'Akses ditolak. Anda tidak memiliki otorisasi untuk mengunduh dokumen Surat Keputusan ini.');
         }
 
-        if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
+        if ($disk = BerkasPrivat::diskUntuk($suratKeputusan->file_path)) {
             $safeName = \Illuminate\Support\Str::slug($suratKeputusan->judul ?? 'SURAT_SK', '_') . '.pdf';
-            return Storage::disk('public')->download($suratKeputusan->file_path, $safeName);
+            return Storage::disk($disk)->download($suratKeputusan->file_path, $safeName);
         }
 
         return back()->with('error', 'File dokumen fisik tidak ditemukan di server.');
@@ -247,9 +246,7 @@ class SuratKeputusanController extends Controller
 
     public function destroy(SuratKeputusan $suratKeputusan)
     {
-        if ($suratKeputusan->file_path && Storage::disk('public')->exists($suratKeputusan->file_path)) {
-            Storage::disk('public')->delete($suratKeputusan->file_path);
-        }
+        BerkasPrivat::hapus($suratKeputusan->file_path);
         $suratKeputusan->delete();
         
         return back()->with('success', 'Dokumen surat berhasil dihapus secara permanen.');

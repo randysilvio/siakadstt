@@ -135,7 +135,7 @@
                                             <h6 class="mb-1 text-dark text-truncate fw-bold small uppercase">{{ $doc->jenis_dokumen }}</h6>
                                             <p class="mb-0 small font-monospace text-muted" style="font-size: 11px;">Diunggah: {{ $doc->created_at->format('d/m/Y H:i') }}</p>
                                         </div>
-                                        <a href="{{ Storage::url($doc->path_file) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 ms-3 px-3 uppercase fw-bold small">
+                                        <a href="{{ route('berkas.unduh', ['jenis' => 'dokumen-pmb', 'id' => $doc->id]) }}" target="_blank" class="btn btn-sm btn-dark rounded-0 ms-3 px-3 uppercase fw-bold small">
                                             Tinjau
                                         </a>
                                     </div>
@@ -190,7 +190,7 @@
                             @if($tagihan->bukti_bayar)
                                 <div class="alert bg-light border text-dark small rounded-0 mb-3">
                                     <span class="uppercase small d-block mb-2">Bukti transfer telah dilampirkan oleh kandidat:</span>
-                                    <a href="{{ Storage::url($tagihan->bukti_bayar) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 w-100 uppercase fw-bold small">
+                                    <a href="{{ route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $tagihan->id]) }}" target="_blank" class="btn btn-sm btn-outline-dark rounded-0 w-100 uppercase fw-bold small">
                                         <i class="bi bi-image me-1"></i> Buka Lampiran Bukti
                                     </a>
                                 </div>

@@ -23,13 +23,13 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    /**
+     * Laravel 10 membaca properti $casts (method casts() baru dikenal di Laravel 11).
+     * Password selalu di-hash eksplisit dengan Hash::make() di controller/impor.
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
     // --- RELASI KE ROLE (Sistem Multi-User) ---
     public function roles()
@@ -37,18 +37,42 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class);
     }
 
-    public function hasRole($roleName)
+    /**
+     * Cek peran pengguna. Daftar peran dimuat sekali per instance (bukan satu query per pemanggilan),
+     * karena layout memanggil hasRole() puluhan kali per halaman.
+     * Dosen dengan otoritas modul keuangan (is_keuangan) diperlakukan sebagai peran 'keuangan'.
+     */
+    public function hasRole($roleName): bool
     {
-        if (is_array($roleName)) {
-            return $this->roles()->whereIn('name', $roleName)->exists();
+        $dicari = (array) $roleName;
+
+        if (!$this->relationLoaded('roles')) {
+            $this->load('roles');
         }
-        return $this->roles()->where('name', $roleName)->exists();
+
+        if ($this->roles->whereIn('name', $dicari)->isNotEmpty()) {
+            return true;
+        }
+
+        if (in_array('keuangan', $dicari, true) && $this->dosen && $this->dosen->is_keuangan) {
+            return true;
+        }
+
+        return false;
     }
-    
+
+    /** Muat ulang cache peran setelah peran diubah dalam request yang sama. */
+    public function refreshRoles(): static
+    {
+        $this->unsetRelation('roles');
+        return $this;
+    }
+
     public function assignRole($roleName)
     {
         $role = Role::where('name', $roleName)->firstOrFail();
         $this->roles()->syncWithoutDetaching($role);
+        $this->refreshRoles();
     }
 
     // --- RELASI PROFIL PENGGUNA ---

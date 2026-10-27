@@ -117,7 +117,7 @@
                                 </td>
                                 <td class="text-center">
                                     @if($p->bukti_bayar)
-                                        <a href="{{ asset('storage/' . $p->bukti_bayar) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-0 py-0 px-2 font-monospace fw-bold" style="font-size: 10px;">
+                                        <a href="{{ route('berkas.unduh', ['jenis' => 'bukti-bayar', 'id' => $p->id]) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-0 py-0 px-2 font-monospace fw-bold" style="font-size: 10px;">
                                             <i class="bi bi-image me-1"></i>Lihat Bukti
                                         </a>
                                     @else

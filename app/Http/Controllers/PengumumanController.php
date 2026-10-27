@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\HtmlSanitizer;
 use App\Models\Pengumuman;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,25 +17,11 @@ use App\Notifications\GeneralNotification;
 class PengumumanController extends Controller
 {
     /**
-     * [PERBAIKAN KEAMANAN FASE 6]: Sanitasi konten HTML dari Trix Editor terhadap Stored XSS.
+     * Sanitasi konten HTML dari Trix Editor terhadap Stored XSS (parser DOM + whitelist, lihat HtmlSanitizer).
      */
     private function sanitizeHtml(?string $html): string
     {
-        if (empty($html)) {
-            return '';
-        }
-
-        // 1. Izinkan hanya tag pemformatan teks standar Trix Editor
-        $allowedTags = '<p><br><strong><b><em><i><u><s><del><ul><ol><li><blockquote><h1><h2><h3><h4><a><div><span><figure><figcaption>';
-        $clean = strip_tags($html, $allowedTags);
-
-        // 2. Hapus seluruh atribut event handler JavaScript (seperti onload=, onerror=, onclick=, onmouseover=)
-        $clean = preg_replace('/\s+on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean);
-
-        // 3. Hapus protokol berbahaya (javascript:, data:, vbscript:) pada atribut href atau src
-        $clean = preg_replace('/(href|src)\s*=\s*(["\']?)\s*(?:javascript|data|vbscript):[^"\'>\s]*/i', '$1=$2#', $clean);
-
-        return $clean;
+        return HtmlSanitizer::clean($html);
     }
 
     public function index(Request $request): View

@@ -102,6 +102,22 @@ class KoleksiController extends Controller
         $selisihStok = $stokBaru - (int) $koleksi->jumlah_stok;
         $validated['jumlah_tersedia'] = max(0, $stokBaru - $sedangDipinjam);
 
+        // Pengurangan stok hanya boleh menghapus eksemplar yang tersedia DAN belum pernah dipinjam,
+        // agar riwayat sirkulasi tetap menunjuk ke barcode eksemplar yang benar.
+        $eksemplarBisaDihapus = collect();
+        if ($selisihStok < 0) {
+            $eksemplarBisaDihapus = PerpustakaanEksemplar::where('koleksi_id', $koleksi->id)
+                ->where('status_fisik', 'Tersedia')
+                ->whereNotIn('id', Peminjaman::whereNotNull('eksemplar_id')->select('eksemplar_id'))
+                ->orderBy('id', 'desc')
+                ->limit(abs($selisihStok))
+                ->pluck('id');
+
+            if ($eksemplarBisaDihapus->count() < abs($selisihStok)) {
+                return back()->withInput()->with('error', 'Stok hanya dapat dikurangi ' . $eksemplarBisaDihapus->count() . ' eksemplar: eksemplar lain sudah memiliki riwayat peminjaman. Tandai eksemplar rusak/hilang secara terpisah.');
+            }
+        }
+
         if ($request->hasFile('gambar_sampul')) {
             if ($koleksi->gambar_sampul && Storage::disk('public')->exists($koleksi->gambar_sampul)) {
                 Storage::disk('public')->delete($koleksi->gambar_sampul);
@@ -109,23 +125,13 @@ class KoleksiController extends Controller
             $validated['gambar_sampul'] = $request->file('gambar_sampul')->store('sampul_buku', 'public');
         }
 
-        DB::transaction(function () use ($koleksi, $validated, $selisihStok, $stokBaru) {
+        DB::transaction(function () use ($koleksi, $validated, $selisihStok, $stokBaru, $eksemplarBisaDihapus) {
             $koleksi->update($validated);
 
             if ($selisihStok > 0) {
                 $this->generateEksemplarFisik($koleksi, $selisihStok);
             } elseif ($selisihStok < 0) {
-                // Hapus eksemplar yang berstatus 'Tersedia' dan belum pernah memiliki riwayat peminjaman terlebih dahulu
-                $jumlahHapus = abs($selisihStok);
-                $eksemplarTersediaIds = PerpustakaanEksemplar::where('koleksi_id', $koleksi->id)
-                    ->where('status_fisik', 'Tersedia')
-                    ->orderBy('id', 'desc')
-                    ->limit($jumlahHapus)
-                    ->pluck('id');
-
-                if ($eksemplarTersediaIds->isNotEmpty()) {
-                    PerpustakaanEksemplar::whereIn('id', $eksemplarTersediaIds)->delete();
-                }
+                PerpustakaanEksemplar::whereIn('id', $eksemplarBisaDihapus)->delete();
             }
 
             // Self-healing jika master buku lama belum memiliki eksemplar fisik sama sekali

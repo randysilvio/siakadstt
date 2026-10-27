@@ -12,25 +12,6 @@ use Illuminate\Validation\Rule;
 
 class KurikulumController extends Controller
 {
-    /**
-     * Memastikan index unique lama pada nama_kurikulum (global) dilepas
-     * agar dua Program Studi berbeda boleh memiliki nama kurikulum yang sama,
-     * sementara duplikasi di dalam Prodi yang sama tetap dicegah oleh validasi.
-     */
-    private function ensureFlexibleUniqueIndex(): void
-    {
-        try {
-            $indexes = DB::select("SHOW INDEX FROM `kurikulums` WHERE Key_name = 'kurikulums_nama_kurikulum_unique'");
-            if (!empty($indexes)) {
-                Schema::table('kurikulums', function ($table) {
-                    $table->dropUnique('kurikulums_nama_kurikulum_unique');
-                });
-            }
-        } catch (\Throwable $e) {
-            // Abaikan jika index sudah pernah dihapus sebelumnya
-        }
-    }
-
     public function index()
     {
         $kurikulums = Kurikulum::with('programStudi')
@@ -49,8 +30,6 @@ class KurikulumController extends Controller
 
     public function store(Request $request)
     {
-        $this->ensureFlexibleUniqueIndex();
-
         $request->merge([
             'nama_kurikulum' => trim((string) $request->input('nama_kurikulum')),
         ]);
@@ -95,8 +74,6 @@ class KurikulumController extends Controller
 
     public function update(Request $request, Kurikulum $kurikulum)
     {
-        $this->ensureFlexibleUniqueIndex();
-
         $request->merge([
             'nama_kurikulum' => trim((string) $request->input('nama_kurikulum')),
         ]);
