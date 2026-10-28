@@ -51,7 +51,7 @@
         <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">BEBAN SKS TRIDHARMA</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">BEBAN SKS TRIDHARMA <x-info-aturan kunci="bkd_total" /></span>
                     <div class="d-flex align-items-baseline justify-content-between mt-1">
                         <h3 class="fw-bold font-monospace text-dark mb-0">{{ $totalSkBkd }} <small class="fs-6">SKS</small></h3>
                         <span class="badge bg-light text-dark border rounded-0 font-monospace" style="font-size: 10px;">

@@ -54,7 +54,7 @@
         </div>
         <div class="col-md-6">
             <div class="bg-light border border-dark border-opacity-25 rounded-0 p-3 d-flex justify-content-between align-items-center">
-                <span class="small text-muted font-monospace uppercase fw-bold">INDEKS PRESTASI KUMULATIF (IPK):</span>
+                <span class="small text-muted font-monospace uppercase fw-bold">INDEKS PRESTASI KUMULATIF (IPK): <x-info-aturan kunci="ipk" /></span>
                 <span class="fs-4 fw-bold font-monospace text-dark">{{ number_format((float)$ipk, 2) }}</span>
             </div>
         </div>

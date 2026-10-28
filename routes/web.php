@@ -401,6 +401,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+        Route::get('/aturan-perhitungan', fn () => view('admin.aturan.index', ['aturan' => \App\Support\InfoAturan::semua()]))->name('aturan.index');
         Route::post('/pengaturan', [PengaturanController::class, 'store'])->name('pengaturan.store');
 
         // =========================================================================

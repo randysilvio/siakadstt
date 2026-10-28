@@ -43,7 +43,7 @@
         <div class="col-6 col-md-3">
             <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3 p-md-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rasio Dosen : Mhs</h6>
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rasio Dosen : Mhs <x-info-aturan kunci="mutu_rasio" /></h6>
                     <h2 class="fw-bold text-dark mb-1 font-monospace">{{ $rasioDosenMahasiswa }}</h2>
                     <span class="small text-muted uppercase font-monospace" style="font-size: 10px;">Indikator Borang</span>
                 </div>
@@ -53,7 +53,7 @@
         <div class="col-6 col-md-3">
             <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3 p-md-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rata-rata IPK</h6>
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Rata-rata IPK <x-info-aturan kunci="mutu_rasio" /></h6>
                     <h2 class="fw-bold text-dark mb-1 font-monospace">{{ number_format($rataIPK, 2) }}</h2>
                     <span class="small text-muted uppercase font-monospace" style="font-size: 10px;">Capaian Akademik</span>
                 </div>

@@ -61,7 +61,7 @@
                             <td>: {{ optional($mahasiswa->dosenWali)->nama_lengkap ?? '-' }}</td>
                         </tr>
                         <tr>
-                            <td class="fw-bold text-muted">IPK / SKS LULUS</td>
+                            <td class="fw-bold text-muted">IPK / SKS LULUS <x-info-aturan kunci="ipk" /></td>
                             <td class="font-monospace fw-bold">: {{ number_format($ipk ?? $mahasiswa->hitungIpk(), 2) }} ({{ $sksLulus ?? $mahasiswa->totalSksLulus() }} SKS)</td>
                         </tr>
                         <tr>

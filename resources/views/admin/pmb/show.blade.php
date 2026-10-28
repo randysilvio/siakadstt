@@ -5,7 +5,7 @@
     {{-- BAGIAN HEADER UTAMA --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="mb-0 fw-bold text-dark uppercase">Panel Verifikasi Pendaftar PMB</h3>
+            <h3 class="mb-0 fw-bold text-dark uppercase">Panel Verifikasi Pendaftar PMB <x-info-aturan kunci="pmb_nim" /></h3>
             <span class="text-muted small uppercase">Tinjauan Dokumen Akademik & Otorisasi Penerimaan Mahasiswa Baru</span>
         </div>
         <div class="d-flex gap-2">

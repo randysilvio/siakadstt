@@ -12,7 +12,7 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mt-2 gap-3">
         <div>
             <span class="text-muted font-monospace small uppercase">{{ $mataKuliah->kode_mk }} | SEMESTER {{ $mataKuliah->semester }} ({{ $mataKuliah->sks }} SKS)</span>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Input Nilai: {{ $mataKuliah->nama_mk }}</h3>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Input Nilai: {{ $mataKuliah->nama_mk }} <x-info-aturan kunci="nilai_akhir" /></h3>
         </div>
         <div class="d-flex flex-wrap gap-2">
             @if(isset($hasVerumKelas) && $hasVerumKelas && $mataKuliah->mahasiswas->isNotEmpty())

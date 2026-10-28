@@ -45,7 +45,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label text-dark small fw-bold uppercase">Durasi Toleransi Keterlambatan <span class="text-danger">*</span></label>
+                    <label class="form-label text-dark small fw-bold uppercase">Durasi Toleransi Keterlambatan <x-info-aturan kunci="absensi" /> <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="number" name="toleransi_terlambat_menit" class="form-control rounded-0 font-monospace fw-bold" value="{{ $pengaturan->toleransi_terlambat_menit }}" min="0" required>
                         <span class="input-group-text rounded-0 bg-light uppercase fw-bold small font-monospace">Menit</span>

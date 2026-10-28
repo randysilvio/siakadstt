@@ -383,6 +383,7 @@
                                         <li><hr class="dropdown-divider"></li>
                                         <li><h6 class="dropdown-header">Sistem & PDDIKTI</h6></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.pengaturan.index') }}">Pengaturan Sistem</a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.aturan.index') }}">Aturan & Perhitungan</a></li>
                                         <li><a class="dropdown-item" href="{{ route('admin.feeder.index') }}">Sinkronisasi Feeder & Backup</a></li>
                                     @endif
                                 </ul>
@@ -752,6 +753,11 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Ikon "?" penjelasan aturan & rumus (komponen info-aturan)
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+            new bootstrap.Popover(el);
         });
 
         document.addEventListener('DOMContentLoaded', function () {

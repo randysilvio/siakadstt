@@ -50,7 +50,7 @@
 
     @if($ipkVal > 0 && $ipkVal < 2.00)
         <div class="alert alert-danger border-start border-danger border-4 shadow-sm mb-4 p-3 uppercase small fw-bold">
-            Perhatian Akademik: Mahasiswa ini memiliki IPK di bawah 2.00 ({{ number_format($ipkVal, 2) }}). Mohon berikan pendampingan khusus dalam pengambilan beban SKS semester ini.
+            Perhatian Akademik: Mahasiswa ini memiliki IPK di bawah 2.00 ({{ number_format($ipkVal, 2) }}). Mohon berikan pendampingan khusus dalam pengambilan beban SKS semester ini. <x-info-aturan kunci="ews" />
         </div>
     @endif
 
@@ -76,7 +76,7 @@
                         </tr>
                         <tr>
                             <td class="fw-bold text-muted">CAPAIAN KUMULATIF</td>
-                            <td class="font-monospace fw-bold">: IPK {{ number_format($ipkVal, 2) }} | {{ $sksLulusVal }} SKS LULUS</td>
+                            <td class="font-monospace fw-bold">: IPK {{ number_format($ipkVal, 2) }} | {{ $sksLulusVal }} SKS LULUS <x-info-aturan kunci="ipk" /></td>
                         </tr>
                         <tr>
                             <td class="fw-bold text-muted align-middle">STATUS KRS SAAT INI</td>
