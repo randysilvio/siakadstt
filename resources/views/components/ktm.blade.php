@@ -1,47 +1,39 @@
 {{--
-    Kartu Tanda Mahasiswa digital (E-KTM).
-    Desain TETAP: warna ditulis langsung dari App\Support\Ktm::WARNA dan tidak memakai kelas Bootstrap/variabel
-    Theme Engine (--siakad-*), sehingga kartu tidak berubah ketika tema sentral SIAKAD diganti.
+    Kartu Tanda Mahasiswa digital (E-KTM) — desain TETAP, tidak mengikuti Theme Engine (tema sentral).
+    Latar (logo, judul, label, ornamen geometris & batik Papua) adalah gambar public/images/ktm/latar-ktm.jpg
+    yang dibuat oleh resources/ktm/latar.py; komponen ini hanya menempatkan data mahasiswa di atasnya.
+    Koordinat memakai satuan kanvas 1712 x 1080 (85,6 x 54 mm) yang sama dengan aplikasi seluler.
     Pemakaian: <x-ktm :mahasiswa="$mahasiswa" />
 --}}
 @props(['mahasiswa'])
 @php
     $k = \App\Support\Ktm::data($mahasiswa);
     $w = $k['warna'];
-    $idQr = 'ktm-qr-' . $mahasiswa->id;
+    // ukuran huruf (px kanvas) mengecil untuk teks panjang — sama dengan aplikasi (KartuKtm.tsx)
+    $ukuranTeks = fn (string $t) => \App\Support\Ktm::ukuranTeks($t);
+    $nilai = [
+        ['y' => 552, 'teks' => $k['nama']],
+        ['y' => 640, 'teks' => $k['nim']],
+        ['y' => 728, 'teks' => $k['prodi']],
+        ['y' => 816, 'teks' => $k['angkatan']],
+    ];
 @endphp
-<div class="ktm-sttgpi" style="--ktm-latar: {{ $w['latar'] }}; --ktm-latar2: {{ $w['latar_ujung'] }}; --ktm-emas: {{ $w['emas'] }}; --ktm-emas-muda: {{ $w['emas_muda'] }}; --ktm-teks: {{ $w['teks'] }}; --ktm-redup: {{ $w['teks_redup'] }}; --ktm-status: {{ $k['aktif'] ? $w['aktif'] : $w['nonaktif'] }};">
-    <div class="ktm-kepala">
-        <span class="ktm-logo"><img src="{{ $k['kampus']['logo_url'] }}" alt="Logo"></span>
-        <span class="ktm-kampus">
-            <span class="ktm-kampus-nama">{{ $k['kampus']['nama'] }}</span>
-            <span class="ktm-kampus-sub">Kartu Tanda Mahasiswa</span>
-        </span>
-        <span class="ktm-label">KTM</span>
+<div class="ktm-sttgpi" style="background-image: url('{{ $k['latar_url'] }}'); --ktm-ungu: {{ $w['ungu'] }}; --ktm-oranye: {{ $w['oranye'] }}; --ktm-status: {{ $k['aktif'] ? $w['aktif'] : $w['nonaktif'] }};">
+    <div class="ktm-foto">
+        @if($k['foto_url'])
+            <img src="{{ $k['foto_url'] }}" alt="Foto {{ $k['nama'] }}">
+        @else
+            <span class="ktm-inisial">{{ mb_strtoupper(mb_substr($k['nama'], 0, 1)) }}</span>
+        @endif
+        <span class="ktm-status">{{ $k['aktif'] ? 'MAHASISWA AKTIF' : strtoupper($k['status']) }}</span>
     </div>
 
-    <div class="ktm-isi">
-        <span class="ktm-foto">
-            @if($k['foto_url'])
-                <img src="{{ $k['foto_url'] }}" alt="Foto">
-            @else
-                <span class="ktm-inisial">{{ mb_substr($k['nama'], 0, 1) }}</span>
-            @endif
-        </span>
-        <span class="ktm-data">
-            <span class="ktm-nama">{{ $k['nama'] }}</span>
-            <span class="ktm-nim">{{ $k['nim'] }}</span>
-            <span class="ktm-baris"><span>Program Studi</span>{{ $k['prodi'] }}</span>
-            <span class="ktm-baris"><span>Angkatan</span>{{ $k['angkatan'] }}</span>
-            <span class="ktm-status">{{ strtoupper($k['status']) }}</span>
-        </span>
-        <span class="ktm-qr" id="{{ $idQr }}" data-url="{{ $k['verifikasi_url'] }}" title="Pindai untuk verifikasi"></span>
-    </div>
+    @foreach($nilai as $n)
+        <span class="ktm-nilai" style="top: {{ ($n['y'] - 44) / 10.8 }}%; font-size: {{ $ukuranTeks($n['teks']) / 17.12 }}cqw;">{{ $n['teks'] }}</span>
+    @endforeach
 
-    <div class="ktm-kaki">
-        <span>{{ $k['kampus']['singkatan'] }} · {{ $k['kampus']['kota'] }}</span>
-        <span class="ktm-token">{{ $k['token'] }}</span>
-    </div>
+    <span class="ktm-qr" data-url="{{ $k['verifikasi_url'] }}" title="Pindai untuk verifikasi"></span>
+    <span class="ktm-token">ID {{ $k['token'] }}</span>
     @unless($k['aktif'])
         <span class="ktm-cap">TIDAK AKTIF</span>
     @endunless
@@ -49,38 +41,27 @@
 
 @once
     @push('styles')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&display=swap">
     <style>
-        .ktm-sttgpi { position: relative; overflow: hidden; width: 100%; max-width: 440px; aspect-ratio: 85.6 / 54; margin: 0 auto;
-            border-radius: 16px; color: var(--ktm-teks); font-family: 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.2;
-            background: radial-gradient(120% 90% at 100% 0%, var(--ktm-latar2) 0%, var(--ktm-latar) 60%);
-            box-shadow: 0 10px 28px rgba(11, 37, 69, .35); display: flex; flex-direction: column; padding: 0; box-sizing: border-box; }
-        .ktm-sttgpi::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .07;
-            background-image: repeating-linear-gradient(135deg, var(--ktm-emas) 0 2px, transparent 2px 14px); }
+        /* Satuan: 1 px kanvas = 1/17.12 cqw (lebar) = 1/10.8 % (tinggi). Warna ditulis tetap, bukan var(--siakad-*). */
+        .ktm-sttgpi { position: relative; container-type: inline-size; width: 100%; max-width: 520px; aspect-ratio: 1712 / 1080; margin: 0 auto;
+            border-radius: 2.2cqw; overflow: hidden; background-color: #FDDFC1; background-size: 100% 100%; background-repeat: no-repeat;
+            box-shadow: 0 10px 28px rgba(61, 35, 80, .28); font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; color: var(--ktm-ungu); line-height: 1.2; }
         .ktm-sttgpi * { box-sizing: border-box; }
-        .ktm-kepala { position: relative; flex-shrink: 0; margin: 3.6% 4.6% 0; display: flex; align-items: center; gap: 3%; padding-bottom: 2.4%; border-bottom: 1px solid var(--ktm-emas); }
-        .ktm-logo { flex: 0 0 11%; aspect-ratio: 1; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; padding: 1.5%; }
-        .ktm-logo img { width: 100%; height: 100%; object-fit: contain; }
-        .ktm-kampus { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .ktm-kampus-nama { font-weight: 800; font-size: clamp(8px, 2.6vw, 11px); letter-spacing: .02em; text-transform: uppercase; }
-        .ktm-kampus-sub { color: var(--ktm-emas-muda); font-size: clamp(7px, 2.1vw, 9px); letter-spacing: .18em; text-transform: uppercase; margin-top: 2px; }
-        .ktm-label { font-weight: 900; font-size: clamp(11px, 3.6vw, 16px); color: var(--ktm-latar); background: var(--ktm-emas); padding: 2px 8px; border-radius: 6px; letter-spacing: .08em; }
-        .ktm-isi { position: relative; margin: 0 4.6%; flex: 1; min-height: 0; display: flex; align-items: center; gap: 4%; padding: 2.2% 0; }
-        .ktm-foto { flex: 0 0 21%; aspect-ratio: 3 / 4; border-radius: 8px; border: 2px solid var(--ktm-emas); overflow: hidden; background: rgba(255,255,255,.12); display: flex; align-items: center; justify-content: center; }
-        .ktm-foto img { width: 100%; height: 100%; object-fit: cover; }
-        .ktm-inisial { font-size: clamp(18px, 7vw, 30px); font-weight: 800; color: var(--ktm-emas-muda); }
-        .ktm-data { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .ktm-nama { font-weight: 800; font-size: clamp(9px, 3vw, 14px); line-height: 1.15; text-transform: uppercase; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .ktm-nim { font-family: 'Courier New', monospace; font-weight: 700; font-size: clamp(10px, 3.4vw, 15px); color: var(--ktm-emas-muda); letter-spacing: .06em; }
-        .ktm-baris { font-size: clamp(7px, 2.3vw, 10px); color: var(--ktm-teks); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ktm-baris span { display: inline; margin-right: 4px; color: var(--ktm-redup); font-size: .85em; text-transform: uppercase; letter-spacing: .08em; }
-        .ktm-status { align-self: flex-start; margin-top: 2px; font-size: clamp(7px, 2.1vw, 9px); font-weight: 800; letter-spacing: .1em; background: var(--ktm-status); color: #fff; padding: 2px 7px; border-radius: 20px; }
-        .ktm-qr { flex: 0 0 23%; aspect-ratio: 1; background: #fff; border-radius: 8px; padding: 2.2%; display: flex; align-items: center; justify-content: center; }
+        .ktm-foto { position: absolute; left: 11.974%; top: 23.98%; width: 25.526%; height: 51.94%; border-radius: 1.4cqw; overflow: hidden;
+            border: .35cqw solid var(--ktm-oranye); background: #F6C99A; box-shadow: 0 .8cqw 1.6cqw rgba(61, 35, 80, .3); display: flex; align-items: center; justify-content: center; }
+        .ktm-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ktm-inisial { font-weight: 700; font-size: 9cqw; color: var(--ktm-ungu); opacity: .55; }
+        .ktm-status { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ktm-status); color: #fff; text-align: center;
+            font-weight: 700; font-size: 1.35cqw; letter-spacing: .12cqw; padding: .55cqw 0; }
+        .ktm-nilai { position: absolute; left: 55.14%; width: 26.9%; height: 5%; display: flex; align-items: flex-end; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
+        .ktm-qr { position: absolute; left: 85.98%; top: 61.11%; width: 10.164%; aspect-ratio: 1; display: block; }
         .ktm-qr svg { width: 100%; height: 100%; display: block; }
-        .ktm-kaki { position: relative; flex-shrink: 0; padding: 1.8% 4.6%; background: var(--ktm-emas); color: var(--ktm-latar); display: flex; justify-content: space-between; gap: 8px;
-            font-size: clamp(6px, 2vw, 9px); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-        .ktm-token { font-family: 'Courier New', monospace; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ktm-cap { position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) rotate(-14deg); border: 3px solid #f87171; color: #f87171; padding: 4px 14px;
-            font-weight: 900; font-size: clamp(14px, 5vw, 22px); letter-spacing: .12em; border-radius: 8px; background: rgba(11,37,69,.6); }
+        .ktm-token { position: absolute; left: 41.82%; top: 79.4%; font-family: 'Courier New', monospace; font-weight: 700; font-size: 1.3cqw; opacity: .75; }
+        .ktm-cap { position: absolute; top: 40%; left: 52%; transform: translate(-50%, -50%) rotate(-12deg); border: .35cqw solid #B3402A; color: #B3402A;
+            padding: .4cqw 1.6cqw; font-weight: 700; font-size: 4cqw; letter-spacing: .4cqw; border-radius: 1cqw; background: rgba(253, 223, 193, .85); }
     </style>
     @endpush
     @push('scripts')
@@ -92,8 +73,10 @@
             qr.addData(el.dataset.url);
             qr.make();
             el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
-            var svg = el.querySelector('svg');
-            if (svg) { svg.querySelectorAll('path, rect').forEach(function (n) { if ((n.getAttribute('fill') || '').toLowerCase() === 'black' || n.getAttribute('fill') === '#000000') n.setAttribute('fill', '#0B2545'); }); }
+            el.querySelectorAll('path, rect').forEach(function (n) {
+                var f = (n.getAttribute('fill') || '').toLowerCase();
+                if (f === 'black' || f === '#000000') n.setAttribute('fill', '#3D2350');
+            });
         });
     </script>
     @endpush

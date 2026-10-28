@@ -171,9 +171,9 @@ test('popup web: tautan masuk otomatis sekali pakai, hanya ke jalur internal', f
 test('KTM memakai desain tetap walau tema sentral diganti', function () {
     $d = $this->seedAkademik();
     $this->actingAs($d['mUser'], 'sanctum')->getJson('/api/ktm')->assertOk()
-        ->assertJsonPath('nim', '2026TH001')->assertJsonPath('warna.latar', '#0B2545')->assertJsonPath('aktif', true);
+        ->assertJsonPath('nim', '2026TH001')->assertJsonPath('warna.ungu', '#3D2350')->assertJsonPath('aktif', true);
 
     Pengaturan::set('theme_preset', 'crimson_maroon');
     $html = $this->actingAs($d['mUser'])->get(route('dashboard'))->assertOk()->getContent();
-    expect($html)->toContain('ktm-sttgpi')->toContain('--ktm-latar: #0B2545')->toContain('#7f1d1d');
+    expect($html)->toContain('ktm-sttgpi')->toContain('images/ktm/latar-ktm.jpg')->toContain('--ktm-ungu: #3D2350')->toContain('#7f1d1d');
 });

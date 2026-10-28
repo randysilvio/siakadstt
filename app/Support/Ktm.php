@@ -16,15 +16,30 @@ use App\Models\TahunAkademik;
 class Ktm
 {
     public const WARNA = [
-        'latar'       => '#0B2545',
-        'latar_ujung' => '#16386B',
-        'emas'        => '#C9A227',
-        'emas_muda'   => '#E9D48A',
-        'teks'        => '#FFFFFF',
-        'teks_redup'  => '#C7D2E3',
-        'aktif'       => '#1F9D55',
-        'nonaktif'    => '#B45309',
+        'latar'      => '#FDDFC1', // krem
+        'oranye'     => '#F9A21B',
+        'oranye_tua' => '#F47B16',
+        'ungu'       => '#3D2350', // teks & kode QR
+        'ungu_muda'  => '#5E3F82',
+        'aktif'      => '#1F9D55',
+        'nonaktif'   => '#B3402A',
     ];
+
+    /** Gambar latar kartu (logo, judul, label, ornamen geometris & batik Papua). Sumber: resources/ktm/latar.py */
+    public const LATAR = 'images/ktm/latar-ktm.jpg';
+
+    /** Ukuran huruf nilai (px kanvas 1712) agar muat di garis isian selebar 460 px. */
+    public static function ukuranTeks(string $teks): int
+    {
+        $n = mb_strlen($teks);
+        return match (true) {
+            $n <= 16 => 36,
+            $n <= 21 => 33,
+            $n <= 25 => 30,
+            $n <= 30 => 26,
+            default  => 23,
+        };
+    }
 
     public static function data(Mahasiswa $mahasiswa): array
     {
@@ -50,6 +65,7 @@ class Ktm
                 'logo_url'  => Pengaturan::logoUrl(),
             ],
             'warna'          => self::WARNA,
+            'latar_url'      => asset(self::LATAR),
         ];
     }
 }
