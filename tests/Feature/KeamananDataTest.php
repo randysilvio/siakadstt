@@ -73,6 +73,16 @@ test('berkas lama di disk public tetap terbaca lalu dapat dipindahkan', function
     Storage::disk('public')->assertMissing('bukti-bayar-spp/lama.jpg');
 });
 
+test('upload file berbahaya seperti php atau html ditolak', function () {
+    $file = UploadedFile::fake()->create('payload.php', 10, 'text/x-php');
+    $folder = 'bukti-bayar-spp';
+
+    expect(fn () => BerkasPrivat::simpan($file, $folder))->toThrow(\RuntimeException::class, 'Tipe berkas tidak diizinkan untuk diunggah.');
+
+    $html = UploadedFile::fake()->create('payload.html', 10, 'text/html');
+    expect(fn () => BerkasPrivat::simpan($html, $folder))->toThrow(\RuntimeException::class, 'Tipe berkas tidak diizinkan untuk diunggah.');
+});
+
 // S7 — verifikasi terikat isi
 test('cetak KHS menerbitkan kode yang memuat isi dokumen', function () {
     $d = $this->seedAkademik();
