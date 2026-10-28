@@ -133,7 +133,7 @@ class Mahasiswa extends Model
         // Hanya hitung mata kuliah yang sudah memiliki dosen pengampu agar tidak terjadi deadlock evaluasi
         $mataKuliahWajibIds = $this->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $sesiAktif->tahun_akademik_id)
-            ->whereNotNull('mata_kuliahs.dosen_id')
+            ->where(fn ($q) => $q->whereNotNull('mata_kuliahs.dosen_id')->orWhereHas('teamDosens'))
             ->pluck('mata_kuliahs.id')
             ->toArray();
 

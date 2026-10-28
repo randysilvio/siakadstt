@@ -195,6 +195,9 @@ class MahasiswaController extends Controller
         if ($alasan = $mahasiswa->alasanTidakBisaDihapus()) {
             return redirect()->route('admin.mahasiswa.index')->with('error', $alasan);
         }
+        if ($mahasiswa->user && ($alasan = $mahasiswa->user->alasanAkunTidakBisaDihapus())) {
+            return redirect()->route('admin.mahasiswa.index')->with('error', $alasan);
+        }
 
         try {
             DB::transaction(function () use ($mahasiswa) {

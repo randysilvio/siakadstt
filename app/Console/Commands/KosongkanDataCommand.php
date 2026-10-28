@@ -14,61 +14,82 @@ class KosongkanDataCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'app:kosongkan-data';
+    protected $signature = 'app:kosongkan-data {--force : Lewati konfirmasi (untuk skrip instalasi)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Mengosongkan semua data transaksional kecuali user admin';
+    protected $description = 'Mengosongkan semua data transaksional & master akademik kecuali akun admin dan pengaturan sistem';
+
+    /**
+     * Seluruh tabel data (transaksi + master akademik). Yang TIDAK dikosongkan: roles, pengaturans,
+     * pengaturan_absensi, lokasi_kerja, chatbot_knowledges, migrations, dan akun admin.
+     */
+    private const TABEL = [
+        // Akademik & KRS
+        'mahasiswa_mata_kuliah', 'krs_persetujuans', 'matakuliah_prasyarat', 'dosen_mata_kuliah', 'jadwals',
+        'mata_kuliahs', 'kurikulums', 'tahun_akademiks', 'kegiatan_akademik_role', 'kegiatan_akademik',
+        // Verum (e-learning)
+        'verum_kehadiran', 'verum_presensi', 'verum_pengumpulan', 'verum_tugas', 'verum_materi', 'verum_postingan', 'verum_kelas',
+        // Evaluasi dosen
+        'evaluasi_jawaban', 'evaluasi_sesi', 'evaluasi_pertanyaan',
+        // Bimbingan, surat, dokumen
+        'bimbingan_logs', 'bimbingan_tugas_akhirs', 'pengajuan_surats', 'dokumen_terbits',
+        'dosen_surat_keputusan', 'surat_keputusans', 'tracer_studies', 'dosen_tridharmas',
+        // Keuangan & PMB
+        'pembayarans', 'pmb_documents', 'camabas', 'pmb_kepanitiaans', 'pmb_periods',
+        // Perpustakaan & absensi
+        'peminjamans', 'perpustakaan_eksemplars', 'perpustakaan_koleksi', 'absensi_pegawai',
+        // Konten publik & notifikasi
+        'pengumumans', 'slideshows', 'dokumen_publiks', 'notifications',
+        // Profil & master organisasi
+        'dosens', 'mahasiswas', 'tendiks', 'program_studis', 'fakultas',
+    ];
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Memulai proses pengosongan data...');
+        $this->warn('PERINGATAN: seluruh data mahasiswa, dosen, KRS, nilai, keuangan, PMB, perpustakaan, dan akun non-admin akan DIHAPUS PERMANEN.');
+        $this->line('Database: ' . DB::connection()->getDatabaseName());
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        $tables = [
-            'pembayarans',
-            'mahasiswa_mata_kuliah',
-            'matakuliah_prasyarat',
-            'dosen_mata_kuliah',
-            'jadwals',
-            'pengumumans',
-            'dosens',
-            'mahasiswas',
-            'tendiks',
-            'camabas',
-            'pmb_documents',
-            'program_studis',
-            'mata_kuliahs',
-        ];
-
-        foreach ($tables as $table) {
-            if (Schema::hasTable($table)) {
-                DB::table($table)->truncate();
-                $this->line("Tabel '{$table}' berhasil dikosongkan.");
-            }
+        if (!$this->option('force') && !$this->confirm('Yakin ingin mengosongkan data? Tindakan ini tidak dapat dibatalkan.', false)) {
+            $this->info('Dibatalkan. Tidak ada data yang diubah.');
+            return self::SUCCESS;
         }
 
-        // [PERBAIKAN BUG FATAL FASE 6]: Gunakan relasi many-to-many roles untuk mempertahankan akun Admin
-        $adminIds = User::whereHas('roles', function ($q) {
-            $q->where('name', 'admin');
-        })->pluck('id')->toArray();
+        $this->info('Memulai proses pengosongan data...');
 
-        User::whereNotIn('id', $adminIds)->delete();
-        DB::table('role_user')->whereNotIn('user_id', $adminIds)->delete();
+        $adminIds = User::whereHas('roles', fn ($q) => $q->where('name', 'admin'))->pluck('id')->all();
 
-        $this->line("Semua user non-admin berhasil dihapus.");
+        Schema::disableForeignKeyConstraints();
+        try {
+            foreach (self::TABEL as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->truncate();
+                    $this->line("Tabel '{$table}' berhasil dikosongkan.");
+                }
+            }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            // Akun non-admin beserta peran, token API, dan sesinya
+            DB::table('role_user')->whereNotIn('user_id', $adminIds)->delete();
+            if (Schema::hasTable('personal_access_tokens')) {
+                DB::table('personal_access_tokens')->where('tokenable_type', User::class)->whereNotIn('tokenable_id', $adminIds)->delete();
+            }
+            if (Schema::hasTable('sessions')) {
+                DB::table('sessions')->whereNotIn('user_id', $adminIds)->delete();
+            }
+            DB::table('users')->whereNotIn('id', $adminIds)->delete();
+            $this->line('Semua user non-admin berhasil dihapus.');
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
 
-        $this->info('Proses selesai. Semua data kecuali admin berhasil dikosongkan.');
+        $this->info('Proses selesai. Semua data kecuali admin & pengaturan sistem berhasil dikosongkan.');
 
-        return 0;
+        return self::SUCCESS;
     }
 }

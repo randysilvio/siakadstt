@@ -62,7 +62,7 @@ class TendikController extends Controller
 
             $user->roles()->attach($request->role_id);
 
-            $tendikData = $request->except(['email', 'password', 'password_confirmation', 'role_id', 'name', '_token', 'foto_profil']);
+            $tendikData = $request->except(['email', 'password', 'password_confirmation', 'role_id', 'name', '_token', 'foto_profil', 'user_id']);
             $tendikData['user_id'] = $user->id;
             $tendikData['nama_lengkap'] = $request->name;
 
@@ -103,7 +103,7 @@ class TendikController extends Controller
         $request->validate($rules);
 
         DB::transaction(function () use ($request, $tendik) {
-            $dataUpdate = $request->except(['email', 'password', 'password_confirmation', 'role_id', 'name', '_token', '_method', 'foto_profil']);
+            $dataUpdate = $request->except(['email', 'password', 'password_confirmation', 'role_id', 'name', '_token', '_method', 'foto_profil', 'user_id']);
             $dataUpdate['nama_lengkap'] = $request->name;
 
             if ($request->hasFile('foto_profil')) {
@@ -132,12 +132,17 @@ class TendikController extends Controller
 
     public function destroy(Tendik $tendik): RedirectResponse
     {
+        if ($tendik->user && ($alasan = $tendik->user->alasanAkunTidakBisaDihapus())) {
+            return redirect()->route('admin.tendik.index')->with('error', $alasan);
+        }
+
         DB::transaction(function () use ($tendik) {
             if ($tendik->foto_profil) Storage::disk('public')->delete($tendik->foto_profil);
-            if ($tendik->user) {
-                $tendik->user->delete();
-            } else {
-                $tendik->delete();
+            $user = $tendik->user;
+            $tendik->delete();
+            if ($user) {
+                $user->roles()->detach();
+                $user->delete();
             }
         });
 

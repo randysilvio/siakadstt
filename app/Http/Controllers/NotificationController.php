@@ -78,7 +78,7 @@ class NotificationController extends Controller
             $targetHost = parse_url($url, PHP_URL_HOST);
 
             // Pastikan hanya redirect ke internal aplikasi (Anti-Open Redirect)
-            if (str_starts_with($url, '/') || ($targetHost && $targetHost === $appHost) || $targetHost === request()->getHost()) {
+            if ((str_starts_with($url, '/') && !str_starts_with($url, '//') && !str_starts_with($url, '/\\')) || ($targetHost && $targetHost === $appHost) || $targetHost === request()->getHost()) {
                 return redirect($url);
             }
         }

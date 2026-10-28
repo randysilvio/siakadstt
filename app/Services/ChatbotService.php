@@ -45,8 +45,9 @@ class ChatbotService
 
         $daftarProdi = ProgramStudi::pluck('nama_prodi')->implode(', ');
 
-        // 2. Bangun Konteks Personal Pengguna yang Sedang Login (Role-Aware Context)
-        $userContext = $this->buildLoggedInUserContext($taAktif, $istilahPembimbing);
+        // 2. Konteks personal (NIM, IPK, tagihan, dll.) hanya dibangun bila memang diminta pengguna dan selalu dijawab
+        //    lokal oleh server. Data ini tidak pernah dimasukkan ke prompt layanan AI pihak ketiga.
+        $userContext = fn () => $this->buildLoggedInUserContext($taAktif, $istilahPembimbing);
 
         // 3. Ambil Basis Pengetahuan dari Tabel chatbot_knowledges
         $knowledgeBase = ChatbotKnowledge::all();
@@ -58,7 +59,7 @@ class ChatbotService
         // 4. Pertanyaan tentang data pribadi (IPK, KRS, tagihan, nilai) dijawab langsung oleh server dari database.
         //    Data pribadi mahasiswa TIDAK dikirim ke layanan AI pihak ketiga (prinsip minimisasi data / UU PDP).
         if (Auth::check() && $this->pertanyaanPribadi($userMessage)) {
-            return "Shalom! Berikut ringkasan data Anda di SIAKAD saat ini:\n\n" . $userContext;
+            return "Shalom! Berikut ringkasan data Anda di SIAKAD saat ini:\n\n" . $userContext();
         }
 
         // 5. Periksa API Key Gemini; jika kosong, gunakan Mesin Pencari Lokal (Smart Local Fallback)
@@ -205,7 +206,7 @@ class ChatbotService
      * Mesin Pencari Lokal Cerdas (Smart Local RAG Fallback)
      * Bekerja otomatis jika API Key Gemini belum diatur atau sedang gangguan jaringan.
      */
-    private function getLocalFallbackResponse(string $userMessage, $knowledgeBase, string $singkatanKampus, string $bankKampus, string $userContext): string
+    private function getLocalFallbackResponse(string $userMessage, $knowledgeBase, string $singkatanKampus, string $bankKampus, \Closure $userContext): string
     {
         $pesanLower = strtolower($userMessage);
         $bestMatch = null;
@@ -229,8 +230,8 @@ class ChatbotService
             return "Shalom! Berikut informasi resmi terkait pertanyaan Anda:\n\n" . $bestMatch;
         }
 
-        if ($this->pertanyaanPribadi($userMessage)) {
-            return "Shalom! Berikut adalah ringkasan status akademik Anda saat ini di sistem:\n\n" . $userContext;
+        if (Auth::check() && $this->pertanyaanPribadi($userMessage)) {
+            return "Shalom! Berikut adalah ringkasan status akademik Anda saat ini di sistem:\n\n" . $userContext();
         }
 
         return "Shalom! Terima kasih telah menghubungi Zoe — Asisten Virtual **{$singkatanKampus}**.\n\n"

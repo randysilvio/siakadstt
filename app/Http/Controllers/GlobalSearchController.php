@@ -49,6 +49,8 @@ class GlobalSearchController extends Controller
 
             if (!$isAdmin && !$user->hasRole('keuangan') && $dosen) {
                 $prodiKaprodiIds = ProgramStudi::where('kaprodi_dosen_id', $dosen->id)->pluck('id')->toArray();
+                // Lingkup dosen/Kaprodi: mahasiswa aktif saja (tautannya ke perwalian / validasi KRS semester berjalan)
+                $mhsQuery->where('status_mahasiswa', 'Aktif');
                 $mhsQuery->where(function ($scope) use ($dosen, $prodiKaprodiIds) {
                     $scope->where('dosen_wali_id', $dosen->id);
                     if (!empty($prodiKaprodiIds)) {

@@ -93,7 +93,7 @@ class DosenController extends Controller
                     $user->roles()->attach($dosenRole);
                 }
 
-                $dosenData = $request->except(['email', 'password', 'password_confirmation', '_token', 'foto_profil']);
+                $dosenData = $request->except(['email', 'password', 'password_confirmation', '_token', 'foto_profil', 'user_id']);
                 $dosenData['user_id'] = $user->id;
                 $dosenData['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
@@ -146,7 +146,7 @@ class DosenController extends Controller
 
         try {
             DB::transaction(function () use ($request, $dosen) {
-                $dataUpdate = $request->except(['email', 'password', 'password_confirmation', '_token', '_method', 'foto_profil']);
+                $dataUpdate = $request->except(['email', 'password', 'password_confirmation', '_token', '_method', 'foto_profil', 'user_id']);
                 $dataUpdate['is_keuangan'] = $request->has('is_keuangan') ? 1 : 0;
 
                 if ($request->hasFile('foto_profil')) {
@@ -183,6 +183,9 @@ class DosenController extends Controller
     public function destroy(Dosen $dosen): RedirectResponse
     {
         if ($alasan = $dosen->alasanTidakBisaDihapus()) {
+            return redirect()->route('admin.dosen.index')->with('error', $alasan);
+        }
+        if ($dosen->user && ($alasan = $dosen->user->alasanAkunTidakBisaDihapus())) {
             return redirect()->route('admin.dosen.index')->with('error', $alasan);
         }
 

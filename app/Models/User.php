@@ -150,6 +150,28 @@ class User extends Authenticatable
             ->get();
     }
 
+    /**
+     * Alasan akun tidak boleh dihapus karena terikat riwayat yang harus tetap utuh, atau null bila aman.
+     * Menghapus akun akan ikut menghapus (cascade) absensi & sirkulasi perpustakaan, dan menghapus jejak
+     * petugas pada verifikasi pembayaran / validasi KRS / keputusan PMB.
+     */
+    public function alasanAkunTidakBisaDihapus(): ?string
+    {
+        $cek = [
+            'masih meminjam buku perpustakaan'          => fn () => \App\Models\Peminjaman::where('user_id', $this->id)->where('status', 'Dipinjam')->exists(),
+            'memiliki riwayat absensi kerja'            => fn () => \App\Models\AbsensiPegawai::where('user_id', $this->id)->exists(),
+            'tercatat sebagai verifikator pembayaran'   => fn () => \App\Models\Pembayaran::where('diverifikasi_oleh', $this->id)->exists(),
+            'tercatat sebagai validator KRS'            => fn () => \App\Models\KrsPersetujuan::where('divalidasi_oleh', $this->id)->exists(),
+            'tercatat sebagai pemutus seleksi PMB'      => fn () => \App\Models\Camaba::where('diputuskan_oleh', $this->id)->exists(),
+        ];
+
+        $alasan = collect($cek)->filter(fn ($fn) => $fn())->keys();
+
+        return $alasan->isEmpty()
+            ? null
+            : 'Akun ini tidak dapat dihapus karena ' . $alasan->implode(', ') . '. Riwayat tersebut wajib tetap tercatat; ganti kata sandi akun bila pegawai sudah tidak bertugas.';
+    }
+
     // --- KEPANITIAAN PMB ---
 
     public function kepanitiaanPmb()

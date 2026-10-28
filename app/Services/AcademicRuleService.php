@@ -308,7 +308,15 @@ class AcademicRuleService
                 }
 
                 $presensiIds = DB::table('verum_presensi')->whereIn('kelas_id', $kelasIds)->pluck('id');
-                $tugasIds = DB::table('verum_tugas')->whereIn('kelas_id', $kelasIds)->pluck('id');
+                // Hanya tugas yang sudah dinilai dosen (minimal satu jawaban bernilai) yang dihitung. Tugas yang belum
+                // dinilai, atau dikumpulkan luring sehingga tidak ada jawaban di Verum, tidak boleh menimpa nilai
+                // tugas di Buku Nilai menjadi 0. Mahasiswa yang tidak mengumpulkan tugas yang sudah dinilai tetap 0.
+                $tugasIds = DB::table('verum_tugas')
+                    ->whereIn('kelas_id', $kelasIds)
+                    ->whereExists(fn ($q) => $q->from('verum_pengumpulan')
+                        ->whereColumn('verum_pengumpulan.tugas_id', 'verum_tugas.id')
+                        ->whereNotNull('verum_pengumpulan.nilai'))
+                    ->pluck('id');
 
                 $nilaiHadir = $mhs->pivot->nilai_kehadiran;
                 if ($presensiIds->count() > 0) {

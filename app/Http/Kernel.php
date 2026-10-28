@@ -64,7 +64,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         
         // Middleware Kustom SIAKAD
-        'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'role' => \App\Http\Middleware\CheckRoleMiddleware::class,
         'no_nested_impersonation' => \App\Http\Middleware\PreventNestedImpersonation::class,
     ];

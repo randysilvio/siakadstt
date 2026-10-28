@@ -123,6 +123,9 @@ class UserController extends Controller
         if ($user->pembayarans()->exists()) {
             return back()->with('error', 'Akun ini memiliki riwayat tagihan keuangan sehingga tidak dapat dihapus.');
         }
+        if ($alasan = $user->alasanAkunTidakBisaDihapus()) {
+            return back()->with('error', $alasan);
+        }
 
         DB::transaction(function () use ($user) {
             if ($user->tendik) {
