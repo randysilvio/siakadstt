@@ -49,7 +49,7 @@ class BerkasPrivat
     private static function validasiFileAman(UploadedFile $file, array $allowedExtensions): void
     {
         if (!$file->isValid()) {
-            throw new \RuntimeException('Berkas upload tidak valid atau rusak.');
+            throw new \App\Exceptions\BerkasDitolakException('Berkas upload tidak valid atau rusak.');
         }
 
         $ext = strtolower($file->getClientOriginalExtension() ?: pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
@@ -57,11 +57,11 @@ class BerkasPrivat
         $blockedExt = ['php', 'php3', 'php4', 'php5', 'phtml', 'phar', 'phps', 'exe', 'bat', 'cmd', 'js', 'html', 'htm', 'svg', 'xml', 'jsp', 'asp', 'aspx', 'cfm', 'cgi', 'pl', 'py', 'rb', 'sh'];
 
         if ($ext === '' || !in_array($ext, $allowedExtensions, true)) {
-            throw new \RuntimeException('Tipe berkas tidak diizinkan untuk diunggah.');
+            throw new \App\Exceptions\BerkasDitolakException('Tipe berkas tidak diizinkan untuk diunggah.');
         }
 
         if (in_array($ext, $blockedExt, true) || str_contains($mime, 'php') || str_contains($mime, 'javascript') || str_contains($mime, 'html')) {
-            throw new \RuntimeException('Berkas berbahaya tidak diizinkan.');
+            throw new \App\Exceptions\BerkasDitolakException('Berkas berbahaya tidak diizinkan.');
         }
 
         $fullPath = $file->getRealPath();
@@ -70,7 +70,7 @@ class BerkasPrivat
             if (is_string($content)) {
                 $content = strtolower($content);
                 if (str_contains($content, '<?php') || str_contains($content, '<script') || str_contains($content, 'javascript:') || str_contains($content, '<svg') || str_contains($content, '<html')) {
-                    throw new \RuntimeException('Isi berkas berbahaya terdeteksi.');
+                    throw new \App\Exceptions\BerkasDitolakException('Isi berkas berbahaya terdeteksi.');
                 }
             }
         }

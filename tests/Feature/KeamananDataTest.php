@@ -192,3 +192,15 @@ test('impersonasi tidak dapat dipicu lewat tautan GET', function () {
     $this->actingAs($d['admin'])->get('/admin/user/' . $d['mUser']->id . '/impersonate')->assertStatus(405);
     $this->actingAs($d['admin'])->post(route('admin.user.impersonate', $d['mUser']->id))->assertRedirect(route('dashboard'));
 });
+
+test('berkas berisi skrip ditolak dengan pesan, bukan error server', function () {
+    $d = $this->seedAkademik();
+    \Illuminate\Support\Facades\Storage::fake('local');
+    $tagihan = \App\Models\Pembayaran::create(['mahasiswa_id' => $d['mhs']->id, 'user_id' => $d['mUser']->id, 'jumlah' => 1, 'semester' => 'x', 'status' => 'belum_lunas', 'jenis_pembayaran' => 'spp']);
+    $jahat = UploadedFile::fake()->createWithContent('bukti.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') . '<script>alert(1)</script>');
+
+    $this->actingAs($d['mUser'])->from(route('pembayaran.riwayat'))
+        ->post(route('pembayaran.uploadBukti', $tagihan), ['bukti_bayar' => $jahat])
+        ->assertRedirect(route('pembayaran.riwayat'))->assertSessionHas('error', 'Isi berkas berbahaya terdeteksi.');
+    expect($tagihan->fresh()->status)->toBe('belum_lunas');
+});

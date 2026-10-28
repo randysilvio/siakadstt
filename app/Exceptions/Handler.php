@@ -44,5 +44,13 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+
+        // Berkas yang ditolak pemeriksaan keamanan unggahan: kembalikan ke formulir dengan pesan, bukan error 500
+        $this->renderable(function (BerkasDitolakException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+            }
+            return redirect()->back()->withInput($request->except($this->dontFlash))->with('error', $e->getMessage());
+        });
     }
 }
