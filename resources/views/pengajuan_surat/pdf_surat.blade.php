@@ -41,7 +41,7 @@
             $noSuratFormatted = $urut . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $pengajuanSurat->created_at->format('Y');
         }
 
-        $tglSurat = $pengajuanSurat->tanggal_terbit ?? $pengajuanSurat->updated_at ?? now();
+        $tglSurat = $pengajuanSurat->tanggal_disetujui ?? $pengajuanSurat->updated_at ?? now();
     @endphp
 
     <div class="title-container">

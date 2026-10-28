@@ -103,6 +103,11 @@ class Dosen extends Model
      */
     public function hitungRingkasanBkd(): array
     {
+        // BKD adalah beban PER SEMESTER: hanya mata kuliah yang ditawarkan pada semester aktif (ganjil/genap)
+        // dan kegiatan Tridharma pada semester tersebut yang dihitung.
+        $ta = TahunAkademik::where('is_active', true)->first();
+        $semesterMk = $ta ? app(\App\Services\AcademicRuleService::class)->semesterDitawarkan($ta) : null;
+
         $pivotMkIds = DB::table('dosen_mata_kuliah')
             ->where('dosen_id', $this->id)
             ->pluck('mata_kuliah_id')
@@ -113,29 +118,30 @@ class Dosen extends Model
                   ->orWhereIn('id', $pivotMkIds);
             })
             ->whereHas('kurikulum', fn($k) => $k->where('is_active', true))
+            ->when($semesterMk, fn ($q) => $q->whereIn('semester', $semesterMk))
             ->sum('sks');
 
-        // Bimbingan Perwalian Akademik dihitung 1 SKS BKD jika membimbing >= 5 mahasiswa
+        // Bimbingan Perwalian Akademik: 0,1 SKS per mahasiswa wali aktif, maksimal 2 SKS
         $jmlWali = $this->mahasiswaWali()->where('status_mahasiswa', 'Aktif')->count();
         $sksPerwalian = $jmlWali > 0 ? min(2.0, round($jmlWali * 0.1, 2)) : 0.0;
 
         $sksPendidikan = round($sksPengajaran + $sksPerwalian, 2);
 
-        $tahunBerjalan = (int) date('Y');
-        $sksPenelitian = (float) $this->tridharmas()
-            ->where('unsur', 'penelitian')
-            ->where('tahun', '>=', $tahunBerjalan - 1)
-            ->sum('sks_bkd');
+        $kegiatanSemesterIni = function (string $unsur) use ($ta) {
+            $q = $this->tridharmas()->where('unsur', $unsur);
+            if ($ta) {
+                $tahun = array_map('intval', explode('/', (string) $ta->tahun));
+                $semester = in_array($ta->semester, ['Ganjil', 'Gasal'], true) ? 'Ganjil' : 'Genap';
+                $q->where('semester', $semester)->whereIn('tahun', array_filter($tahun));
+            } else {
+                $q->where('tahun', '>=', (int) date('Y') - 1);
+            }
+            return (float) $q->sum('sks_bkd');
+        };
 
-        $sksPengabdian = (float) $this->tridharmas()
-            ->where('unsur', 'pengabdian')
-            ->where('tahun', '>=', $tahunBerjalan - 1)
-            ->sum('sks_bkd');
-
-        $sksPenunjangInput = (float) $this->tridharmas()
-            ->where('unsur', 'penunjang')
-            ->where('tahun', '>=', $tahunBerjalan - 1)
-            ->sum('sks_bkd');
+        $sksPenelitian = $kegiatanSemesterIni('penelitian');
+        $sksPengabdian = $kegiatanSemesterIni('pengabdian');
+        $sksPenunjangInput = $kegiatanSemesterIni('penunjang');
 
         // SK Kepanitiaan otomatis dari E-Office bernilai 0.5 SKS per SK aktif
         $jmlSkSelesai = $this->suratKeputusans()->where('status', 'Selesai')->count();

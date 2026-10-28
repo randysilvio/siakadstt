@@ -118,6 +118,38 @@ class User extends Authenticatable
         return false;
     }
 
+    /**
+     * ID peran yang berlaku bagi akun ini, termasuk peran turunan yang tidak tersimpan di role_user:
+     * Kaprodi (dosen yang ditunjuk pada master prodi) dan Keuangan (dosen ber-otoritas keuangan).
+     */
+    public function idPeranEfektif(): \Illuminate\Support\Collection
+    {
+        $nama = [];
+        if ($this->isKaprodi()) {
+            $nama[] = 'kaprodi';
+        }
+        if ($this->dosen && $this->dosen->is_keuangan) {
+            $nama[] = 'keuangan';
+        }
+        $turunan = $nama ? Role::whereIn('name', $nama)->pluck('id') : collect();
+
+        return $this->roles->pluck('id')->merge($turunan)->unique()->values();
+    }
+
+    /**
+     * Akun yang memegang salah satu peran (by ID), termasuk peran turunan Kaprodi & Keuangan.
+     */
+    public static function pemegangPeran(array $roleIds): \Illuminate\Database\Eloquent\Collection
+    {
+        $namaPeran = Role::whereIn('id', $roleIds)->pluck('name')->all();
+
+        return static::query()
+            ->whereHas('roles', fn ($q) => $q->whereIn('roles.id', $roleIds))
+            ->when(in_array('kaprodi', $namaPeran, true), fn ($q) => $q->orWhereHas('dosen', fn ($d) => $d->whereIn('id', ProgramStudi::whereNotNull('kaprodi_dosen_id')->select('kaprodi_dosen_id'))))
+            ->when(in_array('keuangan', $namaPeran, true), fn ($q) => $q->orWhereHas('dosen', fn ($d) => $d->where('is_keuangan', true)))
+            ->get();
+    }
+
     // --- KEPANITIAAN PMB ---
 
     public function kepanitiaanPmb()

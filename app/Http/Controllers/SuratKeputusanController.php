@@ -57,7 +57,8 @@ class SuratKeputusanController extends Controller
             'jenis_surat'    => 'required|string',
             'judul'          => 'required|string',
             'tanggal_terbit' => 'nullable|date',
-        ]);
+            'nomor_surat'    => 'nullable|string|max:255|unique:surat_keputusans,nomor_surat',
+        ], ['nomor_surat.unique' => 'Nomor surat ini sudah dipakai SK lain. Setiap SK wajib bernomor unik.']);
 
         DB::transaction(function () use ($request) {
             $panitiaLainnya = [];
@@ -123,7 +124,8 @@ class SuratKeputusanController extends Controller
             'jenis_surat'    => 'required|string',
             'judul'          => 'required|string',
             'tanggal_terbit' => 'nullable|date',
-        ]);
+            'nomor_surat'    => 'nullable|string|max:255|unique:surat_keputusans,nomor_surat,' . $suratKeputusan->id,
+        ], ['nomor_surat.unique' => 'Nomor surat ini sudah dipakai SK lain. Setiap SK wajib bernomor unik.']);
 
         DB::transaction(function () use ($request, $suratKeputusan) {
             $panitiaLainnya = [];
@@ -241,7 +243,13 @@ class SuratKeputusanController extends Controller
             return Storage::disk($disk)->download($suratKeputusan->file_path, $safeName);
         }
 
-        return back()->with('error', 'File dokumen fisik tidak ditemukan di server.');
+        // Dibuka dari tab baru tidak punya halaman sebelumnya: arahkan ke halaman asal yang jelas
+        $kembali = $isAuthorizedStaff && $user->hasRole(['admin', 'administrasi_umum'])
+            ? route('administrasi.surat-keputusan.index')
+            : ($isTaggedDosen ? route('dosen.tridharma.index') : route('dashboard'));
+
+        return redirect()->to(url()->previous() !== url()->current() ? url()->previous() : $kembali)
+            ->with('error', 'File final SK belum diunggah atau tidak ditemukan di server.');
     }
 
     public function destroy(SuratKeputusan $suratKeputusan)

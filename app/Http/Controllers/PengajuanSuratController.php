@@ -90,12 +90,16 @@ class PengajuanSuratController extends Controller
             $nomorSurat = "{$urutan}/BAAK-SRT/STT-GPI/" . date('m/Y');
         }
 
+        // Tanggal surat = saat pertama kali disetujui; tidak berubah bila status disimpan ulang
+        $tanggalDisetujui = $validated['status'] === 'Disetujui'
+            ? ($pengajuanSurat->status === 'Disetujui' && $pengajuanSurat->tanggal_disetujui ? $pengajuanSurat->tanggal_disetujui : now())
+            : null;
+
         $pengajuanSurat->update([
-            'status'         => $validated['status'],
-            'nomor_surat'    => $nomorSurat,
-            'catatan_admin'  => isset($validated['catatan_admin']) ? strip_tags($validated['catatan_admin']) : null,
-            'disetujui_oleh' => Auth::id(),
-            'tanggal_terbit' => $validated['status'] === 'Disetujui' ? now() : null,
+            'status'            => $validated['status'],
+            'nomor_surat'       => $nomorSurat,
+            'catatan_admin'     => isset($validated['catatan_admin']) ? strip_tags($validated['catatan_admin']) : null,
+            'tanggal_disetujui' => $tanggalDisetujui,
         ]);
 
         // Kirim notifikasi ke mahasiswa terkait

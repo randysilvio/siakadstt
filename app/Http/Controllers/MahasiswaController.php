@@ -119,7 +119,7 @@ class MahasiswaController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Gagal menambah Mahasiswa: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data mahasiswa. Detail kesalahan telah dicatat di log sistem.');
         }
     }
 
@@ -186,7 +186,7 @@ class MahasiswaController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Gagal memperbarui Mahasiswa: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data mahasiswa. Detail kesalahan telah dicatat di log sistem.');
         }
     }
 
@@ -236,7 +236,7 @@ class MahasiswaController extends Controller
             }
             return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         } catch (\Exception $e) {
-            return redirect()->route('admin.mahasiswa.index')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->route('admin.mahasiswa.index')->with('error', \App\Support\PesanImpor::dari($e));
         }
         
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diimpor!');

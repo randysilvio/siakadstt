@@ -75,12 +75,20 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             }
         }
 
-        $email = !empty($row['email']) ? trim($row['email']) : $nim . '@student.sttgpipapua.ac.id';
+        $mahasiswaLama = Mahasiswa::where('nim', $nim)->first();
+
+        // Email kosong: pakai akun lama milik NIM ini bila ada, selain itu email bawaan kampus
+        $email = !empty($row['email'])
+            ? trim($row['email'])
+            : (optional(optional($mahasiswaLama)->user)->email ?? $nim . '@student.sttgpipapua.ac.id');
 
         // Akun staf/dosen/admin tidak boleh ditimpa oleh baris impor mahasiswa yang emailnya bentrok
         $existingUser = User::where('email', $email)->first();
         if ($existingUser && !$this->akunBolehDipakai($existingUser, ['mahasiswa'])) {
             $this->gagal("email {$email} sudah dipakai akun non-mahasiswa.");
+        }
+        if ($existingUser && $existingUser->mahasiswa && $existingUser->mahasiswa->nim !== $nim) {
+            $this->gagal("email {$email} sudah dipakai mahasiswa lain (NIM {$existingUser->mahasiswa->nim}).");
         }
 
         if ($existingUser) {
@@ -99,32 +107,65 @@ class MahasiswasImport implements ToModel, WithHeadingRow, WithValidation, Skips
             ]);
         }
 
-        if ($role && method_exists($user, 'assignRole')) {
+        if ($role) {
             $user->assignRole($role->name);
         }
 
-        return Mahasiswa::updateOrCreate(
-            ['nim' => $nim],
-            [
-                'user_id'           => $user->id,
-                'nama_lengkap'      => $row['nama_lengkap'],
-                'program_studi_id'  => $prodiId, 
-                'dosen_wali_id'     => $dosenWaliId,
-                'tahun_masuk'       => !empty($row['angkatan']) ? trim((string) $row['angkatan']) : (!empty($row['tahun_masuk']) ? trim((string) $row['tahun_masuk']) : date('Y')),
-                'status_mahasiswa'  => $statusMahasiswa,
-                'nik'               => !empty($row['nik']) ? ltrim(trim((string) $row['nik']), "'") : null,
-                'nisn'              => !empty($row['nisn']) ? ltrim(trim((string) $row['nisn']), "'") : null,
-                'jalur_pendaftaran' => !empty($row['jalur_pendaftaran']) ? trim($row['jalur_pendaftaran']) : 'Mandiri',
-                'tempat_lahir'      => !empty($row['tempat_lahir']) ? trim($row['tempat_lahir']) : null,
-                'tanggal_lahir'     => $tanggalLahir,
-                'jenis_kelamin'     => !empty($row['jenis_kelamin']) ? strtoupper(trim($row['jenis_kelamin'])) : 'L',
-                'agama'             => !empty($row['agama']) ? trim($row['agama']) : 'Kristen Protestan',
-                'nomor_telepon'     => !empty($row['no_hp']) ? ltrim(trim((string) $row['no_hp']), "'") : (!empty($row['nomor_telepon']) ? ltrim(trim((string) $row['nomor_telepon']), "'") : null),
-                'alamat'            => !empty($row['alamat']) ? trim($row['alamat']) : null,
-                'nama_ibu_kandung'  => !empty($row['nama_ibu_kandung']) ? trim($row['nama_ibu_kandung']) : null,
-                'nama_ayah'         => !empty($row['nama_ayah']) ? trim($row['nama_ayah']) : null,
-            ]
-        );
+        $teks = fn (string $kolom) => isset($row[$kolom]) && trim((string) $row[$kolom]) !== '' ? ltrim(trim((string) $row[$kolom]), "'") : null;
+
+        // Seluruh kolom template (termasuk data Feeder: alamat rinci, orang tua, wali) ikut tersimpan
+        $data = [
+            'user_id'           => $user->id,
+            'nama_lengkap'      => trim((string) $row['nama_lengkap']),
+            'program_studi_id'  => $prodiId,
+            'dosen_wali_id'     => $dosenWaliId,
+            'tahun_masuk'       => $teks('angkatan') ?? $teks('tahun_masuk'),
+            'status_mahasiswa'  => !empty($row['status_mahasiswa']) ? $statusMahasiswa : null,
+            'nik'               => $teks('nik'),
+            'nisn'              => $teks('nisn'),
+            'jalur_pendaftaran' => $teks('jalur_pendaftaran'),
+            'tempat_lahir'      => $teks('tempat_lahir'),
+            'tanggal_lahir'     => $tanggalLahir,
+            'jenis_kelamin'     => $teks('jenis_kelamin') ? strtoupper($teks('jenis_kelamin')) : null,
+            'agama'             => $teks('agama'),
+            'nomor_telepon'     => $teks('no_hp') ?? $teks('nomor_telepon'),
+            'alamat'            => $teks('alamat'),
+            'dusun'             => $teks('dusun'),
+            'rt'                => $teks('rt'),
+            'rw'                => $teks('rw'),
+            'kelurahan'         => $teks('kelurahan'),
+            'kecamatan'         => $teks('kecamatan'),
+            'kode_pos'          => $teks('kode_pos'),
+            'jenis_tinggal'     => $teks('jenis_tinggal'),
+            'alat_transportasi' => $teks('alat_transportasi'),
+            'nama_ibu_kandung'  => $teks('nama_ibu_kandung'),
+            'nik_ibu'           => $teks('nik_ibu'),
+            'pendidikan_ibu'    => $teks('pendidikan_ibu'),
+            'pekerjaan_ibu'     => $teks('pekerjaan_ibu'),
+            'penghasilan_ibu'   => $teks('penghasilan_ibu'),
+            'nama_ayah'         => $teks('nama_ayah'),
+            'nik_ayah'          => $teks('nik_ayah'),
+            'pendidikan_ayah'   => $teks('pendidikan_ayah'),
+            'pekerjaan_ayah'    => $teks('pekerjaan_ayah'),
+            'penghasilan_ayah'  => $teks('penghasilan_ayah'),
+            'nama_wali'         => $teks('nama_wali'),
+            'pekerjaan_wali'    => $teks('pekerjaan_wali'),
+        ];
+
+        if ($mahasiswaLama) {
+            // Impor ulang memperbarui data; sel kosong TIDAK menghapus data yang sudah ada
+            $mahasiswaLama->update(array_filter($data, fn ($v) => $v !== null));
+            return $mahasiswaLama;
+        }
+
+        return Mahasiswa::create(array_merge($data, [
+            'nim'               => $nim,
+            'tahun_masuk'       => $data['tahun_masuk'] ?? date('Y'),
+            'status_mahasiswa'  => $statusMahasiswa,
+            'jalur_pendaftaran' => $data['jalur_pendaftaran'] ?? 'Mandiri',
+            'jenis_kelamin'     => $data['jenis_kelamin'] ?? 'L',
+            'agama'             => $data['agama'] ?? 'Kristen Protestan',
+        ]));
     }
 
     public function rules(): array

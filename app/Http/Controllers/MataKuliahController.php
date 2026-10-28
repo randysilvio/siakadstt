@@ -169,7 +169,7 @@ class MataKuliahController extends Controller
             }
             return redirect()->route('admin.mata-kuliah.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         } catch (\Exception $e) {
-            return redirect()->route('admin.mata-kuliah.index')->with('error', 'Terjadi kesalahan saat mengimpor data: ' . $e->getMessage());
+            return redirect()->route('admin.mata-kuliah.index')->with('error', \App\Support\PesanImpor::dari($e));
         }
         
         return redirect()->route('admin.mata-kuliah.index')->with('success', 'Data mata kuliah berhasil diimpor!');

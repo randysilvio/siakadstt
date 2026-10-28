@@ -614,6 +614,7 @@
     </nav>
 
     <main class="container mt-3 mt-md-4 mb-5">
+        @include('partials._flash_cadangan')
         @yield('content')
     </main>
 

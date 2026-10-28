@@ -66,6 +66,12 @@ class EvaluasiPertanyaanController extends Controller
 
     public function destroy(EvaluasiPertanyaan $evaluasi_pertanyaan)
     {
+        // Menghapus pertanyaan yang sudah dijawab akan menghapus jawaban historis & mengubah skor dosen di sesi lampau
+        if (\App\Models\EvaluasiJawaban::where('evaluasi_pertanyaan_id', $evaluasi_pertanyaan->id)->exists()) {
+            return redirect()->route('admin.evaluasi-pertanyaan.index')
+                ->with('error', 'Pertanyaan ini sudah dijawab pada sesi evaluasi sehingga tidak dapat dihapus. Nonaktifkan pertanyaan agar tidak muncul lagi.');
+        }
+
         $evaluasi_pertanyaan->delete();
 
         // PERBAIKAN: Menambahkan 'admin.' pada route

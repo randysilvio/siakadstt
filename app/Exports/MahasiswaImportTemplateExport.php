@@ -73,7 +73,8 @@ class MahasiswaImportTemplateExport implements FromCollection, WithHeadings, Wit
                 $dosens = Dosen::select('id', 'nama_lengkap')->get(); $row = 3;
                 foreach ($dosens as $dosen) { $sheet->setCellValue('AN' . $row, $dosen->id . ' - ' . $dosen->nama_lengkap); $row++; }
 
-                foreach(range('A','AN') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
+                // range('A','AN') tidak mendukung kolom dua huruf; iterasi lewat indeks kolom
+                for ($i = 1, $akhir = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString('AN'); $i <= $akhir; $i++) { $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setAutoSize(true); }
             },
         ];
     }

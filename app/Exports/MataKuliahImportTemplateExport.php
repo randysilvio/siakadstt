@@ -94,7 +94,8 @@ class MataKuliahImportTemplateExport implements FromCollection, WithHeadings, Wi
                     $row++;
                 }
                 
-                foreach(range('A','O') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
+                // range('A','AN') tidak mendukung kolom dua huruf; iterasi lewat indeks kolom
+                for ($i = 1, $akhir = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString('O'); $i <= $akhir; $i++) { $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setAutoSize(true); }
             },
         ];
     }

@@ -70,7 +70,7 @@ class VerifikasiDokumenController extends Controller
                 $noSuratFormatted = $urut . '/' . strtoupper(str_replace(' ', '-', $singkatanPt)) . '/AK/' . $suratMandiri->created_at->format('Y');
             }
 
-            $tglTerbit = $suratMandiri->tanggal_terbit ?? $suratMandiri->updated_at ?? now();
+            $tglTerbit = $suratMandiri->tanggal_disetujui ?? $suratMandiri->updated_at ?? now();
 
             $dataDokumen = [
                 'jenis_dokumen' => strtoupper($suratMandiri->jenis_surat),

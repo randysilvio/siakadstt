@@ -108,7 +108,7 @@ class DosenController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Gagal menambah Dosen: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data dosen: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat menyimpan data dosen. Detail kesalahan telah dicatat di log sistem.');
         }
     }
 
@@ -176,7 +176,7 @@ class DosenController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Gagal memperbarui Dosen: ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data dosen: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat memperbarui data dosen. Detail kesalahan telah dicatat di log sistem.');
         }
     }
 
@@ -230,7 +230,7 @@ class DosenController extends Controller
             return redirect()->route('admin.dosen.index')->with('error', 'Gagal mengimpor data: ' . implode(' | ', $errorMessages));
         
         } catch (\Exception $e) {
-            return redirect()->route('admin.dosen.index')->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            return redirect()->route('admin.dosen.index')->with('error', \App\Support\PesanImpor::dari($e));
         }
         
         return redirect()->route('admin.dosen.index')->with('success', 'Data dosen berhasil diimpor!');

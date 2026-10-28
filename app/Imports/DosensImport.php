@@ -101,6 +101,7 @@ class DosensImport implements ToModel, WithHeadingRow, WithValidation, SkipsEmpt
                 'email_institusi'     => $row['email_institusi'] ?? $email,
                 'link_google_scholar' => $row['link_google_scholar'] ?? null,
                 'link_sinta'          => $row['link_sinta'] ?? null,
+                'alamat'              => !empty($row['alamat']) ? trim((string) $row['alamat']) : null,
             ]
         );
     }

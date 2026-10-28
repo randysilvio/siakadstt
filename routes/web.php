@@ -308,8 +308,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,administrasi_umum')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('pengumuman', PengumumanController::class);
-        Route::resource('slideshows', SlideshowController::class);
-        Route::resource('dokumen-publik', DokumenPublikController::class);
+        Route::resource('slideshows', SlideshowController::class)->except(['show']);
+        Route::resource('dokumen-publik', DokumenPublikController::class)->except(['edit', 'update']);
 
         Route::get('/layanan-surat-mahasiswa', [PengajuanSuratController::class, 'adminIndex'])->name('surat-mandiri.index');
         Route::patch('/layanan-surat-mahasiswa/{pengajuanSurat}/status', [PengajuanSuratController::class, 'updateStatus'])->name('surat-mandiri.updateStatus');
@@ -359,8 +359,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/mata-kuliah/import', [MataKuliahController::class, 'import'])->name('mata-kuliah.import');
         Route::get('/mata-kuliah/import/template', [MataKuliahController::class, 'downloadTemplate'])->name('mata-kuliah.import.template');
         
-        Route::get('/tendik/create', [TendikController::class, 'create'])->name('tendik.create');
-        Route::post('/tendik', [TendikController::class, 'store'])->name('tendik.store');
         Route::resource('tendik', TendikController::class)->except(['show']);
 
         Route::prefix('absensi')->name('absensi.')->group(function () {
@@ -386,18 +384,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/pmb-panitia/tutup', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'tutup'])->name('pmb-panitia.tutup');
         Route::post('/pmb-panitia/buka', [\App\Http\Controllers\Admin\PmbPanitiaController::class, 'buka'])->name('pmb-panitia.buka');
 
-        Route::resource('pmb-periods', PmbPeriodController::class);
+        Route::resource('pmb-periods', PmbPeriodController::class)->except(['show']);
         Route::patch('/pmb-periods/{pmbPeriod}/set-active', [PmbPeriodController::class, 'setActive'])->name('pmb-periods.set-active');
 
         Route::resource('fakultas', FakultasController::class)->except(['create', 'show', 'edit']);
         Route::resource('mahasiswa', MahasiswaController::class);
-        Route::resource('program-studi', ProgramStudiController::class);
+        Route::resource('program-studi', ProgramStudiController::class)->except(['show']);
         Route::resource('kurikulum', KurikulumController::class)->except(['show']);
         Route::patch('/kurikulum/{kurikulum}/set-active', [KurikulumController::class, 'setActive'])->name('kurikulum.setActive');
-        Route::resource('mata-kuliah', MataKuliahController::class);
-        Route::resource('dosen', DosenController::class);
+        Route::resource('mata-kuliah', MataKuliahController::class)->except(['show']);
+        Route::resource('dosen', DosenController::class)->except(['show']);
         
-        Route::resource('tahun-akademik', TahunAkademikController::class);
+        Route::resource('tahun-akademik', TahunAkademikController::class)->except(['show']);
         Route::resource('kalender', KalenderController::class)->except(['show']);
         
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);

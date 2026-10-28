@@ -213,6 +213,13 @@ class PerpustakaanController extends Controller
 
         DB::beginTransaction();
         try {
+            // Kunci baris transaksi agar klik ganda / dua petugas tidak menambah stok dua kali
+            $terkunci = Peminjaman::lockForUpdate()->find($peminjaman->id);
+            if (!$terkunci || $terkunci->status !== 'Dipinjam') {
+                DB::rollBack();
+                return back()->with('error', 'Transaksi ini sudah diselesaikan sebelumnya.');
+            }
+
             $peminjaman->update([
                 'tanggal_kembali' => now(),
                 'status'          => 'Kembali',

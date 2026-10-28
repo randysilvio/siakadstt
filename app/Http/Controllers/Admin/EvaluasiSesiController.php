@@ -77,11 +77,12 @@ class EvaluasiSesiController extends Controller
 
     public function destroy(EvaluasiSesi $evaluasi_sesi)
     {
-        // Opsional: Cek jika ada jawaban sebelum menghapus
-        // if ($evaluasi_sesi->jawaban()->exists()) {
-        //     return back()->with('error', 'Gagal hapus: Sesi ini sudah memiliki data jawaban.');
-        // }
-        
+        // Jawaban EDOM ikut terhapus (cascade); sesi yang sudah diisi mahasiswa adalah arsip penjaminan mutu
+        if (\App\Models\EvaluasiJawaban::where('evaluasi_sesi_id', $evaluasi_sesi->id)->exists()) {
+            return redirect()->route('admin.evaluasi-sesi.index')
+                ->with('error', 'Sesi evaluasi ini sudah memiliki jawaban mahasiswa sehingga tidak dapat dihapus. Nonaktifkan sesi bila tidak lagi dipakai.');
+        }
+
         $evaluasi_sesi->delete();
 
         // PERBAIKAN: Menambahkan 'admin.' pada route

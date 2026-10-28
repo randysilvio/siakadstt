@@ -100,7 +100,8 @@ class DosenImportTemplateExport implements FromCollection, WithHeadings, WithTit
                 $row = 3;
                 foreach($pangkat as $p) { $sheet->setCellValue('Z'.$row, $p); $row++; }
 
-                foreach(range('A','Z') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
+                // range('A','AN') tidak mendukung kolom dua huruf; iterasi lewat indeks kolom
+                for ($i = 1, $akhir = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString('Z'); $i <= $akhir; $i++) { $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setAutoSize(true); }
             },
         ];
     }

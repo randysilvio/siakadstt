@@ -51,10 +51,7 @@ class KalenderController extends Controller
         ]);
         $kegiatan->roles()->sync($validated['target_roles']);
 
-        $targetRoleIds = $validated['target_roles'];
-        $usersToNotify = User::whereHas('roles', function ($q) use ($targetRoleIds) {
-            $q->whereIn('roles.id', $targetRoleIds);
-        })->get();
+        $usersToNotify = User::pemegangPeran(array_map('intval', $validated['target_roles']));
 
         if ($usersToNotify->count() > 0) {
             Notification::send($usersToNotify, new GeneralNotification(
@@ -103,6 +100,15 @@ class KalenderController extends Controller
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil dihapus.');
     }
 
+    private function tanggalAtau($nilai, Carbon $bawaan): string
+    {
+        try {
+            return $nilai ? Carbon::parse($nilai)->toDateString() : $bawaan->toDateString();
+        } catch (\Throwable $e) {
+            return $bawaan->toDateString();
+        }
+    }
+
     public function halamanKalender(): View
     {
         return view('kalender.show');
@@ -112,14 +118,18 @@ class KalenderController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user || !$user->roles) {
+        if (!$user) {
             return response()->json([]);
         }
-        $userRoleIds = $user->roles->pluck('id');
+        $userRoleIds = $user->idPeranEfektif();
+
+        // FullCalendar selalu mengirim start & end; bila dibuka langsung, tampilkan bulan berjalan
+        $mulai = $this->tanggalAtau($request->query('start'), now()->startOfMonth());
+        $akhir = $this->tanggalAtau($request->query('end'), now()->endOfMonth());
 
         $query = KegiatanAkademik::query()
-            ->where('tanggal_mulai', '<=', $request->end)
-            ->where('tanggal_selesai', '>=', $request->start)
+            ->whereDate('tanggal_mulai', '<=', $akhir)
+            ->whereDate('tanggal_selesai', '>=', $mulai)
             // Admin pengelola kalender melihat seluruh agenda
             ->when(!$user->hasRole('admin'), fn ($q) => $q->whereHas('roles', function ($r) use ($userRoleIds) {
                 $r->whereIn('roles.id', $userRoleIds);
@@ -139,10 +149,10 @@ class KalenderController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || !$user->roles) {
+        if (!$user) {
             return response()->json([]);
         }
-        $userRoleIds = $user->roles->pluck('id');
+        $userRoleIds = $user->idPeranEfektif();
 
         $kegiatans = KegiatanAkademik::query()
             ->where('tanggal_selesai', '>=', Carbon::today()->startOfMonth()->subMonths(1))
@@ -237,7 +247,7 @@ class KalenderController extends Controller
             
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error Backend: ' . $e->getMessage()
+                'message' => 'Gagal memuat jadwal kuliah. Silakan coba lagi.'
             ], 500);
         }
     }

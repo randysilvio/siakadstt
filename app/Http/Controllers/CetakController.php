@@ -29,7 +29,7 @@ class CetakController extends Controller
 
         $selectedTaId = $request->input('tahun_akademik_id');
         if (!$selectedTaId) {
-            return redirect()->back()->with('error', 'Gagal mencetak. Silakan pilih Tahun Akademik terlebih dahulu.');
+            return redirect()->route('khs.index')->with('error', 'Gagal mencetak. Silakan pilih Tahun Akademik terlebih dahulu.');
         }
 
         $tahunSelected = TahunAkademik::findOrFail($selectedTaId);

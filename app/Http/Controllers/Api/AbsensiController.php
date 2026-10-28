@@ -73,7 +73,7 @@ class AbsensiController extends Controller
         $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
         $toleransi = $setting ? (int) $setting->toleransi_terlambat_menit : 15;
 
-        $batasWaktu = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi);
+        $batasWaktu = Carbon::parse($jamMasuk) /* jam dari input <time> bisa "08:00" tanpa detik */->addMinutes($toleransi);
         $waktuSekarang = Carbon::now();
 
         $statusKehadiran = 'Hadir'; 

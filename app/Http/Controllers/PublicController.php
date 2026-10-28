@@ -59,7 +59,9 @@ class PublicController extends Controller
 
         $koleksiTerbaru = Koleksi::latest()->take(4)->get();
         $dokumen = DokumenPublik::latest()->take(5)->get();
+        // Agenda di beranda publik hanya yang ditujukan bagi mahasiswa (agenda internal staf/dosen tidak ditampilkan)
         $kegiatanTerdekat = KegiatanAkademik::where('tanggal_mulai', '>=', now()->subDays(7))
+            ->whereHas('roles', fn ($r) => $r->whereIn('name', ['mahasiswa', 'camaba']))
             ->orderBy('tanggal_mulai', 'asc')
             ->take(4)
             ->get();
@@ -98,15 +100,13 @@ class PublicController extends Controller
         $jumlahMahasiswaAktif = $programStudi->mahasiswas()->where('status_mahasiswa', 'Aktif')->count();
         $jumlahAlumni = $programStudi->mahasiswas()->where('status_mahasiswa', 'Lulus')->count();
 
-        // Cari kurikulum aktif milik prodi ini atau kurikulum aktif global
+        // Kurikulum milik prodi ini (yang aktif didahulukan) atau kurikulum umum tanpa prodi.
+        // Tidak boleh jatuh ke kurikulum prodi lain agar halaman publik tidak menampilkan mata kuliah yang salah.
         $kurikulum = Kurikulum::where('program_studi_id', $programStudi->id)
             ->orderBy('is_active', 'desc')
             ->orderBy('tahun', 'desc')
-            ->first();
-
-        if (!$kurikulum) {
-            $kurikulum = Kurikulum::where('is_active', true)->orderBy('tahun', 'desc')->first();
-        }
+            ->first()
+            ?? Kurikulum::whereNull('program_studi_id')->where('is_active', true)->orderBy('tahun', 'desc')->first();
 
         $mataKuliahsPerSemester = collect();
         if ($kurikulum) {
@@ -118,13 +118,6 @@ class PublicController extends Controller
                 ->groupBy('semester');
         }
 
-        if ($mataKuliahsPerSemester->isEmpty()) {
-            $mataKuliahsPerSemester = MataKuliah::with('dosen')
-                ->orderBy('semester')
-                ->orderBy('kode_mk')
-                ->get()
-                ->groupBy('semester');
-        }
 
         $semuaProdi = ProgramStudi::orderBy('nama_prodi')->get();
 

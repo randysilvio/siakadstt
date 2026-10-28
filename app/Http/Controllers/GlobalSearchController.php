@@ -34,6 +34,11 @@ class GlobalSearchController extends Controller
         $isDosen = $user->hasRole('dosen') || $user->isKaprodi();
         $dosen   = $user->dosen;
 
+        // Akun berperan dosen tanpa data dosen tidak punya lingkup mahasiswa/mata kuliah
+        if (!$isAdmin && !$dosen) {
+            $isDosen = false;
+        }
+
         // 1. PENCARIAN MAHASISWA (Sesuai Otoritas Role)
         if ($isAdmin || $isDosen || $user->hasRole('keuangan')) {
             $mhsQuery = Mahasiswa::with('programStudi')

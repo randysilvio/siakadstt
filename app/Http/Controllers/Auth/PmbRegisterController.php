@@ -78,7 +78,8 @@ class PmbRegisterController extends Controller
             $user->roles()->syncWithoutDetaching([$roleCamaba->id]);
 
             // 3. Buat Data Camaba
-            $noPendaftaran = 'REG-' . date('Y') . '-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
+            // Nomor registrasi mengikuti tahun PMB gelombang (gelombang I bisa dibuka akhir tahun sebelumnya)
+            $noPendaftaran = 'REG-' . ($periode->tahun_pmb ?: date('Y')) . '-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT);
 
             Camaba::create([
                 'user_id'            => $user->id,
@@ -90,12 +91,15 @@ class PmbRegisterController extends Controller
             ]);
 
             // 4. Otomatis Buat Tagihan Pembayaran Formulir
+            // Gelombang tanpa biaya (Rp 0) langsung lunas, tidak perlu unggah bukti transfer
+            $biaya = $periode->biaya_pendaftaran === null ? 250000 : (int) $periode->biaya_pendaftaran;
             Pembayaran::create([
                 'user_id'          => $user->id,          
                 'mahasiswa_id'     => null,          
                 'jenis_pembayaran' => 'formulir_pmb',
-                'jumlah'           => $periode->biaya_pendaftaran ?? 250000,
-                'status'           => 'belum_lunas',
+                'jumlah'           => $biaya,
+                'status'           => $biaya > 0 ? 'belum_lunas' : 'lunas',
+                'tanggal_bayar'    => $biaya > 0 ? null : now(),
                 'semester'         => 'PMB',             
                 'keterangan'       => 'Biaya Pendaftaran ' . $periode->nama_gelombang
             ]);

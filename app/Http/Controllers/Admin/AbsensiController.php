@@ -56,7 +56,7 @@ class AbsensiController extends Controller
         $setting = PengaturanAbsensi::first();
         $jamMasuk = $setting ? $setting->jam_masuk : '08:00:00';
         $toleransi = $setting ? (int) $setting->toleransi_terlambat_menit : 15;
-        $batasTerlambat = Carbon::createFromFormat('H:i:s', $jamMasuk)->addMinutes($toleransi)->format('H:i:s');
+        $batasTerlambat = Carbon::parse($jamMasuk)->addMinutes($toleransi)->format('H:i:s');
 
         $laporan = User::whereHas('absensiPegawai', function($q) use ($bulan, $tahun) {
                 $q->whereMonth('tanggal_absensi', $bulan)
@@ -133,6 +133,12 @@ class AbsensiController extends Controller
 
     public function lokasiDestroy(LokasiKerja $lokasi)
     {
+        // Riwayat absensi menunjuk lokasi ini (FK cascade): menghapusnya akan menghapus rekap kehadiran pegawai
+        if (AbsensiPegawai::where('lokasi_kerja_id', $lokasi->id)->exists()) {
+            return redirect()->route('admin.absensi.lokasi.index')
+                ->with('error', 'Lokasi ini sudah memiliki riwayat absensi pegawai sehingga tidak dapat dihapus. Ubah koordinat/radiusnya bila lokasi berpindah.');
+        }
+
         $lokasi->delete();
         return redirect()->route('admin.absensi.lokasi.index')->with('success', 'Lokasi kerja berhasil dihapus.');
     }

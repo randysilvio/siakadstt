@@ -19,7 +19,11 @@
 
         <div>
             <x-input-label for="name" :value="__('Nama Tampilan Resmi')" class="text-xs font-bold uppercase text-slate-900" />
-            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full rounded-none uppercase font-bold text-xs py-2 px-3 border-black" :value="old('name', $user->name)" required autofocus autocomplete="name" />
+            @php $namaDikunci = $user->mahasiswa || $user->dosen; @endphp
+            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full rounded-none uppercase font-bold text-xs py-2 px-3 border-black" :value="old('name', $user->name)" required autofocus autocomplete="name" :readonly="$namaDikunci" />
+            @if($namaDikunci)
+                <p class="mt-1 font-mono text-xs text-slate-500 uppercase">Nama resmi mengikuti data induk akademik. Perubahan nama diajukan ke BAAK / Administrator.</p>
+            @endif
             <x-input-error class="mt-1 font-mono text-xs text-red-600 uppercase" :messages="$errors->get('name')" />
         </div>
 
