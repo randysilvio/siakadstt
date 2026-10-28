@@ -56,7 +56,8 @@ class PembayaranService
     public function sudahAda(int $mahasiswaId, string $semester, string $jenis): bool
     {
         return Pembayaran::where('mahasiswa_id', $mahasiswaId)
-            ->where('semester', $semester)
+            // Label periode dibandingkan tanpa beda huruf/spasi agar "GANJIL 2026/2027" tidak dobel dengan "Ganjil 2026/2027"
+            ->whereRaw('LOWER(TRIM(semester)) = ?', [mb_strtolower(trim($semester))])
             ->where('jenis_pembayaran', $jenis)
             ->exists();
     }

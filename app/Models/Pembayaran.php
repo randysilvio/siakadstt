@@ -47,4 +47,22 @@ class Pembayaran extends Model
     {
         return $this->belongsTo(User::class, 'diverifikasi_oleh');
     }
+
+    /**
+     * Tagihan milik satu semester akademik. Label baku "2026/2027 Ganjil"; label lama yang diketik bebas
+     * ("GANJIL 2026/2027", "Gasal 2026/2027", "2026/2027 - Semester GANJIL") tetap dikenali.
+     */
+    public function scopeUntukSemester($query, TahunAkademik $ta)
+    {
+        $smt = [mb_strtolower($ta->semester)];
+        if (in_array($smt[0], ['ganjil', 'gasal'], true)) {
+            $smt = ['ganjil', 'gasal'];
+        }
+        $varian = [];
+        foreach ($smt as $s) {
+            array_push($varian, "{$ta->tahun} {$s}", "{$s} {$ta->tahun}", "{$ta->tahun} - semester {$s}", "semester {$s} {$ta->tahun}");
+        }
+
+        return $query->whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(semester))'), $varian);
+    }
 }

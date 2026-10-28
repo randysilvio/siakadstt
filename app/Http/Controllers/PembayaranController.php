@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Mahasiswa;
 use App\Models\Pembayaran;
 use App\Models\ProgramStudi;
+use App\Models\TahunAkademik;
 use App\Services\PembayaranService;
 use App\Support\BerkasPrivat;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -41,6 +42,7 @@ class PembayaranController extends Controller
             'mahasiswas' => $mahasiswas,
             'prodis'     => ProgramStudi::orderBy('nama_prodi')->get(),
             'angkatans'  => $this->daftarAngkatan(),
+            'periodes'   => TahunAkademik::pilihanTagihan(),
         ]);
     }
 
@@ -68,7 +70,10 @@ class PembayaranController extends Controller
 
     public function edit(Pembayaran $pembayaran): View
     {
-        return view('pembayaran.edit', compact('pembayaran'));
+        return view('pembayaran.edit', [
+            'pembayaran' => $pembayaran,
+            'periodes'   => TahunAkademik::pilihanTagihan(),
+        ]);
     }
 
     public function update(Request $request, Pembayaran $pembayaran): RedirectResponse
@@ -81,6 +86,11 @@ class PembayaranController extends Controller
         ]);
 
         $data['tanggal_bayar'] = ($data['status'] === 'lunas' && !$pembayaran->tanggal_bayar) ? now() : $pembayaran->tanggal_bayar;
+        // Pelunasan lewat form edit tetap meninggalkan jejak petugas yang memverifikasi
+        if ($data['status'] === 'lunas' && $pembayaran->status !== 'lunas') {
+            $data['diverifikasi_oleh'] = Auth::id();
+            $data['diverifikasi_pada'] = now();
+        }
         $pembayaran->update($data);
 
         return redirect()->route('pembayaran.index')->with('success', 'Data tagihan berhasil diperbarui.');
@@ -91,6 +101,7 @@ class PembayaranController extends Controller
         return view('pembayaran.generate', [
             'prodis'    => ProgramStudi::orderBy('nama_prodi')->get(),
             'angkatans' => $this->daftarAngkatan(),
+            'periodes'  => TahunAkademik::pilihanTagihan(),
         ]);
     }
 

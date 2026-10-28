@@ -32,19 +32,14 @@ class RektoratController extends Controller
         $rincianPendapatan = collect();
 
         if ($tahunAkademikAktif) {
-            $semesterAktif = $tahunAkademikAktif->tahun . ' ' . $tahunAkademikAktif->semester;
-            
-            $totalTagihanSemesterIni = Pembayaran::where('semester', $semesterAktif)->sum('jumlah');
-            
-            $pendapatanSemesterIni = Pembayaran::where('semester', $semesterAktif)
-                                               ->where('status', 'lunas')
-                                               ->sum('jumlah');
-            
-            $piutangSemesterIni = Pembayaran::where('semester', $semesterAktif)
-                                            ->where('status', '!=', 'lunas')
-                                            ->sum('jumlah');
+            // Tagihan semester aktif dikenali dari label baku maupun label lama yang diketik bebas
+            $semesterIni = fn () => Pembayaran::untukSemester($tahunAkademikAktif);
 
-            $rincianPendapatan = Pembayaran::where('semester', $semesterAktif)
+            $totalTagihanSemesterIni = $semesterIni()->sum('jumlah');
+            $pendapatanSemesterIni = $semesterIni()->where('status', 'lunas')->sum('jumlah');
+            $piutangSemesterIni = $semesterIni()->where('status', '!=', 'lunas')->sum('jumlah');
+
+            $rincianPendapatan = $semesterIni()
                                            ->where('status', 'lunas')
                                            ->select('jenis_pembayaran', DB::raw('SUM(jumlah) as total_masuk'))
                                            ->groupBy('jenis_pembayaran')
@@ -54,12 +49,14 @@ class RektoratController extends Controller
         // 3. TREN 5 TAHUN TERAKHIR
         $limaTahunLalu = $tahunIni - 4;
         
+        // Pendapatan dihitung pada tahun uang diterima (tanggal bayar), bukan tahun tagihan dibuat.
+        // Pengelompokan di PHP agar berjalan di semua database (YEAR() khusus MySQL).
         $trenKeuangan = Pembayaran::where('status', 'lunas')
-            ->select(DB::raw('YEAR(created_at) as tahun'), DB::raw('SUM(jumlah) as total_pendapatan'))
-            ->whereYear('created_at', '>=', $limaTahunLalu)
-            ->groupBy('tahun')
-            ->orderBy('tahun', 'asc')
-            ->pluck('total_pendapatan', 'tahun');
+            ->where(fn ($q) => $q->whereDate('tanggal_bayar', '>=', "{$limaTahunLalu}-01-01")
+                ->orWhere(fn ($q) => $q->whereNull('tanggal_bayar')->whereDate('created_at', '>=', "{$limaTahunLalu}-01-01")))
+            ->get(['jumlah', 'tanggal_bayar', 'created_at'])
+            ->groupBy(fn ($p) => (string) ($p->tanggal_bayar ?? $p->created_at)->year)
+            ->map(fn ($grup) => $grup->sum('jumlah'));
 
         $mahasiswaBaru = Mahasiswa::select('tahun_masuk', DB::raw('count(*) as total'))
             ->where('tahun_masuk', '>=', $limaTahunLalu)
@@ -67,13 +64,11 @@ class RektoratController extends Controller
             ->orderBy('tahun_masuk', 'asc')
             ->pluck('total', 'tahun_masuk');
             
-        $lulusan = Mahasiswa::select(DB::raw('YEAR(tanggal_lulus) as tahun_lulus'), DB::raw('count(*) as total'))
-            ->where('status_mahasiswa', 'Lulus')
+        $lulusan = Mahasiswa::where('status_mahasiswa', 'Lulus')
             ->whereNotNull('tanggal_lulus')
-            ->whereYear('tanggal_lulus', '>=', $limaTahunLalu)
-            ->groupBy('tahun_lulus')
-            ->orderBy('tahun_lulus', 'asc')
-            ->pluck('total', 'tahun_lulus');
+            ->whereDate('tanggal_lulus', '>=', "{$limaTahunLalu}-01-01")
+            ->pluck('tanggal_lulus')
+            ->countBy(fn ($tgl) => (int) \Carbon\Carbon::parse($tgl)->year);
 
         $grafikLabels = collect(range($limaTahunLalu, $tahunIni))->map(fn($year) => (string)$year);
         $grafikKeuanganData = $grafikLabels->map(fn($year) => $trenKeuangan->get($year, 0));

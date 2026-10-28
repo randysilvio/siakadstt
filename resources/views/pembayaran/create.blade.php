@@ -84,7 +84,7 @@
                 {{-- Input Semester --}}
                 <div class="mb-4">
                     <label for="semester" class="form-label small fw-bold uppercase text-dark">Untuk Semester <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control rounded-0 font-monospace uppercase @error('semester') is-invalid @enderror" id="semester" name="semester" value="{{ old('semester') }}" placeholder="GASAL 2024/2025" required>
+                    @include('pembayaran._pilih_semester', ['terpilih' => null])
                     @error('semester')
                         <div class="text-danger font-monospace small mt-1">{{ $message }}</div>
                     @enderror

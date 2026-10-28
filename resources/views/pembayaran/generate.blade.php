@@ -87,7 +87,7 @@
 
                 <div class="mb-3">
                     <label for="semester" class="form-label small fw-bold uppercase text-dark">Semester / Periode <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control rounded-0 font-monospace uppercase" name="semester" placeholder="GASAL 2024/2025" required>
+                    @include('pembayaran._pilih_semester', ['terpilih' => null])
                 </div>
 
                 <div class="mb-4">

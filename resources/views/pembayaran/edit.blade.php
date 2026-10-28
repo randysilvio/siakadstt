@@ -26,7 +26,7 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Periode Semester <span class="text-danger">*</span></label>
-                        <input type="text" name="semester" class="form-control rounded-0 font-monospace uppercase" value="{{ old('semester', $pembayaran->semester) }}" required>
+                        @include('pembayaran._pilih_semester', ['terpilih' => $pembayaran->semester])
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small fw-bold uppercase text-dark">Nominal Tagihan (Rp) <span class="text-danger">*</span></label>
