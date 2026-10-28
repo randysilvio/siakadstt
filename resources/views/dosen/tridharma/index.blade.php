@@ -83,7 +83,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">ANGKA KREDIT <x-info-aturan kunci="bkd_kum" /></span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">ANGKA KREDIT (ESTIMASI) <x-info-aturan kunci="bkd_kum" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['total_kum'] }}</h4>
                 </div>
             </div>

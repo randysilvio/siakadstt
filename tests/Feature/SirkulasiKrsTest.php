@@ -75,8 +75,8 @@ test('aturan: batas SKS, prasyarat, semester ganjil/genap, bentrok jadwal, dan k
         fn ($m) => $m->jadwals()->create(['nama_kelas' => 'A', 'hari' => $hari, 'jam_mulai' => $mulai, 'jam_selesai' => $selesai, 'kuota' => $kuota])
     );
 
-    // melebihi batas 24 SKS (mahasiswa baru)
-    $besar = $mk('TH190', 22, 1, 'Kamis', '08:00', '10:00');
+    // melebihi batas 20 SKS (mahasiswa semester 1)
+    $besar = $mk('TH190', 18, 1, 'Kamis', '08:00', '10:00');
     ajukan($this, $d, [$d['mk']->id => 'A', $besar->id => 'A'])->assertSessionHasErrors('mata_kuliahs');
 
     // semester genap tidak ditawarkan pada semester Ganjil
@@ -169,7 +169,7 @@ test('penolakan: catatan sampai ke mahasiswa, revisi kembali menunggu, nilai yan
 
 test('aplikasi mobile: form & simpan KRS mengikuti aturan yang sama dengan web', function () {
     $d = siapKrs($this);
-    $this->actingAs($d['mUser'], 'sanctum')->getJson('/api/krs/form')->assertOk()->assertJsonPath('max_sks', 24);
+    $this->actingAs($d['mUser'], 'sanctum')->getJson('/api/krs/form')->assertOk()->assertJsonPath('max_sks', 20)->assertJsonPath('semester_ke', 1);
     $this->actingAs($d['mUser'], 'sanctum')->postJson('/api/krs/submit', ['mata_kuliahs' => [$d['mkLain']->id]])->assertStatus(422);
     $this->actingAs($d['mUser'], 'sanctum')->postJson('/api/krs/submit', ['mata_kuliahs' => [$d['mk']->id], 'nama_kelas' => [$d['mk']->id => 'B']])->assertOk();
     $this->actingAs($d['dUser'], 'sanctum')->getJson('/api/krs/perlu-validasi')->assertOk()->assertJsonFragment(['nim' => $d['mhs']->nim]);

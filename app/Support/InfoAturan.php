@@ -31,13 +31,14 @@ class InfoAturan
         return [
             // ----------------------------------------------------------------- AKADEMIK
             'krs_batas_sks' => [
-                'modul' => 'KRS', 'halaman' => 'Pengisian KRS', 'jenis' => 'konfirmasi',
+                'modul' => 'KRS', 'halaman' => 'Pengisian KRS', 'jenis' => 'kebijakan',
                 'judul' => 'Batas SKS per semester',
                 'isi' => [
-                    'Batas dihitung dari IPK kumulatif: IPK ≥ 3,00 → 24 SKS; 2,50–2,99 → 21 SKS; 2,00–2,49 → 18 SKS; < 2,00 → 15 SKS.',
-                    'Mahasiswa yang belum punya nilai (semester 1) diberi 24 SKS.',
+                    'Semester ke-1: paling banyak 20 SKS.',
+                    'Semester ke-2 dst. menurut IPK kumulatif: IPK ≥ 3,00 → 24 SKS; 2,50–2,99 → 21 SKS; 2,00–2,49 → 18 SKS; < 2,00 → 15 SKS.',
+                    'Semester ke-n = jumlah semester sebelumnya yang benar-benar ditempuh (KRS disetujui atau sudah bernilai) + 1; semester cuti tidak dihitung. Bila nilai semester sebelumnya belum keluar, batasnya 20 SKS.',
                 ],
-                'dasar' => 'SN Dikti (Permendikbudristek 53/2023 Pasal 18) membatasi semester 1–2 paling banyak 20 SKS dan semester 3 dst. paling banyak 24 SKS. Tingkatan berdasarkan IPK adalah kebijakan kampus.',
+                'dasar' => 'Kebijakan kampus mengacu SN Dikti (Permendikbudristek 53/2023 Pasal 18: paling banyak 24 SKS per semester). Catatan: SN Dikti membatasi semester 1 dan 2 paling banyak 20 SKS; kampus menetapkan semester 2 mengikuti IPK hingga 24 SKS.',
             ],
             'krs_aturan' => [
                 'modul' => 'KRS', 'halaman' => 'Pengisian KRS', 'jenis' => 'kebijakan',
@@ -132,10 +133,10 @@ class InfoAturan
                 'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'konfirmasi',
                 'judul' => 'Unsur Pendidikan',
                 'isi' => [
-                    'Pengajaran: SKS penuh setiap mata kuliah semester aktif yang diampu (dosen utama maupun anggota team teaching). Kelas paralel dihitung satu kali.',
-                    'Perwalian: 0,1 SKS per mahasiswa wali aktif, paling banyak 2 SKS.',
+                    'Pengajaran (ditetapkan kampus): SKS mata kuliah semester aktif × jumlah kelas paralel (rombel) pada jadwal. Setiap dosen team teaching mendapat SKS penuh.',
+                    'Perwalian (belum dikonfirmasi): 0,1 SKS per mahasiswa wali aktif, paling banyak 2 SKS.',
                 ],
-                'dasar' => 'Angka perwalian dan cara menghitung team teaching/kelas paralel adalah bawaan sistem. Contoh rubrik PO BKD di PT lain: pembimbing akademik 2 SKS per semester tanpa melihat jumlah mahasiswa, dan pengajaran dihitung per kelas.',
+                'dasar' => 'Pengajaran: kebijakan kampus. Perwalian: angka bawaan sistem; contoh rubrik PO BKD di PT lain memberi pembimbing akademik 2 SKS per semester tanpa melihat jumlah mahasiswa.',
             ],
             'bkd_tridharma' => [
                 'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'konfirmasi',
@@ -147,13 +148,13 @@ class InfoAturan
                 'dasar' => 'Nilai SKS per kegiatan seharusnya mengikuti rubrik BKD (contoh rubrik PT lain: kepanitiaan 0,25–0,75 SKS sesuai tingkat & jabatan). Belum ada verifikasi asesor di sistem.',
             ],
             'bkd_kum' => [
-                'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'konfirmasi',
+                'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'kebijakan',
                 'judul' => 'Estimasi angka kredit (KUM)',
                 'isi' => [
                     'KUM = angka kredit yang diisi dosen + (SKS pendidikan × 1,5) + (jumlah SK × 1).',
                     'Ini hanya ESTIMASI internal, bukan angka kredit resmi jabatan fungsional.',
                 ],
-                'dasar' => 'Rumus bawaan sistem tanpa dasar peraturan. Angka kredit resmi ditetapkan melalui Penilaian Angka Kredit (PAK) oleh tim penilai.',
+                'dasar' => 'Ditampilkan atas keputusan kampus sebagai alat pantau. Angka kredit resmi tetap ditetapkan melalui Penilaian Angka Kredit (PAK) oleh tim penilai.',
             ],
 
             // ----------------------------------------------------------------- KEUANGAN, PMB, LAINNYA

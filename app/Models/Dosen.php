@@ -113,13 +113,24 @@ class Dosen extends Model
             ->pluck('mata_kuliah_id')
             ->toArray();
 
-        $sksPengajaran = (float) MataKuliah::where(function ($q) use ($pivotMkIds) {
+        // Pengajaran: setiap dosen pengampu (dosen utama maupun anggota team teaching) mendapat SKS penuh,
+        // dikalikan jumlah kelas paralel (rombel) mata kuliah tersebut pada jadwal.
+        $mkAmpu = MataKuliah::where(function ($q) use ($pivotMkIds) {
                 $q->where('dosen_id', $this->id)
                   ->orWhereIn('id', $pivotMkIds);
             })
             ->whereHas('kurikulum', fn($k) => $k->where('is_active', true))
             ->when($semesterMk, fn ($q) => $q->whereIn('semester', $semesterMk))
-            ->sum('sks');
+            ->with('jadwals:id,mata_kuliah_id,nama_kelas')
+            ->get(['id', 'sks', 'semester']);
+
+        $jumlahKelasAjar = 0;
+        $sksPengajaran = 0.0;
+        foreach ($mkAmpu as $mk) {
+            $kelas = max(1, $mk->jadwals->map(fn ($j) => strtoupper(trim((string) ($j->nama_kelas ?: 'A'))))->unique()->count());
+            $jumlahKelasAjar += $kelas;
+            $sksPengajaran += (float) $mk->sks * $kelas;
+        }
 
         // Bimbingan Perwalian Akademik: 0,1 SKS per mahasiswa wali aktif, maksimal 2 SKS
         $jmlWali = $this->mahasiswaWali()->where('status_mahasiswa', 'Aktif')->count();
@@ -161,6 +172,9 @@ class Dosen extends Model
         }
 
         return [
+            'sks_pengajaran'    => round($sksPengajaran, 2),
+            'jumlah_mk_ajar'    => $mkAmpu->count(),
+            'jumlah_kelas_ajar' => $jumlahKelasAjar,
             'sks_pendidikan' => $sksPendidikan,
             'sks_penelitian' => round($sksPenelitian, 2),
             'sks_pengabdian' => round($sksPengabdian, 2),

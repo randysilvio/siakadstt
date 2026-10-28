@@ -32,8 +32,8 @@
                 <th style="width: 15%;">NIDN</th>
                 <th class="text-start" style="width: 30%;">NAMA LENGKAP DOSEN</th>
                 <th class="text-start" style="width: 18%;">JABATAN AKADEMIK</th>
-                <th style="width: 10%;">JML MK</th>
-                <th style="width: 10%;">TOTAL SKS</th>
+                <th style="width: 10%;">JML KELAS</th>
+                <th style="width: 10%;">SKS AJAR</th>
                 <th style="width: 12%;">EVALUASI BEBAN</th>
             </tr>
         </thead>

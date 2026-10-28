@@ -80,7 +80,7 @@
             <div class="card wm-card-exclusive bg-dark text-white border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="uppercase small text-white-50 d-block font-monospace" style="font-size: 10px;">IPK SAAT INI: {{ number_format($ipk, 2) }} <x-info-aturan kunci="ipk" terang /></span>
+                        <span class="uppercase small text-white-50 d-block font-monospace" style="font-size: 10px;">IPK SAAT INI: {{ number_format($ipk, 2) }} · SEMESTER KE-{{ $semester_ke ?? 1 }} <x-info-aturan kunci="ipk" terang /></span>
                         <span class="uppercase fw-bold small d-block">BEBAN SKS DIPILIH <x-info-aturan kunci="krs_batas_sks" terang /></span>
                     </div>
                     <div class="text-end font-monospace">

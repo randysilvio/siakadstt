@@ -170,7 +170,9 @@ test('BKD hanya menghitung mata kuliah & tridharma semester aktif', function () 
     $bkd = $d['dosen']->fresh()->hitungRingkasanBkd();
 
     expect($bkd['sks_penelitian'])->toBe(2.0)
-        ->and($bkd['sks_pendidikan'])->toBe(6.1); // 2 MK ganjil × 3 SKS + 1 mahasiswa wali × 0,1
+        // Dogmatika 3 SKS × 2 kelas paralel (A,B) + Didaktik 3 SKS × 1 kelas + 1 mahasiswa wali × 0,1
+        ->and($bkd['sks_pengajaran'])->toBe(9.0)->and($bkd['jumlah_kelas_ajar'])->toBe(3)
+        ->and($bkd['sks_pendidikan'])->toBe(9.1);
 });
 
 // ---------------------------------------------------------------- Portal publik & pencarian

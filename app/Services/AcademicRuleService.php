@@ -15,25 +15,61 @@ class AcademicRuleService
     /**
      * Menghitung IPK dan batas maksimal SKS yang dapat diambil mahasiswa pada semester berjalan.
      */
+    /**
+     * Batas SKS KRS semester aktif (kebijakan kampus berdasarkan SN Dikti, Permendikbudristek 53/2023 Pasal 18):
+     *  - Semester ke-1: paling banyak 20 SKS.
+     *  - Semester ke-2 dst.: menurut IPK kumulatif, paling banyak 24 SKS
+     *    (IPK ≥ 3,00 → 24; 2,50–2,99 → 21; 2,00–2,49 → 18; < 2,00 → 15).
+     *  - Semester ke-2 dst. yang nilainya belum keluar sama sekali: 20 SKS (sama dengan semester 1).
+     *
+     * @return array{ipk: float, max_sks: int, semester_ke: int}
+     */
     public function hitungBatasSks(Mahasiswa $mahasiswa): array
     {
         $ipk = $mahasiswa->hitungIpk();
+        $semesterKe = $this->semesterKe($mahasiswa);
 
-        $maxSks = 15;
-        if (!$mahasiswa->sudahPunyaNilai()) {
-            $maxSks = 24;
+        if ($semesterKe <= 1 || !$mahasiswa->sudahPunyaNilai()) {
+            $maxSks = 20;
         } elseif ($ipk >= 3.00) {
             $maxSks = 24;
         } elseif ($ipk >= 2.50) {
             $maxSks = 21;
         } elseif ($ipk >= 2.00) {
             $maxSks = 18;
+        } else {
+            $maxSks = 15;
         }
 
         return [
-            'ipk'     => $ipk,
-            'max_sks' => $maxSks,
+            'ipk'         => $ipk,
+            'max_sks'     => $maxSks,
+            'semester_ke' => $semesterKe,
         ];
+    }
+
+    /**
+     * Semester ke berapa mahasiswa pada periode aktif = jumlah semester sebelumnya yang benar-benar ditempuh
+     * (KRS disetujui atau sudah bernilai) + 1. Semester cuti / tanpa KRS tidak dihitung.
+     */
+    public function semesterKe(Mahasiswa $mahasiswa): int
+    {
+        $aktifId = (int) TahunAkademik::where('is_active', true)->value('id');
+
+        $dariNilai = DB::table('mahasiswa_mata_kuliah')
+            ->where('mahasiswa_id', $mahasiswa->id)
+            ->where('tahun_akademik_id', '!=', $aktifId)
+            ->whereNotNull('nilai')
+            ->distinct()
+            ->pluck('tahun_akademik_id');
+
+        $dariPersetujuan = \App\Models\KrsPersetujuan::where('mahasiswa_id', $mahasiswa->id)
+            ->where('tahun_akademik_id', '!=', $aktifId)
+            ->where('status', \App\Models\KrsPersetujuan::DISETUJUI)
+            ->whereIn('tahun_akademik_id', DB::table('mahasiswa_mata_kuliah')->where('mahasiswa_id', $mahasiswa->id)->select('tahun_akademik_id'))
+            ->pluck('tahun_akademik_id');
+
+        return $dariNilai->merge($dariPersetujuan)->unique()->count() + 1;
     }
 
     /**

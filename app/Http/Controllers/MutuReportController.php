@@ -131,9 +131,10 @@ class MutuReportController extends Controller
         $dosens = Dosen::with(['mataKuliahs', 'tridharmas'])->orderBy('nama_lengkap')->get();
 
         $laporanDosen = $dosens->map(function ($dosen) {
-            $jumlahKelas = $dosen->mataKuliahs->count();
-            $totalSks = $dosen->mataKuliahs->sum('sks');
+            // Sama dengan kalkulator BKD: semester aktif, SKS × jumlah kelas paralel, team teaching penuh
             $bkd = $dosen->hitungRingkasanBkd();
+            $jumlahKelas = $bkd['jumlah_kelas_ajar'];
+            $totalSks = $bkd['sks_pengajaran'];
 
             return [
                 'nidn'          => $dosen->nidn,

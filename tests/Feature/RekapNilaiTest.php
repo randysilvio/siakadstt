@@ -27,10 +27,10 @@ test('IPK memakai nilai terbaik mata kuliah ulang dan SKS lulus tanpa E', functi
         ->and(Mahasiswa::find($d['mhs']->id)->hitungIpk())->toBe(1.5);
 });
 
-test('mahasiswa tanpa nilai ber-IPK 0 dan mendapat batas 24 SKS', function () {
+test('mahasiswa semester 1 ber-IPK 0 dan mendapat batas 20 SKS', function () {
     $d = $this->seedAkademik();
     $batas = app(\App\Services\AcademicRuleService::class)->hitungBatasSks($d['mhs']);
-    expect($batas['ipk'])->toBe(0.0)->and($batas['max_sks'])->toBe(24);
+    expect($batas['ipk'])->toBe(0.0)->and($batas['max_sks'])->toBe(20)->and($batas['semester_ke'])->toBe(1);
 });
 
 test('dashboard Kaprodi tidak menambah query per mahasiswa', function () {

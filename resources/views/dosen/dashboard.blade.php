@@ -38,7 +38,8 @@
     @endif
 
     @php
-        $totalSksAmpu = $mata_kuliahs->sum('sks');
+        // Angka pengajaran mengikuti perhitungan BKD (semester aktif, per kelas paralel)
+        $totalSksAmpu = $ringkasanBkd['sks_pengajaran'] ?? $mata_kuliahs->sum('sks');
         $totalKelasAmpu = $mata_kuliahs->count();
         $totalRpsTerisi = $mata_kuliahs->whereNotNull('file_rps')->count();
         $mkBelumRps = $totalKelasAmpu - $totalRpsTerisi;

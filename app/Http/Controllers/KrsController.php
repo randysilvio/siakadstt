@@ -172,6 +172,7 @@ class KrsController extends Controller
             'terisiMap'         => $terisiMap,
             'ipk'               => $ipk,
             'max_sks'           => $max_sks,
+            'semester_ke'       => $batas['semester_ke'],
             'mk_lulus_ids'      => $mk_lulus_ids,
             'periodeAktif'      => $periodeAktif,
             'isLocked'          => $isLocked,
@@ -358,6 +359,7 @@ class KrsController extends Controller
         return response()->json([
             'ipk'            => $batas['ipk'],
             'max_sks'        => $batas['max_sks'],
+            'semester_ke'    => $batas['semester_ke'],
             'mk_diambil_ids' => $mk_diambil_ids,
             'mata_kuliahs'   => $mata_kuliahs,
             'status_krs'     => $statusKrs
