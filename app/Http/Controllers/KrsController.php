@@ -59,6 +59,8 @@ class KrsController extends Controller
     {
         $batas = $this->academicService->hitungBatasSks($mahasiswa);
 
+        // attempts = 3: bila dua mahasiswa merebut kursi terakhir bersamaan dan MySQL mendeteksi deadlock,
+        // transaksi diulang otomatis (lalu ditolak rapi karena kuota penuh) alih-alih error 500.
         return DB::transaction(function () use ($mahasiswa, $periodeAktif, $mataKuliahIds, $pilihanKelas, $batas) {
             $ruleErrors = $this->academicService->validateKrsRules($mahasiswa, $periodeAktif, $mataKuliahIds, $batas['max_sks'], $pilihanKelas);
             if (!empty($ruleErrors)) {
@@ -107,7 +109,7 @@ class KrsController extends Controller
             }
 
             return [];
-        });
+        }, 3);
     }
 
     public function index()
