@@ -403,6 +403,8 @@ class VerumController extends Controller
             'id'              => $presensi->id,
             'pertemuan_ke'    => (int) $presensi->pertemuan_ke,
             'judul_pertemuan' => $presensi->judul_pertemuan,
+            'materi_aktual'   => $presensi->materi_aktual,
+            'metode_pembelajaran' => $presensi->metode_pembelajaran,
             'jumlah_hadir'    => $hadir->count(),
             'peserta'         => $peserta->map(fn ($m) => [
                 'id' => $m->id, 'nim' => $m->nim, 'nama_lengkap' => $m->nama_lengkap,
