@@ -111,20 +111,15 @@ for i in range(-1, W // u + 2):
     for k in range(3):
         a(f'<path d="M{x0 + 196 + k*9},{cy-15} V{cy+15}" stroke="{KREM_TUA}" stroke-width="3.5" stroke-linecap="round"/>')
 
-# garis isian (dengan ujung tegak) — posisi baris data
-for y in (572, 660, 748, 836):
-    a(f'<path d="M714,{y} H1404" stroke="{ORANYE_TUA}" stroke-width="5" stroke-linecap="round"/>')
-    a(f'<path d="M714,{y-11} V{y+11} M1404,{y-11} V{y+11}" stroke="{ORANYE_TUA}" stroke-width="5" stroke-linecap="round"/>')
-
 # teks tetap (Poppins)
 a(f'<image href="data:image/png;base64,{logo}" x="88" y="42" width="150" height="150"/>')
 for i, baris in enumerate(nama_kampus):
     a(f'<text x="262" y="{106 + i*58}" font-family="Poppins" font-weight="700" font-size="50" fill="{UNGU}">{baris}</text>')
-a(f'<text x="712" y="352" font-family="Poppins" font-weight="700" font-size="104" fill="{UNGU}" letter-spacing="-1">Kartu</text>')
-a(f'<text x="712" y="462" font-family="Poppins" font-weight="700" font-size="104" fill="{UNGU}" letter-spacing="-1">Mahasiswa</text>')
-for y, label in zip((572, 660, 748, 836), ('Nama', 'NIM', 'Prodi', 'Angkatan')):
-    a(f'<text x="716" y="{y-20}" font-family="Poppins" font-weight="400" font-size="36" fill="{UNGU}">{label}</text>')
-    a(f'<text x="918" y="{y-20}" font-family="Poppins" font-weight="400" font-size="36" fill="{UNGU}">:</text>')
+# judul & label (data diisi di atasnya oleh web/aplikasi) — kolom teks mulai x=600
+a(f'<text x="600" y="300" font-family="Poppins" font-weight="700" font-size="78" fill="{UNGU}" letter-spacing="-0.5">Kartu Mahasiswa</text>')
+a(f'<rect x="604" y="324" width="96" height="9" rx="4.5" fill="{ORANYE_TUA}"/>')
+for x, y, label in ((600, 405, 'NAMA'), (600, 535, 'NIM'), (600, 665, 'PROGRAM STUDI'), (1130, 665, 'ANGKATAN')):
+    a(f'<text x="{x}" y="{y}" font-family="Poppins" font-weight="500" font-size="25" fill="{UNGU_MUDA}" letter-spacing="3">{label}</text>')
 
 # panel QR (diisi kode QR dinamis) + keterangan
 a(f'<rect x="1446" y="640" width="226" height="226" rx="22" fill="#FFFFFF" stroke="{UNGU}" stroke-width="5"/>')

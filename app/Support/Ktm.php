@@ -28,17 +28,26 @@ class Ktm
     /** Gambar latar kartu (logo, judul, label, ornamen geometris & batik Papua). Sumber: resources/ktm/latar.py */
     public const LATAR = 'images/ktm/latar-ktm.jpg';
 
-    /** Ukuran huruf nilai (px kanvas 1712) agar muat di garis isian selebar 460 px. */
-    public static function ukuranTeks(string $teks): int
+    /**
+     * Tata letak data di atas latar (satuan px kanvas 1712 x 1080). x = tepi kiri, b = garis dasar teks,
+     * w = lebar maksimal; ukuran huruf mengecil otomatis dalam rentang [min, maks] agar muat satu baris.
+     * Nilai yang sama dipakai aplikasi (src/ktm/desain.ts).
+     */
+    public const TATA_LETAK = [
+        'foto'     => ['x' => 120, 'y' => 250, 'w' => 420, 'h' => 540],
+        'nama'     => ['x' => 600, 'b' => 472, 'w' => 820, 'maks' => 52, 'min' => 28],
+        'nim'      => ['x' => 600, 'b' => 600, 'w' => 820, 'maks' => 42, 'min' => 42],
+        'prodi'    => ['x' => 600, 'b' => 730, 'w' => 500, 'maks' => 34, 'min' => 22],
+        'angkatan' => ['x' => 1130, 'b' => 730, 'w' => 290, 'maks' => 34, 'min' => 26],
+        'token'    => ['x' => 600, 'b' => 808, 'w' => 820, 'maks' => 22, 'min' => 22],
+        'qr'       => ['x' => 1472, 'y' => 660, 's' => 174],
+    ];
+
+    /** Ukuran huruf (px kanvas) agar teks muat dalam lebar w — rata-rata lebar huruf Poppins tebal ≈ 0,62 em. */
+    public static function ukuranTeks(string $teks, int $lebar, int $maks, int $min): int
     {
-        $n = mb_strlen($teks);
-        return match (true) {
-            $n <= 16 => 36,
-            $n <= 21 => 33,
-            $n <= 25 => 30,
-            $n <= 30 => 26,
-            default  => 23,
-        };
+        $n = max(1, mb_strlen($teks));
+        return max($min, min($maks, (int) floor($lebar / (0.62 * $n))));
     }
 
     public static function data(Mahasiswa $mahasiswa): array
