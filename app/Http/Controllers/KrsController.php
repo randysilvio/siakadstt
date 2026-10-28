@@ -286,6 +286,49 @@ class KrsController extends Controller
         return response()->json($formattedData);
     }
 
+    /** Detail KRS semester aktif seorang mahasiswa untuk ditinjau validator (Dosen Wali / Kaprodi / Admin) di aplikasi. */
+    public function detailValidasiKrsApi(Request $request, $id)
+    {
+        $user = $request->user();
+        $mahasiswa = Mahasiswa::with('programStudi')->findOrFail($id);
+
+        if (!$user->hasRole('admin')) {
+            $dosenId = optional($user->dosen)->id;
+            $isDosenWali = $dosenId && (int) $mahasiswa->dosen_wali_id === (int) $dosenId;
+            $isKaprodiProdi = $dosenId && ProgramStudi::where('id', $mahasiswa->program_studi_id)->where('kaprodi_dosen_id', $dosenId)->exists();
+            if (!$isDosenWali && !$isKaprodiProdi) {
+                return response()->json(['status' => 'error', 'message' => 'Anda tidak memiliki wewenang untuk melihat KRS mahasiswa ini.'], 403);
+            }
+        }
+
+        $periodeAktif = TahunAkademik::where('is_active', true)->first();
+        if (!$periodeAktif) {
+            return response()->json(['status' => 'error', 'message' => 'Tidak ada periode akademik yang aktif.'], 400);
+        }
+
+        $krs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->orderBy('semester')->get();
+        $batas = $this->academicService->hitungBatasSks($mahasiswa);
+        $persetujuan = $mahasiswa->persetujuanKrsPada($periodeAktif->id);
+
+        return response()->json([
+            'mahasiswa' => [
+                'id' => $mahasiswa->id, 'nim' => $mahasiswa->nim, 'nama_lengkap' => $mahasiswa->nama_lengkap,
+                'prodi' => optional($mahasiswa->programStudi)->nama_prodi,
+            ],
+            'semester'    => $periodeAktif->nama_semester,
+            'semester_ke' => $batas['semester_ke'],
+            'ipk'         => $batas['ipk'],
+            'max_sks'     => $batas['max_sks'],
+            'total_sks'   => (int) $krs->sum('sks'),
+            'status_krs'  => $mahasiswa->statusKrsPada($periodeAktif->id),
+            'catatan'     => optional($persetujuan)->catatan,
+            'mata_kuliah' => $krs->map(fn ($mk) => [
+                'id' => $mk->id, 'kode_mk' => $mk->kode_mk, 'nama_mk' => $mk->nama_mk, 'sks' => (int) $mk->sks,
+                'semester' => (int) $mk->semester, 'kelas' => $mk->pivot->nama_kelas ?? 'A',
+            ])->values(),
+        ]);
+    }
+
     public function validasiKrsApi(Request $request, $id)
     {
         $user = $request->user();
@@ -351,12 +394,25 @@ class KrsController extends Controller
         $batas = $this->academicService->hitungBatasSks($mahasiswa);
         $mata_kuliahs = $this->getOfferedMataKuliahs($mahasiswa, $periodeAktif);
 
-        $mk_diambil_ids = $mahasiswa->mataKuliahs()
+        $krsSekarang = $mahasiswa->mataKuliahs()
             ->wherePivot('tahun_akademik_id', $periodeAktif->id)
-            ->pluck('mata_kuliahs.id')
-            ->toArray();
+            ->get();
+        $mk_diambil_ids = $krsSekarang->pluck('id')->toArray();
+
+        // Kursi terisi per mata kuliah & rombel (untuk menampilkan sisa kuota di aplikasi)
+        $terisi = DB::table('mahasiswa_mata_kuliah')
+            ->select('mata_kuliah_id', 'nama_kelas', DB::raw('COUNT(*) as total'))
+            ->where('tahun_akademik_id', $periodeAktif->id)
+            ->groupBy('mata_kuliah_id', 'nama_kelas')
+            ->get()
+            ->groupBy('mata_kuliah_id')
+            ->map(fn ($baris) => $baris->mapWithKeys(fn ($b) => [strtoupper($b->nama_kelas ?? 'A') => (int) $b->total]));
 
         return response()->json([
+            'semester'       => $periodeAktif->nama_semester,
+            'kelas_diambil'  => $krsSekarang->mapWithKeys(fn ($mk) => [$mk->id => strtoupper($mk->pivot->nama_kelas ?? 'A')]),
+            'terisi'         => $terisi,
+            'catatan'        => optional($mahasiswa->persetujuanKrsPada($periodeAktif->id))->catatan,
             'ipk'            => $batas['ipk'],
             'max_sks'        => $batas['max_sks'],
             'semester_ke'    => $batas['semester_ke'],

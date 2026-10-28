@@ -56,7 +56,13 @@ class AbsensiController extends Controller
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'foto_check_in' => 'required|image|max:5120',
+            'is_mocked' => 'nullable|boolean',
         ]);
+
+        // Aplikasi seluler mengirim is_mocked = true bila Android mendeteksi lokasi palsu (fake GPS)
+        if ($request->boolean('is_mocked')) {
+            return response()->json(['message' => 'Absensi ditolak: perangkat terdeteksi memakai lokasi palsu (fake GPS). Matikan aplikasi pengubah lokasi lalu coba lagi.'], 422);
+        }
 
         $today = Carbon::today();
 
@@ -136,7 +142,13 @@ class AbsensiController extends Controller
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'foto_check_out' => 'required|image|max:5120',
+            'is_mocked' => 'nullable|boolean',
         ]);
+
+        // Aplikasi seluler mengirim is_mocked = true bila Android mendeteksi lokasi palsu (fake GPS)
+        if ($request->boolean('is_mocked')) {
+            return response()->json(['message' => 'Absensi ditolak: perangkat terdeteksi memakai lokasi palsu (fake GPS). Matikan aplikasi pengubah lokasi lalu coba lagi.'], 422);
+        }
 
         $absensiHariIni = AbsensiPegawai::where('user_id', $user->id)
             ->whereDate('tanggal_absensi', Carbon::today())
@@ -263,8 +275,10 @@ class AbsensiController extends Controller
                 ];
             });
 
+            $ta = \App\Models\TahunAkademik::withTrashed()->find($tahunId);
             $hasil[] = [
                 'semester_id' => $tahunId,
+                'semester' => $ta ? $ta->nama_semester : '-',
                 'ips' => $dataIps['ips'],
                 'total_sks' => $dataIps['total_sks'],
                 'mata_kuliah' => $listMatkul

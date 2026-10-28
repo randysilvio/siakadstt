@@ -13,10 +13,11 @@ use App\Http\Controllers\KrsController;
 // =========================================================================
 Route::post('/login', [AuthController::class, 'login']);
 
+// Versi minimum aplikasi seluler (versionCode Android) & tautan unduhan APK terbaru — diatur di config/mobile.php / .env
 Route::get('/check-version', function () {
     return response()->json([
-        'min_version' => 1,
-        'download_url' => 'https://sttgpipapua.ac.id/download/siakad-mobile-v2.apk'
+        'min_version'  => config('mobile.min_version'),
+        'download_url' => config('mobile.download_url'),
     ]);
 });
 
@@ -44,7 +45,10 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         $userData = $user->toArray();
-        $userData['role'] = $roleName; 
+        $userData['role'] = $roleName;
+        $userData['roles'] = $user->roles->pluck('name')->values();
+        $userData['is_kaprodi'] = $user->isKaprodi();
+        $userData['is_keuangan'] = $user->hasRole('keuangan');
         
         return $userData;
     });
@@ -71,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // [PERBAIKAN KEAMANAN FASE 3]: Hanya Dosen / Kaprodi / Admin yang boleh memvalidasi KRS
     Route::middleware('role:dosen,kaprodi,admin')->group(function () {
         Route::get('/krs/perlu-validasi', [KrsController::class, 'getPerluValidasiApi']);
+        Route::get('/krs/validasi/{id}', [KrsController::class, 'detailValidasiKrsApi'])->whereNumber('id');
         Route::post('/krs/validasi/{id}', [KrsController::class, 'validasiKrsApi']);
     });
     
