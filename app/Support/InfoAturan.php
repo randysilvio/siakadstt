@@ -78,7 +78,7 @@ class InfoAturan
                     'Huruf mutu: A ≥ 80; B 70–79,99; C 60–69,99; D 50–59,99; E < 50. Huruf baru muncul setelah UTS atau UAS diisi.',
                     'Dosen dapat menetapkan huruf secara manual; huruf manual tidak ditimpa perhitungan otomatis.',
                 ],
-                'dasar' => 'SN Dikti (Permendikbudristek 53/2023 Pasal 28) menetapkan bobot A=4, B=3, C=2, D=1, E=0 dan membolehkan huruf antara (AB, BC, dst.). Batas angka ke huruf dan bobot komponen adalah kebijakan kampus.',
+                'dasar' => 'SN Dikti (Permendikbudristek 53/2023 Pasal 28) menetapkan bobot A=4, B=3, C=2, D=1, E=0 dan membolehkan huruf antara (AB, BC, dst.). Instrumen akreditasi tidak mengatur batas angka ke huruf; yang dinilai rata-rata IPK lulusan. Batas dan bobot komponen adalah kebijakan kampus.',
             ],
             'ips' => [
                 'modul' => 'Nilai', 'halaman' => 'KHS', 'jenis' => 'peraturan',
@@ -97,7 +97,7 @@ class InfoAturan
                     'Mata kuliah yang diulang dihitung SATU kali memakai nilai terbaik.',
                     'SKS lulus = SKS mata kuliah bernilai A–D (nilai E tidak dihitung lulus).',
                 ],
-                'dasar' => 'Rumus IPK mengikuti SN Dikti (Pasal 28). Aturan nilai terbaik untuk mata kuliah ulang dan nilai D dihitung lulus adalah kebijakan kampus. Syarat lulus program sarjana IPK ≥ 2,00 (Pasal 30).',
+                'dasar' => 'Rumus IPK mengikuti SN Dikti (Pasal 28); syarat lulus sarjana IPK ≥ 2,00 (Pasal 30). Nilai terbaik untuk MK ulang dan nilai D dihitung lulus adalah kebijakan kampus (tidak diatur instrumen akreditasi).',
             ],
             'ews' => [
                 'modul' => 'Nilai', 'halaman' => 'Dashboard Kaprodi & Perwalian', 'jenis' => 'konfirmasi',
@@ -125,9 +125,10 @@ class InfoAturan
                 'isi' => [
                     'Dihitung per semester aktif: Pendidikan + Penelitian + Pengabdian + Penunjang.',
                     '< 12 SKS = kurang; 12–16 SKS = memenuhi; > 16 SKS = beban lebih.',
+                    'Akreditasi (EWMP dosen tetap): skor 4 bila 12–16 SKS; 6–12 SKS skor = (2 × SKS − 12) ÷ 3; 16–18 SKS skor = 36 − 2 × SKS; di bawah 6 atau di atas 18 skor 0.',
                     'Komposisi minimal per unsur belum diperiksa sistem.',
                 ],
-                'dasar' => 'UU 14/2005 Pasal 72, PP 37/2009, PO BKD (Kepdirjen Dikti 12/E/KPT/2021), dan Permendiktisaintek 52/2025: paling sedikit setara 12 SKS, paling banyak 16 SKS. Bagi dosen tetap yayasan/gereja, rinciannya mengikuti rubrik BKD yang dipakai asesor kampus.',
+                'dasar' => 'UU 14/2005 Pasal 72, PP 37/2009, PO BKD (Kepdirjen Dikti 12/E/KPT/2021), Permendiktisaintek 52/2025, serta matriks BAN-PT IAPS 4.0 / LAMDIK (butir EWMP/BKD). Bagi dosen tetap yayasan/gereja, rincian per kegiatan mengikuti rubrik BKD kampus.',
             ],
             'bkd_pendidikan' => [
                 'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'konfirmasi',
@@ -136,16 +137,16 @@ class InfoAturan
                     'Pengajaran (ditetapkan kampus): SKS mata kuliah semester aktif × jumlah kelas paralel (rombel) pada jadwal. Setiap dosen team teaching mendapat SKS penuh.',
                     'Perwalian (belum dikonfirmasi): 0,1 SKS per mahasiswa wali aktif, paling banyak 2 SKS.',
                 ],
-                'dasar' => 'Pengajaran: kebijakan kampus. Perwalian: angka bawaan sistem; contoh rubrik PO BKD di PT lain memberi pembimbing akademik 2 SKS per semester tanpa melihat jumlah mahasiswa.',
+                'dasar' => 'Pengajaran: kebijakan kampus. Perwalian: tidak diatur instrumen akreditasi (yang dinilai hanya total EWMP); nilainya mengikuti rubrik BKD kampus. Contoh rubrik PO BKD di PT lain: pembimbing akademik 2 SKS per semester.',
             ],
             'bkd_tridharma' => [
                 'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'konfirmasi',
                 'judul' => 'Penelitian, Pengabdian & Penunjang',
                 'isi' => [
                     'SKS diisi sendiri oleh dosen per kegiatan (0–12 SKS) dan dihitung bila tahun & semesternya sama dengan semester aktif.',
-                    'SK kepanitiaan berstatus Selesai otomatis menambah penunjang 0,5 SKS per SK, paling banyak 3 SKS (saat ini dihitung dari seluruh SK, belum per semester, dan belum membedakan ketua/anggota).',
+                    'SK kepanitiaan berstatus Selesai yang terbit pada semester aktif (Ganjil: Agustus–Januari, Genap: Februari–Juli) menambah penunjang 0,5 SKS per SK, paling banyak 3 SKS. Ketua dan anggota belum dibedakan.',
                 ],
-                'dasar' => 'Nilai SKS per kegiatan seharusnya mengikuti rubrik BKD (contoh rubrik PT lain: kepanitiaan 0,25–0,75 SKS sesuai tingkat & jabatan). Belum ada verifikasi asesor di sistem.',
+                'dasar' => 'Tidak diatur instrumen akreditasi (yang dinilai total EWMP). Nilai per kegiatan mengikuti rubrik BKD kampus (contoh rubrik PT lain: kepanitiaan 0,25–0,75 SKS sesuai tingkat & jabatan). Belum ada verifikasi asesor di sistem.',
             ],
             'bkd_kum' => [
                 'modul' => 'BKD', 'halaman' => 'Tridharma & BKD', 'jenis' => 'kebijakan',
@@ -178,22 +179,45 @@ class InfoAturan
                 'dasar' => 'Kebijakan kampus.',
             ],
             'mutu_rasio' => [
-                'modul' => 'Mutu', 'halaman' => 'Dashboard Penjaminan Mutu', 'jenis' => 'konfirmasi',
-                'judul' => 'Rasio dosen & rata-rata IPK',
+                'modul' => 'Akreditasi', 'halaman' => 'Dashboard Penjaminan Mutu, Rektorat & Laporan Mutu', 'jenis' => 'peraturan',
+                'judul' => 'Rasio dosen tetap : mahasiswa',
                 'isi' => [
-                    'Rasio = jumlah mahasiswa aktif ÷ jumlah seluruh data dosen (termasuk dosen tidak tetap).',
-                    'Rata-rata IPK dihitung dari mahasiswa aktif yang IPK-nya di atas 0.',
+                    'Ditampilkan sebagai 1 : n, n = jumlah mahasiswa aktif ÷ jumlah dosen tetap (DTPS).',
+                    'Per program studi: DTPS = dosen berstatus Dosen Tetap dengan homebase prodi tersebut. Tingkat institusi: seluruh dosen tetap.',
+                    'Rumpun Sosial Humaniora (Teologi, PAK): skor 4 bila 1 : 25 sampai 1 : 35; di bawah 25 skor = 4 × n ÷ 25; 35–50 skor = (200 − 4n) ÷ 15; di atas 50 skor 0.',
                 ],
-                'dasar' => 'Untuk akreditasi, rasio biasanya dihitung terhadap dosen tetap sesuai instrumen BAN-PT/LAM. Konfirmasi definisi yang dipakai kampus.',
+                'dasar' => 'Matriks penilaian BAN-PT IAPS 4.0 Program Sarjana (butir rasio mahasiswa/DTPS) dan LAMDIK Buku 4 Program Sarjana (elemen 11) — rumus sama.',
+            ],
+            'akreditasi_dosen' => [
+                'modul' => 'Akreditasi', 'halaman' => 'Dashboard Penjaminan Mutu', 'jenis' => 'peraturan',
+                'judul' => 'Indikator dosen program studi',
+                'isi' => [
+                    'Jumlah DTPS: skor 4 bila ≥ 12 orang; 3–11 orang skor = (2n + 12) ÷ 9; di bawah 3 skor 0.',
+                    'Dosen tidak tetap = dosen non-tetap yang ber-homebase atau mengampu MK kurikulum aktif prodi. Skor 4 bila ≤ 10%; 10–40% skor = (14 − 20p) ÷ 3; di atas 40% skor 0.',
+                    'Bimbingan TA: rata-rata mahasiswa bimbingan aktif per pembimbing utama. Skor 4 bila ≤ 6; 6–10 skor = 7 − n ÷ 2; di atas 10 skor 0.',
+                    'Dosen dihitung "tetap" dari kolom Status Kepegawaian = Dosen Tetap.',
+                ],
+                'dasar' => 'Matriks penilaian BAN-PT IAPS 4.0 Program Sarjana dan LAMDIK Buku 4 (dosen tetap, dosen tidak tetap, pembimbing utama). Program studi Teologi dinilai BAN-PT; Pendidikan Agama Kristen dinilai LAMDIK.',
+            ],
+            'akreditasi_lulusan' => [
+                'modul' => 'Akreditasi', 'halaman' => 'Dashboard Penjaminan Mutu', 'jenis' => 'peraturan',
+                'judul' => 'Indikator lulusan',
+                'isi' => [
+                    'Rata-rata IPK lulusan 3 tahun terakhir: skor 4 bila ≥ 3,25; 2,00–3,25 skor = (8 × IPK − 6) ÷ 5.',
+                    'Masa studi dihitung dari 1 September tahun masuk sampai tanggal lulus. Tepat waktu = lulus ≤ 4 tahun; skor 4 bila ≥ 50% lulusan tepat waktu, di bawahnya 1 + 6 × persentase.',
+                    'Kartu "Rata-rata IPK Mhs Aktif" = rata-rata IPK seluruh mahasiswa aktif yang sudah memiliki nilai (termasuk IPK 0,00).',
+                ],
+                'dasar' => 'Matriks penilaian BAN-PT IAPS 4.0 Program Sarjana (IPK lulusan, kelulusan tepat waktu) dan LAMDIK Buku 4 (elemen 40).',
             ],
             'tracer' => [
-                'modul' => 'Tracer Study', 'halaman' => 'Rekap Tracer Study', 'jenis' => 'kebijakan',
+                'modul' => 'Akreditasi', 'halaman' => 'Rekap Tracer Study & Dashboard Penjaminan Mutu', 'jenis' => 'peraturan',
                 'judul' => 'Indikator tracer study',
                 'isi' => [
-                    'Waktu tunggu = rata-rata bulan sampai pekerjaan/pelayanan pertama.',
-                    'Kesesuaian bidang = persentase jawaban "Sangat Sesuai" dan "Sesuai". Persentase bekerja = selain "Belum Bekerja".',
+                    'Waktu tunggu = rata-rata bulan sampai pekerjaan/pelayanan pertama. Skor 4 bila < 6 bulan; 6–18 bulan skor = (18 − WT) ÷ 3; di atas 18 bulan skor 0.',
+                    'Kesesuaian bidang = persentase "Sangat Sesuai" + "Sesuai". Skor 4 bila ≥ 60%; di bawahnya skor = 20 × p ÷ 3.',
+                    'Responden minimal: 30% bila lulusan 3 tahun ≥ 300 orang; selain itu 50% − (jumlah lulusan ÷ 300 × 20%). Bila kurang, skor dikalikan (responden ÷ minimal).',
                 ],
-                'dasar' => 'Indikator umum tracer study untuk akreditasi.',
+                'dasar' => 'Matriks penilaian BAN-PT IAPS 4.0 Program Sarjana (waktu tunggu, kesesuaian bidang kerja) dan LAMDIK Buku 4 (elemen 46–47).',
             ],
             'absensi' => [
                 'modul' => 'Absensi', 'halaman' => 'Pengaturan & Lokasi Absensi', 'jenis' => 'kebijakan',

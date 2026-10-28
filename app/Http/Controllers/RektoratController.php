@@ -81,7 +81,8 @@ class RektoratController extends Controller
                 'mahasiswas as jumlah_mahasiswa_aktif' => function ($query) {
                     $query->where('status_mahasiswa', 'Aktif');
                 },
-                'dosens as jumlah_dosen' 
+                // Rasio akreditasi memakai dosen TETAP ber-homebase prodi (DTPS)
+                'dosens as jumlah_dosen' => fn ($q) => $q->tetap(),
             ])
             ->get();
 

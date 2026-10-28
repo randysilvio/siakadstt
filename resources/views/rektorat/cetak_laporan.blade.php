@@ -78,7 +78,7 @@
                 <th class="text-start">PROGRAM STUDI</th>
                 <th class="text-start">KETUA PRODI (KAPRODI)</th>
                 <th style="width: 13%;">MAHASISWA</th>
-                <th style="width: 12%;">DOSEN</th>
+                <th style="width: 12%;">DOSEN TETAP</th>
                 <th style="width: 18%;">RASIO (DOSEN : MHS)</th>
             </tr>
         </thead>

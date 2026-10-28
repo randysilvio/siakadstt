@@ -101,6 +101,15 @@ class Dosen extends Model
     /**
      * Menghitung Ringkasan Beban Kerja Dosen (BKD 12-16 SKS) & Angka Kredit (KUM) Standar SISTER Nasional.
      */
+    /** Dosen tetap = status kepegawaian "Dosen Tetap" (atau, bila kosong, jenis pengajar "Dosen Tetap"). */
+    public function scopeTetap($query)
+    {
+        $tetap = fn ($q, string $kolom) => $q->whereRaw("LOWER($kolom) LIKE ?", ['%tetap%'])->whereRaw("LOWER($kolom) NOT LIKE ?", ['%tidak%']);
+
+        return $query->where(fn ($q) => $tetap($q, 'dosens.status_kepegawaian')
+            ->orWhere(fn ($q2) => $tetap($q2->where(fn ($k) => $k->whereNull('dosens.status_kepegawaian')->orWhere('dosens.status_kepegawaian', '')), 'dosens.jenis_pengajar')));
+    }
+
     public function hitungRingkasanBkd(): array
     {
         // BKD adalah beban PER SEMESTER: hanya mata kuliah yang ditawarkan pada semester aktif (ganjil/genap)
@@ -155,7 +164,19 @@ class Dosen extends Model
         $sksPenunjangInput = $kegiatanSemesterIni('penunjang');
 
         // SK Kepanitiaan otomatis dari E-Office bernilai 0.5 SKS per SK aktif
-        $jmlSkSelesai = $this->suratKeputusans()->where('status', 'Selesai')->count();
+        // Hanya SK yang terbit pada semester aktif (Ganjil: Agustus–Januari, Genap: Februari–Juli)
+        $jmlSkSelesai = $this->suratKeputusans()->where('status', 'Selesai')
+            ->when($ta, function ($q) use ($ta) {
+                $tahun = array_map('intval', explode('/', (string) $ta->tahun));
+                $awal = $tahun[0] ?? (int) date('Y');
+                $akhir = $tahun[1] ?? $awal + 1;
+                [$mulai, $selesai] = in_array($ta->semester, ['Ganjil', 'Gasal'], true)
+                    ? ["{$awal}-08-01", "{$akhir}-01-31"]
+                    : ["{$akhir}-02-01", "{$akhir}-07-31"];
+                $q->where(fn ($w) => $w->whereBetween('surat_keputusans.tanggal_terbit', [$mulai, $selesai])
+                    ->orWhere(fn ($w2) => $w2->whereNull('surat_keputusans.tanggal_terbit')->whereBetween('surat_keputusans.created_at', [$mulai . ' 00:00:00', $selesai . ' 23:59:59'])));
+            })
+            ->count();
         $sksPenunjang = round($sksPenunjangInput + min(3.0, $jmlSkSelesai * 0.5), 2);
 
         $totalSksBkd = round($sksPendidikan + $sksPenelitian + $sksPengabdian + $sksPenunjang, 2);

@@ -19,9 +19,14 @@ class PenjaminanMutuController extends Controller
     {
         // 1. Data Kuantitatif Utama
         $jumlahMahasiswaAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
-        $jumlahDosen = Dosen::count();
-        
-        $rasioDosenMahasiswa = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
+        // Indikator akreditasi (matriks BAN-PT IAPS 4.0 / LAMDIK): dosen tetap, rasio, lulusan, tracer
+        $akreditasi = app(\App\Services\IndikatorAkreditasiService::class);
+        $rasioInstitusi = $akreditasi->rasioInstitusi();
+        $jumlahDosen = $rasioInstitusi['dosen_tetap'];
+        $rasioDosenMahasiswa = $rasioInstitusi['teks'];
+        $indikatorProdi = $akreditasi->perProdi();
+        $indikatorLulusan = $akreditasi->lulusan();
+        $indikatorTracer = $akreditasi->tracer();
 
         // 2. Hitung Rata-rata IPK Institusi (Real-time untuk Mahasiswa Aktif)
         $mahasiswas = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Aktif')->get());
@@ -30,8 +35,9 @@ class PenjaminanMutuController extends Controller
         $jumlahMhsTerhitung = 0;
 
         foreach ($mahasiswas as $mhs) {
-            $ipkMhs = $mhs->hitungIpk(); // Menggunakan fungsi bawaan dari Model Mahasiswa
-            if ($ipkMhs > 0) {
+            $ipkMhs = $mhs->hitungIpk();
+            // Semua mahasiswa aktif yang sudah memiliki nilai ikut dihitung (termasuk IPK 0,00)
+            if ($mhs->sudahPunyaNilai()) {
                 $totalIpkKumulatif += $ipkMhs;
                 $jumlahMhsTerhitung++;
             }
@@ -112,7 +118,11 @@ class PenjaminanMutuController extends Controller
             'distribusiStatusTotals',
             'sesiEdomAktif',
             'hasilEdom',
-            'dataLulusan' // <-- Variabel baru dikirim ke view
+            'dataLulusan',
+            'rasioInstitusi',
+            'indikatorProdi',
+            'indikatorLulusan',
+            'indikatorTracer'
         ));
     }
 }

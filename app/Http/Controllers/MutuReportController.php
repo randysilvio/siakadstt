@@ -41,8 +41,10 @@ class MutuReportController extends Controller
     public function cetakRingkasan()
     {
         $jumlahMahasiswaAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
-        $jumlahDosen = Dosen::count();
-        $rasio = $jumlahDosen > 0 ? '1 : ' . round($jumlahMahasiswaAktif / $jumlahDosen, 1) : 'N/A';
+        // Rasio akreditasi: dosen tetap : mahasiswa aktif (BAN-PT / LAMDIK)
+        $rasioInstitusi = app(\App\Services\IndikatorAkreditasiService::class)->rasioInstitusi();
+        $jumlahDosen = $rasioInstitusi['dosen_tetap'];
+        $rasio = $rasioInstitusi['teks'];
 
         $mahasiswas = Mahasiswa::isiRekapNilai(Mahasiswa::where('status_mahasiswa', 'Aktif')->get());
         $totalIpk = 0;

@@ -143,18 +143,19 @@
                             <th class="text-start" style="width: 30%;">PROGRAM STUDI</th>
                             <th class="text-start" style="width: 25%;">KETUA PRODI</th>
                             <th style="width: 10%;">MAHASISWA</th>
-                            <th style="width: 10%;">DOSEN</th>
-                            <th style="width: 25%;">RASIO DOSEN : MAHASISWA</th>
+                            <th style="width: 10%;">DOSEN TETAP</th>
+                            <th style="width: 25%;">RASIO DOSEN : MAHASISWA <x-info-aturan kunci="mutu_rasio" /></th>
                         </tr>
                     </thead>
                     <tbody class="small">
                         @forelse ($kinerjaProdi as $prodi)
                             @php
                                 if ($prodi->jumlah_dosen > 0) {
-                                    $rasioSatuBanding = round($prodi->jumlah_mahasiswa_aktif / $prodi->jumlah_dosen);
-                                    $teksRasio = "1 : " . $rasioSatuBanding;
+                                    $rasioSatuBanding = round($prodi->jumlah_mahasiswa_aktif / $prodi->jumlah_dosen, 1);
+                                    $teksRasio = "1 : " . rtrim(rtrim(number_format($rasioSatuBanding, 1, ',', ''), '0'), ',');
                                     $persenVisual = min(($rasioSatuBanding / 50) * 100, 100);
-                                    $warnaBar = $rasioSatuBanding > 45 ? 'bg-danger' : 'bg-dark';
+                                    // Akreditasi rumpun Sosial Humaniora: ideal 1 : 25–35, di atas 1 : 50 skor 0
+                                    $warnaBar = $rasioSatuBanding > 50 ? 'bg-danger' : (($rasioSatuBanding >= 25 && $rasioSatuBanding <= 35) ? 'bg-success' : 'bg-warning');
                                 } else {
                                     $teksRasio = "N/A (0 DOSEN)";
                                     $persenVisual = 0;
