@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 3. FITUR KEUANGAN MAHASISWA
     Route::get('/riwayat-pembayaran-mahasiswa', [AbsensiController::class, 'riwayatPembayaranMahasiswa']);
+    Route::post('/pembayaran/{pembayaran}/bukti', [AbsensiController::class, 'unggahBuktiPembayaran'])->middleware('throttle:10,1');
 
     // 4. FITUR AKADEMIK
     Route::get('/kalender-akademik', [KalenderController::class, 'getKalenderUntukApi']);

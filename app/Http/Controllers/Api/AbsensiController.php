@@ -225,20 +225,64 @@ class AbsensiController extends Controller
             return response()->json([]);
         }
 
-        $pembayarans = $user->mahasiswa->pembayarans()
-            ->orderBy('semester', 'desc')
+        $mahasiswa = $user->mahasiswa;
+        $pembayarans = \App\Models\Pembayaran::where(fn ($q) => $q->where('user_id', $user->id)->orWhere('mahasiswa_id', $mahasiswa->id))
+            ->orderByDesc('created_at')
             ->get()
             ->map(function ($item) {
                 return [
-                    'id' => $item->id,
-                    'semester' => $item->semester,
-                    'jumlah' => $item->jumlah,
-                    'status' => $item->status,
-                    'tanggal' => $item->tanggal_bayar ? date('d M Y', strtotime($item->tanggal_bayar)) : '-'
+                    'id'         => $item->id,
+                    'semester'   => $item->semester,
+                    'jenis'      => $item->jenis_pembayaran,
+                    'jumlah'     => $item->jumlah,
+                    'status'     => $item->status,
+                    'keterangan' => $item->keterangan,
+                    'ada_bukti'  => (bool) $item->bukti_bayar,
+                    'tanggal'    => $item->tanggal_bayar ? date('d M Y', strtotime($item->tanggal_bayar)) : '-',
                 ];
             });
 
         return response()->json($pembayarans);
+    }
+
+    /**
+     * Unggah bukti transfer dari aplikasi seluler (sama dengan unggah di web): hanya pemilik tagihan,
+     * gambar JPG/PNG maks. 2 MB, status menjadi menunggu_konfirmasi sampai diverifikasi Bagian Keuangan.
+     */
+    public function unggahBuktiPembayaran(Request $request, \App\Models\Pembayaran $pembayaran)
+    {
+        $user = $request->user();
+        $mahasiswa = $user->mahasiswa;
+        if (!$user->hasRole('mahasiswa') || !$mahasiswa) {
+            return response()->json(['message' => 'Hanya mahasiswa yang dapat mengunggah bukti pembayaran.'], 403);
+        }
+        if ((int) $pembayaran->user_id !== (int) $user->id && (int) $pembayaran->mahasiswa_id !== (int) $mahasiswa->id) {
+            return response()->json(['message' => 'Anda tidak berhak mengunggah bukti untuk tagihan ini.'], 403);
+        }
+        if (in_array($pembayaran->status, ['lunas', 'dispensasi'], true)) {
+            return response()->json(['message' => 'Tagihan ini sudah diverifikasi, bukti tidak perlu diunggah lagi.'], 422);
+        }
+
+        $request->validate([
+            'bukti_bayar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ], [
+            'bukti_bayar.required' => 'Silakan pilih foto/screenshot bukti transfer.',
+            'bukti_bayar.image'    => 'File bukti transfer harus berupa gambar (JPG/PNG).',
+            'bukti_bayar.mimes'    => 'File bukti transfer harus berupa gambar (JPG/PNG).',
+            'bukti_bayar.max'      => 'Ukuran file bukti transfer maksimal 2MB.',
+        ]);
+
+        \App\Support\BerkasPrivat::hapus($pembayaran->bukti_bayar);
+        $pembayaran->update([
+            'bukti_bayar'   => \App\Support\BerkasPrivat::simpan($request->file('bukti_bayar'), 'bukti-bayar-spp'),
+            'status'        => 'menunggu_konfirmasi',
+            'tanggal_bayar' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Bukti pembayaran berhasil diunggah. Mohon tunggu verifikasi dari Bagian Keuangan.',
+            'status'  => 'menunggu_konfirmasi',
+        ]);
     }
 
     public function getKhsMahasiswa(Request $request)

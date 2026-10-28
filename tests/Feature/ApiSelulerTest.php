@@ -58,3 +58,31 @@ test('absensi menolak lokasi palsu dari aplikasi', function () {
 test('token API kedaluwarsa sesuai konfigurasi', function () {
     expect(config('sanctum.expiration'))->toBe(60 * 24 * 90);
 });
+
+test('mahasiswa mengunggah bukti bayar dari aplikasi; tagihan orang lain & yang lunas ditolak', function () {
+    \Illuminate\Support\Facades\Storage::fake('local');
+    $d = $this->seedAkademik();
+    $tagihan = Pembayaran::create(['mahasiswa_id' => $d['mhs']->id, 'user_id' => $d['mUser']->id, 'jumlah' => 1500000, 'semester' => 'Ganjil 2025/2026', 'status' => 'belum_lunas', 'jenis_pembayaran' => 'spp', 'keterangan' => 'Cicilan 1']);
+
+    $this->actingAs($d['mUser'], 'sanctum')->getJson('/api/riwayat-pembayaran-mahasiswa')->assertOk()
+        ->assertJsonPath('0.jenis', 'spp')->assertJsonPath('0.keterangan', 'Cicilan 1')->assertJsonPath('0.ada_bukti', false);
+
+    $this->actingAs($d['mUser'], 'sanctum')->post("/api/pembayaran/{$tagihan->id}/bukti", ['bukti_bayar' => 'bukan-file'], ['Accept' => 'application/json'])
+        ->assertStatus(422);
+
+    $this->actingAs($d['mUser'], 'sanctum')
+        ->post("/api/pembayaran/{$tagihan->id}/bukti", ['bukti_bayar' => UploadedFile::fake()->image('bukti.jpg', 800, 600)], ['Accept' => 'application/json'])
+        ->assertOk()->assertJsonPath('status', 'menunggu_konfirmasi');
+    expect($tagihan->fresh()->status)->toBe('menunggu_konfirmasi')->and($tagihan->fresh()->bukti_bayar)->not->toBeNull();
+
+    $lain = $this->buatUser('Lain', 'lainm@x.test', ['mahasiswa']);
+    \App\Models\Mahasiswa::create(['user_id' => $lain->id, 'nim' => '999', 'nama_lengkap' => 'Lain', 'program_studi_id' => $d['mhs']->program_studi_id, 'tahun_masuk' => 2024, 'status_mahasiswa' => 'Aktif']);
+    $this->actingAs($lain, 'sanctum')
+        ->post("/api/pembayaran/{$tagihan->id}/bukti", ['bukti_bayar' => UploadedFile::fake()->image('b.jpg')], ['Accept' => 'application/json'])
+        ->assertForbidden();
+
+    $tagihan->update(['status' => 'lunas']);
+    $this->actingAs($d['mUser'], 'sanctum')
+        ->post("/api/pembayaran/{$tagihan->id}/bukti", ['bukti_bayar' => UploadedFile::fake()->image('b.jpg')], ['Accept' => 'application/json'])
+        ->assertStatus(422);
+});
