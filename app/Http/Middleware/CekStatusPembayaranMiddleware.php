@@ -15,6 +15,22 @@ class CekStatusPembayaranMiddleware
      */
     public const STATUS_TERBUKA = ['lunas', 'dispensasi'];
 
+    /** Pesan penolakan gerbang pembayaran KRS, atau null bila akses terbuka. */
+    public static function alasanTertahan(\App\Models\Mahasiswa $mahasiswa): ?string
+    {
+        $tagihanTertahan = $mahasiswa->pembayarans()
+            ->whereNotIn('status', self::STATUS_TERBUKA)
+            ->pluck('status');
+
+        if ($tagihanTertahan->isEmpty()) {
+            return null;
+        }
+
+        return $tagihanTertahan->every(fn ($s) => $s === 'menunggu_konfirmasi')
+            ? 'Akses ke halaman KRS belum dibuka. Bukti pembayaran Anda sedang diverifikasi oleh Bagian Keuangan. KRS dapat diisi setelah tagihan dinyatakan LUNAS atau mendapat Dispensasi Cicilan.'
+            : 'Akses ke halaman KRS ditolak. Anda masih memiliki tagihan keuangan yang belum lunas atau belum mendapatkan persetujuan Dispensasi Cicilan dari Bagian Keuangan.';
+    }
+
     /**
      * Handle an incoming request.
      * Menolak akses KRS selama mahasiswa masih memiliki tagihan yang belum lunas, termasuk yang buktinya
@@ -25,17 +41,8 @@ class CekStatusPembayaranMiddleware
         $user = Auth::user();
 
         if ($user && $user->hasRole('mahasiswa') && $user->mahasiswa) {
-            $tagihanTertahan = $user->mahasiswa->pembayarans()
-                ->whereNotIn('status', self::STATUS_TERBUKA)
-                ->pluck('status');
-
-            if ($tagihanTertahan->isNotEmpty()) {
-                $hanyaMenungguVerifikasi = $tagihanTertahan->every(fn ($s) => $s === 'menunggu_konfirmasi');
-
-                $pesan = $hanyaMenungguVerifikasi
-                    ? 'Akses ke halaman KRS belum dibuka. Bukti pembayaran Anda sedang diverifikasi oleh Bagian Keuangan. KRS dapat diisi setelah tagihan dinyatakan LUNAS atau mendapat Dispensasi Cicilan.'
-                    : 'Akses ke halaman KRS ditolak. Anda masih memiliki tagihan keuangan yang belum lunas atau belum mendapatkan persetujuan Dispensasi Cicilan dari Bagian Keuangan.';
-
+            $pesan = self::alasanTertahan($user->mahasiswa);
+            if ($pesan !== null) {
                 if ($request->expectsJson() || $request->is('api/*')) {
                     return response()->json([
                         'status' => 'error',

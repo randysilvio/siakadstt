@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use App\Models\VerumKelas;
 use App\Models\VerumPresensi;
 use App\Models\VerumKehadiran;
+use App\Services\VerumService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,22 +25,7 @@ class VerumPresensiController extends Controller
             abort(403, 'Hanya dosen pengampu yang bisa membuka presensi.');
         }
 
-        $request->validate([
-            'judul_pertemuan'     => 'required|string|max:255',
-            'materi_aktual'       => 'nullable|string|max:1500',
-            'metode_pembelajaran' => 'nullable|string|max:100',
-            'pertemuan_ke'        => 'required|integer|min:1|max:32',
-            'durasi'              => 'required|integer|min:1',
-        ]);
-
-        $verum_kela->presensi()->create([
-            'judul_pertemuan'     => strip_tags($request->judul_pertemuan),
-            'materi_aktual'       => $request->filled('materi_aktual') ? strip_tags($request->materi_aktual) : null,
-            'metode_pembelajaran' => $request->filled('metode_pembelajaran') ? strip_tags($request->metode_pembelajaran) : 'Tatap Muka / Ceramah & Diskusi',
-            'pertemuan_ke'        => $request->pertemuan_ke,
-            'waktu_buka'          => now(),
-            'waktu_tutup'         => now()->addMinutes((int) $request->durasi),
-        ]);
+        app(VerumService::class)->bukaPresensi($verum_kela, $request->validate(VerumService::ATURAN_PRESENSI));
 
         return back()->with('success', 'Sesi presensi dan Jurnal BAP Pertemuan ke-' . $request->pertemuan_ke . ' berhasil dibuka.');
     }
@@ -53,17 +39,7 @@ class VerumPresensiController extends Controller
             abort(403, 'Hanya dosen pengampu yang dapat mengubah Jurnal BAP.');
         }
 
-        $request->validate([
-            'judul_pertemuan'     => 'required|string|max:255',
-            'materi_aktual'       => 'nullable|string|max:1500',
-            'metode_pembelajaran' => 'nullable|string|max:100',
-        ]);
-
-        $verum_presensi->update([
-            'judul_pertemuan'     => strip_tags($request->judul_pertemuan),
-            'materi_aktual'       => $request->filled('materi_aktual') ? strip_tags($request->materi_aktual) : null,
-            'metode_pembelajaran' => $request->filled('metode_pembelajaran') ? strip_tags($request->metode_pembelajaran) : 'Tatap Muka / Ceramah & Diskusi',
-        ]);
+        app(VerumService::class)->perbaruiJurnal($verum_presensi, $request->validate(VerumService::ATURAN_JURNAL));
 
         return back()->with('success', 'Jurnal Berita Acara Perkuliahan (Pertemuan ke-' . $verum_presensi->pertemuan_ke . ') berhasil diperbarui.');
     }
@@ -80,31 +56,9 @@ class VerumPresensiController extends Controller
             abort(403, 'Aksi ini hanya untuk mahasiswa peserta kelas.');
         }
 
-        // Peserta resmi: KRS disetujui pada semester kelas & rombel sesuai rombel kelas
-        if (!$verum_presensi->kelas->isPeserta($mahasiswa)) {
-            return back()->with('error', 'Anda tidak terdaftar sebagai peserta kelas/rombel ini.');
-        }
+        [$jenis, $pesan] = app(VerumService::class)->hadir($verum_presensi, $mahasiswa);
 
-        if (now()->isAfter($verum_presensi->waktu_tutup)) {
-            return back()->with('error', 'Sesi presensi sudah ditutup.');
-        }
-
-        $sudahAbsen = VerumKehadiran::where('presensi_id', $verum_presensi->id)
-                                    ->where('mahasiswa_id', $mahasiswa->id)
-                                    ->exists();
-
-        if ($sudahAbsen) {
-            return back()->with('warning', 'Anda sudah melakukan presensi untuk sesi ini.');
-        }
-
-        VerumKehadiran::create([
-            'presensi_id'  => $verum_presensi->id,
-            'mahasiswa_id' => $mahasiswa->id,
-            'status'       => 'hadir',
-            'waktu_absen'  => now(),
-        ]);
-
-        return back()->with('success', 'Kehadiran Anda berhasil dicatat.');
+        return back()->with($jenis, $pesan);
     }
 
     /**

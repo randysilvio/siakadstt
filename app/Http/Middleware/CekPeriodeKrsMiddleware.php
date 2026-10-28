@@ -12,6 +12,39 @@ use Carbon\Carbon;
 
 class CekPeriodeKrsMiddleware
 {
+    /**
+     * Keadaan periode pengisian KRS saat ini (dipakai middleware ini dan API seluler).
+     *
+     * @return array{buka: bool, saklar: string, mulai: ?string, selesai: ?string, pesan: ?string}
+     */
+    public static function keadaan(?TahunAkademik $periodeAktif = null): array
+    {
+        $periodeAktif ??= TahunAkademik::where('is_active', true)->first();
+        $saklar = strtolower((string) Pengaturan::get('status_krs', 'buka'));
+        $mulai = $periodeAktif?->tanggal_mulai_krs;
+        $selesai = $periodeAktif?->tanggal_selesai_krs;
+
+        $diLuarTanggal = false;
+        if ($mulai && $selesai) {
+            $diLuarTanggal = !Carbon::now()->between(Carbon::parse($mulai)->startOfDay(), Carbon::parse($selesai)->endOfDay());
+        }
+
+        $pesan = match (true) {
+            !$periodeAktif       => 'Belum ada Tahun Akademik yang aktif.',
+            $saklar === 'tutup'  => 'Periode pengisian KRS saat ini sedang ditutup oleh Administrator.',
+            $diLuarTanggal       => 'Periode pengisian KRS tidak aktif atau telah berakhir.',
+            default              => null,
+        };
+
+        return [
+            'buka'    => $pesan === null,
+            'saklar'  => $saklar,
+            'mulai'   => $mulai ? Carbon::parse($mulai)->toDateString() : null,
+            'selesai' => $selesai ? Carbon::parse($selesai)->toDateString() : null,
+            'pesan'   => $pesan,
+        ];
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         /** @var \App\Models\User|null $user */

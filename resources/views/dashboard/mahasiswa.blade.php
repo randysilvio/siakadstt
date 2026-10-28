@@ -263,40 +263,8 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-3 p-sm-4 bg-light">
-                {{-- Desain Fisik Kartu E-KTM --}}
-                <div class="wm-card-exclusive bg-dark text-white p-4 shadow" style="border-radius: 14px; min-height: 235px; border: 1px solid rgba(255,255,255,0.15);">
-                    <div class="d-flex align-items-center justify-content-between border-bottom border-secondary pb-2 mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <img src="{{ $logoUrl }}" alt="Logo" class="bg-white p-1 rounded" style="width: 34px; height: 34px; object-fit: contain;">
-                            <div>
-                                <div class="fw-bold uppercase" style="font-size: 12px; letter-spacing: 0.5px;">{{ $cfg['singkatan_kampus'] ?? 'STT GPI PAPUA' }}</div>
-                                <div class="text-white-50 uppercase" style="font-size: 9px;">Kartu Identitas Mahasiswa Resmi</div>
-                            </div>
-                        </div>
-                        <span class="badge bg-light text-dark font-monospace" style="font-size: 9px;">{{ strtoupper($mahasiswa->status_mahasiswa) }}</span>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 my-2">
-                        @if($mahasiswa->foto_profil)
-                            <img src="{{ asset('storage/' . $mahasiswa->foto_profil) }}" alt="Foto" class="border border-light rounded" style="width: 68px; height: 86px; object-fit: cover; flex-shrink: 0;">
-                        @else
-                            <div class="bg-secondary text-white border border-light rounded d-flex align-items-center justify-content-center" style="width: 68px; height: 86px; flex-shrink: 0;">
-                                <span class="fw-bold fs-3 font-monospace">{{ substr($mahasiswa->nama_lengkap, 0, 1) }}</span>
-                            </div>
-                        @endif
-                        <div class="overflow-hidden">
-                            <div class="fw-bold uppercase text-truncate" style="font-size: 14px;">{{ $mahasiswa->nama_lengkap }}</div>
-                            <div class="font-monospace text-white-50 mb-1" style="font-size: 12px;">NIM: <strong class="text-white">{{ $mahasiswa->nim }}</strong></div>
-                            <div class="uppercase text-white-50" style="font-size: 10px;">PRODI: <strong class="text-white">{{ optional($mahasiswa->programStudi)->nama_prodi ?? '-' }}</strong></div>
-                            <div class="uppercase text-white-50" style="font-size: 10px;">ANGKATAN: <strong class="text-white">{{ $mahasiswa->tahun_masuk }}</strong></div>
-                        </div>
-                    </div>
-
-                    <div class="border-top border-secondary pt-2 mt-3 d-flex justify-content-between align-items-center" style="font-size: 9px;">
-                        <span class="font-monospace text-white-50">ID VALIDASI: {{ $tokenKtm }}</span>
-                        <span class="font-monospace text-white fw-bold">{{ $cfg['kota_domisili'] ?? 'FAKFAK' }}</span>
-                    </div>
-                </div>
+                {{-- Desain kartu tetap (tidak mengikuti tema sentral) — resources/views/components/ktm.blade.php --}}
+                <x-ktm :mahasiswa="$mahasiswa" />
             </div>
             <div class="modal-footer bg-white py-2 px-3 d-flex justify-content-between">
                 <a href="{{ route('verifikasi.dokumen', $tokenKtm) }}" target="_blank" class="btn btn-sm btn-outline-dark uppercase fw-bold small">
