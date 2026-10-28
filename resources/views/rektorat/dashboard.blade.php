@@ -56,7 +56,7 @@
         <div class="col-6 col-md-3">
             <div class="card hover-lift border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
                 <div class="card-body p-3 p-md-4">
-                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Piutang / Tunggakan</h6>
+                    <h6 class="uppercase fw-bold small text-muted mb-2" style="font-size: 11px;">Piutang / Tunggakan <x-info-aturan kunci="keu_piutang" /></h6>
                     <h4 class="fw-bold text-danger mb-1 font-monospace">Rp {{ number_format($piutangSemesterIni, 0, ',', '.') }}</h4>
                     <span class="small text-muted uppercase fw-bold" style="font-size: 10px;">Belum Terserap</span>
                 </div>

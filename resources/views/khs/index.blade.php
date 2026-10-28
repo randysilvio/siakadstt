@@ -87,7 +87,7 @@
                             <tr>
                                 <td colspan="2" class="text-end py-3 pe-3">TOTAL SKS DIAMBIL</td>
                                 <td class="text-center py-3 font-monospace fs-6 text-primary">{{ $ipsData['total_sks'] }}</td>
-                                <td class="text-end py-3 pe-3">INDEKS PRESTASI SEMESTER (IPS)</td>
+                                <td class="text-end py-3 pe-3">INDEKS PRESTASI SEMESTER (IPS) <x-info-aturan kunci="ips" /></td>
                                 <td class="text-center py-3 font-monospace fs-6 text-primary">{{ number_format($ipsData['ips'], 2) }}</td>
                             </tr>
                         </tfoot>
@@ -102,11 +102,11 @@
          <div class="card-body p-4">
              <div class="row align-items-center">
                  <div class="col-md-6 text-center text-md-start mb-3 mb-md-0 border-md-end border-secondary">
-                     <h6 class="uppercase small opacity-75 mb-1">TOTAL SKS KUMULATIF LULUS</h6>
+                     <h6 class="uppercase small opacity-75 mb-1">TOTAL SKS KUMULATIF LULUS <x-info-aturan kunci="ipk" terang /></h6>
                      <h3 class="fw-bold font-monospace mb-0 text-success">{{ $mahasiswa->totalSksLulus() }} <span class="fs-6 fw-normal text-white">SKS</span></h3>
                  </div>
                  <div class="col-md-6 text-center text-md-end ps-md-4">
-                     <h6 class="uppercase small opacity-75 mb-1">INDEKS PRESTASI KUMULATIF (IPK)</h6>
+                     <h6 class="uppercase small opacity-75 mb-1">INDEKS PRESTASI KUMULATIF (IPK) <x-info-aturan kunci="ipk" terang /></h6>
                      <h3 class="fw-bold font-monospace mb-0 text-warning">{{ number_format($mahasiswa->hitungIpk(), 2) }}</h3>
                  </div>
              </div>

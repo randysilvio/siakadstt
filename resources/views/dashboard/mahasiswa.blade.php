@@ -62,7 +62,7 @@
             <div class="col-6 col-md-3">
                 <div class="card wm-card-exclusive border-0 shadow-sm bg-dark text-white h-100">
                     <div class="card-body p-3">
-                        <span class="text-white-50 small font-monospace uppercase fw-bold d-block" style="font-size: 10px;">INDEKS PRESTASI (IPK)</span>
+                        <span class="text-white-50 small font-monospace uppercase fw-bold d-block" style="font-size: 10px;">INDEKS PRESTASI (IPK) <x-info-aturan kunci="ipk" terang /></span>
                         <span class="fw-bold font-monospace fs-4 text-white">{{ number_format($ipk, 2) }}</span>
                     </div>
                 </div>

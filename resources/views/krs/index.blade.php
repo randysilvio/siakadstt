@@ -7,7 +7,7 @@
 <div class="container-fluid px-2 px-md-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 mt-2 gap-2">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Kartu Rencana Studi (KRS)</h3>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Kartu Rencana Studi (KRS) <x-info-aturan kunci="krs_aturan" /> <x-info-aturan kunci="krs_gerbang" /></h3>
             <span class="text-muted small uppercase">Tahun Akademik {{ $periodeAktif->tahun }} ({{ strtoupper($periodeAktif->semester) }})</span>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -65,7 +65,7 @@
                             <strong class="text-dark">{{ $mahasiswa->nama_lengkap }}</strong>
                         </div>
                         <div class="col-6 col-sm-4">
-                            <span class="text-muted d-block" style="font-size: 10px;">STATUS KRS</span>
+                            <span class="text-muted d-block" style="font-size: 10px;">STATUS KRS <x-info-aturan kunci="krs_persetujuan" /></span>
                             <strong class="font-monospace text-dark">{{ strtoupper($mahasiswa->status_krs ?? 'DRAFT') }}</strong>
                         </div>
                         <div class="col-6 col-sm-8">
@@ -80,8 +80,8 @@
             <div class="card wm-card-exclusive bg-dark text-white border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="uppercase small text-white-50 d-block font-monospace" style="font-size: 10px;">IPK SAAT INI: {{ number_format($ipk, 2) }}</span>
-                        <span class="uppercase fw-bold small d-block">BEBAN SKS DIPILIH</span>
+                        <span class="uppercase small text-white-50 d-block font-monospace" style="font-size: 10px;">IPK SAAT INI: {{ number_format($ipk, 2) }} <x-info-aturan kunci="ipk" terang /></span>
+                        <span class="uppercase fw-bold small d-block">BEBAN SKS DIPILIH <x-info-aturan kunci="krs_batas_sks" terang /></span>
                     </div>
                     <div class="text-end font-monospace">
                         <h3 class="mb-0 fw-bold"><span id="total-sks">0</span> <small class="fs-6 fw-normal text-white-50">/ {{ $max_sks }} SKS</small></h3>

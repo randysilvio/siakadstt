@@ -29,7 +29,7 @@
     @if(isset($mahasiswaRawanDo) && $mahasiswaRawanDo->isNotEmpty())
         <div class="card border-0 shadow-sm border-top border-danger border-4 mb-4 bg-white">
             <div class="card-header bg-dark text-white py-2.5 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-bold uppercase small">Perhatian Akademik: {{ $mahasiswaRawanDo->count() }} Mahasiswa dengan IPK &lt; 2.00</span>
+                <span class="fw-bold uppercase small">Perhatian Akademik: {{ $mahasiswaRawanDo->count() }} Mahasiswa dengan IPK &lt; 2.00 <x-info-aturan kunci="ews" /></span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -110,7 +110,7 @@
                             <th style="width: 14%;">NIM</th>
                             <th class="text-start">NAMA MAHASISWA</th>
                             <th style="width: 22%;">{{ strtoupper($istilahPembimbing) }}</th>
-                            <th style="width: 14%;">IPK / SKS</th>
+                            <th style="width: 14%;">IPK / SKS <x-info-aturan kunci="ipk" /></th>
                             <th style="width: 15%;">STATUS KRS</th>
                             <th style="width: 13%;">AKSI</th>
                         </tr>

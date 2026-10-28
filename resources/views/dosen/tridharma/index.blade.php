@@ -4,7 +4,7 @@
 <div class="container-fluid px-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mt-3 gap-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Data Tridharma & Beban Kerja Dosen</h3>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Data Tridharma & Beban Kerja Dosen <x-info-aturan kunci="bkd_total" /></h3>
             <span class="text-muted small uppercase">{{ $dosen->nama_lengkap }} — NIDN: {{ $dosen->nidn ?? '-' }}</span>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -43,7 +43,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENDIDIKAN</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENDIDIKAN <x-info-aturan kunci="bkd_pendidikan" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['sks_pendidikan'] }} <small class="fs-6">SKS</small></h4>
                 </div>
             </div>
@@ -51,7 +51,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENELITIAN</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENELITIAN <x-info-aturan kunci="bkd_tridharma" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['sks_penelitian'] }} <small class="fs-6">SKS</small></h4>
                 </div>
             </div>
@@ -59,7 +59,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENGABDIAN</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENGABDIAN <x-info-aturan kunci="bkd_tridharma" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['sks_pengabdian'] }} <small class="fs-6">SKS</small></h4>
                 </div>
             </div>
@@ -67,7 +67,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENUNJANG</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">PENUNJANG <x-info-aturan kunci="bkd_tridharma" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['sks_penunjang'] }} <small class="fs-6">SKS</small></h4>
                 </div>
             </div>
@@ -75,7 +75,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-dark text-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-white-50 small font-monospace uppercase fw-bold d-block">TOTAL BEBAN</span>
+                    <span class="text-white-50 small font-monospace uppercase fw-bold d-block">TOTAL BEBAN <x-info-aturan kunci="bkd_total" terang /></span>
                     <h4 class="fw-bold font-monospace text-white mb-0 mt-1">{{ $ringkasanBkd['total_sks_bkd'] }} <small class="fs-6">SKS</small></h4>
                 </div>
             </div>
@@ -83,7 +83,7 @@
         <div class="col-md-2 col-6">
             <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 bg-white h-100">
                 <div class="card-body p-3">
-                    <span class="text-muted small font-monospace uppercase fw-bold d-block">ANGKA KREDIT</span>
+                    <span class="text-muted small font-monospace uppercase fw-bold d-block">ANGKA KREDIT <x-info-aturan kunci="bkd_kum" /></span>
                     <h4 class="fw-bold font-monospace text-dark mb-0 mt-1">{{ $ringkasanBkd['total_kum'] }}</h4>
                 </div>
             </div>

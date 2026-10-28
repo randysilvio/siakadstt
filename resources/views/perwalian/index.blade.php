@@ -62,7 +62,7 @@
                             <th style="width: 14%;">NIM</th>
                             <th class="text-start" style="width: 34%;">NAMA MAHASISWA & PRODI</th>
                             <th style="width: 12%;">ANGKATAN</th>
-                            <th style="width: 10%;">IPK</th>
+                            <th style="width: 10%;">IPK <x-info-aturan kunci="ipk" /></th>
                             <th style="width: 14%;">STATUS KRS</th>
                             <th style="width: 16%;">AKSI</th>
                         </tr>

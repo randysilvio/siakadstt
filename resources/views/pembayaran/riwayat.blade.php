@@ -9,7 +9,7 @@
 <div class="container-fluid px-3 px-md-4">
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 mt-2 gap-2">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Riwayat Pembayaran & Tagihan</h3>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Riwayat Pembayaran & Tagihan <x-info-aturan kunci="krs_gerbang" /></h3>
             <span class="text-muted small uppercase">Daftar Kewajiban Keuangan Semester & Unggah Bukti Transfer</span>
         </div>
         <div>

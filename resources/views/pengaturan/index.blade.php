@@ -519,7 +519,7 @@
                             </div>
                         </div>
 
-                        <h6 class="fw-bold text-dark uppercase small border-bottom pb-2 mb-3">B. Bobot Persentase Default Komponen Buku Nilai OBE (Total Disarankan 100%)</h6>
+                        <h6 class="fw-bold text-dark uppercase small border-bottom pb-2 mb-3">B. Bobot Persentase Default Komponen Buku Nilai OBE (Total Disarankan 100%) <x-info-aturan kunci="nilai_akhir" /></h6>
                         <div class="row g-3">
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold uppercase text-dark">Bobot Kehadiran (%)</label>

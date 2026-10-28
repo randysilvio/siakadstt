@@ -82,7 +82,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm rounded-0 border-top border-dark border-4">
                 <div class="card-header bg-white py-3 border-bottom rounded-0 d-flex justify-content-between align-items-center">
-                    <span class="fw-bold uppercase small text-dark">2. Beban Kerja Dosen (BKD)</span>
+                    <span class="fw-bold uppercase small text-dark">2. Beban Kerja Dosen (BKD) <x-info-aturan kunci="bkd_total" /></span>
                     <span class="badge bg-dark rounded-0 uppercase font-monospace" style="font-size: 10px;">Standar SDM</span>
                 </div>
                 <div class="card-body p-4 d-flex flex-column justify-content-between">

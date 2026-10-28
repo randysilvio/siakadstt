@@ -4,7 +4,7 @@
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0 uppercase">Instrumen Penilaian Kinerja Dosen</h3>
+            <h3 class="fw-bold text-dark mb-0 uppercase">Instrumen Penilaian Kinerja Dosen <x-info-aturan kunci="edom" /></h3>
             <span class="text-muted small uppercase">Pastikan Anda mengisi seluruh indikator penilaian secara objektif</span>
         </div>
         <div>

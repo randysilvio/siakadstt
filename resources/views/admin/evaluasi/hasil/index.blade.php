@@ -40,7 +40,7 @@
         <div class="card border-0 shadow-sm rounded-0 border-top border-dark border-4 mb-5">
             <div class="card-header bg-dark text-white rounded-0 py-3 d-flex justify-content-between align-items-center">
                 <span class="mb-0 fw-bold uppercase small">Data Evaluasi: {{ $sesiTerpilih->nama_sesi }}</span>
-                <span class="badge bg-light text-dark rounded-0 font-monospace uppercase">SKALA: 1.00 - 4.00</span>
+                <span class="badge bg-light text-dark rounded-0 font-monospace uppercase">SKALA: 1.00 - 4.00</span> <x-info-aturan kunci="edom" />
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">

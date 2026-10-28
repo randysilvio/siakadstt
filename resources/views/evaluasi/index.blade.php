@@ -5,7 +5,7 @@
     {{-- BAGIAN HEADER UTAMA --}}
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
-            <h3 class="mb-0 text-dark fw-bold uppercase">Evaluasi Dosen oleh Mahasiswa (EDOM)</h3>
+            <h3 class="mb-0 text-dark fw-bold uppercase">Evaluasi Dosen oleh Mahasiswa (EDOM) <x-info-aturan kunci="edom" /></h3>
             <span class="text-muted small uppercase">Periode Akademik: {{ $sesiAktif->nama_sesi }}</span>
         </div>
         <div>
