@@ -129,6 +129,7 @@ class KalenderAdminController extends Controller
                 'id' => $k?->id, 'status' => $k ? KalenderPengendali::status($k) : 'tidak_dijadwalkan',
                 'mulai' => $k ? Carbon::parse($k->tanggal_mulai)->toDateString() : null,
                 'selesai' => $k ? Carbon::parse($k->tanggal_selesai)->toDateString() : null,
+                'acara' => $k ? $this->bentuk($k->load(['roles:id,name,display_name', 'tahunAkademik', 'pmbPeriod'])) : null,
             ];
         }
         return [
