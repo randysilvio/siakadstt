@@ -9,6 +9,7 @@ use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\KrsController;
 use App\Http\Controllers\Api\DokumenController;
 use App\Http\Controllers\Api\KrsSirkulasiController;
+use App\Http\Controllers\Api\KtmController;
 use App\Http\Controllers\Api\VerumController as VerumApiController;
 
 // =========================================================================
@@ -102,11 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware(['role:mahasiswa', 'throttle:20,1']);
 
     // E-KTM digital (desain tetap, tidak mengikuti tema sentral)
-    Route::get('/ktm', function (Request $request) {
-        $mahasiswa = $request->user()->mahasiswa;
-        abort_unless($mahasiswa, 404, 'Data mahasiswa tidak ditemukan.');
-        return response()->json(\App\Support\Ktm::data($mahasiswa));
-    });
+    Route::get('/ktm', KtmController::class);
 
     // Berkas privat (jawaban tugas, bukti bayar, dll.) dengan cek hak akses yang sama dengan web
     Route::get('/berkas/{jenis}/{id}/{sisi?}', [\App\Http\Controllers\BerkasController::class, 'unduh'])
