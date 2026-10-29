@@ -81,7 +81,7 @@
                 @endforelse
             </div>
 
-            <div class="mt-8">{{ $koleksis->links() }}</div>
+            <div class="mt-8">{{ $koleksis->links('pagination::siakad-publik') }}</div>
         </div>
     </main>
 

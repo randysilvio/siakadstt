@@ -397,6 +397,11 @@ Route::middleware('auth')->group(function () {
         
         Route::resource('tahun-akademik', TahunAkademikController::class)->except(['show']);
         Route::resource('kalender', KalenderController::class)->except(['show']);
+        // Pengingat kelengkapan data (ikon "!" di atas chatbot) — periksa ulang tanpa menunggu cache 10 menit
+        Route::post('/kelengkapan-data/segarkan', function () {
+            app(\App\Services\KelengkapanDataService::class)->ringkasan(true);
+            return back()->with('success', 'Pengingat kelengkapan data sudah diperiksa ulang.');
+        })->name('kelengkapan.segarkan');
         
         Route::resource('user', UserController::class)->except(['create', 'store', 'show']);
         Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai.index');

@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Schema;
 
 class Pengaturan extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'pengaturan "' . $this->key . '"';
+    }
+
     use HasFactory;
 
     protected $table = 'pengaturans';

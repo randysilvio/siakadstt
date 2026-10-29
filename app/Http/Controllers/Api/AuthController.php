@@ -47,6 +47,9 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
+        \App\Models\LogAktivitas::catat('login', 'Masuk lewat aplikasi seluler', $user, null, $user->id);
+
         // 3. Buat Token Sanctum
         $token = $user->createToken('mobile-app-token')->plainTextToken;
 

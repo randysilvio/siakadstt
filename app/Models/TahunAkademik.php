@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TahunAkademik extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'tahun akademik ' . $this->nama_semester;
+    }
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

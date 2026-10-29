@@ -11,6 +11,16 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Mahasiswa extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    /** Kolom yang tidak perlu masuk log aktivitas. */
+    protected array $kolomTidakDicatat = ['status_krs'];
+
+    public function labelAktivitas(): string
+    {
+        return 'data mahasiswa ' . $this->nim . ' · ' . $this->nama_lengkap;
+    }
+
     use HasFactory;
 
     /** Status akademik baku (dipakai validasi form & impor). */
@@ -118,9 +128,7 @@ class Mahasiswa extends Model
             return 'sudah_isi';
         }
 
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-            ->where('tanggal_mulai', '<=', now())
-            ->where('tanggal_selesai', '>=', now())
+        $sesiAktif = EvaluasiSesi::berjalan()
             ->orderByDesc('tanggal_mulai')
             ->first();
 

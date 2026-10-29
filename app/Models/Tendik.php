@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Tendik extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'data tendik ' . $this->nama_lengkap;
+    }
+
     use HasFactory;
 
     protected $fillable = [

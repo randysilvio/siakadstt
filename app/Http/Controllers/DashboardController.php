@@ -83,43 +83,44 @@ class DashboardController extends Controller
                 'data'   => $prodiData->pluck('mahasiswas_count'),
             ];
 
+            // Pemantauan akses: pengguna yang sedang online (cache aktivitas) lalu waktu login terakhir yang sebenarnya
             $onlineUsersMap = Cache::get('siakad-online-users-list', []);
-            $onlineUserIds = array_keys($onlineUsersMap);
-            $onlineUserIds = array_diff($onlineUserIds, [$user->id]); 
-
-            if (!empty($onlineUserIds)) {
-                $logPengguna = User::with('roles')
-                    ->whereIn('id', $onlineUserIds)
-                    ->get()
-                    ->map(function ($u) use ($onlineUsersMap) {
-                        $u->updated_at = Carbon::createFromTimestamp($onlineUsersMap[$u->id]);
-                        return $u;
-                    })
-                    ->sortByDesc('updated_at')
-                    ->take(5);
-            } else {
-                $logPengguna = User::with('roles')
-                    ->where('id', '!=', $user->id)
-                    ->orderBy('updated_at', 'desc')
-                    ->take(5)
-                    ->get();
-            }
+            $logPengguna = User::with('roles')
+                ->where('id', '!=', $user->id)
+                ->where(fn ($q) => $q->whereIn('id', array_keys($onlineUsersMap))->orWhereNotNull('last_login_at'))
+                ->get()
+                ->map(function ($u) use ($onlineUsersMap) {
+                    $u->sedang_online = isset($onlineUsersMap[$u->id]);
+                    $u->akses_terakhir = $u->sedang_online ? Carbon::createFromTimestamp($onlineUsersMap[$u->id]) : $u->last_login_at;
+                    return $u;
+                })
+                ->filter(fn ($u) => $u->akses_terakhir)
+                ->sortByDesc(fn ($u) => $u->akses_terakhir->timestamp)
+                ->take(6)
+                ->values();
 
             $matkulBelumDiplot = 0;
             $persenKrs = 0;
-            
+
             if ($periodeAktif) {
+                // Persentase mahasiswa aktif yang KRS semester aktifnya sudah disetujui (per semester, bukan kolom salinan)
                 $totalMhsAktif = Mahasiswa::where('status_mahasiswa', 'Aktif')->count();
                 $krsDisetujui = Mahasiswa::where('status_mahasiswa', 'Aktif')
-                    ->where('status_krs', 'Disetujui')
-                    ->whereHas('mataKuliahs', function ($q) use ($periodeAktif) {
-                        $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id);
-                    })
+                    ->whereIn('id', \App\Models\KrsPersetujuan::idsDisetujui((int) $periodeAktif->id))
+                    ->whereHas('mataKuliahs', fn ($q) => $q->where('mahasiswa_mata_kuliah.tahun_akademik_id', $periodeAktif->id))
                     ->count();
-
                 $persenKrs = $totalMhsAktif > 0 ? round(($krsDisetujui / $totalMhsAktif) * 100) : 0;
-                $matkulBelumDiplot = MataKuliah::whereNull('dosen_id')->count();
+
+                // Hanya mata kuliah kurikulum aktif yang ditawarkan semester ini; pengampu team teaching ikut dihitung
+                $matkulBelumDiplot = MataKuliah::whereIn('semester', app(\App\Services\AcademicRuleService::class)->semesterDitawarkan($periodeAktif))
+                    ->whereHas('kurikulum', fn ($q) => $q->where('is_active', true))
+                    ->whereNull('dosen_id')
+                    ->whereNotIn('id', \Illuminate\Support\Facades\DB::table('dosen_mata_kuliah')->select('mata_kuliah_id'))
+                    ->count();
             }
+
+            $logAktivitas = \App\Models\LogAktivitas::with('user.roles')->latest('created_at')->take(40)->get();
+            $pengingatData = app(\App\Services\KelengkapanDataService::class)->ringkasan();
 
             $jadwalHariIni = collect();
             $mapHari = [
@@ -188,11 +189,14 @@ class DashboardController extends Controller
                 'totalMahasiswa'    => Mahasiswa::where('status_mahasiswa', 'Aktif')->count(),
                 'totalDosen'        => Dosen::count(),
                 'totalProdi'        => ProgramStudi::count(),
-                'totalMatkul'       => MataKuliah::count(),
+                'totalMatkul'       => MataKuliah::whereHas('kurikulum', fn ($q) => $q->where('is_active', true))->count(),
+                'statusSistem'      => $this->statusSistem(),
                 'pengumumans'       => $pengumumans,
                 'dataGrafikProdi'   => $dataGrafikProdi,
                 'periodeAktif'      => $periodeAktif,
                 'logPengguna'       => $logPengguna,
+                'logAktivitas'      => $logAktivitas,
+                'pengingatData'     => $pengingatData,
                 'persenKrs'         => $persenKrs,
                 'matkulBelumDiplot' => $matkulBelumDiplot,
                 'jadwalHariIni'     => $jadwalHariIni, 
@@ -315,6 +319,24 @@ class DashboardController extends Controller
 
         Auth::logout();
         return redirect('/login')->with('error', 'Peran Anda tidak dikenali atau belum diatur. Silakan hubungi administrator.');
+    }
+
+    /** Status infrastruktur nyata untuk panel "Pantauan Infrastruktur & Operasional". */
+    private function statusSistem(): array
+    {
+        try {
+            \Illuminate\Support\Facades\DB::select('select 1');
+            $db = true;
+        } catch (\Throwable $e) {
+            $db = false;
+        }
+        $penjadwal = Cache::get('siakad-penjadwal-terakhir');
+        return [
+            'db'            => $db,
+            'storage'       => is_writable(storage_path('app')),
+            'penjadwal'     => $penjadwal ? Carbon::createFromTimestamp($penjadwal) : null,
+            'penjadwal_ok'  => $penjadwal && now()->timestamp - $penjadwal < 2 * 86400,
+        ];
     }
 
     public function mahasiswaPerProdi()

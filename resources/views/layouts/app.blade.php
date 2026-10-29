@@ -143,6 +143,9 @@
 
         /* Override Warna Tema Dinamis */
         .bg-dark, .bg-primary { background-color: var(--siakad-primary) !important; }
+        .pagination { --bs-pagination-color: var(--siakad-primary); --bs-pagination-hover-color: var(--siakad-primary); --bs-pagination-active-bg: var(--siakad-primary);
+            --bs-pagination-active-border-color: var(--siakad-primary); --bs-pagination-focus-box-shadow: none; }
+        .siakad-paginasi .page-link { min-width: 2.1rem; text-align: center; font-weight: 600; }
         .btn-dark, .btn-primary { background-color: var(--siakad-primary) !important; border-color: var(--siakad-primary) !important; color: #ffffff !important; }
         .btn-dark:hover, .btn-primary:hover { background-color: var(--siakad-accent) !important; border-color: var(--siakad-accent) !important; color: #ffffff !important; }
         .btn-outline-dark, .btn-outline-primary { color: var(--siakad-primary) !important; border-color: var(--siakad-primary) !important; }
@@ -707,6 +710,13 @@
             <p class="mb-0 small uppercase">&copy; {{ date('Y') }} <strong>{{ $namaBrand }}</strong> — {{ $namaLengkap }}.</p>
         </div>
     </footer>
+
+    {{-- Pengingat kelengkapan data: hanya Admin (bukan saat Admin menyamar sebagai pengguna lain) --}}
+    @auth
+        @if(Auth::user()->hasRole('admin') && !session()->has('impersonate_by'))
+            @include('partials._pengingat_admin')
+        @endif
+    @endauth
 
     @include('partials.chatbot')
 

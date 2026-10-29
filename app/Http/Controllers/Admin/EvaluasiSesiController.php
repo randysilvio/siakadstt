@@ -55,6 +55,9 @@ class EvaluasiSesiController extends Controller
 
     public function update(Request $request, EvaluasiSesi $evaluasi_sesi)
     {
+        if ($k = \App\Services\KalenderPengendali::pengendaliEdom($evaluasi_sesi)) {
+            $request->merge(['tanggal_mulai' => $k->tanggal_mulai->toDateString(), 'tanggal_selesai' => $k->tanggal_selesai->toDateString(), 'tahun_akademik_id' => $k->tahun_akademik_id]);
+        }
         $request->validate([
             'nama_sesi' => 'required|string|max:255',
             'tahun_akademik_id' => 'required|exists:tahun_akademiks,id',

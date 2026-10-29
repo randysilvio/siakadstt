@@ -63,6 +63,9 @@ class PmbPeriodController extends Controller
 
     public function update(Request $request, PmbPeriod $pmbPeriod)
     {
+        if ($k = \App\Services\KalenderPengendali::pengendaliPmb($pmbPeriod)) {
+            $request->merge(['tanggal_buka' => $k->tanggal_mulai->toDateString(), 'tanggal_tutup' => $k->tanggal_selesai->toDateString()]);
+        }
         $request->validate([
             'nama_gelombang' => 'required|string|max:255',
             'tahun_pmb' => 'required|integer|min:2000|max:2100',

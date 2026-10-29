@@ -69,7 +69,7 @@
                 </div>
             
                 <div class="mt-10 flex justify-center">
-                    {{ $semuaBerita->links('pagination::tailwind') }}
+                    {{ $semuaBerita->links('pagination::siakad-publik') }}
                 </div>
             @endif
         </section>

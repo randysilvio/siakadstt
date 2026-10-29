@@ -10,6 +10,16 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    /** Kolom yang tidak perlu masuk log aktivitas. */
+    protected array $kolomTidakDicatat = ['last_login_at', 'fcm_token', 'email_verified_at'];
+
+    public function labelAktivitas(): string
+    {
+        return 'akun ' . $this->name . ' (' . $this->email . ')';
+    }
+
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
@@ -29,6 +39,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
     ];
 
     // --- RELASI KE ROLE (Sistem Multi-User) ---

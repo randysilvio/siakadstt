@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Jadwal extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'jadwal ' . optional($this->mataKuliah)->kode_mk . ' kelas ' . $this->nama_kelas . ' (' . $this->hari . ')';
+    }
+
     use HasFactory;
 
     protected $fillable = [

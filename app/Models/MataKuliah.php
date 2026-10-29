@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class MataKuliah extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'mata kuliah ' . $this->kode_mk . ' ' . $this->nama_mk;
+    }
+
     use HasFactory;
 
     protected $table = 'mata_kuliahs';

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@php $kendaliEdom = \App\Services\KalenderPengendali::pengendaliEdom($sesi); @endphp
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
@@ -47,16 +48,19 @@
                 </div>
 
                 <div class="row mb-4 g-4">
+                    @if($kendaliEdom)
+                    <div class="col-12"><div class="alert alert-secondary border-0 border-start border-dark border-4 rounded-0 small mb-0 py-2"><i class="bi bi-calendar-check me-1"></i> Tanggal diatur dari <a href="{{ route('admin.kalender.edit', $kendaliEdom) }}" class="fw-bold text-dark">Kalender Akademik: {{ $kendaliEdom->judul_kegiatan }}</a>. Ubah tanggal di sana. <x-info-aturan kunci="kalender_pengendali" /></div></div>
+                    @endif
                     <div class="col-md-6">
                         <label for="tanggal_mulai" class="form-label text-dark small fw-bold uppercase">Tanggal Mulai <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai', \Carbon\Carbon::parse($sesi->tanggal_mulai)->format('Y-m-d')) }}" required>
+                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" name="tanggal_mulai" @if($kendaliEdom) readonly title="Diatur dari Kalender Akademik" @endif value="{{ old('tanggal_mulai', \Carbon\Carbon::parse($sesi->tanggal_mulai)->format('Y-m-d')) }}" required>
                         @error('tanggal_mulai')
                             <div class="invalid-feedback font-monospace small">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-6">
                         <label for="tanggal_selesai" class="form-label text-dark small fw-bold uppercase">Tanggal Selesai <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" value="{{ old('tanggal_selesai', \Carbon\Carbon::parse($sesi->tanggal_selesai)->format('Y-m-d')) }}" required>
+                        <input type="date" class="form-control rounded-0 font-monospace @error('tanggal_selesai') is-invalid @enderror" id="tanggal_selesai" name="tanggal_selesai" @if($kendaliEdom) readonly title="Diatur dari Kalender Akademik" @endif value="{{ old('tanggal_selesai', \Carbon\Carbon::parse($sesi->tanggal_selesai)->format('Y-m-d')) }}" required>
                         @error('tanggal_selesai')
                             <div class="invalid-feedback font-monospace small">{{ $message }}</div>
                         @enderror

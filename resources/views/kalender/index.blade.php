@@ -69,6 +69,15 @@
                                 <td class="ps-4 font-monospace text-muted">{{ $loop->iteration + ($kegiatans->currentPage() - 1) * $kegiatans->perPage() }}</td>
                                 <td>
                                     <div class="fw-bold text-dark uppercase small">{{ $kegiatan->judul_kegiatan }}</div>
+                                    @if(\App\Services\KalenderPengendali::pengendali($kegiatan))
+                                        @php $st = \App\Services\KalenderPengendali::status($kegiatan); @endphp
+                                        <div class="mt-1 d-flex flex-wrap gap-1">
+                                            <span class="badge rounded-0 bg-dark font-monospace" style="font-size: 9px;"><i class="bi bi-gear-fill me-1"></i>{{ strtoupper(\App\Services\KalenderPengendali::JENIS[$kegiatan->jenis] ?? $kegiatan->jenis) }}</span>
+                                            <span class="badge rounded-0 font-monospace {{ $st === 'berlangsung' ? 'bg-success' : ($st === 'akan_datang' ? 'bg-warning text-dark' : 'bg-secondary') }}" style="font-size: 9px;">{{ ['berlangsung' => 'BERLANGSUNG', 'akan_datang' => 'AKAN DATANG', 'selesai' => 'SELESAI'][$st] }}</span>
+                                            @if($kegiatan->tahunAkademik)<span class="badge rounded-0 bg-light text-dark border font-monospace" style="font-size: 9px;">{{ $kegiatan->tahunAkademik->nama_semester }}</span>@endif
+                                            @if($kegiatan->pmbPeriod)<span class="badge rounded-0 bg-light text-dark border font-monospace" style="font-size: 9px;">{{ $kegiatan->pmbPeriod->nama_gelombang }}</span>@endif
+                                        </div>
+                                    @endif
                                     <div class="text-muted small text-truncate" style="max-width: 300px;">{{ $kegiatan->deskripsi ?? '-' }}</div>
                                 </td>
                                 <td>

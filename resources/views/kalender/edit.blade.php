@@ -23,6 +23,8 @@
                             @error('judul_kegiatan')<div class="invalid-feedback small">{{ $message }}</div>@enderror
                         </div>
 
+                        @include('kalender._pengendali')
+
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label for="tanggal_mulai" class="form-label small fw-bold uppercase">Tanggal Mulai</label>

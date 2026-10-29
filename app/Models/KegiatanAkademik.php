@@ -17,6 +17,16 @@ use Illuminate\Support\Carbon;
  */
 class KegiatanAkademik extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    /** Kolom yang tidak perlu masuk log aktivitas. */
+    protected array $kolomTidakDicatat = ['pengingat_terkirim'];
+
+    public function labelAktivitas(): string
+    {
+        return 'kalender: ' . $this->judul_kegiatan;
+    }
+
     use HasFactory;
 
     /**
@@ -35,6 +45,11 @@ class KegiatanAkademik extends Model
         'deskripsi',
         'tanggal_mulai',
         'tanggal_selesai',
+        'jenis',
+        'tahun_akademik_id',
+        'pmb_period_id',
+        'evaluasi_sesi_id',
+        'pengingat_terkirim',
     ];
 
     /**
@@ -45,7 +60,18 @@ class KegiatanAkademik extends Model
     protected $casts = [
         'tanggal_mulai' => 'date',
         'tanggal_selesai' => 'date',
+        'pengingat_terkirim' => 'array',
     ];
+
+    public function tahunAkademik(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(TahunAkademik::class);
+    }
+
+    public function pmbPeriod(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(PmbPeriod::class);
+    }
 
     /**
      * Relasi Many-to-Many ke model Role.

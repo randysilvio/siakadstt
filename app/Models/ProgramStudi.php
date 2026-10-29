@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProgramStudi extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'program studi ' . $this->nama_prodi;
+    }
+
     use HasFactory;
 
     protected $fillable = [
@@ -16,6 +23,11 @@ class ProgramStudi extends Model
         'jenjang',
         'kaprodi_dosen_id',
     ];
+
+    public function kurikulums()
+    {
+        return $this->hasMany(Kurikulum::class);
+    }
 
     public function fakultas()
     {

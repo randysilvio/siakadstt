@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class PmbPeriod extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'gelombang PMB ' . $this->nama_gelombang;
+    }
+
     use HasFactory;
 
     protected $table = 'pmb_periods';

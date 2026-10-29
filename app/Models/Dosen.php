@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class Dosen extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'data dosen ' . $this->nama_lengkap;
+    }
+
     use HasFactory;
 
     protected $fillable = [

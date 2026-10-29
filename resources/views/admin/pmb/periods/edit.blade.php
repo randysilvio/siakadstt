@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@php $kendaliPmb = \App\Services\KalenderPengendali::pengendaliPmb($pmbPeriod); @endphp
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
         <div>
@@ -56,13 +57,16 @@
                 </div>
 
                 <div class="row mb-4 g-3">
+                    @if($kendaliPmb)
+                    <div class="col-12"><div class="alert alert-secondary border-0 border-start border-dark border-4 rounded-0 small mb-0 py-2"><i class="bi bi-calendar-check me-1"></i> Tanggal diatur dari <a href="{{ route('admin.kalender.edit', $kendaliPmb) }}" class="fw-bold text-dark">Kalender Akademik: {{ $kendaliPmb->judul_kegiatan }}</a>. Ubah tanggal di sana. <x-info-aturan kunci="kalender_pengendali" /></div></div>
+                    @endif
                     <div class="col-md-6">
                         <label class="form-label text-dark small fw-bold uppercase">Tanggal Buka Pendaftaran <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal_buka" class="form-control rounded-0 font-monospace" value="{{ old('tanggal_buka', $pmbPeriod->tanggal_buka->format('Y-m-d')) }}" required>
+                        <input type="date" name="tanggal_buka" @if($kendaliPmb) readonly title="Diatur dari Kalender Akademik" @endif class="form-control rounded-0 font-monospace" value="{{ old('tanggal_buka', $pmbPeriod->tanggal_buka->format('Y-m-d')) }}" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-dark small fw-bold uppercase">Tanggal Tutup Pendaftaran <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal_tutup" class="form-control rounded-0 font-monospace" value="{{ old('tanggal_tutup', $pmbPeriod->tanggal_tutup->format('Y-m-d')) }}" required>
+                        <input type="date" name="tanggal_tutup" @if($kendaliPmb) readonly title="Diatur dari Kalender Akademik" @endif class="form-control rounded-0 font-monospace" value="{{ old('tanggal_tutup', $pmbPeriod->tanggal_tutup->format('Y-m-d')) }}" required>
                     </div>
                 </div>
 

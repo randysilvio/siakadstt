@@ -97,7 +97,13 @@ class UserController extends Controller
             // Peran hanya disinkronkan bila form peran benar-benar dikirim; update nama/email saja tidak boleh
             // menghapus seluruh peran pengguna.
             if ($request->has('roles') || $request->boolean('roles_submitted')) {
+                $perananLama = $user->roles()->pluck('name')->sort()->values()->all();
                 $user->roles()->sync($request->input('roles', []));
+                $perananBaru = $user->roles()->pluck('name')->sort()->values()->all();
+                if ($perananLama !== $perananBaru) {
+                    \App\Models\LogAktivitas::catat('peran', 'Mengubah peran akun ' . $user->name, $user,
+                        ['peran' => [implode(', ', $perananLama) ?: '-', implode(', ', $perananBaru) ?: '-']]);
+                }
             }
         });
 

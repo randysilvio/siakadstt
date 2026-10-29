@@ -24,9 +24,7 @@ class EvaluasiController extends Controller
             abort(403, 'Hanya mahasiswa yang dapat mengakses halaman ini.');
         }
 
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-                                ->where('tanggal_mulai', '<=', now())
-                                ->where('tanggal_selesai', '>=', now())
+        $sesiAktif = EvaluasiSesi::berjalan()
                                 ->orderByDesc('tanggal_mulai')
                                 ->first();
 
@@ -58,9 +56,7 @@ class EvaluasiController extends Controller
         $user = Auth::user();
         $mahasiswa = $user->mahasiswa;
 
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-                                ->where('tanggal_mulai', '<=', now())
-                                ->where('tanggal_selesai', '>=', now())
+        $sesiAktif = EvaluasiSesi::berjalan()
                                 ->orderByDesc('tanggal_mulai')
                                 ->firstOrFail();
 
@@ -100,9 +96,7 @@ class EvaluasiController extends Controller
         $mahasiswa = $user->mahasiswa;
         $dosen = $mataKuliah->dosen ?? $mataKuliah->teamDosens()->first();
 
-        $sesiAktif = EvaluasiSesi::where('is_active', true)
-                                ->where('tanggal_mulai', '<=', now())
-                                ->where('tanggal_selesai', '>=', now())
+        $sesiAktif = EvaluasiSesi::berjalan()
                                 ->orderByDesc('tanggal_mulai')
                                 ->firstOrFail();
 

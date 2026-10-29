@@ -230,7 +230,8 @@ class MahasiswaController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
 
         try {
-            Excel::import(new MahasiswasImport, $request->file('file'));
+            \App\Models\LogAktivitas::tanpaCatat(fn () => Excel::import(new MahasiswasImport, $request->file('file')));
+            \App\Models\LogAktivitas::catat('impor', 'Mengimpor data mahasiswa dari berkas ' . $request->file('file')->getClientOriginalName());
         } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];

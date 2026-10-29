@@ -29,8 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Menggunakan Bootstrap 5 untuk Paginator standar sistem
+        // Paginasi seragam SIAKAD (Bootstrap 5, Indonesia, filter dipertahankan): resources/views/vendor/pagination
         Paginator::useBootstrapFive();
+        Paginator::defaultView('pagination::siakad');
+        Paginator::defaultSimpleView('pagination::siakad-sederhana');
 
         // Tanggal pada dokumen & notifikasi selalu berbahasa Indonesia (translatedFormat / isoFormat)
         Carbon::setLocale(config('app.locale', 'id'));

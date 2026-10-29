@@ -160,7 +160,8 @@ class MataKuliahController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
         
         try {
-            Excel::import(new MataKuliahsImport, $request->file('file'));
+            \App\Models\LogAktivitas::tanpaCatat(fn () => Excel::import(new MataKuliahsImport, $request->file('file')));
+            \App\Models\LogAktivitas::catat('impor', 'Mengimpor data mata kuliah dari berkas ' . $request->file('file')->getClientOriginalName());
         } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];

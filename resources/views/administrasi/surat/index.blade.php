@@ -237,7 +237,7 @@
             
             @if($suratKeputusans->hasPages())
                 <div class="px-4 py-3 border-top bg-light">
-                    {{ $suratKeputusans->links('pagination::bootstrap-5') }}
+                    {{ $suratKeputusans->links() }}
                 </div>
             @endif
         </div>

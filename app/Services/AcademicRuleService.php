@@ -217,6 +217,11 @@ class AcademicRuleService
      */
     public function terapkanValidasiKrs(Mahasiswa $mahasiswa, TahunAkademik $periodeAktif, string $statusBaru, ?string $catatan, \App\Models\User $oleh): ?string
     {
+        // Kalender pengendali: Dosen Wali / Kaprodi hanya dapat memvalidasi di "Periode validasi KRS" (Admin selalu bisa)
+        if (!$oleh->hasRole('admin') && ($tutup = \App\Services\KalenderPengendali::alasanDiluarPeriode('validasi_krs', $periodeAktif))) {
+            return $tutup;
+        }
+
         $punyaKrs = $mahasiswa->mataKuliahs()->wherePivot('tahun_akademik_id', $periodeAktif->id)->exists();
         if (!$punyaKrs) {
             return 'Mahasiswa ini belum mengajukan mata kuliah apa pun pada semester ' . $periodeAktif->nama_semester . '.';

@@ -93,7 +93,7 @@
                 @endforelse
             </div>
 
-            <div class="mt-8">{{ $karyaTridharmas->links() }}</div>
+            <div class="mt-8">{{ $karyaTridharmas->links('pagination::siakad-publik') }}</div>
         </div>
     </main>
 

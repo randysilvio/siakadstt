@@ -8,6 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Pengumuman extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    /** Kolom yang tidak perlu masuk log aktivitas. */
+    protected array $kolomTidakDicatat = ['konten', 'slug'];
+
+    public function labelAktivitas(): string
+    {
+        return 'pengumuman "' . $this->judul . '"';
+    }
+
     use HasFactory;
 
     protected $table = 'pengumumans';

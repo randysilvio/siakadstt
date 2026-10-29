@@ -55,6 +55,20 @@
                     </div>
                 </div>
             </div>
+
+            @php $jp = $pengingatData['jumlah'] ?? []; @endphp
+            <div class="border-top mt-3 pt-3 d-flex flex-wrap align-items-center gap-2">
+                <span class="small fw-bold text-dark uppercase me-1">Pengingat Kelengkapan Data:</span>
+                @if(count($pengingatData['butir'] ?? []))
+                    <span class="badge rounded-0" style="background:#dc3545;color:#fff;">{{ $jp['kritis'] ?? 0 }} KRITIS</span>
+                    <span class="badge rounded-0" style="background:#ffc107;color:#212529;">{{ $jp['penting'] ?? 0 }} PENTING</span>
+                    <span class="badge rounded-0" style="background:#cfe2ff;color:#084298;">{{ $jp['saran'] ?? 0 }} SARAN</span>
+                    @if($pengingatData['agenda'] ?? null)<span class="badge bg-light text-danger border border-danger rounded-0">{{ strtoupper($pengingatData['agenda']) }}</span>@endif
+                    <button type="button" class="btn btn-sm btn-dark rounded-0 py-0 px-3 ms-sm-auto fw-bold small" data-bs-toggle="modal" data-bs-target="#modalPengingat">LIHAT &amp; TERUSKAN</button>
+                @else
+                    <span class="small text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Semua data penting lengkap.</span>
+                @endif
+            </div>
         </div>
     </div>
     @else
@@ -125,13 +139,20 @@
                             <h6 class="fw-bold text-dark mb-3 uppercase small">Pantauan Infrastruktur & Operasional</h6>
                             
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                <span class="text-muted small">Status Server Aplikasi</span>
-                                <span class="badge bg-dark text-white font-monospace">OPTIMAL</span>
+                                <span class="text-muted small">Basis Data SIAKAD</span>
+                                <span class="badge {{ $statusSistem['db'] ? 'bg-dark' : 'bg-danger' }} text-white font-monospace">{{ $statusSistem['db'] ? 'TERKONEKSI' : 'GANGGUAN' }}</span>
                             </div>
-                            
+
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                <span class="text-muted small">Basis Data / SIAKAD</span>
-                                <span class="text-dark small fw-bold font-monospace">TERKONEKSI</span>
+                                <span class="text-muted small">Penyimpanan Berkas</span>
+                                <span class="badge {{ $statusSistem['storage'] ? 'bg-dark' : 'bg-danger' }} text-white font-monospace">{{ $statusSistem['storage'] ? 'DAPAT DITULIS' : 'TIDAK DAPAT DITULIS' }}</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <span class="text-muted small">Penjadwal Otomatis (pengingat & kalender)</span>
+                                <span class="small fw-bold font-monospace {{ $statusSistem['penjadwal_ok'] ? 'text-dark' : 'text-danger' }}">
+                                    {{ $statusSistem['penjadwal'] ? $statusSistem['penjadwal']->diffForHumans() : 'BELUM PERNAH JALAN' }}
+                                </span>
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
@@ -238,7 +259,7 @@
     </div>
 
     {{-- 5. LOG PENGUMUMAN & AKTIVITAS PENGGUNA --}}
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-4">
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
                 <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
@@ -275,7 +296,7 @@
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm border-top border-dark border-4 h-100 bg-white">
                 <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0 text-dark uppercase small">Pemantauan Akses Terakhir</h6>
+                    <h6 class="fw-bold mb-0 text-dark uppercase small">Pemantauan Login Terakhir</h6>
                     <span class="badge bg-dark px-2 font-monospace">LOG</span>
                 </div>
                 <div class="card-body p-0">
@@ -291,7 +312,11 @@
                                             </span>
                                         </td>
                                         <td class="text-end pe-3 py-2.5">
-                                            <span class="badge bg-light text-dark border font-monospace">{{ $log->updated_at->diffForHumans() }}</span>
+                                            @if($log->sedang_online)
+                                                <span class="badge bg-success font-monospace"><i class="bi bi-circle-fill online-dot me-1" style="font-size: 7px;"></i>ONLINE</span>
+                                            @else
+                                                <span class="badge bg-light text-dark border font-monospace" title="Login terakhir {{ $log->akses_terakhir->translatedFormat('d M Y H:i') }}">{{ $log->akses_terakhir->diffForHumans() }}</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -304,6 +329,56 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- 6. LOG AKTIVITAS PENTING (siapa mengubah apa) --}}
+    <div class="card border-0 shadow-sm mb-5 border-top border-dark border-4 bg-white">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="fw-bold mb-0 text-dark uppercase small">Log Aktivitas Penting <x-info-aturan kunci="log_aktivitas" /></h6>
+            <span class="badge bg-dark px-2 font-monospace">{{ $logAktivitas->count() }} TERBARU</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-borderless mb-0 align-middle small">
+                    <tbody>
+                        @forelse($logAktivitas as $i => $a)
+                            <tr class="border-bottom {{ $i >= 10 ? 'd-none log-lainnya' : '' }}">
+                                <td class="ps-3 py-2" style="width: 26%;">
+                                    <h6 class="fw-bold text-dark mb-0 small uppercase">{{ optional($a->user)->name ?? 'Sistem' }}</h6>
+                                    <span class="text-muted font-monospace" style="font-size: 0.7rem; text-transform: uppercase;">
+                                        {{ optional(optional($a->user)->roles)->first() ? str_replace('_', ' ', $a->user->roles->first()->name) : '-' }}{{ $a->ip ? ' · ' . $a->ip : '' }}
+                                    </span>
+                                </td>
+                                <td class="py-2">
+                                    <span class="badge rounded-0 font-monospace me-1 {{ ['hapus' => 'bg-danger', 'peran' => 'bg-warning text-dark', 'login' => 'bg-light text-dark border', 'impor' => 'bg-info text-dark'][$a->aksi] ?? 'bg-dark' }}" style="font-size: 9px;">{{ strtoupper(\App\Models\LogAktivitas::LABEL_AKSI[$a->aksi] ?? $a->aksi) }}</span>
+                                    <span class="text-dark">{{ $a->keterangan }}</span>
+                                    @if($a->perubahan)
+                                        <a class="small text-decoration-none ms-1" data-bs-toggle="collapse" href="#rinci-{{ $a->id }}">rincian</a>
+                                        <div class="collapse" id="rinci-{{ $a->id }}">
+                                            <table class="table table-sm table-bordered mt-2 mb-1 font-monospace" style="font-size: 11px;">
+                                                @foreach($a->perubahan as $kolom => $nilai)
+                                                    <tr><td class="text-muted" style="width: 30%;">{{ $kolom }}</td><td class="text-danger text-decoration-line-through">{{ $nilai[0] ?? '∅' }}</td><td class="text-success">{{ $nilai[1] ?? '∅' }}</td></tr>
+                                                @endforeach
+                                            </table>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="text-end pe-3 py-2" style="width: 120px;">
+                                    <span class="badge bg-light text-dark border font-monospace" title="{{ $a->created_at->translatedFormat('d M Y H:i') }}">{{ $a->created_at->diffForHumans() }}</span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td class="text-center py-4 text-muted small uppercase fw-bold">Belum ada aktivitas tercatat.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if($logAktivitas->count() > 10)
+                <div class="text-center py-2 border-top">
+                    <button type="button" class="btn btn-sm btn-outline-dark rounded-0 fw-bold small px-3" onclick="document.querySelectorAll('.log-lainnya').forEach(function (r) { r.classList.toggle('d-none'); }); this.textContent = this.textContent.indexOf('LAINNYA') > -1 ? 'TAMPILKAN 10 SAJA' : 'TAMPILKAN {{ $logAktivitas->count() - 10 }} LAINNYA';">TAMPILKAN {{ $logAktivitas->count() - 10 }} LAINNYA</button>
+                </div>
+            @endif
         </div>
     </div>
 </div>

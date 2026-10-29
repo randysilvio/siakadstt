@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class EvaluasiSesi extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    public function labelAktivitas(): string
+    {
+        return 'sesi EDOM ' . $this->nama_sesi;
+    }
+
     use HasFactory;
 
     // Mendefinisikan nama tabel secara eksplisit
@@ -25,6 +32,13 @@ class EvaluasiSesi extends Model
      * Relasi ke model TahunAkademik.
      * Sebuah sesi evaluasi milik satu tahun akademik.
      */
+    /** Sesi aktif yang sedang berjalan hari ini (tanggal selesai ikut dihitung). */
+    public function scopeBerjalan($query)
+    {
+        $hari = now()->toDateString();
+        return $query->where('is_active', true)->whereDate('tanggal_mulai', '<=', $hari)->whereDate('tanggal_selesai', '>=', $hari);
+    }
+
     public function tahunAkademik()
     {
         return $this->belongsTo(TahunAkademik::class);

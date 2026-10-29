@@ -100,7 +100,10 @@ class NilaiController extends Controller
             ->where('tahun_akademik_id', $tahunAkademikAktif->id)
             ->exists();
 
-        return view('nilai.show', compact('mataKuliah', 'tahunAkademikAktif', 'hasVerumKelas'));
+        // Kalender pengendali "Periode input nilai" (Admin selalu bisa)
+        $nilaiTerkunci = $user->hasRole('admin') ? null : \App\Services\KalenderPengendali::alasanDiluarPeriode('input_nilai', $tahunAkademikAktif);
+
+        return view('nilai.show', compact('mataKuliah', 'tahunAkademikAktif', 'hasVerumKelas', 'nilaiTerkunci'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -133,6 +136,9 @@ class NilaiController extends Controller
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->first();
         if (!$tahunAkademikAktif) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Akademik yang aktif.');
+        }
+        if (!$user->hasRole('admin') && ($tutup = \App\Services\KalenderPengendali::alasanDiluarPeriode('input_nilai', $tahunAkademikAktif))) {
+            return redirect()->route('nilai.show', $mataKuliah->id)->with('error', $tutup);
         }
 
         $enrolledMahasiswaIds = $mataKuliah->mahasiswas()
@@ -197,6 +203,9 @@ class NilaiController extends Controller
         }
 
         $tahunAkademikAktif = TahunAkademik::where('is_active', true)->firstOrFail();
+        if (!$user->hasRole('admin') && ($tutup = \App\Services\KalenderPengendali::alasanDiluarPeriode('input_nilai', $tahunAkademikAktif))) {
+            return redirect()->route('nilai.show', $mataKuliah->id)->with('error', $tutup);
+        }
 
         $updatedCount = $this->academicService->syncNilaiVerumKeKrs($mataKuliah, $tahunAkademikAktif);
 

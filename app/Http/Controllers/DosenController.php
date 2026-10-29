@@ -223,7 +223,8 @@ class DosenController extends Controller
         $request->validate(['file' => 'required|mimes:xlsx,xls,csv,txt']);
         
         try {
-            Excel::import(new DosensImport, $request->file('file'));
+            \App\Models\LogAktivitas::tanpaCatat(fn () => Excel::import(new DosensImport, $request->file('file')));
+            \App\Models\LogAktivitas::catat('impor', 'Mengimpor data dosen dari berkas ' . $request->file('file')->getClientOriginalName());
         } catch (ExcelValidationException $e) {
             $failures = $e->failures();
             $errorMessages = [];

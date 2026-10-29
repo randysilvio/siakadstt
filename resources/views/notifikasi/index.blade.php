@@ -64,7 +64,7 @@
         </div>
 
         <div class="d-flex justify-content-center">
-            {{ $notifikasinya->links('pagination::bootstrap-5') }}
+            {{ $notifikasinya->links() }}
         </div>
     </div>
 </div>

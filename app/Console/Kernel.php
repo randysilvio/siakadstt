@@ -20,6 +20,18 @@ class Kernel extends ConsoleKernel
     {
         // [PERBAIKAN BUG FATAL FASE 6]: Menggunakan model Jadwal & TahunAkademik aktif yang sesuai dengan skema DB
         $schedule->call(fn () => $this->kirimPengingatKuliah())->dailyAt('06:00');
+
+        // Detak penjadwal: dashboard admin memperingatkan bila cron server tidak berjalan
+        $schedule->call(fn () => \Illuminate\Support\Facades\Cache::forever('siakad-penjadwal-terakhir', now()->timestamp))->hourly();
+
+        // Kalender akademik: pengingat H-3 / H-1 & "ditutup besok" untuk acara pengendali
+        $schedule->command('siakad:pengingat-kalender')->dailyAt('07:00');
+
+        // Pengingat kelengkapan data ke bidang terkait — seminggu sekali (Senin pagi)
+        $schedule->command('siakad:pengingat-kelengkapan')->weeklyOn(1, '07:30');
+
+        // Log aktivitas disimpan 1 tahun
+        $schedule->call(fn () => \App\Models\LogAktivitas::where('created_at', '<', now()->subYear())->delete())->weekly();
     }
 
     /** Pengingat jadwal kuliah harian (dipanggil scheduler pukul 06:00). */

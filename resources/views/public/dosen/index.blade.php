@@ -86,7 +86,7 @@
                 </div>
 
                 <div class="mt-10 flex justify-center">
-                    {{ $dosens->links('pagination::tailwind') }}
+                    {{ $dosens->links('pagination::siakad-publik') }}
                 </div>
             @endif
         </section>

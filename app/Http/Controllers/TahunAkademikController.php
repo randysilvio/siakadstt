@@ -70,6 +70,9 @@ class TahunAkademikController extends Controller
 
     public function update(Request $request, TahunAkademik $tahunAkademik): RedirectResponse
     {
+        if ($k = \App\Services\KalenderPengendali::pengendaliKrs($tahunAkademik)) {
+            $request->merge(['tanggal_mulai_krs' => $k->tanggal_mulai->toDateString(), 'tanggal_selesai_krs' => $k->tanggal_selesai->toDateString()]);
+        }
         $validated = $request->validate([
             'tahun' => ['required', 'string', 'max:9', new UniqueTahunSemesterRule($tahunAkademik->id)],
             'semester' => ['required', 'in:Ganjil,Genap', new UniqueTahunSemesterRule($tahunAkademik->id)],

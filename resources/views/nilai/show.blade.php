@@ -15,7 +15,7 @@
             <h3 class="fw-bold text-dark mb-0 uppercase">Input Nilai: {{ $mataKuliah->nama_mk }} <x-info-aturan kunci="nilai_akhir" /></h3>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            @if(isset($hasVerumKelas) && $hasVerumKelas && $mataKuliah->mahasiswas->isNotEmpty())
+            @if(isset($hasVerumKelas) && $hasVerumKelas && $mataKuliah->mahasiswas->isNotEmpty() && empty($nilaiTerkunci))
                 <form action="{{ route('nilai.syncVerum', $mataKuliah->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tarik data kehadiran dan nilai tugas dari kelas Verum?');">
                     @csrf
                     <button type="submit" class="btn btn-sm btn-dark px-3 uppercase fw-bold small">
@@ -43,6 +43,12 @@
         <div class="alert alert-danger alert-dismissible fade show border shadow-sm mb-4 p-3 uppercase small fw-bold">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(!empty($nilaiTerkunci))
+        <div class="alert alert-warning border-0 border-start border-warning border-4 shadow-sm mb-4 p-3 small fw-bold">
+            <i class="bi bi-lock-fill me-1"></i> {{ $nilaiTerkunci }} <x-info-aturan kunci="kalender_pengendali" />
         </div>
     @endif
 
@@ -136,7 +142,7 @@
         </div>
         
         <div class="d-flex justify-content-end mb-5">
-            @if($mataKuliah->mahasiswas->isNotEmpty())
+            @if($mataKuliah->mahasiswas->isNotEmpty() && empty($nilaiTerkunci))
                 <button type="submit" class="btn btn-dark px-5 py-2 uppercase fw-bold small shadow-sm">
                     Simpan Nilai Mahasiswa
                 </button>

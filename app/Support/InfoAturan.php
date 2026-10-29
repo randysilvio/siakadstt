@@ -61,6 +61,29 @@ class InfoAturan
                 ],
                 'dasar' => 'Kebijakan kampus.',
             ],
+            'log_aktivitas' => [
+                'modul' => 'Admin', 'halaman' => 'Dashboard Admin', 'jenis' => 'kebijakan',
+                'judul' => 'Apa yang dicatat',
+                'isi' => [
+                    'Login (web & aplikasi, termasuk mode penyamaran admin), perubahan data mahasiswa, dosen, tendik, mata kuliah, jadwal, kurikulum, program studi, tahun akademik, kalender, sesi EDOM, gelombang PMB, pengaturan, akun & peran, serta keputusan KRS (disetujui / ditolak / dibuka kembali).',
+                    'Setiap perubahan menyimpan nilai lama dan baru (kata sandi tidak pernah dicatat). Impor massal dicatat sebagai satu ringkasan.',
+                    'Modul Keuangan dan Perpustakaan tidak dicatat di sini karena terkunci dari Super Admin.',
+                    'Log disimpan 1 tahun lalu dihapus otomatis.',
+                ],
+                'dasar' => 'Kebijakan kampus (jejak audit).',
+            ],
+            'kalender_pengendali' => [
+                'modul' => 'Kalender', 'halaman' => 'Kalender Akademik (Admin)', 'jenis' => 'kebijakan',
+                'judul' => 'Kalender sebagai panel kendali',
+                'isi' => [
+                    'Acara berjenis Periode KRS / EDOM / Gelombang PMB otomatis mengisi tanggal di Tahun Akademik, Sesi EDOM, dan Gelombang PMB; tanggal di form tersebut terkunci dan diubah dari kalender.',
+                    'Periode validasi KRS: Dosen Wali / Kaprodi hanya bisa menyetujui, menolak, atau membuka kembali KRS di rentang ini. Periode input nilai: dosen hanya bisa menyimpan nilai di rentang ini. Admin selalu bisa.',
+                    'Tanggal selesai ikut dihitung sampai 23.59 WIT. Perpanjangan cukup dengan menggeser tanggal selesai.',
+                    'Saklar "Status KRS = tutup" di Pengaturan tetap menutup KRS kapan pun (tutup darurat).',
+                    'Bila suatu jenis tidak dijadwalkan di kalender, aturan lama yang berlaku.',
+                ],
+                'dasar' => 'Kebijakan kampus.',
+            ],
             'krs_persetujuan' => [
                 'modul' => 'KRS', 'halaman' => 'Perwalian & Validasi KRS Kaprodi', 'jenis' => 'kebijakan',
                 'judul' => 'Persetujuan KRS',

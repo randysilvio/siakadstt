@@ -11,6 +11,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class KrsPersetujuan extends Model
 {
+    use \App\Models\Concerns\TercatatAktivitas;
+
+    /** Kolom yang tidak perlu masuk log aktivitas. */
+    protected array $kolomTidakDicatat = ['catatan'];
+
+    public function harusDicatat(string $aksi): bool
+    {
+        if ($aksi === 'hapus') {
+            return false;
+        }
+        $lama = $this->getOriginal('status');
+        return in_array($this->status, [self::DISETUJUI, self::DITOLAK], true)
+            || ($aksi === 'ubah' && $lama === self::DISETUJUI);
+    }
+
+    public function labelAktivitas(): string
+    {
+        return 'status KRS ' . optional($this->mahasiswa)->nim . ' · ' . optional($this->mahasiswa)->nama_lengkap . ' → ' . $this->status;
+    }
+
     public const BELUM = 'Belum Mengajukan';
     public const MENUNGGU = 'Menunggu Persetujuan';
     public const DISETUJUI = 'Disetujui';
