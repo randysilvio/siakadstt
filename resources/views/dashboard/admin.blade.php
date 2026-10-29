@@ -156,6 +156,13 @@
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                <span class="text-muted small">Push Notifikasi (HP & browser)</span>
+                                <span class="badge {{ $statusSistem['push'] ? 'bg-dark' : 'bg-secondary' }} text-white font-monospace" title="{{ $statusSistem['push'] ? 'Terkirim ke perangkat terdaftar' : 'Pasang kunci service account Firebase di storage/app/firebase/service-account.json' }}">
+                                    {{ $statusSistem['push'] ? 'AKTIF · ' . number_format($statusSistem['perangkat']) . ' PERANGKAT' : 'BELUM DIKONFIGURASI' }}
+                                </span>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                                 <span class="text-muted small">Total Entitas Sivitas</span>
                                 <span class="text-dark small fw-bold font-monospace">{{ number_format($totalMahasiswa + $totalDosen) }} AKUN</span>
                             </div>

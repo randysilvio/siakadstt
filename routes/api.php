@@ -138,8 +138,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 8. FITUR NOTIFIKASI
     Route::get('/notifikasi', function (Request $request) {
-        return response()->json($request->user()->notifications()->latest()->get());
+        return response()->json($request->user()->notifications()->latest()->limit(100)->get());
     });
+    Route::post('/notifikasi/baca-semua', function (Request $request) {
+        $request->user()->unreadNotifications->markAsRead();
+        return response()->json(['status' => 'success']);
+    });
+    // 9. PANEL KENDALI KALENDER AKADEMIK (khusus Admin)
+    Route::middleware('role:admin')->prefix('admin/kalender')->controller(\App\Http\Controllers\Api\KalenderAdminController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/opsi', 'opsi');
+        Route::post('/', 'store');
+        Route::post('/saklar-krs', 'saklarKrs');
+        Route::put('/{kegiatan}', 'update')->whereNumber('kegiatan');
+        Route::delete('/{kegiatan}', 'destroy')->whereNumber('kegiatan');
+    });
+
+    Route::post('/push/token', [\App\Http\Controllers\Api\PushTokenController::class, 'simpan']);
+    Route::delete('/push/token', [\App\Http\Controllers\Api\PushTokenController::class, 'hapus']);
 
     Route::post('/notifikasi/{id}/read', function (Request $request, $id) {
         $notif = $request->user()->notifications()->where('id', $id)->first();

@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
         // Laravel 10 membutuhkan doctrine/dbal untuk ->change() kecuali operasi skema native diaktifkan.
         // Tanpa ini, `php artisan migrate` pada server baru (MySQL) gagal di migrasi yang mengubah kolom.
         Schema::useNativeSchemaOperationsIfPossible();
+
+        $this->app->singleton(\App\Services\Push\PushFcm::class);
+        $this->app->singleton(\App\Services\Push\AntrianPush::class);
     }
 
     /**

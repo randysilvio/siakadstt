@@ -21,6 +21,9 @@ class EventServiceProvider extends ServiceProvider
         \Illuminate\Auth\Events\Login::class => [
             \App\Listeners\CatatLogin::class,
         ],
+        \Illuminate\Notifications\Events\NotificationSent::class => [
+            \App\Listeners\KirimPushNotifikasi::class,
+        ],
     ];
 
     /**

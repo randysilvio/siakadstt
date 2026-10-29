@@ -1,9 +1,9 @@
-// public/firebase-messaging-sw.js
+// public/firebase-messaging-sw.js — penerima push browser SIAKAD (Firebase Cloud Messaging)
 
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-const firebaseConfig = {
+firebase.initializeApp({
     apiKey: "AIzaSyCric2X1hFP4TJ4bghlSnavjQZwmnszehU",
     authDomain: "stt-gpi-papua.firebaseapp.com",
     projectId: "stt-gpi-papua",
@@ -11,19 +11,22 @@ const firebaseConfig = {
     messagingSenderId: "633336694324",
     appId: "1:633336694324:web:a2cb604ff59a4299b4ec61",
     measurementId: "G-RED9DLVV20"
-};
-
-firebase.initializeApp(firebaseConfig);
+});
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Menerima pesan background ', payload);
-  
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/images/logo.png' 
-  };
+// Pesan ber-"notification" sudah ditampilkan otomatis oleh Firebase (klik → fcm_options.link).
+// Hanya pesan data-saja yang perlu ditampilkan manual, agar tidak muncul dobel.
+messaging.onBackgroundMessage(function (payload) {
+    if (payload.notification) return;
+    const d = payload.data || {};
+    self.registration.showNotification(d.judul || 'SIAKAD STT GPI Papua', {
+        body: d.isi || '', icon: '/images/logo.png', data: { tautan: d.tautan || '/notifikasi' }
+    });
+});
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+self.addEventListener('notificationclick', function (event) {
+    const tautan = event.notification.data && event.notification.data.tautan;
+    if (!tautan) return;
+    event.notification.close();
+    event.waitUntil(clients.openWindow(tautan));
 });

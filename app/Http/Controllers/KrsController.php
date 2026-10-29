@@ -322,8 +322,15 @@ class KrsController extends Controller
             ->groupBy('mata_kuliah_id')
             ->map(fn ($baris) => $baris->mapWithKeys(fn ($b) => [strtoupper($b->nama_kelas ?? 'A') => (int) $b->total]));
 
+        // Untuk filter "sembunyikan yang sudah lulus" & tanda prasyarat terpenuhi di aplikasi
+        $mk_lulus_ids = $mahasiswa->mataKuliahs()
+            ->wherePivotIn('nilai', ['A', 'B', 'C', 'D'])
+            ->pluck('mata_kuliahs.id')->unique()->values();
+        $mata_kuliahs->loadMissing('dosen:id,nama_lengkap');
+
         return response()->json([
             'semester'       => $periodeAktif->nama_semester,
+            'mk_lulus_ids'   => $mk_lulus_ids,
             'kelas_diambil'  => $krsSekarang->mapWithKeys(fn ($mk) => [$mk->id => strtoupper($mk->pivot->nama_kelas ?? 'A')]),
             'terisi'         => $terisi,
             'catatan'        => optional($mahasiswa->persetujuanKrsPada($periodeAktif->id))->catatan,

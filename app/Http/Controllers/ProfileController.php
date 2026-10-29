@@ -83,12 +83,12 @@ class ProfileController extends Controller
         ]);
 
         $user = auth()->user();
-        $user->fcm_token = $request->token;
-        $user->save();
+        $token = mb_substr($request->token, 0, 512);
+        \App\Models\LogAktivitas::tanpaCatat(function () use ($user, $token) {
+            $user->forceFill(['fcm_token' => $token])->saveQuietly();
+        });
+        \App\Models\PerangkatPush::daftarkan($user, $token, 'web');
 
-        return response()->json([
-            'message' => 'Token FCM berhasil disimpan.',
-            'token_yang_disimpan' => $request->token
-        ]);
+        return response()->json(['message' => 'Browser ini terdaftar untuk notifikasi.']);
     }
 }

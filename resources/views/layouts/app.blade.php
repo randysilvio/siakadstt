@@ -890,5 +890,6 @@
             window.onkeydown = resetTimer;
         })();
     </script>
+    @include('partials._push_web')
 </body>
 </html>

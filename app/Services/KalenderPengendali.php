@@ -8,7 +8,12 @@ use App\Models\KegiatanAkademik;
 use App\Models\LogAktivitas;
 use App\Models\PmbPeriod;
 use App\Models\TahunAkademik;
+use App\Models\User;
+use App\Notifications\GeneralNotification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Kalender Akademik sebagai panel kendali. Acara berjenis selain "informasi" mengatur perilaku sistem:
@@ -31,6 +36,19 @@ class KalenderPengendali
         'edom'         => 'Periode evaluasi dosen (EDOM)',
         'input_nilai'  => 'Periode input nilai dosen',
         'pmb'          => 'Gelombang PMB (buka–tutup pendaftaran)',
+    ];
+
+    /** Aturan validasi formulir acara (web & aplikasi memakai aturan yang sama). */
+    public const ATURAN = [
+        'judul_kegiatan'    => 'required|string|max:255',
+        'deskripsi'         => 'nullable|string',
+        'tanggal_mulai'     => 'required|date',
+        'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
+        'target_roles'      => 'required|array|min:1',
+        'target_roles.*'    => 'exists:roles,id',
+        'jenis'             => 'nullable|in:informasi,krs,validasi_krs,edom,input_nilai,pmb',
+        'tahun_akademik_id' => 'nullable|exists:tahun_akademiks,id',
+        'pmb_period_id'     => 'nullable|exists:pmb_periods,id',
     ];
 
     /** Jenis yang terikat pada satu Tahun Akademik. */
@@ -139,6 +157,71 @@ class KalenderPengendali
                 EvaluasiJawaban::where('evaluasi_sesi_id', $sesi->id)->exists() ? $sesi->update(['is_active' => false]) : $sesi->delete();
             });
         }
+    }
+
+    /** Normalisasi tautan sesuai jenis (acara informasi tidak menyimpan tautan kendali). */
+    public static function dataKendali(array $v): array
+    {
+        $jenis = $v['jenis'] ?? 'informasi';
+        return [
+            'jenis'             => $jenis,
+            'tahun_akademik_id' => in_array($jenis, self::PER_TAHUN_AKADEMIK, true) ? ($v['tahun_akademik_id'] ?? null) : null,
+            'pmb_period_id'     => $jenis === 'pmb' ? ($v['pmb_period_id'] ?? null) : null,
+        ];
+    }
+
+    /**
+     * Buat (tanpa $kegiatan) atau ubah acara, terapkan kendalinya, dan beri tahu peran sasaran untuk acara baru.
+     * @throws ValidationException bila bentrok dengan acara pengendali lain
+     */
+    public static function simpan(array $validated, ?KegiatanAkademik $kegiatan = null): KegiatanAkademik
+    {
+        $kendali = self::dataKendali($validated);
+        if ($galat = self::periksaBentrok($kendali, $kegiatan)) {
+            throw ValidationException::withMessages(['jenis' => $galat]);
+        }
+        $isi = array_merge([
+            'judul_kegiatan'  => $validated['judul_kegiatan'],
+            'deskripsi'       => $validated['deskripsi'] ?? null,
+            'tanggal_mulai'   => $validated['tanggal_mulai'],
+            'tanggal_selesai' => $validated['tanggal_selesai'],
+        ], $kendali);
+        $baru = !$kegiatan;
+
+        $kegiatan = DB::transaction(function () use ($kegiatan, $isi, $kendali, $validated) {
+            if ($kegiatan) {
+                // Jenis/target kendali berganti → lepaskan kendali lama (mis. sesi EDOM yang dibuat otomatis)
+                if ($kegiatan->jenis !== $kendali['jenis'] || (int) $kegiatan->tahun_akademik_id !== (int) $kendali['tahun_akademik_id']) {
+                    self::lepaskan($kegiatan);
+                    $isi['evaluasi_sesi_id'] = null;
+                }
+                $kegiatan->update($isi);
+            } else {
+                $kegiatan = KegiatanAkademik::create($isi);
+            }
+            $kegiatan->roles()->sync($validated['target_roles']);
+            self::terapkan($kegiatan->fresh());
+            return $kegiatan->fresh(['roles', 'tahunAkademik', 'pmbPeriod']);
+        });
+
+        if ($baru) {
+            $penerima = User::pemegangPeran(array_map('intval', $validated['target_roles']));
+            if ($penerima->count() > 0) {
+                Notification::send($penerima, new GeneralNotification(
+                    'Agenda Akademik Baru',
+                    $kegiatan->judul_kegiatan . ' dijadwalkan pada ' . Carbon::parse($kegiatan->tanggal_mulai)->translatedFormat('d F Y'),
+                    route('kalender.halaman'),
+                    'bi-calendar-event-fill text-dark'
+                ));
+            }
+        }
+        return $kegiatan;
+    }
+
+    public static function hapus(KegiatanAkademik $kegiatan): void
+    {
+        self::lepaskan($kegiatan);
+        $kegiatan->delete();
     }
 
     // ------------------------------------------------------------------ penanda untuk form lama

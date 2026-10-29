@@ -67,6 +67,10 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
+        // Perangkat ini berhenti menerima push untuk akun yang keluar
+        if ($user && $request->filled('push_token')) {
+            \App\Models\PerangkatPush::where('user_id', $user->id)->where('token', $request->input('push_token'))->delete();
+        }
         if ($user && $user->currentAccessToken()) {
             $user->currentAccessToken()->delete();
         }

@@ -336,6 +336,8 @@ class DashboardController extends Controller
             'storage'       => is_writable(storage_path('app')),
             'penjadwal'     => $penjadwal ? Carbon::createFromTimestamp($penjadwal) : null,
             'penjadwal_ok'  => $penjadwal && now()->timestamp - $penjadwal < 2 * 86400,
+            'push'          => app(\App\Services\Push\PushFcm::class)->aktif(),
+            'perangkat'     => \App\Models\PerangkatPush::count(),
         ];
     }
 

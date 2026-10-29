@@ -5,15 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KegiatanAkademik;
 use App\Models\Role;
-use App\Models\User; 
 use App\Models\Jadwal; 
 use App\Models\MataKuliah;
 use App\Models\TahunAkademik;
 use App\Services\KalenderPengendali;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification; 
-use App\Notifications\GeneralNotification; 
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,29 +36,6 @@ class KalenderController extends Controller
         ];
     }
 
-    private const ATURAN = [
-        'judul_kegiatan'    => 'required|string|max:255',
-        'deskripsi'         => 'nullable|string',
-        'tanggal_mulai'     => 'required|date',
-        'tanggal_selesai'   => 'required|date|after_or_equal:tanggal_mulai',
-        'target_roles'      => 'required|array',
-        'target_roles.*'    => 'exists:roles,id',
-        'jenis'             => 'nullable|in:informasi,krs,validasi_krs,edom,input_nilai,pmb',
-        'tahun_akademik_id' => 'nullable|exists:tahun_akademiks,id',
-        'pmb_period_id'     => 'nullable|exists:pmb_periods,id',
-    ];
-
-    /** Normalisasi tautan sesuai jenis (acara informasi tidak menyimpan tautan kendali). */
-    private function dataKendali(array $v): array
-    {
-        $jenis = $v['jenis'] ?? 'informasi';
-        return [
-            'jenis'             => $jenis,
-            'tahun_akademik_id' => in_array($jenis, KalenderPengendali::PER_TAHUN_AKADEMIK, true) ? ($v['tahun_akademik_id'] ?? null) : null,
-            'pmb_period_id'     => $jenis === 'pmb' ? ($v['pmb_period_id'] ?? null) : null,
-        ];
-    }
-
     public function create(): View
     {
         $roles = Role::orderBy('name')->get();
@@ -70,31 +44,7 @@ class KalenderController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate(self::ATURAN);
-        $kendali = $this->dataKendali($validated);
-        if ($galat = KalenderPengendali::periksaBentrok($kendali)) {
-            return back()->withInput()->withErrors(['jenis' => $galat]);
-        }
-
-        $kegiatan = KegiatanAkademik::create(array_merge([
-            'judul_kegiatan'  => $validated['judul_kegiatan'],
-            'deskripsi'       => $validated['deskripsi'] ?? null,
-            'tanggal_mulai'   => $validated['tanggal_mulai'],
-            'tanggal_selesai' => $validated['tanggal_selesai'],
-        ], $kendali));
-        $kegiatan->roles()->sync($validated['target_roles']);
-        KalenderPengendali::terapkan($kegiatan);
-
-        $usersToNotify = User::pemegangPeran(array_map('intval', $validated['target_roles']));
-
-        if ($usersToNotify->count() > 0) {
-            Notification::send($usersToNotify, new GeneralNotification(
-                'Agenda Akademik Baru',
-                $kegiatan->judul_kegiatan . ' dijadwalkan pada ' . Carbon::parse($kegiatan->tanggal_mulai)->translatedFormat('d F Y'),
-                route('kalender.halaman'),
-                'bi-calendar-event-fill text-dark'
-            ));
-        }
+        $kegiatan = KalenderPengendali::simpan($request->validate(KalenderPengendali::ATURAN));
 
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil ditambahkan.'
             . (KalenderPengendali::pengendali($kegiatan) ? ' Pengaturan sistem terkait sudah diperbarui otomatis.' : ''));
@@ -109,34 +59,14 @@ class KalenderController extends Controller
 
     public function update(Request $request, KegiatanAkademik $kalender): RedirectResponse
     {
-        $validated = $request->validate(self::ATURAN);
-        $kendali = $this->dataKendali($validated);
-        if ($galat = KalenderPengendali::periksaBentrok($kendali, $kalender)) {
-            return back()->withInput()->withErrors(['jenis' => $galat]);
-        }
-
-        // Bila jenis/target kendali berganti, lepaskan kendali lama (mis. sesi EDOM yang dibuat otomatis)
-        if ($kalender->jenis !== $kendali['jenis'] || (int) $kalender->tahun_akademik_id !== (int) $kendali['tahun_akademik_id']) {
-            KalenderPengendali::lepaskan($kalender);
-            $kendali['evaluasi_sesi_id'] = null;
-        }
-
-        $kalender->update(array_merge([
-            'judul_kegiatan'  => $validated['judul_kegiatan'],
-            'deskripsi'       => $validated['deskripsi'] ?? null,
-            'tanggal_mulai'   => $validated['tanggal_mulai'],
-            'tanggal_selesai' => $validated['tanggal_selesai'],
-        ], $kendali));
-        $kalender->roles()->sync($validated['target_roles']);
-        KalenderPengendali::terapkan($kalender->fresh());
+        KalenderPengendali::simpan($request->validate(KalenderPengendali::ATURAN), $kalender);
 
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil diperbarui.');
     }
 
     public function destroy(KegiatanAkademik $kalender): RedirectResponse
     {
-        KalenderPengendali::lepaskan($kalender);
-        $kalender->delete();
+        KalenderPengendali::hapus($kalender);
         return redirect()->route('admin.kalender.index')->with('success', 'Kegiatan akademik berhasil dihapus.'
             . (KalenderPengendali::pengendali($kalender) ? ' Tanggal terakhir tetap tersimpan di pengaturan terkait dan kini bisa diubah manual.' : ''));
     }
