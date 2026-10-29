@@ -86,10 +86,6 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
-// Masuk otomatis dari aplikasi seluler (tautan sekali pakai, berlaku 2 menit) — dibuka di popup WebView aplikasi
-Route::get('/masuk-aplikasi/{token}', \App\Http\Controllers\MasukAplikasiController::class)
-    ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:30,1')->name('masuk.aplikasi');
-
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 

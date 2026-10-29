@@ -9,7 +9,6 @@ use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\KrsController;
 use App\Http\Controllers\Api\DokumenController;
 use App\Http\Controllers\Api\KrsSirkulasiController;
-use App\Http\Controllers\Api\SesiWebController;
 use App\Http\Controllers\Api\VerumController as VerumApiController;
 
 // =========================================================================
@@ -112,9 +111,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Berkas privat (jawaban tugas, bukti bayar, dll.) dengan cek hak akses yang sama dengan web
     Route::get('/berkas/{jenis}/{id}/{sisi?}', [\App\Http\Controllers\BerkasController::class, 'unduh'])
         ->whereNumber('id')->whereIn('sisi', ['masuk', 'pulang'])->middleware('throttle:60,1');
-
-    // Popup SIAKAD web di dalam aplikasi: tautan masuk otomatis sekali pakai
-    Route::post('/web/sesi', [SesiWebController::class, 'buat'])->middleware('throttle:20,1');
 
     // 6b. VERUM (KELAS DARING) — aturan sama dengan web (VerumService + VerumKelasPolicy)
     Route::prefix('verum')->group(function () {

@@ -149,25 +149,6 @@ test('Verum penuh lewat API: kelas per rombel, materi, tugas, pengumpulan, nilai
     $this->actingAs($d['dUser'], 'sanctum')->deleteJson("/api/verum/forum/{$post['id']}")->assertOk();
 });
 
-test('popup web: tautan masuk otomatis sekali pakai, hanya ke jalur internal', function () {
-    $d = $this->seedAkademik();
-    $url = $this->actingAs($d['mUser'], 'sanctum')->postJson('/api/web/sesi', ['tujuan' => '/khs'])->assertOk()->json('url');
-    $jalur = parse_url($url, PHP_URL_PATH);
-
-    $this->app['auth']->forgetGuards();
-    $this->get($jalur)->assertRedirect('/khs');
-    $this->assertAuthenticatedAs($d['mUser'], 'web');
-
-    // Sekali pakai
-    auth('web')->logout();
-    $this->get($jalur)->assertRedirect(route('login'));
-
-    // Tujuan ke situs luar dibelokkan ke dashboard
-    $url2 = $this->actingAs($d['mUser'], 'sanctum')->postJson('/api/web/sesi', ['tujuan' => '//evil.test/x'])->json('url');
-    $this->app['auth']->forgetGuards();
-    $this->get(parse_url($url2, PHP_URL_PATH))->assertRedirect('/dashboard');
-});
-
 test('KTM memakai desain tetap walau tema sentral diganti', function () {
     $d = $this->seedAkademik();
     $this->actingAs($d['mUser'], 'sanctum')->getJson('/api/ktm')->assertOk()
