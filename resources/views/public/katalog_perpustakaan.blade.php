@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Katalog Perpustakaan (OPAC) — {{ $cfg['singkatan_kampus'] }}</title>
+    @include('partials._meta_sosial', ['judul' => 'Katalog Perpustakaan (OPAC) — ' . $cfg['singkatan_kampus']])
     <link rel="icon" href="{{ \App\Models\Pengaturan::logoUrl() }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|merriweather:700,900&display=swap" rel="stylesheet" />

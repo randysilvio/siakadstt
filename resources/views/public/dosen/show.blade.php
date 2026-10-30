@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $dosen->nama_lengkap }} — Profil Dosen</title>
+    @include('partials._meta_sosial', ['judul' => $dosen->nama_lengkap . ' — Profil Dosen ' . \App\Models\Pengaturan::get('singkatan_kampus', 'STT GPI Papua')])
     <link rel="icon" href="{{ \App\Models\Pengaturan::logoUrl() }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|merriweather:700,900&display=swap" rel="stylesheet" />

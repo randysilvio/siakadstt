@@ -10,6 +10,7 @@
         $favUrl    = !empty($cfg['favicon_path']) ? asset('storage/' . $cfg['favicon_path']) : $logoUrl;
     @endphp
     <title>{{ $cfg['singkatan_kampus'] }} — {{ $cfg['nama_kampus'] }}</title>
+    @include('partials._meta_sosial', [])
 
     <link rel="icon" href="{{ $favUrl }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">

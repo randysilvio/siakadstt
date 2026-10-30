@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Berita & Pengumuman — {{ \App\Models\Pengaturan::get('singkatan_kampus', 'STT GPI PAPUA') }}</title>
+    @include('partials._meta_sosial', ['judul' => 'Berita & Pengumuman — ' . \App\Models\Pengaturan::get('singkatan_kampus', 'STT GPI Papua'), 'deskripsi' => 'Kabar terbaru, pengumuman akademik, dan kegiatan ' . \App\Models\Pengaturan::get('nama_kampus', 'STT GPI Papua') . '.', 'gambar' => \App\Support\GambarBagikan::situs('Berita & Pengumuman')])
     <link rel="icon" href="{{ \App\Models\Pengaturan::logoUrl() }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|merriweather:700,900&display=swap" rel="stylesheet" />

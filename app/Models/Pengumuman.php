@@ -20,6 +20,12 @@ class Pengumuman extends Model
 
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // Gambar pratinjau media sosial ikut dibersihkan
+        static::deleted(fn (self $p) => \App\Support\GambarBagikan::hapusUntukPengumuman($p->id));
+    }
+
     protected $table = 'pengumumans';
 
     protected $fillable = [
